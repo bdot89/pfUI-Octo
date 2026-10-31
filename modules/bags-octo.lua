@@ -393,6 +393,33 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
       b:SetPoint("LEFT", o.bar, "LEFT", (i - 1) * (BO.BAR + 4), 0)
       o.bags[i] = b
     end
+    -- the bags window's last tab: the bank snapshot (blue edge: it opens something)
+    if which == "bags" then
+      local s = CreateFrame("Button", nil, o.bar)
+      CreateBackdrop(s, 1)
+      s.backdrop:SetBackdropBorderColor(.3, .6, 1, 1)
+      s:SetWidth(BO.BAR)
+      s:SetHeight(BO.BAR)
+      s:SetPoint("LEFT", o.bar, "LEFT", table.getn(BO.ORDER.bags) * (BO.BAR + 4) + 6, 0)
+      s.icon = s:CreateTexture(nil, "ARTWORK")
+      s.icon:SetPoint("TOPLEFT", s, "TOPLEFT", 2, -2)
+      s.icon:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT", -2, 2)
+      s.icon:SetTexCoord(.08, .92, .08, .92)
+      s.icon:SetTexture("Interface\\Icons\\INV_Box_02")
+      local hl = s:CreateTexture(nil, "HIGHLIGHT")
+      hl:SetAllPoints(s.icon)
+      hl:SetTexture(1, 1, 1, .15)
+      s:SetScript("OnClick", function() BO.ToggleSnapshot() end)
+      s:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText("Bank")
+        GameTooltip:AddLine("Click: what your bank holds, from your last visit.", 1, 1, 1, 1)
+        GameTooltip:AddLine("Other characters' banks are in its menu.", .35, .7, 1, 1)
+        GameTooltip:Show()
+      end)
+      s:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      o.snapbtn = s
+    end
 
     o.foot = CreateFrame("Frame", nil, f)
     o.foot:SetHeight(BO.FOOT)
@@ -914,7 +941,264 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
     BO.UpdateShown()
   end)
 
+  -- ---------------------------------------------------------------- bank snapshots
+  -- (31 Oct 2026, user: "a bank tab in our bag tabs ... a snapshot of your bank
+  -- ... view other banks on other characters on this account in a simple
+  -- menu"). Each visit to a banker saves what the bank holds in
+  -- pfUI_cache.banks[realm][name] (pfUI_cache is per account):
+  -- { class, at = time(), slots = { { link, count, tex } | false ... }, total }.
+  -- The bags window's bar gets a Bank button that opens pfBankSnapshot.
+
+  BO.BANKBAGS = { -1, 5, 6, 7, 8, 9, 10 }
+
+  function BO.Banks()
+    pfUI_cache.banks = pfUI_cache.banks or {}
+    local realm = GetRealmName() or "?"
+    pfUI_cache.banks[realm] = pfUI_cache.banks[realm] or {}
+    return pfUI_cache.banks[realm], realm
+  end
+
+  -- what the bank holds now (only while it is open: shut, the game reports nothing)
+  function BO.SaveBank()
+    if not BO.bankOpen then return end
+    local slots, total = {}, 0
+    for _, bag in ipairs(BO.BANKBAGS) do
+      local n = GetContainerNumSlots(bag) or 0
+      for slot = 1, n do
+        total = total + 1
+        local link = GetContainerItemLink(bag, slot)
+        if link then
+          local tex, count = GetContainerItemInfo(bag, slot)
+          table.insert(slots, { link = link, count = count or 1, tex = tex })
+        else
+          table.insert(slots, false)
+        end
+      end
+    end
+    local banks = BO.Banks()
+    local _, class = UnitClass("player")
+    banks[UnitName("player") or "?"] = { class = class, at = time(), slots = slots, total = total }
+    if BO.snap and BO.snap:IsShown() then BO.ShowSnapshot(BO.snap.who) end
+  end
+
+  local function Ago(at)
+    local s = time() - (at or 0)
+    if s < 120 then return "just now" end
+    if s < 7200 then return math.floor(s / 60) .. " min ago" end
+    if s < 172800 then return math.floor(s / 3600) .. " h ago" end
+    return math.floor(s / 86400) .. " days ago"
+  end
+
+  local function ClassHex(class)
+    local c = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+    if not c then return "|cffffffff" end
+    return string.format("|cff%02x%02x%02x", c.r * 255, c.g * 255, c.b * 255)
+  end
+
+  local SNAP_COLS, SNAP_SIZE, SNAP_GAP = 14, 30, 3
+
+  local function SnapSlot(parent)
+    local b = CreateFrame("Button", nil, parent)
+    b:SetWidth(SNAP_SIZE)
+    b:SetHeight(SNAP_SIZE)
+    CreateBackdrop(b, 1)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+    b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    b.icon:SetTexCoord(.08, .92, .08, .92)
+    b.count = Text(b, 11)
+    b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    b:SetScript("OnEnter", function()
+      if not this.link then return end
+      local _, _, item = string.find(this.link, "(item:[%d:%-]+)")
+      if not item then return end
+      GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      GameTooltip:SetHyperlink(item)
+      GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Shift-click = link it in chat
+    b:SetScript("OnClick", function()
+      if this.link and IsShiftKeyDown() and ChatFrameEditBox and ChatFrameEditBox:IsVisible() then
+        ChatFrameEditBox:Insert(this.link)
+      end
+    end)
+    return b
+  end
+
+  function BO.SnapshotWindow()
+    if BO.snap then return BO.snap end
+    local f = CreateFrame("Frame", "pfBankSnapshot", UIParent)
+    BO.snap = f
+    f:SetFrameStrata("HIGH")
+    f:SetClampedToScreen(true)
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", function() this:StartMoving() end)
+    f:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
+    f:SetPoint("CENTER", UIParent, "CENTER", 0, 60)
+    CreateBackdrop(f, nil, nil, .92)
+    if CreateBackdropShadow then CreateBackdropShadow(f) end
+    table.insert(UISpecialFrames, "pfBankSnapshot")
+
+    f.head = CreateFrame("Frame", nil, f)
+    f.head:SetHeight(BO.HEAD)
+    f.head:SetPoint("TOPLEFT", f, "TOPLEFT", BO.PAD, -BO.PAD)
+    f.head:SetPoint("TOPRIGHT", f, "TOPRIGHT", -BO.PAD, -BO.PAD)
+    f.wash = f.head:CreateTexture(nil, "BACKGROUND")
+    f.wash:SetAllPoints(f.head)
+    f.title = Text(f.head, 12)
+    f.title:SetPoint("LEFT", f.head, "LEFT", 6, 0)
+
+    f.close = CreateFrame("Button", nil, f.head)
+    f.close:SetWidth(16)
+    f.close:SetHeight(16)
+    f.close:SetPoint("RIGHT", f.head, "RIGHT", -2, 0)
+    if SkinCloseButton then SkinCloseButton(f.close, f.head, -2, -2) end
+    f.close:SetScript("OnClick", function() BO.snap:Hide() end)
+
+    -- the character menu: purple, it picks one of many
+    f.pick = CreateFrame("Button", nil, f.head)
+    f.pick:SetHeight(16)
+    f.pick:SetWidth(120)
+    f.pick:SetPoint("RIGHT", f.close, "LEFT", -6, 0)
+    CreateBackdrop(f.pick, 1)
+    f.pick.backdrop:SetBackdropBorderColor(.62, .4, .95, 1)
+    f.pick.text = Text(f.pick, 11)
+    f.pick.text:SetPoint("CENTER", f.pick, "CENTER", 0, 0)
+    f.pick.text:SetText("Characters  v")
+    f.pick:SetScript("OnClick", function() BO.SnapMenu(this) end)
+    f.pick:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_TOP")
+      GameTooltip:SetText("Other characters' banks")
+      GameTooltip:AddLine("Each character's bank is saved when it visits a banker.", 1, 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    f.pick:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    f.info = Text(f, 11)
+    f.info:SetTextColor(.6, .61, .65)
+    f.info:SetJustifyH("LEFT")
+    f.empty = Text(f, 12)
+    f.empty:SetTextColor(.6, .61, .65)
+    f.slots = {}
+    f:Hide()
+    return f
+  end
+
+  function BO.SnapMenu(anchor)
+    local W = pfUI.octoui and pfUI.octoui.W
+    if not W or not W.Menu then return end
+    local banks = BO.Banks()
+    local names = {}
+    for name in pairs(banks) do table.insert(names, name) end
+    table.sort(names)
+    local opts = { { label = "Banks on " .. (GetRealmName() or "this realm"), group = true } }
+    for _, name in ipairs(names) do
+      local d = banks[name]
+      local used = 0
+      for _, sl in ipairs(d.slots or {}) do if sl then used = used + 1 end end
+      table.insert(opts, { key = name, label = ClassHex(d.class) .. name .. "|r  " .. used .. "/" .. (d.total or 0),
+        tip = "Saved " .. Ago(d.at) .. "." })
+    end
+    local who = BO.snap and BO.snap.who
+    if who and who ~= UnitName("player") and banks[who] then
+      table.insert(opts, { key = "!forget", label = "|cffff5555Forget " .. who .. "'s bank|r" })
+    end
+    local m = W.Menu(anchor, opts, 190, function(key)
+      if key == "!forget" then
+        banks[who] = nil
+        BO.ShowSnapshot(UnitName("player"))
+        return
+      end
+      BO.ShowSnapshot(key)
+    end)
+    m:Show()
+  end
+
+  function BO.ShowSnapshot(who)
+    local f = BO.SnapshotWindow()
+    who = who or UnitName("player")
+    f.who = who
+    local d = BO.Banks()[who]
+    local r, g, b = BO.Wash("bank")
+    BO.PaintWash(f.wash, r, g, b, .4)
+    f.title:SetText(ClassHex(d and d.class) .. who .. "|r's bank")
+    for _, sl in ipairs(f.slots) do sl:Hide() end
+    local top = BO.PAD + BO.HEAD + 6
+    local w = 2 * BO.PAD + SNAP_COLS * (SNAP_SIZE + SNAP_GAP) - SNAP_GAP
+    f:SetWidth(w)
+    if not d or not d.slots then
+      f.info:Hide()
+      f.empty:ClearAllPoints()
+      f.empty:SetPoint("TOP", f, "TOP", 0, -(top + 10))
+      f.empty:SetWidth(w - 20)
+      f.empty:SetText("No snapshot yet. Visit a banker on " .. who .. " and it is saved.")
+      f.empty:Show()
+      f:SetHeight(top + 44)
+      f:Show()
+      return
+    end
+    f.empty:Hide()
+    local n, used = 0, 0
+    for i, item in ipairs(d.slots) do
+      local sl = f.slots[i] or SnapSlot(f)
+      f.slots[i] = sl
+      local col, row = math.mod(i - 1, SNAP_COLS), math.floor((i - 1) / SNAP_COLS)
+      sl:ClearAllPoints()
+      sl:SetPoint("TOPLEFT", f, "TOPLEFT", BO.PAD + col * (SNAP_SIZE + SNAP_GAP), -(top + row * (SNAP_SIZE + SNAP_GAP)))
+      sl.link = item and item.link or nil
+      if item then
+        used = used + 1
+        sl.icon:SetTexture(item.tex)
+        sl.icon:Show()
+        sl.count:SetText((item.count or 1) > 1 and item.count or "")
+        local _, _, hex = string.find(item.link, "|c%x%x(%x%x%x%x%x%x)")
+        local qr, qg, qb = .3, .3, .3
+        if hex and hex ~= "ffffff" and hex ~= "9d9d9d" then
+          qr, qg, qb = tonumber(string.sub(hex, 1, 2), 16) / 255, tonumber(string.sub(hex, 3, 4), 16) / 255, tonumber(string.sub(hex, 5, 6), 16) / 255
+        end
+        sl.backdrop:SetBackdropBorderColor(qr, qg, qb, 1)
+      else
+        sl.icon:Hide()
+        sl.count:SetText("")
+        sl.backdrop:SetBackdropBorderColor(.2, .2, .2, 1)
+      end
+      sl:Show()
+      n = i
+    end
+    local rows = math.ceil(math.max(n, 1) / SNAP_COLS)
+    local bottom = top + rows * (SNAP_SIZE + SNAP_GAP) + 4
+    f.info:ClearAllPoints()
+    f.info:SetPoint("TOPLEFT", f, "TOPLEFT", BO.PAD + 2, -bottom)
+    f.info:SetText(used .. "/" .. (d.total or n) .. " slots  -  saved " .. Ago(d.at) .. "  -  Shift-click: link")
+    f.info:Show()
+    f:SetHeight(bottom + 16 + BO.PAD)
+    f:Show()
+  end
+
+  function BO.ToggleSnapshot()
+    if BO.snap and BO.snap:IsShown() then BO.snap:Hide() else BO.ShowSnapshot(UnitName("player")) end
+  end
+
+  local bankev = CreateFrame("Frame")
+  bankev:RegisterEvent("BANKFRAME_OPENED")
+  bankev:RegisterEvent("BANKFRAME_CLOSED")
+  bankev:SetScript("OnEvent", function()
+    if event == "BANKFRAME_OPENED" then
+      BO.bankOpen = true
+      BO.SaveBank()
+    else
+      -- (the last look before it shuts)
+      BO.SaveBank()
+      BO.bankOpen = nil
+    end
+  end)
+
   function BO.UpdateShown()
+    -- (bank changes while it is open: the snapshot follows)
+    if BO.bankOpen then BO.SaveBank() end
     if not BO.On() then return end
     BO.ScanNew()
     BO.MarkAll()

@@ -222,5 +222,39 @@ do
   ok(BP and BP.Sizes, "bags-options loaded")
 end
 
+-- ---------------------------------------------------------------- bank snapshots
+do
+  local keep = {}
+  for _, k in ipairs({ "GetContainerItemLink", "GetContainerNumSlots", "GetContainerItemInfo", "GetRealmName", "UnitName", "UnitClass" }) do keep[k] = rawget(_G, k) end
+  _G.GetRealmName = function() return "Octo" end
+  _G.UnitName = function() return "Bdot" end
+  _G.UnitClass = function() return "Priest", "PRIEST" end
+  _G.GetContainerNumSlots = function(bag) if bag == -1 then return 3 elseif bag == 5 then return 2 end return 0 end
+  _G.GetContainerItemLink = function(bag, slot)
+    if bag == -1 and slot == 2 then return "|cff0070dd|Hitem:18609:0:0:0|h[Anathema]|h|r" end
+    if bag == 5 and slot == 1 then return "|cffffffff|Hitem:2589:0:0:0|h[Linen Cloth]|h|r" end
+  end
+  _G.GetContainerItemInfo = function(bag, slot) return "Interface\\Icons\\INV_Misc_QuestionMark", 7 end
+  pfUI_cache.banks = nil
+  BO.bankOpen = nil
+  BO.SaveBank()
+  ok(pfUI_cache.banks == nil, "a shut bank is never saved over")
+  BO.bankOpen = true
+  BO.SaveBank()
+  local d = pfUI_cache.banks and pfUI_cache.banks.Octo and pfUI_cache.banks.Octo.Bdot
+  ok(d and d.total == 5 and d.class == "PRIEST", "the open bank is saved per realm and character (5 slots)")
+  ok(d and d.slots[1] == false and d.slots[2].count == 7 and d.slots[4].link and not d.slots[5], "slots kept in order, empty ones as false")
+  pfUI_cache.banks.Octo.Alt = { class = "MAGE", at = time(), slots = { false }, total = 1 }
+  BO.ShowSnapshot("Alt")
+  ok(BO.snap and BO.snap:IsShown() and BO.snap.who == "Alt", "another character's bank opens in the snapshot window")
+  BO.ShowSnapshot("Nobody")
+  ok(BO.snap.empty:IsShown(), "a character with no snapshot says how to get one")
+  BO.ToggleSnapshot()
+  ok(not BO.snap:IsShown(), "the Bank tab closes it again")
+  BO.bankOpen = nil
+  pfUI_cache.banks = nil
+  for k, v in pairs(keep) do rawset(_G, k, v) end
+end
+
 for k, v in pairs(savedG) do rawset(_G, k, v) end
 for k, v in pairs(saved) do S[k] = v end
