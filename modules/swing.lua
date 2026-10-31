@@ -608,14 +608,20 @@ pfUI:RegisterModule("swing", "vanilla", function ()
   ST.ticker = ticker
   ticker:SetScript("OnUpdate", function()
     local t = now()
-    s.queued = ST.Queued()
-    -- moving restarts a hunter's aim
-    local x, y = GetPlayerMapPosition("player")
-    if x and (x ~= s.px or y ~= s.py) then
-      s.moving = s.px ~= nil
-      s.px, s.py = x, y
-    else
-      s.moving = false
+    -- (slot and map checks 10 times a second, not every frame - user, 31 Oct
+    -- 2026: "make the game run smoother"; the bars still draw every frame)
+    if (this.slow or 0) <= t then
+      this.slow = t + .1
+      s.queued = ST.Queued()
+      -- moving restarts a hunter's aim
+      local x, y
+      if s.ranged then x, y = GetPlayerMapPosition("player") end
+      if x and (x ~= s.px or y ~= s.py) then
+        s.moving = s.px ~= nil
+        s.px, s.py = x, y
+      else
+        s.moving = false
+      end
     end
     local reload = s.rgSpeed - .5
     if not s.wand and s.moving and t - s.rgStart >= reload and t - s.rgStart < s.rgSpeed then s.rgStart = t - reload end
