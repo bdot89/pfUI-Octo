@@ -318,6 +318,12 @@ pfUI:RegisterModule("bags-options", "vanilla:tbc", function ()
       .. "Bagnon's ideas, written fresh for 1.12 on pfUI's own bag slots. Bank bags not bought yet show red in the bank's "
       .. "bag bar: click one at the banker to buy it." })
     Preview(p)
+    -- (31 Oct 2026, user: menus "overwhelming")
+    O.CardTabs(p, {
+      { "window", "Window", "INV_Misc_Bag_08", { "Window", "What it shows", "Title bar colour" } },
+      { "slots", "Slots and bags", "INV_Misc_Bag_10", { "Slot order", "Which bags" } },
+      { "marks", "Item marks", "INV_Misc_Gem_Ruby_02", { "Item marks" } },
+    })
 
     W.Card(p, "Window", { icon = "Interface\\Icons\\INV_Misc_Bag_08", tip = "Size and shape of both windows." })
     Sld(p, "Bag columns", "Slots per row in the bag window.", 4, 24, 1, "columns")
@@ -371,6 +377,7 @@ pfUI:RegisterModule("bags-options", "vanilla:tbc", function ()
     Color(p, "Bag window: my own colour", "Used when the bag window is set to My own colour.", "washcolor")
     W.Dropdown(p, "Bank window", nil, BP.WASH, function() return G().bankwash end, function(v) G().bankwash = v Up() end)
     Color(p, "Bank window: my own colour", "Used when the bank window is set to My own colour.", "bankwashcolor")
+    O.TabFilter(p)
   end
 
   O:AddPage("Bags", "bagsocto", "Bags", Build)
