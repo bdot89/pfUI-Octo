@@ -925,11 +925,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         pfUI.firstrun:Restart()
       end
     end)
-    Btn(T["Profiles"], 80, "Export your settings as a text string, or import one (/export).", function()
-      if pfShare then
-        pfShare:Show()
-        if pfShareExport then pfShareExport:Click() end
-      end
+    Btn(T["Profiles"], 80, "Named profiles for every character on this account, and profile strings to share (Settings > General).", function()
+      -- (31 Oct 2026, GratisNinja: opening this froze the game 5 - 10 s and
+      -- put this character's string on the clipboard over the one being
+      -- moved - it pressed Export by itself. Now it opens the Profiles card.)
+      if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("stgeneral", "Profiles") else O:Open("stgeneral") end
     end)
 
     -- background opacity of this window
@@ -2024,6 +2024,75 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     W.Note(p, "Pixel perfect makes one game pixel one screen pixel" .. (perfect and (" (" .. string.format("%.2f", perfect) .. " on " .. (GetCVar("gxResolution") or "") .. ")") or "")
       .. ": the sharpest borders, but small on big screens.")
   end
+  -- named profiles (pfUI_profiles is per account: every character sees them).
+  -- A profile keeps the look and settings, not this character's UI layouts
+  -- (their copies of every setting are this character's screens and large).
+  O.prof = O.prof or {}
+  function O.ProfileSave(name)
+    if not name or name == "" then return end
+    local copy = CopyTable(C)
+    copy.layouts = nil
+    pfUI_profiles[name] = copy
+  end
+  function O.ProfileLoad(name)
+    local src = name and pfUI_profiles[name]
+    if not src then return end
+    local keep = { layouts = C.layouts, rchat = C.chat and C.chat.right and C.chat.right.enable }
+    _G.pfUI_config = CopyTable(src)
+    pfUI_config.layouts = keep.layouts
+    pfUI:UpdateConfig("global", nil, "profile", name)
+    if keep.rchat then pfUI:UpdateConfig("chat", "right", "enable", keep.rchat) end
+    pfUI:LoadConfig()
+    ReloadUI()
+  end
+  local function ProfileCard(p)
+    W.Card(p, "Profiles", { icon = "Interface\\Icons\\INV_Misc_Book_11",
+      tip = "Named profiles are kept for your whole account: save one here, load it on any other character." })
+    local function List()
+      local out = {}
+      for name in pairs(pfUI_profiles or {}) do table.insert(out, { key = name, label = name }) end
+      table.sort(out, function(a, b) return a.label < b.label end)
+      return out
+    end
+    W.Dropdown(p, "Profile", "Pick one, then Load, Save over it or Delete.", List,
+      function() return O.prof.pick end, function(v) O.prof.pick = v end)
+    W.Buttons(p, {
+      { "Load", function()
+        local n = O.prof.pick
+        if n and pfUI_profiles[n] then
+          CreateQuestionDialog("Load profile '" .. n .. "'? The UI reloads; your UI layouts stay.", function() O.ProfileLoad(n) end)
+        end
+      end, 80, "This character takes the picked profile's settings (reloads)." },
+      { "Save", function()
+        local n = O.prof.pick
+        if n then CreateQuestionDialog("Save your settings over profile '" .. n .. "'?", function() O.ProfileSave(n) end) end
+      end, 80, "Your settings now go into the picked profile." },
+      { "New profile", function()
+        CreateQuestionDialog("A name for the new profile:", function()
+          local name = string.gsub(this:GetParent().input:GetText() or "", "^%s*(.-)%s*$", "%1")
+          if name ~= "" then
+            O.ProfileSave(name)
+            O.prof.pick = name
+            if O.Refresh then O:Refresh() end
+          end
+        end, false, true)
+      end, 110, "Saves your settings now under a new name." },
+      { "Delete", function()
+        local n = O.prof.pick
+        if n and pfUI_profiles[n] then
+          CreateQuestionDialog("Delete profile '" .. n .. "'?", function()
+            pfUI_profiles[n] = nil
+            O.prof.pick = nil
+            if O.Refresh then O:Refresh() end
+          end)
+        end
+      end, 80, "Removes the picked profile for every character." },
+    })
+    W.Buttons(p, { { "Share as text...", function() if pfShare then pfShare:Show() end end, 140,
+      "A string to give to someone else (Export builds it - large settings take a few seconds)." } })
+  end
+  local general = BuildGeneral
+  BuildGeneral = function(p) general(p) ProfileCard(p) end
   O:AddPage("Settings", "stgeneral", "General", BuildGeneral)
 
   -- ---------------------------------------------------------------- open / close

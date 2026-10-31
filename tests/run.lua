@@ -4171,6 +4171,16 @@ do
     ok(pfUI_config.global.uiscale == "0.550" and math.abs(UIParent:GetScale() - .55) < .001, "a picked scale is kept and set, below the game's .64 too")
     PP.Set(nil)
     ok(pfUI_config.global.uiscale == "", "and can go back to the presets")
+    -- named profiles: account-wide, without this character's UI layouts
+    if O.ProfileSave then
+      local hadLayouts = pfUI_config.layouts
+      pfUI_config.layouts = pfUI_config.layouts or { current = "Normal" }
+      O.ProfileSave("TestProfile")
+      local saved = pfUI_profiles.TestProfile
+      ok(saved and saved.layouts == nil and saved.global and saved.global.uiscale ~= nil, "a named profile keeps the settings, not the UI layouts")
+      pfUI_profiles.TestProfile = nil
+      pfUI_config.layouts = hadLayouts
+    end
     pfUI_config.global.uiscale = keep
     pfUI.gui:Hide()
   end
