@@ -198,8 +198,13 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     local p = O.pages.ufframes
     if p then
       if not keepFolds then
+        -- (only the first card opens: a whole section open at once was a wall
+        -- of settings - user, 31 Oct 2026; the others stay as you left them)
         for _, c in ipairs(p.cards) do
-          if UF.SECTION_OF[c.title] == key and not W.IsOpen(c) then W.SetOpen(c, true) end
+          if UF.SECTION_OF[c.title] == key then
+            if not W.IsOpen(c) then W.SetOpen(c, true) end
+            break
+          end
         end
       end
       UF.Filter(p)
@@ -1121,7 +1126,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local how = band:CreateFontString(nil, "OVERLAY")
       how:SetFont(W.UIFont(), 11, "OUTLINE")
       how:SetPoint("TOPLEFT", band, "TOPLEFT", 12, -4)
-      how:SetText(k .. "Click|r a part  its settings     " .. k .. "Drag|r a text, mark, buffs, portrait or power bar  move it     "
+      how:SetText(k .. "Click|r a part  its settings     " .. k .. "Drag|r a part  move it     "
         .. k .. "Right-click|r it  put it back     " .. k .. "Shift + wheel|r  size")
       local how2 = band:CreateFontString(nil, "OVERLAY")
       how2:SetFont(W.UIFont(), 11, "OUTLINE")

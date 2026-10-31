@@ -457,6 +457,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local cols = width >= 640 and 4 or (width >= 420 and 3 or 2)
     local colw = math.floor(width / cols)
     local ROW = 22
+    -- (31 Oct 2026, user: the menus are "overwhelming"; two rows of hints with
+    -- cut-off words. One row now: the first ones, and "?" with all of them.)
+    local all = pairs_
+    if table.getn(pairs_) > cols then
+      pairs_ = {}
+      for i = 1, cols - 1 do pairs_[i] = all[i] end
+      table.insert(pairs_, { "?", "All mouse controls", more = true })
+    end
     for i, e in ipairs(pairs_) do
       local col = math.mod(i - 1, cols)
       local row = math.floor((i - 1) / cols)
@@ -484,6 +492,18 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       at:SetPoint("RIGHT", cell, "RIGHT", -6, 0)
       at:SetJustifyH("LEFT")
       at:SetText(e[2])
+      if e.more then
+        pic:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+        pic:SetTexCoord(.08, .92, .08, .92)
+        cell:EnableMouse(true)
+        cell:SetScript("OnEnter", function()
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:SetText("Mouse controls", 1, .82, 0)
+          for _, a in ipairs(all) do GameTooltip:AddDoubleLine(a[1], a[2], ar, ag, ab, 1, 1, 1) end
+          GameTooltip:Show()
+        end)
+        cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      end
       table.insert(band.howto, cell)
     end
     local rows = math.ceil(table.getn(pairs_) / cols)

@@ -1079,8 +1079,12 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     local p = O.pages.abbuttons
     if p then
       if not keepFolds then
+        -- (only the first card opens; the others stay as you left them)
         for _, c in ipairs(p.cards) do
-          if AB.BSECTION_OF[c.title] == key and not W.IsOpen(c) then W.SetOpen(c, true) end
+          if AB.BSECTION_OF[c.title] == key then
+            if not W.IsOpen(c) then W.SetOpen(c, true) end
+            break
+          end
         end
       end
       AB.BFilter(p)
