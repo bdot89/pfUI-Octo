@@ -585,6 +585,12 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     W.Heading(p, "Minimap", { on = O.ModuleSwitch("minimap", "Minimap"), about = "The map's look: a ready-made style, its shape, border, the spell art around it, "
       .. "size and opacity. Buttons and texts around it are on \"Buttons and text\"." })
     Preview(p)
+    -- (31 Oct 2026, user: menus "overwhelming")
+    O.CardTabs(p, {
+      { "look", "Look", "INV_Misc_Gem_Variety_01", { "Looks", "Shape and border", "Size, opacity and zoom" } },
+      { "art", "Art", "Spell_Holy_InnerFire", { "Art" } },
+      { "hide", "Hide by itself", "INV_Misc_Eye_01", { "Hide by itself" } },
+    })
     -- (user, 24 Oct 2026: hidden by itself in battlegrounds, raids...)
     if pfUI.context and pfUI.context.MapCard then pfUI.context.MapCard(p, W) end
 
@@ -647,6 +653,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     Sld(p, "Opacity", nil, .1, 1, .05, S, "alpha", Alpha)
     Sld(p, "Opacity in combat", nil, .1, 1, .05, S, "combatalpha", Alpha)
     Sld(p, "Zoom back out after", "The map zooms all the way out after this long (0 = never).", 0, 60, 1, S, "autozoom", Sec)
+    O.TabFilter(p)
   end
 
   -- ---------------------------------------------------------------- buttons and text page
