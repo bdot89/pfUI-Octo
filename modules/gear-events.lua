@@ -231,6 +231,17 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
         .. "battleground or a raid - and put back what you wore when it ends. The first one in the list that is "
         .. "happening wins. Armour waits for combat to end (weapons swap at once); everything waits while you are "
         .. "dead or casting." })
+    -- (31 Oct 2026, user: menus "overwhelming": the events in four tabs)
+    local GROUP = { mount = "travel", taxi = "travel", swim = "travel", stealth = "forms", bg = "places", raid = "places",
+      dungeon = "places", rest = "places", combat = "combat" }
+    local tabs = { travel = {}, forms = {}, places = {}, combat = { "Waiting" } }
+    for _, e in ipairs(GE.All()) do table.insert(tabs[GROUP[e.key] or "forms"], e.label) end
+    O.CardTabs(p, {
+      { "travel", "Travel", "Ability_Mount_RidingHorse", tabs.travel },
+      { "forms", "Stances and forms", "Ability_Warrior_DefensiveStance", tabs.forms },
+      { "places", "Places", "INV_Misc_Map_01", tabs.places },
+      { "combat", "Combat and waiting", "INV_Sword_04", tabs.combat },
+    })
     W.Card(p, "Waiting", { tip = "When gear cannot change yet, the swap waits and goes on by itself." })
     Chk(p, "Wait while dead", "Swaps asked for while dead go on when you are alive again (off: they are refused).", "waitdead")
     Chk(p, "Wait while casting", "Swaps wait for your cast or channel to end, so they never cut it short.", "waitcast")
@@ -251,6 +262,7 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     if table.getn(GE.Forms()) == 0 then
       W.Note(p, "Stances and forms show up here on characters that have them.")
     end
+    O.TabFilter(p)
   end
   O:AddPage("Gear", "gearevents", "Automatic swaps", Build)
 

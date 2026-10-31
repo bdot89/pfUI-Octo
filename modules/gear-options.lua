@@ -637,6 +637,11 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
       .. "weapons change at once and the rest when combat ends. Also: the Gear sets list beside your character window, "
       .. "the set button, keys, /gear equip <set>." })
     Editor(p)
+    -- (31 Oct 2026, user: menus "overwhelming")
+    O.CardTabs(p, {
+      { "set", "This set", "INV_Chest_Cloth_17", { "This set" } },
+      { "opts", "Buttons and swapping", "INV_Misc_Gear_01", { "Buttons", "Swapping", "Character window", "Trinket bar" } },
+    })
 
     W.Card(p, "This set", { tip = "The set picked on the left." })
     W.Buttons(p, {
@@ -706,6 +711,7 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
     Chk(p, "Menu on right-click", "Off: it opens when the mouse is over a trinket, and right-click opens the trinket queue. The cog in a trinket's corner: left-click = queue on / off, right-click = its queue.", "trinketmenuclick")
     Chk(p, "Menu only with Shift held", nil, "trinketshift")
     Chk(p, "Cooldown numbers", nil, "cdnumbers")
+    O.TabFilter(p)
   end
 
   -- ---------------------------------------------------------------- slot buttons page
