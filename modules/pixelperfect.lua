@@ -8,16 +8,31 @@ pfUI:RegisterModule("pixelperfect", "vanilla:tbc", function ()
     [8] = 0.71111111111111,
   }
 
+  -- octo (31 Oct 2026, user: "a UI scale slider like in the original pfUI"):
+  -- C.global.uiscale = an exact scale picked on Settings > General; it wins
+  -- over the presets above. The game's own uiScale CVar only takes .64 - 1,
+  -- so the exact number is set on UIParent at every login by us.
+  local function own()
+    local v = tonumber(C.global.uiscale or "")
+    if v and v >= .3 and v <= 2 then return v end
+  end
+
   -- pixel perfect
   local function pixelperfect()
-    local conf = tonumber(C.global.pixelperfect)
+    local mine = own()
+    if mine then
+      SetCVar("uiScale", math.max(.64, math.min(1, mine)))
+      SetCVar("useUiScale", 1)
+      UIParent:SetScale(mine)
+      return
+    end
+    local conf = tonumber(C.global.pixelperfect) or 0
     if conf < 4 then
-      -- restore gamesettings
-      local scale = GetCVar("uiScale")
-      local use = GetCVar("useUiScale")
-
-      if use == 1 then
-        UIParent:SetScale(tonumber(use))
+      -- restore gamesettings (octo: pfUI compared the CVar string with the
+      -- number 1 and set the scale to that "1" - every login went to .9)
+      local scale = tonumber(GetCVar("uiScale"))
+      if GetCVar("useUiScale") == "1" and scale then
+        UIParent:SetScale(scale)
       else
         UIParent:SetScale(.9)
       end
@@ -32,14 +47,25 @@ pfUI:RegisterModule("pixelperfect", "vanilla:tbc", function ()
   end
 
   -- pixelperfect: native UIScale listener
-  if tonumber(C.global.pixelperfect) > 0 then
-    local f = CreateFrame("Frame")
-    f:RegisterEvent("PLAYER_ENTERING_WORLD")
-    f:SetScript("OnEvent", pixelperfect)
-    pixelperfect()
-  end
+  local f = CreateFrame("Frame")
+  f:RegisterEvent("PLAYER_ENTERING_WORLD")
+  f:SetScript("OnEvent", function()
+    if own() or (tonumber(C.global.pixelperfect) or 0) > 0 then pixelperfect() end
+  end)
+  if own() or (tonumber(C.global.pixelperfect) or 0) > 0 then pixelperfect() end
 
   pfUI.pixelperfect = {
-    UpdateConfig = pixelperfect
+    UpdateConfig = pixelperfect,
+    -- the scale that fits one game pixel to one screen pixel
+    Perfect = function()
+      local _, _, w, h = string.find(GetCVar("gxResolution") or "", "(%d+)x(%d+)")
+      h = tonumber(h)
+      return h and h > 0 and 768 / h or nil
+    end,
+    -- an exact scale (nil = back to the presets / the game's own)
+    Set = function(v)
+      C.global.uiscale = v and string.format("%.3f", v) or ""
+      pixelperfect()
+    end,
   }
 end)

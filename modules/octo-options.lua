@@ -1882,6 +1882,46 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   g.OnPageBuilt = O.SkinPage
 
+  -- ---------------------------------------------------------------- Settings > General
+
+  -- (31 Oct 2026, user: "a UI scale slider like in the original pfUI in the
+  -- settings menu"). The scale is applied a moment after the slider stops,
+  -- not while it moves: the window itself rescales under the mouse.
+  local function BuildGeneral(p)
+    local PP = pfUI.pixelperfect
+    W.Heading(p, "General", { about = "Settings for the whole interface." })
+    W.Card(p, "UI scale", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
+      tip = "How big everything on the screen is. Kept per character, and applied at every login." })
+    local wait = CreateFrame("Frame")
+    wait:Hide()
+    wait:SetScript("OnUpdate", function()
+      if GetTime() < this.at then return end
+      this:Hide()
+      if PP and PP.Set then PP.Set(this.v) end
+    end)
+    local function Later(v)
+      wait.v, wait.at = v, GetTime() + .35
+      wait:Show()
+    end
+    W.Slider(p, "Scale", "Drag, or click the number and type one. Below .64 or above 1 works too (the game's own menu cannot do that).",
+      .4, 1.2, .01, function() return UIParent:GetScale() end, Later,
+      function(v) return string.format("%.2f", v) end)
+    local function Pick(v) return function()
+      if PP and PP.Set then PP.Set(v) end
+      if O.Refresh then O:Refresh() end
+    end end
+    local perfect = PP and PP.Perfect and PP.Perfect()
+    local list = {}
+    if perfect then table.insert(list, { "Pixel perfect", Pick(perfect), 110 }) end
+    table.insert(list, { "Small", Pick(.64), 70 })
+    table.insert(list, { "Medium", Pick(.8), 70 })
+    table.insert(list, { "Large", Pick(1), 70 })
+    W.Buttons(p, list)
+    W.Note(p, "Pixel perfect makes one game pixel one screen pixel" .. (perfect and (" (" .. string.format("%.2f", perfect) .. " on " .. (GetCVar("gxResolution") or "") .. ")") or "")
+      .. ": the sharpest borders, but small on big screens.")
+  end
+  O:AddPage("Settings", "stgeneral", "General", BuildGeneral)
+
   -- ---------------------------------------------------------------- open / close
 
   O:Build()

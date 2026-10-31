@@ -4110,6 +4110,25 @@ do
   end
 end
 
+-- Settings > General: the UI scale slider
+do
+  local O = pfUI.octoui and pfUI.octoui.Options
+  local PP = pfUI.pixelperfect
+  ok(O and O.BUILD.stgeneral and PP and PP.Set, "Settings > General page with the UI scale")
+  if O and PP then
+    pfUI.gui:Show()
+    local good, err = pcall(function() O:Select("o:stgeneral") end)
+    ok(good and O.pages.stgeneral and O.pages.stgeneral.frame:IsShown(), "the General page builds: " .. tostring(err))
+    local keep = pfUI_config.global.uiscale
+    PP.Set(.55)
+    ok(pfUI_config.global.uiscale == "0.550" and math.abs(UIParent:GetScale() - .55) < .001, "a picked scale is kept and set, below the game's .64 too")
+    PP.Set(nil)
+    ok(pfUI_config.global.uiscale == "", "and can go back to the presets")
+    pfUI_config.global.uiscale = keep
+    pfUI.gui:Hide()
+  end
+end
+
 -- the Buffs section: one page with a preview laid out as buff.lua does it
 do
   local O = pfUI.octoui and pfUI.octoui.Options
