@@ -356,6 +356,12 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     W.Heading(p, "Look and size", { about = "Ready-made looks first, then one card for each part of a plate - everything "
       .. "about it in one place: shown or not, letters, size, colour and where it sits. Click a part in the preview to jump to its card." })
     Preview(p)
+    O.CardTabs(p, {
+      { "look", "Look", "INV_Misc_Gem_Variety_01", { "Looks", "Size by kind", "Border" } },
+      { "bar", "Health bar", "Spell_Holy_Heal02", { "Health bar", "Health text" } },
+      { "text", "Name and level", "INV_Scroll_03", { "Letters", "Name", "Level" } },
+      { "marks", "Marks", "INV_Banner_01", { "Combo points", "Raid mark" } },
+    })
     W.Card(p, "Looks", { tip = "Ready-made styles: bar texture, border skin, sizes, text and target marker in one click." })
     Looks(p)
     W.Card(p, "Size by kind", { tip = "% of the health bar's width and height; plates grow and shrink smoothly." })
@@ -440,6 +446,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     Sld(p, "Size", nil, 8, 48, 1, N, "raidiconsize", Px)
     Sld(p, "Left / right", nil, -60, 60, 1, N, "raidiconoffx", Px)
     Sld(p, "Up / down", nil, -60, 60, 1, N, "raidiconoffy", Px)
+    O.TabFilter(p)
   end
 
   -- ---------------------------------------------------------------- threat
@@ -581,6 +588,11 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
         .. "With SuperWoW every plate knows its auras; without it only your target does. Timers are known for your own "
         .. "debuffs (and others' when ClassicAPI tells)." })
     Preview(p)
+    O.CardTabs(p, {
+      { "show", "What shows", "Spell_Holy_MagicalSentry", { "Enemy buffs", "What shows", "Icons" } },
+      { "special", "Special and ghost", "Spell_Shadow_DeathCoil", { "Special auras", "Ghost auras" } },
+      { "old", "Old debuff row", "INV_Misc_Book_08", { "Old debuff row" } },
+    })
     -- (user, 29 Oct 2026: "SHOW ENEMY BUFFS clear somewhere ... all ENEMY NPC AND PLAYERS buffs")
     W.Card(p, "Enemy buffs", { tip = "Buffs on enemies - NPCs and players. The same switches are on Unit frames > Frames." })
     W.Dropdown(p, "Enemy buffs on nameplates", "All: every buff an enemy has. Important: big cooldowns only (Ice Block, Shield Wall...).",
@@ -639,6 +651,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     Chk(p, "Stacks", "The stack count on the icon.", ND, "showstacks")
     Chk(p, "Only yours", "Only the debuffs you put on.", N, "selfdebuff")
     Chk(p, "Estimate", "Remember debuffs seen on a unit for plates that cannot read them.", N, "guessdebuffs")
+    O.TabFilter(p)
   end
 
   -- ---------------------------------------------------------------- colours and names
@@ -801,6 +814,9 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     if not (O.frame and O.frame:IsShown()) then O:Open(key) else O:Select("o:" .. key) end
     local p = O.pages[key]
     if not p then return end
+    -- (a page with card tabs: the card's tab first)
+    local tab = p.tabs and p.tabs.of[title]
+    if tab and tab ~= p.tabs.cur and O.TabSet then O.TabSet(p, tab, true) end
     for _, c in ipairs(p.cards) do
       if c.title == title then
         if not W.IsOpen(c) then W.SetOpen(c, true) end

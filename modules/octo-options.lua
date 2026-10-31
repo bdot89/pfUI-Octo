@@ -1902,6 +1902,90 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   g.OnPageBuilt = O.SkinPage
 
+  -- ---------------------------------------------------------------- card tabs
+  -- (31 Oct 2026, user: menus "overwhelming". A long page of cards gets tabs:
+  -- one group of cards shows at a time, the first card of a group opens.)
+  -- sections = { { key, label, icon name, { card titles } }, ... }; call
+  -- O.CardTabs(p, sections) where the tabs go and O.TabFilter(p) at the end
+  -- of the page's build. Cards in no section show under every tab.
+  function O.CardTabs(p, sections)
+    local t = { list = sections, of = {}, cur = p.tabsCur or sections[1][1] }
+    for _, s in ipairs(sections) do
+      for _, title in ipairs(s[4]) do t.of[title] = s[1] end
+    end
+    p.tabs = t
+    local row = W.Row(p, 24, 0, 6)
+    local n = table.getn(sections)
+    local w = math.floor((W.CW - (n - 1) * 4) / n)
+    local btns = {}
+    for i, s in ipairs(sections) do
+      local b = W.Button(row, s[2], w, 22)
+      b:SetPoint("LEFT", row, "LEFT", (i - 1) * (w + 4), 0)
+      b.key = s[1]
+      local pic = b:CreateTexture(nil, "OVERLAY")
+      pic:SetTexture("Interface\\Icons\\" .. s[3])
+      pic:SetTexCoord(.08, .92, .08, .92)
+      pic:SetWidth(16)
+      pic:SetHeight(16)
+      pic:SetPoint("LEFT", b, "LEFT", 5, 0)
+      if b.label then
+        b.label:ClearAllPoints()
+        b.label:SetPoint("LEFT", pic, "RIGHT", 5, 0)
+        b.label:SetPoint("RIGHT", b, "RIGHT", -4, 0)
+        b.label:SetJustifyH("LEFT")
+      end
+      W.Tip(b, s[2], "Shows: " .. table.concat(s[4], ", ") .. ".")
+      b:SetScript("OnClick", function() O.TabSet(p, this.key) end)
+      btns[i] = b
+    end
+    table.insert(p.items, { Refresh = function()
+      for _, b in ipairs(btns) do W.Pick(b, b.key == p.tabs.cur) end
+      O.TabFilter(p)
+    end })
+    p.tabFirst = p.last
+    -- Find a setting / a preview click on a card in another tab: that tab first
+    p.onReveal = function(e)
+      local s = e.card and t.of[e.card.title]
+      if s and s ~= t.cur then O.TabSet(p, s, true) end
+    end
+  end
+
+  function O.TabFilter(p)
+    local t = p and p.tabs
+    if not t or not p.cards or not p.tabFirst then return end
+    local prev, gap = p.tabFirst, 13
+    for _, c in ipairs(p.cards) do
+      local s = t.of[c.title]
+      if not s or s == t.cur then
+        c.card:ClearAllPoints()
+        c.card:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
+        c.card:Show()
+        prev, gap = c.card, 9
+      else
+        c.card:Hide()
+      end
+    end
+    p.last = prev
+  end
+
+  function O.TabSet(p, key, keepFolds)
+    local t = p and p.tabs
+    if not t then return end
+    t.cur, p.tabsCur = key, key
+    if not keepFolds then
+      for _, c in ipairs(p.cards) do
+        if t.of[c.title] == key then
+          if not W.IsOpen(c) then W.SetOpen(c, true) end
+          break
+        end
+      end
+    end
+    O.TabFilter(p)
+    local sb = getglobal((p.frame:GetName() or "") .. "ScrollBar")
+    if sb then sb:SetValue(0) elseif p.frame.SetVerticalScroll then p.frame:SetVerticalScroll(0) end
+    if O.Refresh then O:Refresh() end
+  end
+
   -- ---------------------------------------------------------------- Settings > General
 
   -- (31 Oct 2026, user: "a UI scale slider like in the original pfUI in the

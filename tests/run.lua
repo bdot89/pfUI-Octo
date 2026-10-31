@@ -4133,6 +4133,30 @@ do
   end
 end
 
+-- Nameplates > Look and size: card tabs (O.CardTabs)
+do
+  local O = pfUI.octoui and pfUI.octoui.Options
+  local P = pfUI.plates
+  if O and O.CardTabs and O.BUILD.nplook and P and P.OpenSection then
+    pfUI.gui:Show()
+    pcall(function() O:Select("o:nplook") end)
+    local p = O.pages.nplook
+    ok(p and p.tabs and p.tabs.cur == "look", "Look and size starts on its Look tab")
+    local function Shown()
+      local out = {}
+      for _, c in ipairs(p.cards) do if c.card:IsShown() then table.insert(out, c.title) end end
+      return out
+    end
+    if p and p.tabs then
+      ok(table.getn(Shown()) == 3, "only the Look tab's 3 cards show: " .. table.concat(Shown(), ", "))
+      P.OpenSection("nplook", "Raid mark")
+      ok(p.tabs.cur == "marks" and table.getn(Shown()) == 2, "a preview click on the raid mark goes to the Marks tab")
+      O.TabSet(p, "look")
+    end
+    pfUI.gui:Hide()
+  end
+end
+
 -- Settings > General: the UI scale slider
 do
   local O = pfUI.octoui and pfUI.octoui.Options
