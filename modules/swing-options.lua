@@ -181,6 +181,12 @@ pfUI:RegisterModule("swing-options", "vanilla", function ()
       .. "Shot or wand shot - WeaponSwingTimer's bars, built in. Swings come from SuperWoW when it runs (the exact hand), "
       .. "else from the combat log." })
     Preview(p)
+    -- (31 Oct 2026, user: menus "overwhelming"; Look shows under every tab)
+    O.CardTabs(p, {
+      { "melee", "Melee", "INV_Sword_04", { "Your swing", "Queued attacks", "Target's swing" } },
+      { "ranged", "Ranged", "INV_Weapon_Bow_02", { "Auto Shot and wand", "Aimed and Multi-Shot" } },
+      { "class", "Class marks", "Ability_Warrior_DecisiveStrike", { "Warrior: Slam", "Paladin: seal twisting" } },
+    })
 
     W.Card(p, "Look", { tip = "The same looks for every bar." })
     Drop(p, "Bar", "Classic, Plain, Minimalist, Cooldown Manager, or any pfUI bar texture.", BarList(), function() return C.swing.look end, "bar")
@@ -245,6 +251,7 @@ pfUI:RegisterModule("swing-options", "vanilla", function ()
     Color(p, "Twist line", nil, G("paladin"), "twistcolor")
     Color(p, "GCD line", nil, G("paladin"), "gcdcolor")
     Sld(p, "Line height", "How far the lines stand out above and below the bar.", 0, 20, 1, G("paladin"), "offset", Px)
+    O.TabFilter(p)
   end
 
   O:AddPage("Swing Timer", "stbars", "Bars", Build)
