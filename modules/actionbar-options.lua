@@ -532,7 +532,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     local cdSpot = CreateFrame("Frame", nil, b)
     cdSpot:SetWidth(30) cdSpot:SetHeight(24)
     cdSpot:SetPoint("CENTER", b, "CENTER", 0, 0)
-    Hot(cdSpot, "Cooldown swipe and number", "Cooldown", "abbuttons")
+    Hot(cdSpot, "Cooldown swipe and number", "Cooldown swipe", "abbuttons")
     Hot(note, "What the sample shows now", "Button", "abbuttons").follow = true
 
     local function Text(fs, size, color, text)
@@ -638,7 +638,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
         -- pfUI's own cooldown text, so its colours and tenths show as in game
         b.cd:SetTextColor(1, 1, 1)
         b.cd:SetText(GetColoredTimeString(6 - t))
-        Note("cooldown", "abbuttons", "Cooldown")
+        Note("cooldown", "abbuttons", "Cooldown swipe")
       else
         b.sweep:Hide()
         if b.octoDrain then b.octoDrain:Hide() end
@@ -1037,11 +1037,107 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
   -- the same page"). The sample's parts open these cards by title. In every
   -- card: menus and sliders two to a row, then colours and tick boxes in
   -- even columns.
+  -- (31 Oct 2026, user: the menus are "overwhelming" - Action Bars first.
+  -- Buttons had 9 cards in one long page: now tabs under the preview show one
+  -- group at a time, as Unit Frames does.) { key, tab, picture, card titles }
+  AB.BSECTIONS = {
+    { "look", "Look", "INV_Misc_StoneTablet_05", { "Button", "Highlights", "Equipped items" } },
+    { "hover", "Hover and press", "Spell_Holy_SearingLight", { "Hover and press" } },
+    { "cd", "Cooldowns", "INV_Misc_PocketWatch_02", { "Cooldown swipe", "Countdown number", "When it is ready" } },
+    { "glow", "Proc glow", "Spell_Holy_PowerInfusion", { "Proc glow" } },
+    { "text", "Letters", "INV_Misc_Note_01", { "Letters" } },
+  }
+  AB.bsec = AB.bsec or "look"
+  AB.BSECTION_OF = {}
+  for _, s in ipairs(AB.BSECTIONS) do
+    for _, t in ipairs(s[4]) do AB.BSECTION_OF[t] = s[1] end
+  end
+
+  function AB.BFilter(p)
+    p = p or O.pages.abbuttons
+    if not p or not p.cards or not p.abFirst then return end
+    p.onReveal = p.onReveal or function(e)
+      local s = e.card and AB.BSECTION_OF[e.card.title]
+      if s and s ~= AB.bsec then AB.BSetSection(s, true) end
+    end
+    local prev, gap = p.abFirst, 13
+    for _, c in ipairs(p.cards) do
+      if (AB.BSECTION_OF[c.title] or "look") == AB.bsec then
+        c.card:ClearAllPoints()
+        c.card:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
+        c.card:Show()
+        prev, gap = c.card, 9
+      else
+        c.card:Hide()
+      end
+    end
+    p.last = prev
+  end
+
+  function AB.BSetSection(key, keepFolds)
+    AB.bsec = key
+    local p = O.pages.abbuttons
+    if p then
+      if not keepFolds then
+        for _, c in ipairs(p.cards) do
+          if AB.BSECTION_OF[c.title] == key and not W.IsOpen(c) then W.SetOpen(c, true) end
+        end
+      end
+      AB.BFilter(p)
+      local sb = getglobal((p.frame:GetName() or "") .. "ScrollBar")
+      if sb then sb:SetValue(0) elseif p.frame.SetVerticalScroll then p.frame:SetVerticalScroll(0) end
+    end
+    if O.Refresh then O:Refresh() end
+  end
+
+  local function ButtonTabs(p)
+    local row = W.Row(p, 24, 0, 6)
+    local n = table.getn(AB.BSECTIONS)
+    local w = math.floor((W.CW - (n - 1) * 4) / n)
+    local tabs = {}
+    for i, s in ipairs(AB.BSECTIONS) do
+      local b = W.Button(row, s[2], w, 22)
+      b:SetPoint("LEFT", row, "LEFT", (i - 1) * (w + 4), 0)
+      b.key = s[1]
+      local pic = b:CreateTexture(nil, "OVERLAY")
+      pic:SetTexture(ICON .. s[3])
+      pic:SetTexCoord(.08, .92, .08, .92)
+      pic:SetWidth(16)
+      pic:SetHeight(16)
+      pic:SetPoint("LEFT", b, "LEFT", 5, 0)
+      if b.label then
+        b.label:ClearAllPoints()
+        b.label:SetPoint("LEFT", pic, "RIGHT", 5, 0)
+        b.label:SetPoint("RIGHT", b, "RIGHT", -4, 0)
+        b.label:SetJustifyH("LEFT")
+      end
+      W.Tip(b, s[2], "Shows: " .. table.concat(s[4], ", ") .. ".")
+      b:SetScript("OnClick", function() AB.BSetSection(this.key) end)
+      tabs[i] = b
+    end
+    table.insert(p.items, { Refresh = function()
+      for _, b in ipairs(tabs) do W.Pick(b, b.key == AB.bsec) end
+    end })
+  end
+
   BUILD.abbuttons = function(p)
-    W.Heading(p, "Buttons", { about = "Everything about a button: its border and icon, what it does when you hover, press, "
-      .. "wait on a cooldown or get a proc, its colours, its letters and equipped items. Click a part of the sample "
-      .. "button to jump to it; the Test buttons play an effect on the sample or on your own bars." })
+    W.Heading(p, "Buttons", { about = "Everything about a button. Pick a group with the tabs under the sample: its look, "
+      .. "hover and press, cooldowns, proc glow or letters. Click a part of the sample button to jump to it; the Test buttons "
+      .. "play an effect on the sample or on your own bars." })
     Preview(p, true)
+    ButtonTabs(p)
+    p.abFirst = p.last
+    -- a click on the sample (or Find) for a card in another tab: that tab first
+    local P = pfUI.plates
+    if P and P.OpenSection and not AB.bwrapped then
+      AB.bwrapped = true
+      local OpenSection = P.OpenSection
+      P.OpenSection = function(key, title)
+        local sec = key == "abbuttons" and AB.BSECTION_OF[title]
+        if sec and sec ~= AB.bsec then AB.BSetSection(sec, true) end
+        return OpenSection(key, title)
+      end
+    end
 
     W.Card(p, "Button", { icon = ICON .. "INV_Misc_StoneTablet_05", tip = "The look round every button, the icon, and what fills an empty slot. Ready-made looks: General." })
     local skins = {}
@@ -1143,7 +1239,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
       KeyColour("Not usable colour", nil, G, "nacolor"),
     })
 
-    W.Card(p, "Letters", { tip = "The key, macro name and count on each button, and the cooldown number." })
+    W.Card(p, "Letters", { tip = "The key, macro name and count on each button. The cooldown number is under Cooldowns." })
     local fonts = {}
     for _, f in ipairs(W.Fonts()) do table.insert(fonts, { key = f.key, label = f.label, font = f.key }) end
     Drop(p, "Font", nil, fonts, G, "font")
@@ -1164,6 +1260,8 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
       Tick("Mark equipped items", nil, G, "showequipped"),
       KeyColour("Tint colour", nil, G, "eqcolor"),
     })
+    AB.BFilter(p)
+    table.insert(p.items, { Refresh = function() AB.BFilter(p) end })
   end
 
   -- ---------------------------------------------------------------- paging

@@ -4110,6 +4110,29 @@ do
   end
 end
 
+-- Action Bars > Buttons: one group of cards at a time
+do
+  local O = pfUI.octoui and pfUI.octoui.Options
+  local AB = pfUI.barsOcto
+  if O and AB and O.BUILD.abbuttons then
+    pfUI.gui:Show()
+    local good, err = pcall(function() O:Select("o:abbuttons") end)
+    local p = O.pages.abbuttons
+    ok(good and p and p.abFirst, "the Buttons page builds with its tabs: " .. tostring(err))
+    if p and AB.BSetSection then
+      AB.BSetSection("cd")
+      local shown, hidden = {}, 0
+      for _, c in ipairs(p.cards) do
+        if c.card:IsShown() then table.insert(shown, c.title) else hidden = hidden + 1 end
+      end
+      ok(table.getn(shown) == 3 and shown[1] == "Cooldown swipe" and hidden >= 6, "the Cooldowns tab shows only its 3 cards: " .. table.concat(shown, ", "))
+      ok(p.last == p.cards[1].card or p.last:IsShown(), "the page ends at the last card shown")
+      AB.BSetSection("look")
+    end
+    pfUI.gui:Hide()
+  end
+end
+
 -- Settings > General: the UI scale slider
 do
   local O = pfUI.octoui and pfUI.octoui.Options
