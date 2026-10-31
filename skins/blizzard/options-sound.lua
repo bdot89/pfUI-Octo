@@ -2,6 +2,9 @@ pfUI:RegisterSkin("Options - Sound", "vanilla:tbc", function ()
   local rawborder, border = GetBorderSize()
   local bpad = rawborder > 1 and border - GetPerfectPixel() or GetPerfectPixel()
 
+  -- (newer ClassicAPI builds can leave the old sound window out)
+  if not SoundOptionsFrame or not SoundOptionsFrameSlider1 then return end
+
   -- Compatibility
   local SoundOptionsFrameHeaderText, NUM_CHECKBOXES, NUM_SLIDERS
   if SOUND_OPTIONS then -- tbc

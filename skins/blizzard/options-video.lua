@@ -2,6 +2,9 @@ pfUI:RegisterSkin("Options - Video", "vanilla:tbc", function ()
   local rawborder, border = GetBorderSize()
   local bpad = rawborder > 1 and border - GetPerfectPixel() or GetPerfectPixel()
 
+  -- (newer ClassicAPI builds can leave the old video window out)
+  if not OptionsFrame or not OptionsFrameSlider1 then return end
+
   -- Compatibility
   local MAX_SLIDERS, MAX_CHECKBOXES
   if OptionsFrameSlider10 then -- tbc

@@ -1,6 +1,15 @@
 pfUI:RegisterModule("hdgraphic", "vanilla", function ()
-  -- inject video settings to provide advanced slider values
-  _G.OptionsFrameSliders[3].maxValue = 15
+  -- inject video settings to provide advanced slider values (the slider list
+  -- can be made later or not at all - newer ClassicAPI builds, 31 Oct 2026)
+  if _G.OptionsFrameSliders and _G.OptionsFrameSliders[3] then
+    _G.OptionsFrameSliders[3].maxValue = 15
+  elseif OptionsFrame_OnShow then
+    local orig = OptionsFrame_OnShow
+    function _G.OptionsFrame_OnShow()
+      if _G.OptionsFrameSliders and _G.OptionsFrameSliders[3] then _G.OptionsFrameSliders[3].maxValue = 15 end
+      return orig()
+    end
+  end
   local HookSetWorldDetail = SetWorldDetail
   function _G.SetWorldDetail(arg)
     HookSetWorldDetail((arg > 2 and 2 or arg))

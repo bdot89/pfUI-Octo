@@ -78,6 +78,7 @@ pfUI:RegisterSkin("Options - Interface", "vanilla", function ()
   local rawborder, border = GetBorderSize()
   local bpad = rawborder > 1 and border - GetPerfectPixel() or GetPerfectPixel()
 
+  if not UIOptionsFrame then return end -- (not made on every client)
   UIOptionsFrame:SetParent(UIParent)
   UIOptionsFrame:SetWidth(1024)
   UIOptionsFrame:SetHeight(700)
