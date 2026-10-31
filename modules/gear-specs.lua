@@ -427,7 +427,12 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     if n and now >= n.at then
       GS.pendingNotice = nil
       local a, b, c = GS.Split()
-      if GS.Match(a, b, c) == n.slot then GS.Apply(n.slot, "talents match") end
+      -- (only noted: gear, layout and spells change only when you switch
+      -- yourself - user, 31 Oct 2026: bars swapped to another spec's at random)
+      if GS.Match(a, b, c) == n.slot then
+        C.gear.specnow = tostring(n.slot)
+        GS.Paint()
+      end
     end
   end
 
@@ -1047,7 +1052,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     W.Check(p, "Say what changed", "A line in chat: the spec, the set and layout that went on.",
       function() return C.gear.spectell ~= "0" end, function(v) C.gear.spectell = v and "1" or "0" end)
     W.Check(p, "Notice other spec changes", "Talents changed some other way (the device's own menu, another addon): "
-      .. "when they match one of your specs, its gear and spells go on too.",
+      .. "when they match one of your specs, this window marks it as on. Gear and spells are left alone.",
       function() return C.gear.specnotice ~= "0" end, function(v) C.gear.specnotice = v and "1" or "0" end)
     W.Check(p, "Ask before every device choice", "Activate, Save, Reset and Buy each ask first, with what they do - in "
       .. "this window and in the device's own menu.",

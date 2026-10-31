@@ -4983,7 +4983,7 @@ do
     GS.OnTalents(true)
     now = now + 3
     GS.Tick()
-    ok(worn == "Healing" and pfUI_config.gear.specnow == "2", "talents changed elsewhere that match a spec put its gear on")
+    ok(worn == nil and wrote == "Smite" and pfUI_config.gear.specnow == "2", "talents changed elsewhere that match a spec only mark it: gear and spells left alone")
     GS.frame:Hide()
     GS.Open()
     ok(GS.frame:IsShown(), "/gear specs opens the window away from the device")

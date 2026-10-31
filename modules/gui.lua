@@ -1959,11 +1959,8 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         else
           upd:Hide()
         end
-        local localversion  = tonumber(pfUI.version.major*10000 + pfUI.version.minor*100 + pfUI.version.fix)
-        local remoteversion = tonumber(pfUI_init.updateavailable) or 0
         version:SetText("|cff33b3ffv" .. pfUI.version.octo .. "|r" .. (newer and (" |cffffc840(" .. newer .. " " .. T["is out"] .. ")|r") or ""))
-        based:SetText("pfUI " .. pfUI.version.string .. " " .. T["by"] .. " Shagu" ..
-          (localversion < remoteversion and (" |cffffc840(" .. T["newer pfUI out"] .. ")|r") or ""))
+        based:SetText("pfUI " .. pfUI.version.string .. " " .. T["by"] .. " Shagu")
         screen:SetText(GetCVar("gxResolution"))
         scale:SetText(round(UIParent:GetEffectiveScale(), 2))
         client:SetText(GetBuildInfo() .. " (" .. GetLocale() .. ")")

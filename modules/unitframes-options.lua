@@ -557,6 +557,42 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local cx, cy = GetCursorPosition()
       h.down = { cx, cy, tonumber(cfg[d[1]]) or 0, tonumber(cfg[d[2]]) or 0 }
       h.moved = nil
+      -- snap lines (user, 31 Oct 2026: "put my mana bar over health bar they
+      -- will snap together"): the part's own edges / middle at the start, and
+      -- every other part of the same frame, in that frame's units
+      local k = (h.f and h.f:GetEffectiveScale()) or 1
+      local function Lines(r)
+        local s = (r:GetEffectiveScale() or 1) / k
+        local l, rt, t, b = r:GetLeft(), r:GetRight(), r:GetTop(), r:GetBottom()
+        if not (l and rt and t and b) then return end
+        return { l * s, (l + rt) / 2 * s, rt * s }, { b * s, (b + t) / 2 * s, t * s }
+      end
+      h.snapX, h.snapY = Lines(h)
+      h.toX, h.toY = {}, {}
+      local set = h:GetParent()
+      for _, o in ipairs(set and set.hots or {}) do
+        if o ~= h and o.f == h.f and o:IsShown() then
+          local xs, ys = Lines(o)
+          if xs then
+            for i = 1, 3 do table.insert(h.toX, xs[i]) table.insert(h.toY, ys[i]) end
+          end
+        end
+      end
+    end
+    -- the move pulled onto the nearest line within 6 px (Alt = free)
+    local function Snap(h, dx, dy)
+      if IsAltKeyDown() or not h.snapX then return dx, dy end
+      local function Pull(own, to, d)
+        local best
+        for i = 1, 3 do
+          for _, v in ipairs(to) do
+            local gap = v - (own[i] + d)
+            if math.abs(gap) <= 6 and (not best or math.abs(gap) < math.abs(best)) then best = gap end
+          end
+        end
+        return d + (best or 0)
+      end
+      return Pull(h.snapX, h.toX, dx), Pull(h.snapY, h.toY, dy)
     end
     local function DragMove(h)
       local s = h.down
@@ -579,6 +615,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         return
       end
       local d, cfg = h.drag, U()
+      dx, dy = Snap(h, dx, dy)
       local nx = tostring(math.floor(s[3] + dx * d[3] + .5))
       local ny = tostring(math.floor(s[4] + dy * d[4] + .5))
       if cfg[d[1]] == nx and cfg[d[2]] == ny then return end
@@ -940,7 +977,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local ext = {}
       local l, r, t, b
       for _, h in ipairs(set.hots) do
-        if h:IsShown() and (not h.region or h.region:IsVisible()) and h:GetLeft() then
+        -- (spots hidden because their frame left the box still count, or a
+        -- frame once out never came back - user, 31 Oct 2026)
+        if (h:IsShown() or h.octoHidden) and (not h.region or h.region:IsVisible() or h.octoHidden) and h:GetLeft() then
           local k = h:GetEffectiveScale() or 1
           local hl, hr, ht, hb = h:GetLeft() * k, h:GetRight() * k, h:GetTop() * k, h:GetBottom() * k
           l, r = math.min(l or hl, hl), math.max(r or hr, hr)
@@ -955,13 +994,13 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       end
       if not l then return end
       fitb.text:SetText(M.manual and "Fit view" or "")
-      -- zoomed or moved by hand: the view stays; a frame that does not fit
-      -- wholly in the box hides (nothing shows outside it)
+      -- zoomed or moved by hand: the view stays; only a frame wholly outside
+      -- the box hides (one hidden when partly out made zooming in blank it)
       if M.manual then
         local L, R, T, B = bl * bk + 2, bl * bk + BW - 2, bt * bk - 2, bt * bk - BH + 2
         for _, f in ipairs(set.frames) do
           local e = ext[f]
-          local out = e and (e[1] < L or e[2] > R or e[3] > T or e[4] < B) or (not e and f.octoOut)
+          local out = e and (e[2] < L or e[1] > R or e[4] > T or e[3] < B) or (not e and f.octoOut)
           out = out and true or nil
           if out ~= f.octoOut then
             f.octoOut = out
