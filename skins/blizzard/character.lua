@@ -319,4 +319,100 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
     SkillDetailStatusBarUnlearnButton:SetPushedTexture(nil)
     SkillDetailStatusBarUnlearnButton:SetNormalTexture("Interface\\Buttons\\UI-GroupLoot-Pass-Up")
   end
+
+  -- octo (31 Oct 2026, user: "give it a new look that is professional add some
+  -- art ... even better character stats also and the gear planner should all
+  -- look together as one ... make the character stats button more obvious").
+  -- One look for the character window, EvenBetterCharacterStats' enchant
+  -- panel and the Gear sets panel: a class-coloured title strip with an
+  -- accent line under it, your race's scenery faded behind the model, and the
+  -- enchant panel's button as a labelled square beside the weapon slots.
+  -- Textures only, made once: nothing runs per frame.
+  local cr, cg, cb = 1, .82, 0
+  local _, class = UnitClass("player")
+  if class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class] then
+    local c = RAID_CLASS_COLORS[class]
+    cr, cg, cb = c.r, c.g, c.b
+  end
+  local ar, ag, ab = cr, cg, cb
+  if GetAccentColor then ar, ag, ab = GetAccentColor() end
+
+  local function Head(f, height)
+    local bg = f and (f.backdrop or f)
+    if not bg or bg.octoHead then return end
+    height = height or 24
+    local strip = bg:CreateTexture(nil, "BORDER")
+    strip:SetTexture("Interface\\Buttons\\WHITE8X8")
+    strip:SetPoint("TOPLEFT", bg, "TOPLEFT", 2, -2)
+    strip:SetPoint("TOPRIGHT", bg, "TOPRIGHT", -2, -2)
+    strip:SetHeight(height)
+    strip:SetGradientAlpha("VERTICAL", cr, cg, cb, .04, cr, cg, cb, .32)
+    local line = bg:CreateTexture(nil, "ARTWORK")
+    line:SetTexture("Interface\\Buttons\\WHITE8X8")
+    line:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, 0)
+    line:SetPoint("TOPRIGHT", strip, "BOTTOMRIGHT", 0, 0)
+    line:SetHeight(1)
+    line:SetVertexColor(ar, ag, ab, .9)
+    bg.octoHead = strip
+    if bg.SetBackdropBorderColor then bg:SetBackdropBorderColor(ar * .5, ag * .5, ab * .5, 1) end
+  end
+  pfUI.charLook = { Head = Head }
+
+  Head(CharacterFrame, 42)
+
+  -- the race's own scenery (the game's dressing room art) behind the model
+  if CharacterModelFrame and not CharacterModelFrame.octoArt then
+    local _, race = UnitRace("player")
+    race = race or "Human"
+    local base = "Interface\\DressUpFrame\\DressUpBackground-" .. race
+    local w, h = CharacterModelFrame:GetWidth() or 230, CharacterModelFrame:GetHeight() or 320
+    local parts = {
+      { 1, 0, 0, 256 / 318, 256 / 383 },            -- top left 256 x 256
+      { 2, 256 / 318, 0, 62 / 318, 256 / 383 },     -- top right 62 x 256
+      { 3, 0, 256 / 383, 256 / 318, 127 / 383 },    -- bottom left 256 x 128
+      { 4, 256 / 318, 256 / 383, 62 / 318, 127 / 383 },
+    }
+    CharacterModelFrame.octoArt = {}
+    for _, pt in ipairs(parts) do
+      local t = PaperDollFrame:CreateTexture(nil, "BACKGROUND")
+      t:SetTexture(base .. pt[1])
+      t:SetPoint("TOPLEFT", CharacterModelFrame, "TOPLEFT", pt[2] * w, -pt[3] * h)
+      t:SetWidth(pt[4] * w)
+      t:SetHeight(pt[5] * h)
+      t:SetAlpha(.45)
+      table.insert(CharacterModelFrame.octoArt, t)
+    end
+    -- a soft dark edge so the art fades into the window
+    local shade = PaperDollFrame:CreateTexture(nil, "BORDER")
+    shade:SetTexture("Interface\\Buttons\\WHITE8X8")
+    shade:SetAllPoints(CharacterModelFrame)
+    shade:SetGradientAlpha("VERTICAL", 0, 0, 0, .75, 0, 0, 0, 0)
+  end
+
+  -- EvenBetterCharacterStats' enchant panel and our Gear sets panel: the same strip
+  local function Side()
+    local ench = _G.BCSEnchantFrame
+    if ench then Head(ench, 22) end
+    if _G.pfGearSheet then Head(_G.pfGearSheet, 22) end
+    local tg = _G.BCSEnchantFrameToggleButton
+    if tg and not tg.octoSquare then
+      tg.octoSquare = true
+      local slot = _G.CharacterMainHandSlot
+      local size = slot and slot:GetHeight() or 37
+      tg:SetWidth(size)
+      tg:SetHeight(size)
+      tg:ClearAllPoints()
+      if slot then tg:SetPoint("RIGHT", slot, "LEFT", -10, 0) end
+      local word = tg:CreateFontString(nil, "OVERLAY")
+      word:SetFont(pfUI.font_default, 9, "OUTLINE")
+      word:SetPoint("TOP", tg, "BOTTOM", 0, -2)
+      word:SetText("Enchants")
+      word:SetTextColor(ar, ag, ab)
+    end
+    -- (its border comes when the enchant panel first opens: tint it each time)
+    if tg and tg.backdrop then tg.backdrop:SetBackdropBorderColor(ar, ag, ab, 1) end
+  end
+  Side()
+  if PaperDollFrame then HookScript(PaperDollFrame, "OnShow", Side) end
+  if _G.BCSEnchantFrame then HookScript(_G.BCSEnchantFrame, "OnShow", Side) end
 end)
