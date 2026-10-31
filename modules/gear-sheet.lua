@@ -448,8 +448,22 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
     if C.gear.sheetside == "left" then
       panel:SetPoint("TOPRIGHT", CharacterFrame or PaperDollFrame, "TOPLEFT", 8, -12)
     else
-      -- (pfUI's character window backdrop ends 30 px in from its right edge)
-      panel:SetPoint("TOPLEFT", CharacterFrame or PaperDollFrame, "TOPRIGHT", -28, -12)
+      -- EvenBetterCharacterStats' enchant panel takes this spot: go beside it
+      -- (user, 31 Oct 2026: the Gear sets list lay over the enchant list)
+      local ench = _G.BCSEnchantFrame
+      if ench and ench:IsShown() then
+        panel:SetPoint("TOPLEFT", ench, "TOPRIGHT", 4, 0)
+      else
+        -- (pfUI's character window backdrop ends 30 px in from its right edge)
+        panel:SetPoint("TOPLEFT", CharacterFrame or PaperDollFrame, "TOPRIGHT", -28, -12)
+      end
+      -- (the enchant panel shown / hidden later: follow it)
+      if ench and not ench.pfGearHooked then
+        ench.pfGearHooked = true
+        local show, hide = ench:GetScript("OnShow"), ench:GetScript("OnHide")
+        ench:SetScript("OnShow", function() if show then show() end GR.UpdateSheet() end)
+        ench:SetScript("OnHide", function() if hide then hide() end GR.UpdateSheet() end)
+      end
     end
     local ar, ag, ab = Accent()
     local cur = GR.Current()
