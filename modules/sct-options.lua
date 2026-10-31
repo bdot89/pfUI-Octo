@@ -457,6 +457,10 @@ BUILD.ctplates = function(p)
     { "Test on nameplates", Shot("plates", function() CT:TestPlates() end), 140, "A hit, a crit, a miss and a heal on every nameplate on screen.", on = Shooting("plates") },
   })
   Preview(p)
+  O.CardTabs(p, {
+    { "mine", "Your text", "Ability_MeleeDamage", { "Basics", "Movement", "Look", "Keep it tidy" } },
+    { "team", "Teammates", "INV_Banner_02", { "Teammates' damage", "Teammates' look" } },
+  })
   W.Card(p, "Basics", { text = "Which nameplates get text, and what happens when there is no nameplate." })
   Chk(p, "Text on other enemies", "Off: only your target's plate shows text.", PL, "offTarget")
   Chk(p, "Show plates when I log in", "Switches the enemy plates on (V) - turn them off yourself (SCT - Damage did the same).", PL, "autoShow")
@@ -506,6 +510,7 @@ BUILD.ctplates = function(p)
   Sld(p, "Opacity", "How solid your team's numbers are.", 0.2, 1, 0.05, TM, "alpha", nil, Pct)
   Sld(p, "Beside yours by", "How far right of the middle of the plate their column is (negative: left).", -120, 120, 2, TM, "x", nil, Px)
   StyleGuide(p)
+  O.TabFilter(p)
 end
 
 -- ---------------------------------------------------------------- crits and sounds
@@ -785,6 +790,14 @@ BUILD.ctevents = function(p)
       Fill(B.db.sct.events, B.DEFAULTS.sct.events)
     end, 80, "Every message type back to how it started (formats too)." },
   })
+  -- (31 Oct 2026, user: menus "overwhelming": one kind of message at a time)
+  O.CardTabs(p, {
+    { "out", "Your damage", "INV_Sword_04", { "Your damage", "Your healing" } },
+    { "in", "Taken", "Spell_Shadow_ShadowWordPain", { "Damage you take", "Healing, power and buffs you get" } },
+    { "warn", "Alerts", "INV_Misc_Bell_01", { "Alerts and warnings", "OctoBG alerts", "Warnings" } },
+    { "reward", "Rewards", "INV_Misc_Coin_01", { "Rewards" } },
+    { "sound", "Sounds", "INV_Misc_Drum_01", { "Sounds", "Your own sounds" } },
+  })
   for g = 1, table.getn(GROUPS()) do
     local grp = GROUPS()[g]
     W.Card(p, grp[2], { folded = not OPEN_GROUPS[grp[1]], text = GROUP_TEXT[grp[1]] })
@@ -806,6 +819,7 @@ BUILD.ctevents = function(p)
     end
   end
   SoundCards(p)
+  O.TabFilter(p)
 end
 
 -- ---------------------------------------------------------------- text and filters
@@ -818,6 +832,12 @@ BUILD.ctfilters = function(p)
       .. "Fire, Rage, Falling...). Spell names and names are added by themselves when the format leaves them out and "
       .. "their boxes under What the texts say are ticked. Press Enter to save; empty = the original.\n\nLists: names "
       .. "separated by commas, as the game spells them. Press Enter to save." })
+  local formats = {}
+  for g = 1, table.getn(GROUPS()) do table.insert(formats, "Formats: " .. string.lower(GROUPS()[g][2])) end
+  O.CardTabs(p, {
+    { "text", "Texts and filters", "INV_Scroll_03", { "What the texts say", "Less clutter", "Buffs, procs and cooldowns" } },
+    { "fmt", "Wording of each message", "INV_Feather_05", formats },
+  })
   W.Card(p, "What the texts say", { text = "What is written next to the numbers." })
   Chk(p, "Spell names", "\"2468 (Shadow Bolt)\" (SCT's skill names).", DB, "spellNames")
   Chk(p, "Damage school", "\"<Fire>\" after spell damage.", DB, "schoolNames")
@@ -871,6 +891,7 @@ BUILD.ctfilters = function(p)
       end
     end
   end
+  O.TabFilter(p)
 end
 
 -- ---------------------------------------------------------------- the window's list
