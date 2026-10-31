@@ -453,6 +453,16 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       .. "the preview shows the one you are editing and every change shows at once. Click a part of the preview to jump "
       .. "to its card. Hover any setting for what it does." })
     Preview(p)
+    -- (31 Oct 2026, user: menus "overwhelming" - 13 cards on one page, now 4 tabs)
+    if O.CardTabs then
+      O.CardTabs(p, {
+        { "look", "Look", "INV_Misc_Eye_01", { "Start with a look", "The window", "Title bar" } },
+        { "bars", "Bars and words", "Ability_MeleeDamage", { "Bars", "Pictures", "Words", "Colours of the words" } },
+        { "shows", "What it shows", "INV_Misc_Book_09", { "What it shows", "Status bar" } },
+        { "tools", "Tools", "INV_Misc_Gear_01", { "Where your windows go", "Where they are", "Try it without a fight",
+          "Share this look", "Remove this window" } },
+      })
+    end
     MO.WhereCard(p)
 
     W.Card(p, "Start with a look", { icon = ICO .. "INV_Misc_Eye_01", tip = "Ready-made looks: background, border, title bar, bar texture, "
@@ -617,6 +627,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         O:Refresh()
       end)
     end, 150, "Takes this window away for good (window 1 cannot be removed)." } })
+    if O.TabFilter then O.TabFilter(p) end
   end
 
   -- ---------------------------------------------------------------- data, threat
