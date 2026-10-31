@@ -263,7 +263,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   function CH.Open(card)
     local page = (card == "Timestamps" or card == "Channel names" or card == "Names" or card == "Links"
       or card == "Whispers" or card == "Text" or card == "Highlights" or card == "Sounds" or card == "Filters") and "chmessages"
-      or ((card == "Invites" or card == "Scrolling" or card == "Search") and "chtools")
+      or ((card == "Invites" or card == "Scrolling" or card == "Search") and "chinput")
       or ((card == "Whisper windows" or card == "Window look") and "chwhispers")
       or ((card == "Typing box" or card == "Chat bubbles") and "chinput") or "chwindows"
     if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection(page, card) else O:Open(page) end
@@ -600,6 +600,11 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   local function BuildMessages(p)
     W.Heading(p, "Messages", { about = "How every line reads: the time in front, channel tags, names, links and whispers." })
     Preview(p)
+    O.CardTabs(p, {
+      { "lines", "How lines read", "INV_Scroll_03", { "Timestamps", "Channel names", "Names", "Links", "Text" } },
+      { "alerts", "Whispers and alerts", "INV_Misc_Bell_01", { "Whispers", "Highlights", "Sounds" } },
+      { "filters", "Filters", "INV_Misc_Spyglass_02", { "Filters" } },
+    })
     W.Card(p, "Timestamps")
     Chk(p, "Show the time", nil, TX, "time")
     Drop(p, "Format", nil, TIMEFORMATS, TX, "timeformat")
@@ -656,6 +661,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
     W.Card(p, "Filters", { tip = "Less spam: lines from players that have a word you hide, or say the same thing again too soon." })
     Edit(p, "Hide lines with", "Words, like: gold, cheap, www (lines from players only).", PL, "hide")
     Sld(p, "Same line again within", "0 = off.", 0, 120, 5, PL, "throttle", function(v) return v == 0 and "off" or (v .. " s") end)
+    O.TabFilter(p)
   end
 
   -- chat-whispers.lua: windows of their own
@@ -710,9 +716,9 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
     end)
   end
 
-  local function BuildTools(p)
-    W.Heading(p, "Tools", { about = "Handy extras: invites, scrolling, searching and commands." })
-    Preview(p)
+  -- (31 Oct 2026, user: menus "overwhelming": Tools had three small cards on a
+  -- page of its own - they are under Typing now)
+  local function ToolCards(p)
     W.Card(p, "Invites")
     Chk(p, "Alt-click a name to invite", nil, PL, "altinvite")
     Chk(p, "Invite on a whispered word", "Someone whispering just that word gets an invite (when you can invite).", PL, "autoinvite")
@@ -730,7 +736,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   end
 
   local function BuildInput(p)
-    W.Heading(p, "Typing and bubbles", { about = "The box you type in, and the speech bubbles over players." })
+    W.Heading(p, "Typing and tools", { about = "The box you type in, speech bubbles, invites, scrolling, searching and commands." })
     Preview(p)
     W.Card(p, "Typing box")
     Sld(p, "Width", "0 = as wide as the bar it sits on. Takes a reload.", 0, 1000, 1, TX, "input_width", Px, Reload)
@@ -742,6 +748,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
       function() return GetCVar("chatBubblesParty") == "1" end, function(v) SetCVar("chatBubblesParty", v and "1" or "0") end)
     Chk(p, "Bubble borders", "Takes a reload.", BB, "borders", Reload)
     Sld(p, "Bubble opacity", "Takes a reload.", 0, 1, .05, BB, "alpha", function(v) return math.floor(v * 100 + .5) .. "%" end, Reload)
+    ToolCards(p)
   end
 
   -- the arrow on the bottom-right bar (25 Oct 2026: off for the user, wanted
@@ -775,7 +782,6 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   O:AddPage("Chat", "chwindows", "Windows", BuildWindows)
   O:AddPage("Chat", "chmessages", "Messages", BuildMessages)
   O:AddPage("Chat", "chwhispers", "Whispers", BuildWhispers)
-  O:AddPage("Chat", "chinput", "Typing and bubbles", BuildInput)
-  O:AddPage("Chat", "chtools", "Tools", BuildTools)
+  O:AddPage("Chat", "chinput", "Typing and tools", BuildInput)
   O:AddPage("Chat", "chpanel", "Panel arrow", BuildArrow)
 end)

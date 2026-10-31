@@ -1999,8 +1999,8 @@ do
     -- the chat pages: a preview with a line of every kind, cards for each part
     local CHO = pfUI.chatOcto
     if CHO then
-      for _, k in ipairs({ "o:chwindows", "o:chmessages", "o:chinput", "o:chtools" }) do O:Select(k) end
-      ok(O.pages.chwindows and O.pages.chmessages and O.pages.chinput, "Chat: Windows, Messages, Typing and bubbles")
+      for _, k in ipairs({ "o:chwindows", "o:chmessages", "o:chinput" }) do O:Select(k) end
+      ok(O.pages.chwindows and O.pages.chmessages and O.pages.chinput, "Chat: Windows, Messages, Typing and tools")
       local tx = pfUI_config.chat.text
       local was = { tx.time, tx.timeformat, tx.channelnumonly, tx.classcolor }
       tx.time, tx.timeformat, tx.channelnumonly, tx.classcolor = "1", "%H:%M", "1", "1"
@@ -2042,7 +2042,7 @@ do
     end
     -- chat phase 2: tags, filters, highlights, levels, /find, sounds, invites
     local CP = pfUI.chatPlus
-    ok(CP and O.pages.chtools, "chat features loaded, Tools page built")
+    ok(CP and O.pages.chinput, "chat features loaded, Typing and tools page built")
     if CP then
       local pl = pfUI_config.chat.plus
       local keep = { pl.tags, pl.hide, pl.throttle, pl.words, pl.mention, pl.levels, pl.sound_guild, pl.autoinvite }
