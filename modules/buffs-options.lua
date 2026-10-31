@@ -339,6 +339,13 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     W.Heading(p, "Buffs", { on = O.ModuleSwitch("buff", "Buffs"), about = "Your buffs, debuffs and weapon buffs by the minimap, the buff bars on your unit frames, "
       .. "and your totems. The Blizzard switch above puts the game's own buff frame back." })
     Preview(p)
+    -- (31 Oct 2026, user: menus "overwhelming": one card per tab)
+    O.CardTabs(p, {
+      { "buffs", "Buffs and debuffs", "Spell_Holy_WordFortitude", { CARD.buffs } },
+      { "weapons", "Weapon buffs", "INV_Stone_SharpeningStone_01", { CARD.weapons } },
+      { "bar", "Buff bars", "INV_Misc_PocketWatch_01", { CARD.bar } },
+      { "totems", "Totems", "Spell_Nature_StoneSkinTotem", { CARD.totems } },
+    })
 
     W.Card(p, CARD.buffs, { tip = "The icons next to the minimap." })
     Chk(p, "Show buffs", nil, B, "buffs", UB)
@@ -396,6 +403,7 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     Drop(p, "Spacing", nil, DD("spacing"), TT, "spacing", UT)
     Chk(p, "Background", nil, TT, "showbg", UT)
     Chk(p, "Sweep the other way", "With ClassicAPI.", TT, "cooldown_reverse", UT)
+    O.TabFilter(p)
   end
 
   -- layout mode's right-click on a buff bar: the page on that bar's tab
