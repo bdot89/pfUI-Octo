@@ -198,6 +198,37 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
           O:Refresh()
         end)
         MO.tabs[i] = b
+        -- (31 Oct 2026, user: "a red X next to each meter you have made")
+        if i > 1 then
+          local x = CreateFrame("Button", nil, b)
+          x:SetWidth(14)
+          x:SetHeight(14)
+          x:SetPoint("RIGHT", b, "RIGHT", -3, 0)
+          x:SetFrameLevel(b:GetFrameLevel() + 2)
+          x.text = x:CreateFontString(nil, "OVERLAY")
+          W.Font(x.text, 11, .95, .3, .3)
+          x.text:SetPoint("CENTER", x, "CENTER", 0, 0)
+          x.text:SetText("X")
+          x.n = i
+          x:SetScript("OnEnter", function()
+            this.text:SetTextColor(1, .55, .55)
+            GameTooltip:SetOwner(this, "ANCHOR_TOP")
+            GameTooltip:SetText("Remove window " .. this.n, .95, .3, .3)
+            GameTooltip:AddLine("Takes this meter window away for good (it asks first).", 1, 1, 1, 1)
+            GameTooltip:Show()
+          end)
+          x:SetScript("OnLeave", function() this.text:SetTextColor(.95, .3, .3) GameTooltip:Hide() end)
+          x:SetScript("OnClick", function()
+            local n = this.n
+            CreateQuestionDialog("Remove meter window " .. n .. "?", function()
+              M.RemoveWindow(n)
+              if MO.cur > n or MO.cur == n then MO.cur = math.max(1, MO.cur - 1) end
+              MO.Apply()
+              O:Refresh()
+            end)
+          end)
+          b.removeBtn = x
+        end
       end
       local new = W.Button(row, "+ New window", 108, 22)
       new:SetPoint("LEFT", row, "LEFT", M.MAXWIN * 96 + 4, 0)
