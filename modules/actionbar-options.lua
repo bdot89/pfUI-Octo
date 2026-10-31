@@ -1076,24 +1076,49 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
       Tick("Animate hidden bars", "The press animation shows even on bars that are faded out.", G, "animalways"),
     })
 
-    W.Card(p, "Cooldown", { icon = ICON .. "INV_Misc_PocketWatch_02", tip = "The swipe over a button cooling down, and the number counting." })
-    Drop(p, "Swipe", nil, List(AB.CDSTYLES), G, "cd_style")
-    Chk(p, "Swipe the other way", "The dark part grows as the cooldown runs out (with ClassicAPI).", G, "cooldown_reverse")
-    -- cooldown number colours are pfUI's shared ones (every cooldown uses them)
+    -- (31 Oct 2026, user: more countdown options and ready effects, and the page
+    -- "overwhelming": one card per job - the swipe, the number, the ready moment)
     local function CD() return C.appearance.cd end
     local function Re() if pfUI.api.ResetTimeColors then pfUI.api.ResetTimeColors() end end
+    local CDX = pfUI.cooldown or {}
+    W.Card(p, "Cooldown swipe", { icon = ICON .. "INV_Misc_PocketWatch_02", tip = "The dark part over a button cooling down." })
+    Drop(p, "Swipe", nil, List(AB.CDSTYLES), G, "cd_style")
     Sld(p, "Hide cooldowns shorter than", "No swipe or number on short ones, like the global cooldown.", 0, 10, .5, CD, "threshold", Sec, Re)
     Grid(p, 3, {
       KeyColour("Swipe colour", nil, G, "cd_color"),
       KeyColour("Edge colour", "The bright line where the swipe ends.", G, "cd_edgecolor"),
       Tick("Edge line", "A bright line where the swipe ends.", G, "cd_edge"),
-      KeyColour("Number colour", "Seconds left, on every cooldown.", CD, "normalcolor", nil, Re),
-      KeyColour("Last 5 seconds", "When it is nearly ready.", CD, "lowcolor", nil, Re),
+      Tick("Swipe the other way", "The dark part grows as the cooldown runs out (with ClassicAPI).", G, "cooldown_reverse"),
       Tick("Edge: class colour", nil, G, "cd_edgecolor_class"),
-      KeyColour("Minutes colour", nil, CD, "minutecolor", nil, Re),
-      KeyColour("Hours colour", nil, CD, "hourcolor", nil, Re),
-      Tick("Tenths at the end", "Shows 4.2 instead of 4 in the last 5 seconds.", CD, "milliseconds", Re),
     })
+
+    W.Card(p, "Countdown number", { icon = ICON .. "Spell_Nature_TimeStop", tip = "The seconds counting down on every cooldown." })
+    if CDX.FORMATS then Drop(p, "Format", "How the time left is written.", CDX.FORMATS, CD, "format", Re) end
+    if CDX.POINTS then Drop(p, "Where on the button", "New cooldowns use it; ones running keep their spot.", CDX.POINTS, CD, "pos", Re) end
+    Sld(p, "Number size", nil, 6, 30, 1, G, "cd_size", Px)
+    Grid(p, 3, {
+      KeyColour("Seconds", "Seconds left.", CD, "normalcolor", nil, Re),
+      KeyColour("Last 5 seconds", "When it is nearly ready.", CD, "lowcolor", nil, Re),
+      KeyColour("Minutes", nil, CD, "minutecolor", nil, Re),
+      KeyColour("Hours", nil, CD, "hourcolor", nil, Re),
+      Tick("Tenths at the end", "Shows 4.2 instead of 4 in the last 5 seconds.", CD, "milliseconds", Re),
+      Tick("Grow at the end", "The number gets bigger in the last 5 seconds.", CD, "lowgrow", Re),
+      Tick("Size from the button", "The number follows the button's size (never smaller than Number size).", CD, "dynamicsize", Re),
+    })
+
+    W.Card(p, "When it is ready", { icon = ICON .. "Spell_Holy_HolyNova", tip = "An effect on the button the moment its cooldown ends." })
+    if CDX.EFFECTS then Drop(p, "Effect", nil, CDX.EFFECTS, CD, "finish", Re) end
+    if CDX.SOUNDS then Drop(p, "Sound", nil, CDX.SOUNDS, CD, "finishsound", Re) end
+    Sld(p, "Only after cooldowns of", "Shorter cooldowns end quietly.", 0, 60, 1, CD, "finishmin", Sec, Re)
+    Grid(p, 3, {
+      KeyColour("Effect colour", nil, CD, "finishcolor", nil, Re),
+    })
+    W.Buttons(p, { { "Try it on my bars", function()
+      for i = 1, 12 do
+        local b = _G["pfActionBarMainButton" .. i]
+        if b and b:IsVisible() and CDX.Finish then CDX.Finish(b, (C.appearance.cd.finish ~= "none") and C.appearance.cd.finish or "all") end
+      end
+    end } })
 
     W.Card(p, "Proc glow", { icon = ICON .. "Spell_Holy_PowerInfusion", tip = "Lights a button when it is worth pressing now." })
     Drop(p, "Glow", nil, List(AB.GLOWS), G, "glow_style", function() AB.GlowRepaint() U() end)
@@ -1126,7 +1151,6 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     Sld(p, "Key size", nil, 6, 20, 1, G, "bind_size", Px)
     Sld(p, "Macro size", nil, 6, 20, 1, G, "macro_size", Px)
     Sld(p, "Count size", nil, 6, 20, 1, G, "count_size", Px)
-    Sld(p, "Cooldown number size", nil, 6, 30, 1, G, "cd_size", Px)
     Grid(p, 3, {
       KeyColour("Key colour", nil, G, "bind_color"),
       KeyColour("Macro colour", nil, G, "macro_color"),
