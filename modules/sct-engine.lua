@@ -777,7 +777,10 @@ function CT:Show(text, r, g, b, where, opts)
   elseif move == "static" then
     StackStatic(areaKey)
     o.slot = 0
-  elseif STRAIGHT[move] and (not plate or P.stack) then
+  -- (1 Nov 2026, GratisNinja: "multiple messages in one area at the same time ... all
+  -- lying on top of each other ... like MSBT": every moving style keeps them a line
+  -- apart now, not only the straight ones)
+  elseif (STRAIGHT[move] or (o.H or 0) > 0) and (not plate or P.stack) then
     Push(o.lane, move, o.size + (plate and 2 or 4))
   end
   o.start = GetTime()

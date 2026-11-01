@@ -36,10 +36,14 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   end
 
   local function InGroup() return GetNumRaidMembers() > 0 or GetNumPartyMembers() > 0 end
+  -- solo with a pet tanking (1 Nov 2026, GratisNinja: a warlock and his Voidwalker):
+  -- asked by a whisper to yourself; a server that never answers that is left alone
+  -- (TH.soloGaveUp) without stopping the group asks
+  local function Solo() return not InGroup() and C.meters.threatsolo ~= "0" and UnitExists("pet") end
 
   -- in a group, the target a mob you can attack, in combat
   function TH.Wanted()
-    if not InGroup() then return false end
+    if not InGroup() and not (Solo() and not TH.soloGaveUp) then return false end
     if not UnitExists("target") or UnitIsPlayer("target") or not UnitCanAttack("player", "target") then return false end
     return UnitAffectingCombat("target") and true or false
   end
@@ -47,6 +51,13 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   function TH.Ask()
     if not TH.Wanted() or TH.gaveUp then return end
     if GetTime() - TH.at < .45 then return end
+    if Solo() then
+      if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", "WHISPER", UnitName("player")) then
+        TH.soloSilent = (TH.soloSilent or 0) + 1
+        if TH.soloSilent >= GIVE_UP and not TH.soloAnswered then TH.soloGaveUp = true end
+      end
+      return
+    end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
       TH.silent = TH.silent + 1
       if TH.silent >= GIVE_UP and TH.answers == 0 then TH.gaveUp = true end
@@ -56,7 +67,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- what the window shows when there are no numbers
   function TH.Status()
     if TH.gaveUp then return T["No threat data from this server"] end
-    if not InGroup() then return T["Threat shows in a group"] end
+    if Solo() and TH.soloGaveUp then return T["This server sends threat in a group only"] end
+    if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
     if TH.answers == 0 then return T["Asking the server..."] end
   end
@@ -85,6 +97,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       local list = TH.Parse(arg2)
       if not list then return end
       TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
+      if Solo() then TH.soloAnswered, TH.soloSilent = true, 0 end
       TH.Warn()
       M.Changed()
     elseif event == "ZONE_CHANGED_NEW_AREA" then

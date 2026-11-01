@@ -917,6 +917,8 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
 
     W.Card(p, "Threat meter", { tip = "Asking the server for threat. Off: no label, no popups, no threat window." })
     Chk(p, "Ask the server for threat", "After a reload.", G, "threat", Reload)
+    Chk(p, "Solo with a pet too", "Out of a group with your pet tanking (Voidwalker, hunter pet): asks for threat too. "
+      .. "If the server never answers outside a group, it stops asking by itself.", G, "threatsolo")
 
     W.Card(p, "Your cap", { tip = "How much threat you allow yourself before the label turns red and the popup shouts." })
     Sld(p, "Stay under", "Your threat as a share of the reference below.", 10, 150, 5, G, "threatwarn", Pct2, function() end)
