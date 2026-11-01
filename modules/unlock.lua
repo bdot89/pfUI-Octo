@@ -1721,6 +1721,18 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
       return
     end
 
+    -- (1 Nov 2026, a player: crash #132 at 0x0070211C while moving the gear button -
+    -- the client crashes, no Lua error, when a method runs on something that is not
+    -- a real frame. Layout mode reads every movable while dragging (snap lines):
+    -- anything in the list that is not a live game frame - a copied table, a frame
+    -- of another name - is dropped from it before any of that runs.)
+    for name, f in pairs(pfUI.movables) do
+      local real = type(f) == "table" and type(f.GetName) == "function"
+      local ok, nm = false, nil
+      if real then ok, nm = pcall(f.GetName, f) end
+      if not real or not ok or nm ~= name or _G[name] ~= f then pfUI.movables[name] = nil end
+    end
+
     this.grid = DrawGrid()
     this.bar:Update()
     -- (where every frame is saved now: on leaving, only the ones moved here
