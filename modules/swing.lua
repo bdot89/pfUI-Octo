@@ -39,6 +39,46 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     { key = "blizzard", label = "Blizzard swing timer" }, { key = "pixel", label = "Black pixel line" },
     { key = "none", label = "None" },
   }
+  -- whole looks in one pick (1 Nov 2026: dennis wanted the bars "more akin to
+  -- blizzards frames"; the user: "more styles ... in a tidy drop down with
+  -- examples"). bar, border, spark, back opacity; the pieces stay below it.
+  local IMG = "Interface\\AddOns\\pfUI\\img\\"
+  ST.STYLES = {
+    { key = "blizzard", label = "Blizzard cast bar", bar = "classic", border = "classic", spark = "1", backalpha = ".6" },
+    { key = "blizzgold", label = "Blizzard gold", bar = "classic", border = "classicgold", spark = "1", backalpha = ".6" },
+    { key = "blizzswing", label = "Blizzard swing timer", bar = "classic", border = "blizzard", spark = "1", backalpha = ".5" },
+    { key = "cdm", label = "Cooldown Manager", bar = "cdm", border = "cdm", spark = "1", backalpha = ".5" },
+    { key = "pfui", label = "pfUI", bar = IMG .. "bar", border = "pixel", spark = "1", backalpha = ".4" },
+    { key = "elvui", label = "ElvUI", bar = IMG .. "bar_elvui", border = "pixel", spark = "0", backalpha = ".35" },
+    { key = "tukui", label = "Tukui", bar = IMG .. "bar_tukui", border = "pixel", spark = "0", backalpha = ".35" },
+    { key = "smooth", label = "Smooth", bar = IMG .. "bars\\bar-smooth", border = "cdmgrey", spark = "1", backalpha = ".45" },
+    { key = "steel", label = "Steel", bar = IMG .. "bars\\bar-steel", border = "classic", spark = "1", backalpha = ".55" },
+    { key = "gradient", label = "Gradient", bar = IMG .. "bar_gradient", border = "pixel", spark = "1", backalpha = ".4" },
+    { key = "striped", label = "Striped", bar = IMG .. "bar_striped", border = "pixel", spark = "0", backalpha = ".4" },
+    { key = "pill", label = "Pill", bar = IMG .. "bars\\bar-pill", border = "none", spark = "0", backalpha = ".3" },
+    { key = "minimal", label = "Minimalist", bar = "minimal", border = "none", spark = "0", backalpha = ".25" },
+    { key = "flat", label = "Flat", bar = "plain", border = "pixel", spark = "0", backalpha = ".3" },
+  }
+  -- the style the look is now, or nil (changed by hand)
+  function ST.CurrentStyle()
+    local l = L()
+    for _, s in ipairs(ST.STYLES) do
+      if l.bar == s.bar and l.border == s.border and l.spark == s.spark and tonumber(l.backalpha) == tonumber(s.backalpha) then
+        return s.key
+      end
+    end
+  end
+  function ST.ApplyStyle(key)
+    for _, s in ipairs(ST.STYLES) do
+      if s.key == key then
+        local l = L()
+        l.bar, l.border, l.spark, l.backalpha = s.bar, s.border, s.spark, s.backalpha
+        if ST.ApplyLayout then ST.ApplyLayout() end
+        return true
+      end
+    end
+  end
+
   function ST.BarTexture()
     local k = L().bar
     for _, b in ipairs(ST.BARS) do if b.key == k then return b.tex end end

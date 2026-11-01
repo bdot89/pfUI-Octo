@@ -189,6 +189,17 @@ pfUI:RegisterModule("swing-options", "vanilla", function ()
     })
 
     W.Card(p, "Look", { tip = "The same looks for every bar." })
+    if ST.STYLES then
+      local styles = {}
+      for _, s in ipairs(ST.STYLES) do
+        local tex = s.bar
+        for _, b in ipairs(ST.BARS) do if b.key == s.bar then tex = b.tex end end
+        table.insert(styles, { key = s.key, label = s.label, texture = tex })
+      end
+      W.Dropdown(p, "Style", "A whole look in one pick: bar, border, spark and how dark the empty part is. "
+        .. "The settings under it change one piece at a time.", styles,
+        function() return ST.CurrentStyle() end, function(v) ST.ApplyStyle(v) Up() end)
+    end
     Drop(p, "Bar", "Classic, Plain, Minimalist, Cooldown Manager, or any pfUI bar texture.", BarList(), function() return C.swing.look end, "bar")
     Drop(p, "Border", nil, ST.BORDERS, function() return C.swing.look end, "border")
     Chk(p, "Spark", "A bright line where the bar ends.", function() return C.swing.look end, "spark")

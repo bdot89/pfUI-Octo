@@ -733,11 +733,23 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
       SetWhoToUI(0)
     end
   end)
+  -- octo (1 Nov 2026, dennis: "my friendlist is eternally empty"): a /who the
+  -- server never answers (it throttles them) left the friends window's events
+  -- switched off for good - FRIENDLIST_UPDATE never reached it. Put back
+  -- after 3 s whatever happens.
+  who_query:SetScript("OnUpdate", function()
+    if this.pending and this.sent and GetTime() - this.sent > 3 then
+      _G.FriendsFrame_OnEvent = original
+      this.pending = nil
+      SetWhoToUI(0)
+    end
+  end)
 
   local function ScanWhoName(name)
     -- abort if another query is ongoing
     if who_query.pending then return end
     who_query.pending = true
+    who_query.sent = GetTime()
 
     -- prepare and send the who query
     _G.FriendsFrame_OnEvent = nothing
