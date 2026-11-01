@@ -356,38 +356,91 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
     bg.octoHead = strip
     if bg.SetBackdropBorderColor then bg:SetBackdropBorderColor(ar * .5, ag * .5, ab * .5, 1) end
   end
-  pfUI.charLook = { Head = Head }
+  -- the race's own scenery (the game's dressing room art) behind a model;
+  -- made once, its pictures swapped for another race (inspect)
+  local PARTS = {
+    { 1, 0, 0, 256 / 318, 256 / 383 },            -- top left 256 x 256
+    { 2, 256 / 318, 0, 62 / 318, 256 / 383 },     -- top right 62 x 256
+    { 3, 0, 256 / 383, 256 / 318, 127 / 383 },    -- bottom left 256 x 128
+    { 4, 256 / 318, 256 / 383, 62 / 318, 127 / 383 },
+  }
+  local function Art(model, holder, unit)
+    if not model or not holder then return end
+    local _, race = UnitRace(unit or "player")
+    race = race or "Human"
+    if not model.octoArt then
+      local w, h = model:GetWidth() or 230, model:GetHeight() or 320
+      model.octoArt = {}
+      for _, pt in ipairs(PARTS) do
+        local t = holder:CreateTexture(nil, "BACKGROUND")
+        t:SetPoint("TOPLEFT", model, "TOPLEFT", pt[2] * w, -pt[3] * h)
+        t:SetWidth(pt[4] * w)
+        t:SetHeight(pt[5] * h)
+        t:SetAlpha(.45)
+        t.part = pt[1]
+        table.insert(model.octoArt, t)
+      end
+      -- a soft dark edge so the art fades into the window
+      local shade = holder:CreateTexture(nil, "BORDER")
+      shade:SetTexture("Interface\\Buttons\\WHITE8X8")
+      shade:SetAllPoints(model)
+      shade:SetGradientAlpha("VERTICAL", 0, 0, 0, .75, 0, 0, 0, 0)
+    end
+    if model.octoRace ~= race then
+      model.octoRace = race
+      for _, t in ipairs(model.octoArt) do
+        t:SetTexture("Interface\\DressUpFrame\\DressUpBackground-" .. race .. t.part)
+      end
+    end
+  end
+
+  -- (1 Nov 2026, user: the character and inspect windows "clash and it freezes
+  -- ... make them total free move they should not interact with each other").
+  -- Out of the game's panel manager (it pushed one aside when the other
+  -- opened); each drags on its own and comes back where it was left
+  -- (pfUI_cache.octoui.winpos). Escape still closes them.
+  local function Free(f, dx, dy, anchor)
+    if not f or f.octoFree then return end
+    f.octoFree = true
+    local name = f:GetName()
+    if UIPanelWindows and name then UIPanelWindows[name] = nil end
+    if name then
+      local listed
+      for _, n in ipairs(UISpecialFrames) do if n == name then listed = true end end
+      if not listed then table.insert(UISpecialFrames, name) end
+    end
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:SetClampedToScreen(true)
+    f:RegisterForDrag("LeftButton")
+    local function Store()
+      pfUI_cache.octoui = pfUI_cache.octoui or {}
+      pfUI_cache.octoui.winpos = pfUI_cache.octoui.winpos or {}
+      return pfUI_cache.octoui.winpos
+    end
+    f:SetScript("OnDragStart", function() this:StartMoving() end)
+    f:SetScript("OnDragStop", function()
+      this:StopMovingOrSizing()
+      local s = this:GetEffectiveScale() / UIParent:GetEffectiveScale()
+      Store()[name] = { this:GetLeft() * s, this:GetTop() * s }
+    end)
+    HookScript(f, "OnShow", function()
+      local p = Store()[name]
+      this:ClearAllPoints()
+      if p then
+        local s = this:GetEffectiveScale() / UIParent:GetEffectiveScale()
+        this:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p[1] / s, p[2] / s)
+      else
+        this:SetPoint(anchor or "TOPLEFT", UIParent, anchor or "TOPLEFT", dx, dy)
+      end
+    end)
+  end
+
+  pfUI.charLook = { Head = Head, Art = Art, Free = Free }
 
   Head(CharacterFrame, 42)
-
-  -- the race's own scenery (the game's dressing room art) behind the model
-  if CharacterModelFrame and not CharacterModelFrame.octoArt then
-    local _, race = UnitRace("player")
-    race = race or "Human"
-    local base = "Interface\\DressUpFrame\\DressUpBackground-" .. race
-    local w, h = CharacterModelFrame:GetWidth() or 230, CharacterModelFrame:GetHeight() or 320
-    local parts = {
-      { 1, 0, 0, 256 / 318, 256 / 383 },            -- top left 256 x 256
-      { 2, 256 / 318, 0, 62 / 318, 256 / 383 },     -- top right 62 x 256
-      { 3, 0, 256 / 383, 256 / 318, 127 / 383 },    -- bottom left 256 x 128
-      { 4, 256 / 318, 256 / 383, 62 / 318, 127 / 383 },
-    }
-    CharacterModelFrame.octoArt = {}
-    for _, pt in ipairs(parts) do
-      local t = PaperDollFrame:CreateTexture(nil, "BACKGROUND")
-      t:SetTexture(base .. pt[1])
-      t:SetPoint("TOPLEFT", CharacterModelFrame, "TOPLEFT", pt[2] * w, -pt[3] * h)
-      t:SetWidth(pt[4] * w)
-      t:SetHeight(pt[5] * h)
-      t:SetAlpha(.45)
-      table.insert(CharacterModelFrame.octoArt, t)
-    end
-    -- a soft dark edge so the art fades into the window
-    local shade = PaperDollFrame:CreateTexture(nil, "BORDER")
-    shade:SetTexture("Interface\\Buttons\\WHITE8X8")
-    shade:SetAllPoints(CharacterModelFrame)
-    shade:SetGradientAlpha("VERTICAL", 0, 0, 0, .75, 0, 0, 0, 0)
-  end
+  Free(CharacterFrame, 0, -104)
+  if CharacterModelFrame then Art(CharacterModelFrame, PaperDollFrame, "player") end
 
   -- EvenBetterCharacterStats' enchant panel and our Gear sets panel: the same strip
   local function Side()

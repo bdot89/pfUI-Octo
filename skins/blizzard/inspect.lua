@@ -37,6 +37,29 @@ pfUI:RegisterSkin("Inspect", "tbc", function ()
 
     InspectFrame:DisableDrawLayer("ARTWORK")
 
+    -- octo (1 Nov 2026): the character window's look, its own place and drag
+    -- (EnableMovable above waits for an ADDON_LOADED that has already gone)
+    local look = pfUI.charLook
+    if look then
+      for _, n in pairs(INSPECTFRAME_SUBFRAMES or {}) do
+        if _G[n] then _G[n]:EnableMouse(false) end
+      end
+      look.Free(InspectFrame, 150, -104, "TOP")
+      look.Head(InspectFrame, 42)
+      local function Dress()
+        if InspectModelFrame and InspectPaperDollFrame then look.Art(InspectModelFrame, InspectPaperDollFrame, "target") end
+        if _G.BCSInspectEnchantFrame then look.Head(_G.BCSInspectEnchantFrame, 22) end
+        local tg = _G.BCSInspectEnchantFrameToggleButton
+        if tg and tg.backdrop then
+          local ar, ag, ab = 1, .82, 0
+          if GetAccentColor then ar, ag, ab = GetAccentColor() end
+          tg.backdrop:SetBackdropBorderColor(ar, ag, ab, 1)
+        end
+      end
+      HookScript(InspectFrame, "OnShow", Dress)
+      Dress()
+    end
+
     InspectNameText:ClearAllPoints()
     InspectNameText:SetPoint("TOP", InspectFrame.backdrop, "TOP", 0, -10)
     InspectGuildText:Show()
@@ -145,6 +168,29 @@ pfUI:RegisterSkin("Inspect", "vanilla", function ()
     SkinCloseButton(InspectFrameCloseButton, InspectFrame.backdrop, -6, -6)
 
     InspectFrame:DisableDrawLayer("ARTWORK")
+
+    -- octo (1 Nov 2026): the character window's look, its own place and drag
+    -- (EnableMovable above waits for an ADDON_LOADED that has already gone)
+    local look = pfUI.charLook
+    if look then
+      for _, n in pairs(INSPECTFRAME_SUBFRAMES or {}) do
+        if _G[n] then _G[n]:EnableMouse(false) end
+      end
+      look.Free(InspectFrame, 150, -104, "TOP")
+      look.Head(InspectFrame, 42)
+      local function Dress()
+        if InspectModelFrame and InspectPaperDollFrame then look.Art(InspectModelFrame, InspectPaperDollFrame, "target") end
+        if _G.BCSInspectEnchantFrame then look.Head(_G.BCSInspectEnchantFrame, 22) end
+        local tg = _G.BCSInspectEnchantFrameToggleButton
+        if tg and tg.backdrop then
+          local ar, ag, ab = 1, .82, 0
+          if GetAccentColor then ar, ag, ab = GetAccentColor() end
+          tg.backdrop:SetBackdropBorderColor(ar, ag, ab, 1)
+        end
+      end
+      HookScript(InspectFrame, "OnShow", Dress)
+      Dress()
+    end
 
     InspectNameText:ClearAllPoints()
     InspectNameText:SetPoint("TOP", InspectFrame.backdrop, "TOP", 0, -10)
