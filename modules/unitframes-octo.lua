@@ -360,7 +360,9 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
       elseif UnitIsGhost(unit) then
         word = "Ghost"
       elseif UnitIsDead(unit) then
-        word = "Dead"
+        -- (a res on its way shows its icon there instead, api/unitframes.lua)
+        local lp = pfUI.api and pfUI.api.libpredict
+        if not (lp and lp.UnitHasIncomingResurrection and lp:UnitHasIncomingResurrection(unit)) then word = "Dead" end
       elseif player and UnitIsAFK and UnitIsAFK(unit) then
         mark = "uf-afk"
       end

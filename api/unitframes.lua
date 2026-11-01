@@ -1203,6 +1203,17 @@ function pfUI.uf.OnUpdate()
 
     -- update ressurections
     if ress and UnitIsDeadOrGhost(unit) then
+      -- octo (1 Nov 2026, user: "res frame not showing on raid frames"): over pfUI
+      -- Octo's own layers (dead word, highlights, flash at +17 / +18) and no taller
+      -- than the frame (a 32 px icon on a 22 px raid frame)
+      if not this.ressIcon.octoFit then
+        this.ressIcon.octoFit = true
+        this.ressIcon:SetFrameLevel((this:GetFrameLevel() or 1) + 22)
+        local sz = math.min(32, math.max(12, (this:GetHeight() or 32) - 2))
+        this.ressIcon:SetWidth(sz)
+        this.ressIcon:SetHeight(sz)
+      end
+      if this.octoStatusText then this.octoStatusText:Hide() end
       this.ressIcon:Show()
     else
       this.ressIcon:Hide()
