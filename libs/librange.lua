@@ -186,9 +186,13 @@ librange:SetScript("OnUpdate", function()
       target_event = TargetFrame_OnEvent
       _G.TargetFrame_OnEvent = target_nop
 
+      -- (octo, 1 Nov 2026, dennis: "Unknown unit." every few seconds - with
+      -- no target before the scan, TargetLastTarget has nothing to go back to:
+      -- clear the target instead)
+      local hadTarget = UnitExists("target")
       TargetUnit(unit)
       unitdata[unit] = IsActionInRange(librange.slot)
-      TargetLastTarget()
+      if hadTarget then TargetLastTarget() else ClearTarget() end
 
       -- restore target events
       _G.TargetFrame_OnEvent = target_event
