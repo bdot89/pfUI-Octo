@@ -107,7 +107,10 @@ function libclient.Cast(unit)
 end
 
 function libclient.Distance(unit)
-  if not unit then return end
+  -- (1 Nov 2026, Fresnel: crash to desktop with UnitXP SP3, no log - a DLL
+  -- reading a unit that is not there crashes outside Lua, where pcall cannot
+  -- catch it: ask the DLLs only about units that exist)
+  if not unit or not UnitExists(unit) then return end
   if C_UnitAuras and _G.UnitDistanceSquared then
     local ok, sq, checked = pcall(_G.UnitDistanceSquared, unit)
     if ok and checked and sq then return math.sqrt(sq) end
