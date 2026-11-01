@@ -107,6 +107,18 @@ function Test-Dll([string]$path) {
   return ($a -eq 0x4D -and $b -eq 0x5A)
 }
 
+# when a DLL was built: the link time in its PE header (UTC), or $null
+function Get-BuildDate([string]$path) {
+  try {
+    $b = [IO.File]::ReadAllBytes($path)
+    $pe = [BitConverter]::ToInt32($b, 60)
+    if ($pe -lt 0 -or $pe + 12 -gt $b.Length) { return $null }
+    $ts = [BitConverter]::ToUInt32($b, $pe + 8)
+    if ($ts -eq 0) { return $null }
+    return ([DateTime]'1970-01-01').AddSeconds($ts)
+  } catch { return $null }
+}
+
 $temp = Join-Path ([IO.Path]::GetTempPath()) ("pfui-octo-dlls-" + [Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $temp | Out-Null
 $backups = Join-Path $GameDir "DLL-backups"
@@ -188,8 +200,14 @@ try {
       $a, $b = $null, $null
       if ([Version]::TryParse(($fv -replace ',', '.' -replace '\s', ''), [ref]$a) -and [Version]::TryParse($rv, [ref]$b)) {
         if ($a -ge $b) { $mine = "your $fv is the same or newer" }
-      } elseif ($rel.published_at -and (Get-Item $target).LastWriteTimeUtc -gt ([DateTime]$rel.published_at).ToUniversalTime()) {
-        $mine = "yours is newer than this release (" + (Get-Item $target).LastWriteTime.ToString("d MMM yyyy") + ")"
+      } else {
+        # (1 Nov 2026: the file's date on disk is when it was copied, not built -
+        # a June nampower was kept over the August release. The build date in
+        # the DLL's own header is compared instead, against the downloaded one's.)
+        $have, $new = (Get-BuildDate $target), (Get-BuildDate $got)
+        if ($have -and $new -and $have -gt $new) {
+          $mine = "yours is a newer build (" + $have.ToString("d MMM yyyy") + ")"
+        }
       }
     }
     if ($mine -ne "") {

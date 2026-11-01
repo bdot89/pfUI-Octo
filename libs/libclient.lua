@@ -122,7 +122,13 @@ function libclient.Distance(unit)
       return ((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)^.5
     end
   end
-  if _G.UnitXP then
+  -- (the game's own UnitXP returns experience: only UnitXP SP3's answers
+  -- "nop" with true - without it, never ask it for a distance)
+  if libclient.hasSP3 == nil then
+    local ok, r = pcall(_G.UnitXP or function() end, "nop", "nop")
+    libclient.hasSP3 = ok and r == true
+  end
+  if libclient.hasSP3 then
     local ok, d = pcall(_G.UnitXP, "distanceBetween", "player", unit)
     if ok and type(d) == "number" and d >= 0 then return d end
   end
