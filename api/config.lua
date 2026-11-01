@@ -901,6 +901,8 @@ function pfUI:LoadConfig()
     pfUI:UpdateConfig("unitframes", unit,      "o_elitepos",       "TOPRIGHT")
     pfUI:UpdateConfig("unitframes", unit,      "o_status",         "1")
     pfUI:UpdateConfig("unitframes", unit,      "o_purge",          (unit == "target" or unit == "focus") and "1" or "0")
+    -- (1 Nov 2026, user: "cast bars show on raid frames of our members")
+    pfUI:UpdateConfig("unitframes", unit,      "o_cast",           (unit == "group" or unit == "raid") and "1" or "0")
   end
   pfUI:UpdateConfig("unitframes", "player",      "o_flashexpire",    "0")
   pfUI:UpdateConfig("unitframes", "pet",         "o_happysad",       "0")

@@ -600,4 +600,71 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     if unit and unit.octoClass then UO.Update(unit) end
     if unit and (not component or component == "all" or component == "aura") then UO.Auras(unit) end
   end
+
+  -- ---------------------------------------------------------------- cast bars on group frames
+  -- (1 Nov 2026, user: "make sure cast bars show on raid frames of our members").
+  -- A thin bar along the bottom of each raid / party frame (C.unitframes[raid|group].o_cast):
+  -- gold while casting, green while channelling, from UnitCastingInfo / UnitChannelInfo
+  -- (libcast: ClassicAPI's or SuperWoW's exact casts when present, else the combat log).
+  -- One driver for all frames, 15 times a second - nothing runs while nobody casts.
+  local CASTCOL, CHANCOL = { 1, .78, .2 }, { .3, .9, .4 }
+  local function CastBar(f)
+    if f.octoCast then return f.octoCast end
+    local holder = f.hp or f
+    local b = CreateFrame("StatusBar", nil, f)
+    b:SetFrameLevel((f:GetFrameLevel() or 1) + 6)
+    b:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", 1, 1)
+    b:SetPoint("BOTTOMRIGHT", holder, "BOTTOMRIGHT", -1, 1)
+    b:SetHeight(3)
+    b:SetStatusBarTexture(pfUI.media["img:bar"])
+    b:SetMinMaxValues(0, 1)
+    b.bg = b:CreateTexture(nil, "BACKGROUND")
+    b.bg:SetAllPoints(b)
+    b.bg:SetTexture(0, 0, 0, .6)
+    b:Hide()
+    f.octoCast = b
+    return b
+  end
+  UO.CastBar = CastBar
+  local function CastOn(f)
+    local c = f.config
+    local label = f.label
+    return c and c.o_cast == "1" and label and (string.find(label, "^raid") or string.find(label, "^party"))
+  end
+  function UO.CastTick(f)
+    if not CastOn(f) or not f:IsVisible() then
+      if f.octoCast then f.octoCast:Hide() end
+      return
+    end
+    local unit = f.label .. (f.id or "")
+    local channel
+    local name, _, _, _, startMs, endMs = UnitCastingInfo(unit)
+    if not name then
+      name, _, _, _, startMs, endMs = UnitChannelInfo(unit)
+      channel = name and true
+    end
+    local b = f.octoCast
+    if not name or not startMs or not endMs or endMs <= startMs then
+      if b then b:Hide() end
+      return
+    end
+    b = b or CastBar(f)
+    local now = GetTime() * 1000
+    local v = (now - startMs) / (endMs - startMs)
+    if v < 0 then v = 0 elseif v > 1 then v = 1 end
+    if channel then v = 1 - v end
+    local col = channel and CHANCOL or CASTCOL
+    b:SetStatusBarColor(col[1], col[2], col[3], 1)
+    b:SetValue(v)
+    b:Show()
+  end
+  local castDriver = CreateFrame("Frame")
+  UO.castDriver = castDriver
+  castDriver:SetScript("OnUpdate", function()
+    if (this.t or 0) > GetTime() then return end
+    this.t = GetTime() + 1 / 15
+    for _, f in ipairs(pfUI.uf.frames or {}) do
+      if f.label and (f.octoCast or CastOn(f)) then pcall(UO.CastTick, f) end
+    end
+  end)
 end)

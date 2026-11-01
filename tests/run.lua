@@ -4178,6 +4178,29 @@ do
   end
 end
 
+-- cast bars on raid frames (1 Nov 2026)
+do
+  local UO = pfUI.ufExtras
+  if UO and UO.CastTick then
+    local E = pfUI.env
+    local keepCast, keepChan = rawget(E, "UnitCastingInfo"), rawget(E, "UnitChannelInfo")
+    local f = CreateFrame("Frame", nil, UIParent)
+    f:SetWidth(80) f:SetHeight(30) f:Show()
+    f.label, f.id, f.config = "raid", 3, { o_cast = "1" }
+    local now = GetTime() * 1000
+    E.UnitCastingInfo = function(u) if u == "raid3" then return "Flash Heal", "", "", "tex", now - 500, now + 1000 end end
+    E.UnitChannelInfo = function() end
+    pcall(UO.CastTick, f)
+    ok(f.octoCast and f.octoCast:IsShown() and math.abs(f.octoCast:GetValue() - 1 / 3) < .05,
+      "a raid member's cast shows on their frame, a third done")
+    E.UnitCastingInfo = function() end
+    pcall(UO.CastTick, f)
+    ok(f.octoCast and not f.octoCast:IsShown(), "and goes when they stop")
+    E.UnitCastingInfo, E.UnitChannelInfo = keepCast, keepChan
+    f:Hide()
+  end
+end
+
 -- solo threat estimate (1 Nov 2026): only solo with a pet, never in a group
 do
   local TH = pfUI.meters and pfUI.meters.threat

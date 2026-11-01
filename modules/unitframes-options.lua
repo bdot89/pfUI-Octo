@@ -1258,6 +1258,11 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Sld(p, "Druid mana bar height", nil, 1, 10, 1, G, "druidmanaheight", Px, Reload)
     Chk(p, "Druid mana text", nil, G, "druidmanatext", Reload)
     Card(p, "All frames: party and raid")
+    -- (1 Nov 2026) a thin bar along the bottom of each member's frame while they cast
+    W.Check(p, "Cast bars on party and raid frames", "Gold while a member casts, green while they channel - "
+      .. "see who is casting what at a glance (exact with ClassicAPI or SuperWoW).",
+      function() return C.unitframes.raid.o_cast == "1" end,
+      function(v) C.unitframes.raid.o_cast = v and "1" or "0" C.unitframes.group.o_cast = v and "1" or "0" end)
     Chk(p, "Range check", "Fades members more than 40 yards away.", G, "rangecheck", Reload)
     Drop(p, "Range check every", nil, DD("uf_rangecheckinterval"), G, "rangechecki", Reload)
     -- (ClassicAPI UnitInLineOfSight, 25 Oct 2026)
