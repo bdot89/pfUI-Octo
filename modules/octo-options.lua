@@ -2093,7 +2093,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   local general = BuildGeneral
   local function CharCard(p)
-    W.Card(p, "Character window", { icon = "Interface\Icons\INV_Chest_Cloth_17",
+    W.Card(p, "Character window", { icon = "Interface\\Icons\\INV_Chest_Cloth_17",
       tip = "The character and inspect windows' look: a dark title shade with a thin line, your race's scenery behind the "
         .. "model and a square Enchants button. Off: pfUI's plain look. Takes a reload." })
     W.Check(p, "New character window look", nil, function() return C.appearance.charlook ~= "0" end,
