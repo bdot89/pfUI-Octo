@@ -956,6 +956,13 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     if f:IsShown() then f:Hide() else GS.Open() end
   end
 
+  -- (1 Nov 2026, user: the window "should be on as standard when people update or
+  -- download" - some had it switched off: on once for everyone, a later off stays)
+  if C.gear.specwinOn ~= "1" then
+    C.gear.specwindow = "1"
+    C.gear.specwinOn = "1"
+  end
+
   function GS.OnGossip()
     if f:IsShown() then f:Hide() end
     if C.gear.specwindow == "0" then return end
