@@ -499,3 +499,27 @@ do
     O:Open("abbars", 1)
   end
 end
+
+-- (1 Nov 2026) Match: Target to Player = every setting, the power bar's place too
+do
+  local p, t = _G.pfPlayer, _G.pfTarget
+  local made = not p
+  if made then
+    p = CreateFrame("Frame", "pfPlayer", UIParent)
+    p:SetWidth(200) p:SetHeight(50) p:SetPoint("CENTER", UIParent, "CENTER", -200, 0)
+  end
+  local cu = pfUI_config.unitframes
+  if p and t and pfUI.ufOcto and cu.player and cu.target then
+    local keep = {}
+    for k, v in pairs(cu.target) do keep[k] = v end
+    cu.player.width, cu.player.poffy, cu.player.txthpleftoffx = "222", "0", "4"
+    cu.target.width, cu.target.poffy, cu.target.txthpleftoffx = "150", "-40", "0"
+    local good, err = pcall(U.MatchSize, p, t)
+    ok(good, "Match a unit frame to another runs: " .. tostring(err))
+    ok(cu.target.width == "222" and cu.target.poffy == "0" and cu.target.txthpleftoffx == "4",
+      "the target took the player's size, power bar place and texts")
+    for k in pairs(cu.target) do cu.target[k] = nil end
+    for k, v in pairs(keep) do cu.target[k] = v end
+    if made then _G.pfPlayer = nil end
+  end
+end

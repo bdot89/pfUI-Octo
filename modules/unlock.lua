@@ -1174,6 +1174,40 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
       Say(NiceLabel(to.drag.label) .. " " .. T["now matches"] .. " " .. NiceLabel(from.drag.label) .. " (" .. T["each"] .. " " .. nw .. " px)")
       return
     end
+    -- octo (1 Nov 2026, user: "match the player frame on my target frame ...
+    -- piece for piece and snap the power bar back onto frame and cast bar"):
+    -- two unit frames = every setting copied (as Copy from... > Everything:
+    -- size, bars, power bar place, texts, auras, icons, look - never where it
+    -- is or whether it shows), and its cast bar matched and put under it
+    -- where the other frame's cast bar sits under that one
+    local UO = pfUI.ufOcto
+    if fk and tk and fk[1] == "unitframes" and tk[1] == "unitframes" and UO and UO.Copy then
+      KeepPlaces({ to }, function() UO.Copy(fk[2], tk[2], "all") end)
+      local fcb = _G["pf" .. (from:GetName() == "pfPlayer" and "Player" or from:GetName() == "pfTarget" and "Target"
+        or from:GetName() == "pfFocus" and "Focus" or "") .. "Castbar"]
+      local tcb = _G["pf" .. (to:GetName() == "pfPlayer" and "Player" or to:GetName() == "pfTarget" and "Target"
+        or to:GetName() == "pfFocus" and "Focus" or "") .. "Castbar"]
+      local CB = pfUI.castbarOcto
+      if fcb and tcb and fcb ~= tcb then
+        if CB and CB.Copy then CB.Copy(SIZES[fcb:GetName()][2], SIZES[tcb:GetName()][2]) end
+        local fs, ts2 = UIScale(from), UIScale(to)
+        local cs, tcs = UIScale(fcb), UIScale(tcb)
+        if from:GetLeft() and fcb:GetLeft() and to:GetLeft() then
+          local dx = fcb:GetLeft() * cs - from:GetLeft() * fs
+          local dy = fcb:GetTop() * cs - from:GetTop() * fs
+          tcb:ClearAllPoints()
+          tcb:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", (to:GetLeft() * ts2 + dx) / tcs, (to:GetTop() * ts2 + dy) / tcs)
+          SavePosition(tcb)
+          if tcb.drag then ShowSize(tcb.drag) end
+        end
+      end
+      SavePosition(to)
+      if to.OnMove then to:OnMove() end
+      if to.drag then ShowSize(to.drag) end
+      Say(NiceLabel(to.drag and to.drag.label or to:GetName()) .. " " .. T["now matches"] .. " "
+        .. NiceLabel(from.drag and from.drag.label or from:GetName()) .. " - every setting, its power bar and its cast bar")
+      return
+    end
     if tk then
       local cfg = C[tk[1]][tk[2]]
       cfg.width = tostring(w)
