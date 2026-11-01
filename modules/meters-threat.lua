@@ -54,7 +54,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if Solo() then
       if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", "WHISPER", UnitName("player")) then
         TH.soloSilent = (TH.soloSilent or 0) + 1
-        if TH.soloSilent >= GIVE_UP and not TH.soloAnswered then TH.soloGaveUp = true end
+        -- (solo: a server that answers does so at once - 6 tries, about 3 s of a fight)
+        if TH.soloSilent >= 6 and not TH.soloAnswered then TH.soloGaveUp = true end
       end
       return
     end

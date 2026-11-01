@@ -551,7 +551,7 @@ local function StackStatic(key)
   local n = 0
   for i = CT.nlive, 1, -1 do
     local o = CT.live[i]
-    if o.areaKey == key and o.move == "static" and not o.crit then
+    if o.areaKey == key and o.move == "static" then
       o.slot = (o.slot or 0) + 1
       n = n + 1
       if n >= 6 then Release(i) end
@@ -680,6 +680,9 @@ function CT:Show(text, r, g, b, where, opts)
     local path = CT.CritPath(critT, plate and true)
     critAim = critT.critOwn or path ~= "same"
     if path == "still" then move = "pin" elseif path ~= "same" then move = path end
+    -- (a notification-style area: crits and big messages take its lines too, or a
+    -- killing blow and the XP line under it sat on each other - GratisNinja, 1 Nov 2026)
+    if not plate and a and a.anim == "static" and (move == "pin" or move == "static") then move = "static" end
     if critT.critOwn then
       dur = critT.critTime or dur
       o.H, o.W = critT.critHeight or o.H, critT.critWidth or o.W

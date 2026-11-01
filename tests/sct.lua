@@ -417,6 +417,18 @@ if t1 then t1.side = -t1.side end
 CT:Show("tick two", 0, 1, 0, "healing", {})
 local t2 = LiveText("tick two")
 ok(t1 and t2 and t1.lane == t2.lane and t1.start < t2.start, "two texts at once in one area keep a line apart, whatever their side")
+-- the notification area: a big crit message (killing blow) and a normal one take lines
+do
+  local note = B.db.sct.areas.note
+  if note and note.anim == "static" then
+    CT:Clear()
+    CT:Show("xp line", 1, 1, 0, "note", {})
+    CT:Show("killing blow", 1, 0, 0, "note", { crit = true, big = true })
+    local x, k = LiveText("xp line"), LiveText("killing blow")
+    ok(x and k and x.move == "static" and k.move == "static" and x.slot ~= k.slot,
+      "a killing blow and an XP line in the notification area take separate lines")
+  end
+end
 -- two areas placed on one spot share the lane (a mana gain and a heal of one tick)
 do
   local areas = B.db.sct.areas
