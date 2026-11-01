@@ -567,7 +567,7 @@ local function Push(lane, move, gap)
   local newest
   for i = 1, CT.nlive do
     local o = CT.live[i]
-    if o.lane == lane and o.move == move and not o.crit then
+    if o.lane == lane and not o.crit then
       if not newest or o.start > newest.start then newest = o end
     end
   end
@@ -578,7 +578,7 @@ local function Push(lane, move, gap)
   local shift = (gap - moved) / newest.H * newest.dur
   for i = 1, CT.nlive do
     local o = CT.live[i]
-    if o.lane == lane and o.move == move and not o.crit then
+    if o.lane == lane and not o.crit and o.move ~= "pin" and o.move ~= "static" then
       o.start = o.start - shift
     end
   end
@@ -713,7 +713,10 @@ function CT:Show(text, r, g, b, where, opts)
   o.team = team
   -- (one lane per screen area, not per side: a straight movement puts both sides
   -- on one line, so two texts on different sides overlapped - user, 1 Nov 2026)
-  o.lane = plate and (tostring(plate) .. (team and ":team" or ":you")) or areaKey
+  -- (and areas that start at the same spot share one: the mana gain and the heal of one
+  -- Vampiric Touch tick went to two areas placed on each other - user, 1 Nov 2026)
+  local spot = a and a.x and a.y and (floor(a.x / 24) .. ":" .. floor(a.y / 24)) or areaKey
+  o.lane = plate and (tostring(plate) .. (team and ":team" or ":you")) or spot
   o.mergeKey, o.rebuild, o.mtotal, o.mcount = opts.mergeKey, opts.rebuild, opts.amount or 0, 1
   o.clamp = plate and P.clamp
   o.xv = (plate and not team and P.xVariance > 0) and (random() - 0.5) * 2 * P.xVariance or 0

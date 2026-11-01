@@ -417,6 +417,21 @@ if t1 then t1.side = -t1.side end
 CT:Show("tick two", 0, 1, 0, "healing", {})
 local t2 = LiveText("tick two")
 ok(t1 and t2 and t1.lane == t2.lane and t1.start < t2.start, "two texts at once in one area keep a line apart, whatever their side")
+-- two areas placed on one spot share the lane (a mana gain and a heal of one tick)
+do
+  local areas = B.db.sct.areas
+  local h, i = areas.heal, areas.inc
+  if h and i and h.x and i.x then
+    local kx, ky = i.x, i.y
+    i.x, i.y = h.x, h.y
+    CT:Clear()
+    CT:Show("mana tick", 0, 0, 1, "heal", {})
+    CT:Show("heal tick", 0, 1, 0, "inc", {})
+    local m, hh = LiveText("mana tick"), LiveText("heal tick")
+    ok(m and hh and m.lane == hh.lane and m.start < hh.start, "texts from two areas on one spot keep a line apart")
+    i.x, i.y = kx, ky
+  end
+end
 B.db.sct.plates.hit = "fountain"
 -- a plate at the left edge of the screen: its text stays inside
 plate.GetCenter = function() return 2, 300 end
