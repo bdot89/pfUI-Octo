@@ -85,7 +85,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     if t1 + t2 + t3 == 0 then return nil end
     local found
     for k, s in pairs(C.gear.specs) do
-      if type(s) == "table" and s.t1 == t1 and s.t2 == t2 and s.t3 == t3 then
+      if type(s) == "table" and GS.Same(s.t1, s.t2, s.t3, t1, t2, t3) then
         if found then return nil end
         found = tonumber(k)
       end
@@ -140,33 +140,30 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
   -- Discipline, and no slot showed ACTIVE). Learnt by comparing a slot's split
   -- with the talents you have now: the one way round that makes them equal
   -- (C.gear.specorder, e.g. "3,2,1"); kept for later, also away from the device.
-  GS.PERMS = { { 1, 2, 3 }, { 3, 2, 1 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 } }
-  function GS.TreeOrder(m)
-    local c = { GS.Split() }
-    if m and c[1] + c[2] + c[3] > 0 then
-      local found, count = nil, 0
-      for _, perm in ipairs(GS.PERMS) do
-        local fits
-        for _, d in pairs(m.split) do
-          if d[1] == c[perm[1]] and d[2] == c[perm[2]] and d[3] == c[perm[3]] then fits = true end
-        end
-        if fits then count = count + 1 found = found or perm end
-      end
-      -- (only one way round fits: learnt; more than one = these numbers cannot tell)
-      if count == 1 then C.gear.specorder = table.concat(found, ",") end
-    end
-    local out = {}
-    for n in string.gfind(C.gear.specorder or "", "%d") do table.insert(out, tonumber(n)) end
-    if table.getn(out) == 3 then return out end
-    return { 1, 2, 3 }
+  --
+  -- (1 Nov 2026, user: "people are struggling to respec ... it is getting
+  -- confused with what spec is what ... should be SOLID". One learnt order for
+  -- the whole device was wrong whenever the device sorts each slot its own
+  -- way, or a learn went wrong once - every slot was then misread.) Now:
+  --   * splits are compared order-free (GS.Same: the same three numbers);
+  --   * each slot keeps its split in the game's tree order from your REAL
+  --     talents, taken whenever that slot is the one on (s.t1-3);
+  --   * the device's numbers are put in that order when they are the same
+  --     three numbers, else shown as the device gives them.
+  -- Two slots with the same numbers: the one switched to last (specnow) is on.
+  C.gear.specorder = nil
+  function GS.Key(a, b, c)
+    local t = { tonumber(a) or 0, tonumber(b) or 0, tonumber(c) or 0 }
+    table.sort(t, function(x, y) return x > y end)
+    return t[1] .. "/" .. t[2] .. "/" .. t[3]
   end
-  -- the device's splits in the game's tree order
+  function GS.Same(a, b, c, x, y, z) return GS.Key(a, b, c) == GS.Key(x, y, z) end
   function GS.Normalize(m)
-    local perm = GS.TreeOrder(m)
     for slot, d in pairs(m.split) do
-      local t = {}
-      for i = 1, 3 do t[perm[i]] = d[i] end
-      m.split[slot] = t
+      local s = GS.Spec(slot)
+      if s and (s.t1 or 0) + (s.t2 or 0) + (s.t3 or 0) > 0 and GS.Same(d[1], d[2], d[3], s.t1, s.t2, s.t3) then
+        m.split[slot] = { s.t1, s.t2, s.t3 }
+      end
     end
     return m
   end
@@ -308,12 +305,12 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     local a, b, c = GS.SlotSplit(slot)
     local x, y, z = GS.Split()
     if a + b + c == 0 then return false end
-    if a == x and b == y and c == z then
+    if GS.Same(a, b, c, x, y, z) then
       -- (two slots with one split: the one switched to last)
       local other = C.gear.specnow and tonumber(C.gear.specnow)
       if other and other ~= slot then
         local oa, ob, oc = GS.SlotSplit(other)
-        if oa == a and ob == b and oc == c then return false end
+        if GS.Same(oa, ob, oc, a, b, c) then return false end
       end
       return true
     end
@@ -394,7 +391,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
         local t = watch.before
         local sa, sb, sc = GS.SlotSplit(watch.slot)
         -- (a swap to the same split only shows as spells changing)
-        local same = sa == t[1] and sb == t[2] and sc == t[3]
+        local same = GS.Same(sa, sb, sc, t[1], t[2], t[3])
         if a == t[1] and b == t[2] and c == t[3] and not same then return end
       end
       watch.changed = true
@@ -490,6 +487,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     line = { .23, .24, .27 }, text = { .92, .92, .93 }, dim = { .6, .61, .65 }, on = { .22, .72, .42 } }
   local WHITE = "Interface\\Buttons\\WHITE8X8"
   local GREEN, GOLD, RED, GREY = { .25, .85, .4 }, { 1, .78, .2 }, { .95, .3, .3 }, { .55, .57, .62 }
+  local BLUE = { .35, .7, 1 }
   -- the three talent trees' colours
   GS.TREE = { { 1, .55, .2 }, { .35, .7, 1 }, { .55, .9, .35 } }
   local function ClassColor()
@@ -751,10 +749,11 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     r.save:SetPoint("LEFT", r.go, "RIGHT", 4, 0)
     r.save:SetScript("OnClick", function() GS.Save(slot) end)
     Tip(r.save, "Save here", "Put the talents you have NOW into this slot. What the slot held is lost. Asks first.")
-    r.edit = Button(r, "Name", 36, GREY)
+    r.edit = Button(r, "Rename", 56, BLUE)
     r.edit:SetPoint("RIGHT", r, "RIGHT", -6, 0)
     r.edit:SetScript("OnClick", function() GS.AskRename(slot) end)
-    Tip(r.edit, "Name", "Give this spec a name. Right-click its picture to change the picture.")
+    Tip(r.edit, "Rename", "Give this spec your own name (Shadow PvE, Holy raid...): the window, the questions and the "
+      .. "chat messages all use it. Right-click its picture to change the picture.")
     rows[slot] = r
     return r
   end
@@ -847,8 +846,10 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
         local s = GS.Spec(slot)
         local buy = menu and menu.buy[slot]
         local owned = not menu or menu.activate[slot] or menu.save[slot]
-        if menu and menu.split[slot] and s then
-          -- (the device's split is the truth)
+        -- (a slot's saved split comes from your real talents while it is on -
+        -- GS.Apply / GS.Saved - never from the device's numbers, whose tree order
+        -- can differ; a slot never seen on takes the device's as a start)
+        if menu and menu.split[slot] and s and (s.t1 or 0) + (s.t2 or 0) + (s.t3 or 0) == 0 then
           s.t1, s.t2, s.t3 = menu.split[slot][1], menu.split[slot][2], menu.split[slot][3]
         end
         local active = owned and not buy and GS.IsActive(slot)
@@ -864,7 +865,8 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
           s = GS.Ensure(slot)
           r.icon:SetTexture(s.icon or ICON)
           local cr, cg, cb = ClassColor()
-          r.name:SetText(Hex(cr, cg, cb) .. s.name .. "|r")
+          -- (the slot number first: the device calls them 1st, 2nd... Specialization)
+          r.name:SetText("|cff888888" .. slot .. ".|r " .. Hex(cr, cg, cb) .. s.name .. "|r")
           local a, b, c = GS.SlotSplit(slot)
           r.split:SetText(GS.SplitText(a, b, c))
           tree = MainTree(a, b, c)

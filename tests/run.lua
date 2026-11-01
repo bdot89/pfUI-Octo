@@ -4850,23 +4850,30 @@ do
   end
 end
 
--- the device lists the trees in its own order (user, 26 Oct 2026: a Shadow
--- priest's "33/18/0" was read as 33 Discipline and no slot showed ACTIVE)
+-- the device lists each slot's trees in its own order (26 Oct 2026: a Shadow
+-- priest's "33/18/0" read as 33 Discipline; 1 Nov: one learnt order for the
+-- whole device mixed specs up). Splits compare order-free; each slot keeps the
+-- game's tree order from your real talents.
 do
   local GS = pfUI.gear and pfUI.gear.specs
-  if GS and GS.Read then
-    local wasOrder, wasTab = pfUI_config.gear.specorder, _G.GetTalentTabInfo
-    pfUI_config.gear.specorder = nil
+  if GS and GS.Read and GS.Same then
+    local wasTab, specs, now = _G.GetTalentTabInfo, pfUI_config.gear.specs, pfUI_config.gear.specnow
+    pfUI_config.gear.specs = {}
     local split = { 0, 18, 33 }
     _G.GetTalentTabInfo = function(i) return "Tree" .. i, "tex", split[i] end
-    local m = GS.Read({ { text = "Activate 1st Specialization  (33/18/0)", index = 1 },
-                        { text = "Save 1st Specialization.", index = 2 } })
-    ok(m and m.split[1][1] == 0 and m.split[1][2] == 18 and m.split[1][3] == 33, "the device's tree order is learnt from your talents")
-    ok(pfUI_config.gear.specorder == "3,2,1", "and kept (" .. tostring(pfUI_config.gear.specorder) .. ")")
-    split = { 0, 0, 0 }
-    m = GS.Read({ { text = "Activate 1st Specialization  (40/11/0)", index = 1 } })
-    ok(m and m.split[1][3] == 40, "a kept order is used when your talents cannot tell")
-    pfUI_config.gear.specorder, _G.GetTalentTabInfo = wasOrder, wasTab
+    local opts = { { text = "Activate 1st Specialization  (33/18/0)", index = 1 }, { text = "Save 1st Specialization.", index = 2 },
+                   { text = "Activate 2nd Specialization  (31/20/0)", index = 3 }, { text = "Save 2nd Specialization.", index = 4 } }
+    local first = GS.Read(opts)
+    -- (as the window does: a slot never seen on starts from the device's numbers)
+    for slot, d in pairs(first.split) do local s = GS.Ensure(slot) s.t1, s.t2, s.t3 = d[1], d[2], d[3] end
+    ok(GS.IsActive(1) and not GS.IsActive(2), "the slot with your talents is ACTIVE, whatever order the device lists them in")
+    GS.Apply(1)
+    local s1 = GS.Spec(1)
+    ok(s1.t1 == 0 and s1.t2 == 18 and s1.t3 == 33, "a slot keeps its split in the game's tree order from your real talents")
+    local m = GS.Read(opts)
+    ok(m.split[1][3] == 33 and m.split[2][1] == 31, "the device's numbers take that order for that slot only; others stay as given")
+    ok(GS.Match(33, 18, 0) == 1 and GS.Match(0, 33, 18) == 1, "a talent split finds its slot in any order")
+    pfUI_config.gear.specs, pfUI_config.gear.specnow, _G.GetTalentTabInfo = specs, now, wasTab
   end
 end
 
