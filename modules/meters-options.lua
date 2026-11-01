@@ -428,6 +428,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         local open = C.panel.arrowmode == "meters" and PN.ArrowIsOpen()
         if open then PN.ArrowSet(false) end
         C.panel.arrowside = v
+        if PN.ArrowPlace then PN.ArrowPlace() end
         if open then PN.ArrowSet(true) end
       end)
     local box = W.Box(p, 28 * M.MAXWIN + 34)

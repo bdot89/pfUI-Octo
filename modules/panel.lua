@@ -1075,6 +1075,26 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
     if C.panel.arrow == "1" then arrowShow(arrow) else arrow:Hide() end
   end
 
+  -- the arrow sits on the bar of the panel the meters dock in (1 Nov 2026,
+  -- user: "make the arrow switch with it"): the right bar's right end, or the
+  -- left bar's left end, pointing outwards
+  function pfUI.panel.ArrowPlace()
+    local left = C.panel.arrowside == "left" and pfUI.panel.left
+    local bar = left and pfUI.panel.left or pfUI.panel.right
+    if not bar then return end
+    local edge = left and "LEFT" or "RIGHT"
+    arrow:SetParent(bar)
+    arrow:ClearAllPoints()
+    arrow:SetPoint(edge, bar.backdrop or bar, edge, 0, 0)
+    arrow:SetPoint("TOP", bar.backdrop or bar, "TOP", 0, 0)
+    arrow:SetPoint("BOTTOM", bar.backdrop or bar, "BOTTOM", 0, 0)
+    arrow:SetFrameLevel((bar:GetFrameLevel() or 1) + 3)
+    if arrow.texture then arrow.texture:SetTexture(pfUI.media[left and "img:left" or "img:right"]) end
+    -- (a frame moved out of a hidden parent stays unseen until it is shown again)
+    if C.panel.arrow == "1" then arrow:Hide() arrowShow(arrow) end
+  end
+  pfUI.panel.ArrowPlace()
+
   arrow:SetScript("OnClick", function() pfUI.panel.ArrowToggle() end)
   arrow:SetScript("OnEnter", function()
     GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
