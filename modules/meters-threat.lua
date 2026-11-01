@@ -37,28 +37,93 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   local function InGroup() return GetNumRaidMembers() > 0 or GetNumPartyMembers() > 0 end
   -- solo with a pet tanking (1 Nov 2026, GratisNinja: a warlock and his Voidwalker):
-  -- asked by a whisper to yourself; a server that never answers that is left alone
-  -- (TH.soloGaveUp) without stopping the group asks
+  -- the server answers groups only, so the numbers are estimated here (TH.Estimate).
+  -- Only ever true out of a group: nothing grouped uses the estimate.
   local function Solo() return not InGroup() and C.meters.threatsolo ~= "0" and UnitExists("pet") end
 
   -- in a group, the target a mob you can attack, in combat
   function TH.Wanted()
-    if not InGroup() and not (Solo() and not TH.soloGaveUp) then return false end
+    if not InGroup() and not Solo() then return false end
     if not UnitExists("target") or UnitIsPlayer("target") or not UnitCanAttack("player", "target") then return false end
     return UnitAffectingCombat("target") and true or false
+  end
+
+  -- ---------------------------------------------------------------- solo estimate
+  -- (1 Nov 2026, user: "surely there is a way to see the threat between you and your
+  -- pet"). The server sends threat to groups only, so solo with a pet the numbers are
+  -- worked out here, the way KTM did before servers sent them: from the hits the
+  -- meters already read. Damage = 1 threat a point, your heals = 1/2 a point, and the
+  -- pet's threat-only abilities their fixed threat (by rank from the pet's level).
+  -- An estimate: talents and threat-lowering effects make it drift a little. Who the
+  -- mob is attacking (its target) is exact and always wins the "tank" mark.
+  TH.est = {}
+  TH.FIXED = {
+    -- name = { { from pet level, threat }, ... } highest rank the pet can have
+    ["Torment"] = { { 10, 45 }, { 20, 75 }, { 30, 125 }, { 40, 215 }, { 50, 300 }, { 60, 395 } },
+    ["Suffering"] = { { 24, 150 }, { 36, 300 }, { 48, 450 }, { 60, 600 } },
+    ["Growl"] = { { 1, 50 }, { 10, 65 }, { 20, 110 }, { 30, 170 }, { 40, 240 }, { 50, 320 }, { 60, 415 } },
+  }
+  function TH.Fixed(spell)
+    local ranks = spell and TH.FIXED[spell]
+    if not ranks then return 0 end
+    local lvl, v = UnitLevel("pet") or 60, 0
+    for _, r in ipairs(ranks) do if lvl >= r[1] then v = r[2] end end
+    return v
+  end
+  function TH.EstAdd(mob, who, amount)
+    if not mob or not who or not amount or amount <= 0 then return end
+    local t = TH.est[mob] or {}
+    TH.est[mob] = t
+    t[who] = (t[who] or 0) + amount
+  end
+  -- every record the meters read: yours and your pet's against a mob
+  function TH.EstRecord(r)
+    if not Solo() or not r or (M.testOn) then return end
+    local me, pet = UnitName("player"), UnitName("pet")
+    if r.kind == "dmg" and r.amt and (r.src == me or r.src == pet) and r.tgt and r.tgt ~= me and r.tgt ~= pet then
+      TH.EstAdd(r.tgt, r.src, r.amt)
+    elseif r.kind == "heal" and r.amt and r.src == me and UnitExists("target") then
+      TH.EstAdd(UnitName("target"), me, r.amt / 2)
+    elseif (r.kind == "cast" or r.kind == "dmg" or r.kind == "miss") and r.src == pet and TH.FIXED[r.spl or ""] then
+      TH.EstAdd(r.tgt or UnitName("target"), pet, TH.Fixed(r.spl))
+    end
+  end
+  if M.Record and not M.octoEstHooked then
+    M.octoEstHooked = true
+    local record = M.Record
+    M.Record = function(r)
+      record(r)
+      pcall(TH.EstRecord, r)
+    end
+  end
+  -- the target's numbers as the server's list would give them
+  function TH.Estimate()
+    local mob = UnitName("target")
+    local t = mob and TH.est[mob]
+    local me, pet = UnitName("player"), UnitName("pet")
+    if not (me and pet) then return end
+    local mine, its = t and t[me] or 0, t and t[pet] or 0
+    local holder = (UnitIsUnit("targettarget", "player") and me) or (UnitIsUnit("targettarget", "pet") and pet)
+      or (its >= mine and pet or me)
+    local top = holder == me and mine or its
+    local function Perc(v) return top > 0 and math.floor(v / top * 1000 + .5) / 10 or 0 end
+    local list = {
+      { name = pet, tank = holder == pet, threat = math.floor(its + .5), perc = Perc(its), melee = true },
+      { name = me, tank = holder == me, threat = math.floor(mine + .5), perc = Perc(mine), melee = CheckInteractDistance("target", 3) and true or false },
+    }
+    table.sort(list, function(a, b) return a.threat > b.threat end)
+    TH.list, TH.at, TH.estimated = list, GetTime(), true
+    TH.Warn()
+    M.Changed()
   end
 
   function TH.Ask()
     if not TH.Wanted() or TH.gaveUp then return end
     if GetTime() - TH.at < .45 then return end
-    if Solo() then
-      if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", "WHISPER", UnitName("player")) then
-        TH.soloSilent = (TH.soloSilent or 0) + 1
-        -- (solo: a server that answers does so at once - 6 tries, about 3 s of a fight)
-        if TH.soloSilent >= 6 and not TH.soloAnswered then TH.soloGaveUp = true end
-      end
-      return
-    end
+    -- solo with a pet: the estimate (the server answers groups only)
+    if Solo() then TH.Estimate() return end
+    -- (grouped again: the server's numbers only, never the estimate)
+    if TH.estimated then TH.list, TH.estimated = nil, nil end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
       TH.silent = TH.silent + 1
       if TH.silent >= GIVE_UP and TH.answers == 0 then TH.gaveUp = true end
@@ -68,7 +133,6 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- what the window shows when there are no numbers
   function TH.Status()
     if TH.gaveUp then return T["No threat data from this server"] end
-    if Solo() and TH.soloGaveUp then return T["This server sends threat in a group only"] end
     if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
     if TH.answers == 0 then return T["Asking the server..."] end
@@ -98,13 +162,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       local list = TH.Parse(arg2)
       if not list then return end
       TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
-      if Solo() then TH.soloAnswered, TH.soloSilent = true, 0 end
+      TH.estimated = nil
       TH.Warn()
       M.Changed()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
       TH.gaveUp, TH.silent, TH.answers = nil, 0, 0
     else
-      TH.list, TH.warned = nil, nil
+      TH.list, TH.warned, TH.estimated = nil, nil, nil
+      -- (a fight over: the solo tallies start again)
+      if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
       M.Changed()
     end
   end)

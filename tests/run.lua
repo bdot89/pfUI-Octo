@@ -4178,6 +4178,40 @@ do
   end
 end
 
+-- solo threat estimate (1 Nov 2026): only solo with a pet, never in a group
+do
+  local TH = pfUI.meters and pfUI.meters.threat
+  if TH and TH.EstRecord and TH.Estimate then
+    local keep = {}
+    for _, k in ipairs({ "GetNumRaidMembers", "GetNumPartyMembers", "UnitExists", "UnitName", "UnitLevel", "UnitIsUnit", "CheckInteractDistance" }) do keep[k] = rawget(_G, k) end
+    local party = 0
+    _G.GetNumRaidMembers = function() return 0 end
+    _G.GetNumPartyMembers = function() return party end
+    _G.UnitExists = function(u) return u == "pet" or u == "target" or u == "player" end
+    _G.UnitName = function(u) return ({ player = "Me", pet = "Voidy", target = "Boar" })[u] end
+    _G.UnitLevel = function() return 60 end
+    _G.UnitIsUnit = function(a, b) return a == "targettarget" and b == "pet" end
+    _G.CheckInteractDistance = function() return false end
+    local wasSolo = pfUI_config.meters.threatsolo
+    pfUI_config.meters.threatsolo = "1"
+    TH.est, TH.list = {}, nil
+    TH.EstRecord({ kind = "dmg", src = "Me", tgt = "Boar", amt = 100 })
+    TH.EstRecord({ kind = "dmg", src = "Voidy", tgt = "Boar", amt = 300 })
+    TH.EstRecord({ kind = "cast", src = "Voidy", tgt = "Boar", spl = "Torment" })
+    TH.Estimate()
+    local l = TH.list
+    ok(l and l[1].name == "Voidy" and l[1].threat == 695 and l[1].tank and l[2].name == "Me" and l[2].threat == 100,
+      "solo: you and your pet's threat estimated from hits and Torment (" .. tostring(l and l[1].threat) .. ")")
+    party = 1
+    TH.est = {}
+    TH.EstRecord({ kind = "dmg", src = "Me", tgt = "Boar", amt = 500 })
+    ok(next(TH.est) == nil, "in a group nothing is estimated (the server's numbers only)")
+    TH.est, TH.list, TH.estimated = {}, nil, nil
+    pfUI_config.meters.threatsolo = wasSolo
+    for k, v in pairs(keep) do rawset(_G, k, v) end
+  end
+end
+
 -- Blizzard UI (1 Nov 2026): the page, and Blizzard's frames as layout mode boxes
 do
   local O = pfUI.octoui and pfUI.octoui.Options
