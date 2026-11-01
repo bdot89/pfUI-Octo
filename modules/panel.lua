@@ -900,13 +900,22 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
     return out
   end
 
-  -- the picked meter windows side by side in the right window, or free again
+  -- which panel the docked meters sit in (1 Nov 2026, dennis: "lock into the left frame
+  -- instead only the right"): C.panel.arrowside right | left; returns the chat window and its bar
+  function pfUI.panel.DockHolder()
+    if C.panel.arrowside == "left" and pfUI.chat and pfUI.chat.left then return pfUI.chat.left, pfUI.panel.left end
+    return pfUI.chat and pfUI.chat.right, pfUI.panel.right
+  end
+
+  -- the picked meter windows side by side in the right (or left) window, or free again
   local function MetersIn(on)
-    local chat, M = pfUI.chat and pfUI.chat.right, pfUI.meters
+    local chat, bar = pfUI.panel.DockHolder()
+    local M = pfUI.meters
+    local right = chat == (pfUI.chat and pfUI.chat.right)
     if not (chat and M) then return end
     local wins = pfUI.panel.ArrowMeters()
     if on then
-      chat:Show()
+      if right then chat:Show() end
       -- (28 Oct 2026, user: "resized naturally to FILL the right panel not leaving spaces") the
       -- docked windows split the panel evenly, edge to edge: one takes it all, two halves, three thirds
       -- (seen in game 28 Oct: a strip at the right stayed empty - the width was read before the
@@ -915,7 +924,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
       local l, r = chat:GetLeft(), chat:GetRight()
       local full = (l and r and r > l) and (r - l) or chat:GetWidth() or 400
       pfUI.panel.arrowWidth = full
-      local bottom = pfUI.panel.right:GetHeight() or 0
+      local bottom = bar and bar:GetHeight() or 0
       local x = 0
       local each = full / math.max(1, table.getn(wins))
       for i, win in ipairs(wins) do
@@ -949,7 +958,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
         end
         win:Hide()
       end
-      if C.chat.right.enable ~= "1" then chat:Hide() end
+      if right and C.chat.right.enable ~= "1" then chat:Hide() end
     end
   end
 
@@ -1031,7 +1040,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
     this.t = (this.t or 0) + arg1
     if this.t < .5 then return end
     this.t = 0
-    local chat = pfUI.chat and pfUI.chat.right
+    local chat = pfUI.panel.DockHolder()
     if not chat or C.panel.arrowmode ~= "meters" or C.panel.arrowopen ~= "1" then return end
     local l, r = chat:GetLeft(), chat:GetRight()
     if l and r and math.abs((r - l) - (pfUI.panel.arrowWidth or 0)) > 1 then MetersIn(true) end

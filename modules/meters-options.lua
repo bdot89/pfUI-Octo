@@ -420,6 +420,16 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       .. "sits in the window above the bottom-right bar, sharing it edge to edge with the others there (one fills it, "
       .. "two take half each, three a third) - up to " .. PN.ARROWMAX .. ". Floating: it stays exactly where you put it on "
       .. "the screen (Move frames, or drag its title bar)." })
+    -- (1 Nov 2026, dennis: dock into the left panel too)
+    W.Dropdown(p, "Panel side", "Which bottom panel the docked windows sit in. Left: over the left chat window.",
+      { { key = "right", label = "Right panel" }, { key = "left", label = "Left panel (over the chat)" } },
+      function() return C.panel.arrowside or "right" end,
+      function(v)
+        local open = C.panel.arrowmode == "meters" and PN.ArrowIsOpen()
+        if open then PN.ArrowSet(false) end
+        C.panel.arrowside = v
+        if open then PN.ArrowSet(true) end
+      end)
     local box = W.Box(p, 28 * M.MAXWIN + 34)
     local rows = {}
     local function Paint()
