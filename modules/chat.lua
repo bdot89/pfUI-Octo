@@ -787,6 +787,13 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
         local color = unknowncolorhex
         local match = false
         local class = GetUnitData(real)
+        -- octo (1 Nov 2026, GratisNinja): ClassicAPI's player cache knows the class of
+        -- anyone the game has seen this session (group, near you, friends, anyone who
+        -- spoke) - no /who needed
+        if not class and _G.C_PlayerCache and _G.C_PlayerCache.GetPlayerInfoByName then
+          local ok, _, token = pcall(_G.C_PlayerCache.GetPlayerInfoByName, real)
+          if ok and token and RAID_CLASS_COLORS[token] then class = token end
+        end
 
         if class then
           if class ~= UNKNOWN then
