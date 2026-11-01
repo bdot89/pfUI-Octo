@@ -751,9 +751,15 @@ do
   end
   local function FromBook(name, rank)
     local best
-    local i = 1
-    while true do
-      local n, r = GetSpellName(i, BOOKTYPE_SPELL)
+    -- (1 Nov 2026: a freeze casting Regrowth - the walk is bounded by the
+    -- book's real size now; it used to wait for GetSpellName to give nil)
+    local total = 0
+    for t = 1, (GetNumSpellTabs and GetNumSpellTabs() or 0) do
+      local _, _, _, num = GetSpellTabInfo(t)
+      total = total + (tonumber(num) or 0)
+    end
+    for i = 1, math.min(total, 1024) do
+      local n, r = GetSpellName(i, BOOKTYPE_SPELL or "spell")
       if not n then break end
       if n == name and (not rank or rank == "" or r == rank) then
         scan:SetOwner(UIParent, "ANCHOR_NONE")
@@ -765,7 +771,6 @@ do
           if v then best = v end
         end
       end
-      i = i + 1
     end
     return best
   end

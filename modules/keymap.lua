@@ -73,7 +73,7 @@ pfUI:RegisterModule("keymap", "vanilla", function ()
     local out = {}
     if not name or not GetSpellName then return out end
     local i = 1
-    while true do
+    while i <= 1024 do -- (bounded: a client that never says "no more" froze, 1 Nov 2026)
       local n, r = GetSpellName(i, BOOKTYPE_SPELL or "spell")
       if not n then break end
       if n == name then table.insert(out, { i, (r and r ~= "") and r or nil }) end
@@ -128,7 +128,7 @@ pfUI:RegisterModule("keymap", "vanilla", function ()
   local function SpellTexture(name)
     if not name or not GetSpellName then return nil end
     local i = 1
-    while true do
+    while i <= 1024 do
       local n = GetSpellName(i, BOOKTYPE_SPELL or "spell")
       if not n then return nil end
       if n == name then return GetSpellTexture(i, BOOKTYPE_SPELL or "spell") end

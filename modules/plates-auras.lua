@@ -75,7 +75,7 @@ pfUI:RegisterModule("plates-auras", "vanilla:tbc", function ()
     if not bookIcons then
       bookIcons = {}
       local i = 1
-      while true do
+      while i <= 1024 do -- (bounded, 1 Nov 2026)
         local n = GetSpellName(i, BOOKTYPE_SPELL)
         if not n then break end
         bookIcons[string.lower(n)] = GetSpellTexture(i, BOOKTYPE_SPELL)

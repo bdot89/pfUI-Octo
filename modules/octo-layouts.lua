@@ -166,7 +166,7 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
   -- the spellbook index of a spell (that rank, else the highest)
   local function SpellIndex(name, rank)
     local i, best = 1, nil
-    while true do
+    while i <= 1024 do -- (bounded, 1 Nov 2026)
       local n, r = GetSpellName(i, BOOKTYPE_SPELL or "spell")
       if not n then break end
       if n == name then
