@@ -157,11 +157,17 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     table.sort(t, function(x, y) return x > y end)
     return t[1] .. "/" .. t[2] .. "/" .. t[3]
   end
-  function GS.Same(a, b, c, x, y, z) return GS.Key(a, b, c) == GS.Key(x, y, z) end
+  -- tree by tree (1 Nov 2026: comparing the numbers in any order took 31/20/0 and
+  -- 20/31/0 for one spec - "all of his trees have the same amount ... distributed
+  -- differently"). GS.Key (order-free) is only used to line the device's numbers up.
+  function GS.Same(a, b, c, x, y, z)
+    return (tonumber(a) or 0) == (tonumber(x) or 0) and (tonumber(b) or 0) == (tonumber(y) or 0)
+      and (tonumber(c) or 0) == (tonumber(z) or 0)
+  end
   function GS.Normalize(m)
     for slot, d in pairs(m.split) do
       local s = GS.Spec(slot)
-      if s and (s.t1 or 0) + (s.t2 or 0) + (s.t3 or 0) > 0 and GS.Same(d[1], d[2], d[3], s.t1, s.t2, s.t3) then
+      if s and (s.t1 or 0) + (s.t2 or 0) + (s.t3 or 0) > 0 and GS.Key(d[1], d[2], d[3]) == GS.Key(s.t1, s.t2, s.t3) then
         m.split[slot] = { s.t1, s.t2, s.t3 }
       end
     end
@@ -245,6 +251,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
       if s and s.ownbars ~= "0" then table.insert(then_, "put its own spells on your bars") end
       return "|cff55ff77Activate " .. name .. "|r (" .. SplitWords(GS.SlotSplit(slot)) .. ")?\n\n"
         .. "The device swaps your talents for this spec's and gives you a debuff."
+        .. (GS.IsActive(slot) and "\n|cffffd100This spec looks like the one on now - activate anyway if you are not sure.|r" or "")
         .. (table.getn(then_) > 0 and ("\nThen pfUI will " .. table.concat(then_, ", ") .. ".") or "")
     elseif kind == "save" then
       local now = SplitWords(GS.Split())
@@ -279,7 +286,6 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     local kind, slot
     if ok and m then kind, slot = GS.KindAt(m, index) end
     if not kind then return GS.rawSelect(index, a, b) end
-    if kind == "activate" and GS.IsActive(slot) then Say(GS.Name(slot) .. " is already on.") return end
     local open = _G["pfQuestionDialog"]
     if open and open:IsShown() then open:Hide() _G["pfQuestionDialog"] = nil end
     GS.Ask(GS.Question(kind, slot, m), function()
@@ -301,20 +307,23 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     if s then return s.t1 or 0, s.t2 or 0, s.t3 or 0 end
     return 0, 0, 0
   end
+  -- ACTIVE: the slot whose split is your talents' tree by tree. Two or more slots
+  -- with the same tree totals (1 Nov 2026: Spec 1 and Spec 3 both 23/28/0, other
+  -- talents inside the trees) can only be told apart by which one was switched to
+  -- last (specnow): that one, or none of them - never two at once.
   function GS.IsActive(slot)
     local a, b, c = GS.SlotSplit(slot)
     local x, y, z = GS.Split()
-    if a + b + c == 0 then return false end
-    if GS.Same(a, b, c, x, y, z) then
-      -- (two slots with one split: the one switched to last)
-      local other = C.gear.specnow and tonumber(C.gear.specnow)
-      if other and other ~= slot then
+    if a + b + c == 0 or not GS.Same(a, b, c, x, y, z) then return false end
+    local now = C.gear.specnow and tonumber(C.gear.specnow)
+    if now == slot then return true end
+    for other = 1, MAX do
+      if other ~= slot and GS.Spec(other) then
         local oa, ob, oc = GS.SlotSplit(other)
-        if GS.Same(oa, ob, oc, a, b, c) then return false end
+        if oa + ob + oc > 0 and GS.Same(oa, ob, oc, a, b, c) then return false end
       end
-      return true
     end
-    return false
+    return true
   end
 
   -- ---------------------------------------------------------------- switching
@@ -442,7 +451,6 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     end
     local o = menu.activate[slot]
     if not o then return end
-    if GS.IsActive(slot) then Say(GS.Name(slot) .. " is already on.") return end
     Confirm(o, GS.Question("activate", slot), function(owner)
       GS.Leave()
       if Choose(o, owner) then Watch(slot) end
@@ -539,7 +547,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     end
   end
 
-  local WIDTH, ROWH, TOP = 720, 54, 112
+  local WIDTH, ROWH, TOP = 740, 54, 112
   local f = CreateFrame("Frame", "pfGearSpecs", UIParent)
   GS.frame = f
   f:SetWidth(WIDTH)
@@ -742,15 +750,16 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
     end
 
     r.go = Button(r, "Activate", 66, GREEN)
-    r.go:SetPoint("LEFT", r, "LEFT", 530, 0)
+    r.go:SetPoint("LEFT", r, "LEFT", 520, 0)
     r.go:SetScript("OnClick", function() GS.Activate(slot) end)
     Tip(r.go, "Activate", "Switch to this spec. Asks first; the device gives a debuff.")
-    r.save = Button(r, "Save here", 58, GOLD)
+    r.save = Button(r, "Save here", 66, GOLD)
     r.save:SetPoint("LEFT", r.go, "RIGHT", 4, 0)
     r.save:SetScript("OnClick", function() GS.Save(slot) end)
     Tip(r.save, "Save here", "Put the talents you have NOW into this slot. What the slot held is lost. Asks first.")
     r.edit = Button(r, "Rename", 56, BLUE)
-    r.edit:SetPoint("RIGHT", r, "RIGHT", -6, 0)
+    -- (after Save here, not pinned to the edge: the two overlapped, user screenshot 1 Nov 2026)
+    r.edit:SetPoint("LEFT", r.save, "RIGHT", 4, 0)
     r.edit:SetScript("OnClick", function() GS.AskRename(slot) end)
     Tip(r.edit, "Rename", "Give this spec your own name (Shadow PvE, Holy raid...): the window, the questions and the "
       .. "chat messages all use it. Right-click its picture to change the picture.")

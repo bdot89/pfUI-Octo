@@ -4850,29 +4850,25 @@ do
   end
 end
 
--- the device lists each slot's trees in its own order (26 Oct 2026: a Shadow
--- priest's "33/18/0" read as 33 Discipline; 1 Nov: one learnt order for the
--- whole device mixed specs up). Splits compare order-free; each slot keeps the
--- game's tree order from your real talents.
+-- talent specs (1 Nov 2026): splits compare tree by tree, and two slots with
+-- the same tree totals (Spec 1 and Spec 3 both 23/28/0, other talents inside
+-- the trees) are told apart only by the one switched to last - never both ACTIVE
 do
   local GS = pfUI.gear and pfUI.gear.specs
   if GS and GS.Read and GS.Same then
     local wasTab, specs, now = _G.GetTalentTabInfo, pfUI_config.gear.specs, pfUI_config.gear.specnow
-    pfUI_config.gear.specs = {}
-    local split = { 0, 18, 33 }
+    pfUI_config.gear.specs, pfUI_config.gear.specnow = {}, nil
+    local split = { 23, 28, 0 }
     _G.GetTalentTabInfo = function(i) return "Tree" .. i, "tex", split[i] end
-    local opts = { { text = "Activate 1st Specialization  (33/18/0)", index = 1 }, { text = "Save 1st Specialization.", index = 2 },
-                   { text = "Activate 2nd Specialization  (31/20/0)", index = 3 }, { text = "Save 2nd Specialization.", index = 4 } }
-    local first = GS.Read(opts)
-    -- (as the window does: a slot never seen on starts from the device's numbers)
-    for slot, d in pairs(first.split) do local s = GS.Ensure(slot) s.t1, s.t2, s.t3 = d[1], d[2], d[3] end
-    ok(GS.IsActive(1) and not GS.IsActive(2), "the slot with your talents is ACTIVE, whatever order the device lists them in")
-    GS.Apply(1)
-    local s1 = GS.Spec(1)
-    ok(s1.t1 == 0 and s1.t2 == 18 and s1.t3 == 33, "a slot keeps its split in the game's tree order from your real talents")
-    local m = GS.Read(opts)
-    ok(m.split[1][3] == 33 and m.split[2][1] == 31, "the device's numbers take that order for that slot only; others stay as given")
-    ok(GS.Match(33, 18, 0) == 1 and GS.Match(0, 33, 18) == 1, "a talent split finds its slot in any order")
+    local function Set(slot, a, b, c) local s = GS.Ensure(slot) s.t1, s.t2, s.t3 = a, b, c end
+    Set(1, 23, 28, 0) Set(2, 0, 14, 30) Set(3, 23, 28, 0) Set(4, 28, 23, 0)
+    ok(not GS.Same(23, 28, 0, 28, 23, 0), "31/20/0 and 20/31/0 are different specs (tree by tree)")
+    ok(not GS.IsActive(4), "a slot with the same points in other trees is not ACTIVE")
+    ok(not GS.IsActive(1) and not GS.IsActive(3), "two slots with the same tree totals and no known switch: neither is ACTIVE")
+    pfUI_config.gear.specnow = "3"
+    ok(GS.IsActive(3) and not GS.IsActive(1), "the one switched to last is ACTIVE, the twin is not")
+    split = { 0, 14, 30 }
+    ok(GS.IsActive(2) and not GS.IsActive(3), "your talents changed to slot 2's: slot 2 is ACTIVE")
     pfUI_config.gear.specs, pfUI_config.gear.specnow, _G.GetTalentTabInfo = specs, now, wasTab
   end
 end
