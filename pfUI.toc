@@ -6,9 +6,10 @@
 ## Version: 5.5.4
 ## X-Octo-Version: 1.0.0
 ## SavedVariables: pfUI_profiles, pfUI_addon_profiles, pfUI_cache
-## SavedVariablesPerCharacter: pfUI_config, pfUI_init, pfUI_playerDB
+## SavedVariablesPerCharacter: pfUI_config, pfUI_init, pfUI_playerDB, BCSConfig
 
 pfUI.lua
+charstats\charstats.xml
 
 init\env.xml
 init\compat.xml
