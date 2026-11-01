@@ -1176,16 +1176,16 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     end
     -- octo (1 Nov 2026, user: "match the player frame on my target frame ...
     -- piece for piece and snap the power bar back onto frame and cast bar"):
-    -- two unit frames = every setting copied (as Copy from... > Everything:
-    -- size, bars, power bar place, texts, auras, icons, look - never where it
-    -- is or whether it shows), and its cast bar matched and put under it
+    -- two unit frames = the bars copied (Copy from... > Size: width, heights,
+    -- power bar place, textures - not the portrait; user, 1 Nov: texts, buffs
+    -- and names stay each frame's own), and its cast bar matched and put under it
     -- where the other frame's cast bar sits under that one
     local UO = pfUI.ufOcto
     if fk and tk and fk[1] == "unitframes" and tk[1] == "unitframes" and UO and UO.Copy then
       -- (its scale too: a target frame sized in layout mode stayed bigger than
       -- the player's after a match, user's screenshot 1 Nov 2026)
       KeepPlaces({ to }, function()
-        UO.Copy(fk[2], tk[2], "all")
+        UO.Copy(fk[2], tk[2], "size", "^portrait")
         if math.abs((to:GetScale() or 1) - (from:GetScale() or 1)) > .001 then SaveScale(to, from:GetScale()) end
       end)
       local fcb = _G["pf" .. (from:GetName() == "pfPlayer" and "Player" or from:GetName() == "pfTarget" and "Target"
@@ -1210,7 +1210,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
       if to.OnMove then to:OnMove() end
       if to.drag then ShowSize(to.drag) end
       Say(NiceLabel(to.drag and to.drag.label or to:GetName()) .. " " .. T["now matches"] .. " "
-        .. NiceLabel(from.drag and from.drag.label or from:GetName()) .. " - every setting, its power bar and its cast bar")
+        .. NiceLabel(from.drag and from.drag.label or from:GetName()) .. " - its bars, power bar and cast bar")
       return
     end
     if tk then

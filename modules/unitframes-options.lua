@@ -251,13 +251,14 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   end
   -- copies part ("all" or a COPYPARTS key) of frame from's settings to frame
   -- to's; the values it had are kept for UF.Undo. Returns how many changed.
-  function UF.Copy(from, to, part)
+  -- (skip: a key pattern left out - layout mode's Match copies the bars, not the portrait)
+  function UF.Copy(from, to, part, skip)
     local src, dst = C.unitframes[from], C.unitframes[to]
     if not src or not dst or from == to then return 0 end
     local was, n = {}, 0
     for k, v in pairs(src) do
       local pk = UF.PartOf(k)
-      if pk and (part == "all" or pk == part) and type(v) ~= "table" and dst[k] ~= v then
+      if pk and (part == "all" or pk == part) and not (skip and string.find(k, skip)) and type(v) ~= "table" and dst[k] ~= v then
         was[k] = dst[k] == nil and false or dst[k]
         dst[k] = v
         n = n + 1

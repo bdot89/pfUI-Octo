@@ -517,8 +517,8 @@ do
     cu.target.width, cu.target.poffy, cu.target.txthpleftoffx = "150", "-40", "0"
     local good, err = pcall(U.MatchSize, p, t)
     ok(good, "Match a unit frame to another runs: " .. tostring(err))
-    ok(cu.target.width == "222" and cu.target.poffy == "0" and cu.target.txthpleftoffx == "4",
-      "the target took the player's size, power bar place and texts")
+    ok(cu.target.width == "222" and cu.target.poffy == "0" and cu.target.txthpleftoffx == "0",
+      "the target took the player's size and power bar place, and kept its own texts")
     ok(math.abs(t:GetScale() - p:GetScale()) < .001, "and its scale")
     t:SetScale(1)
     for k in pairs(cu.target) do cu.target[k] = nil end
