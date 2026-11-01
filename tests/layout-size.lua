@@ -482,6 +482,29 @@ do
     PN.ArrowDock(2, false)
     ok(C.position[name] and C.position[name].xpos == saved, "and that spot stays when it goes in and out again")
     C.position[name] = was
+    -- (user, 1 Nov 2026: "the arrow has stopped moving the back panel on and off") a click on the
+    -- arrow shuts the docked meters AND the dark window behind them, and opens both again
+    local rc = C.chat.right.enable
+    C.chat.right.enable = "0"
+    C.panel.arrowside = "right"
+    PN.ArrowSet(true)
+    local arrow = PN.right and PN.right.hide
+    local click = arrow and arrow:GetScript("OnClick")
+    ok(click and pfUI.chat.right:IsShown() and C.panel.arrowopen == "1", "arrow: meters docked, the window behind them shows")
+    if click then _G.this = arrow click() end
+    ok(C.panel.arrowopen == "0" and not pfUI.chat.right:IsShown() and not M.windows[1]:IsShown(), "arrow click: meters and the window behind them shut")
+    if click then _G.this = arrow click() end
+    ok(C.panel.arrowopen == "1" and pfUI.chat.right:IsShown() and M.windows[1]:IsShown(), "arrow click again: both back")
+    -- (seen in game 1 Nov 2026: TWThreat, docked by pfUI's third-party glue, took the arrow's click)
+    local TP = pfUI.thirdparty and pfUI.thirdparty.meters
+    if TP and TP.RegisterMeter and arrow then
+      C.thirdparty.octotest = { dock = "1" }
+      local hid
+      TP:RegisterMeter("threat", { "octotest", "OctoTest", nil, nil, nil, nil, function() hid = true end })
+      ok(arrow:GetScript("OnClick") == click and not TP.threat and not hid, "a docking meter addon leaves the Octo arrow's click alone")
+      C.thirdparty.octotest = nil
+    end
+    C.chat.right.enable = rc
     C.panel.arrowopen = "0"
     PN.ArrowSet(false)
     C.panel.arrowmode, C.panel.arrowopen, C.panel.arrowwins = om, oo, ow

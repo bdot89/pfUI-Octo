@@ -28,6 +28,11 @@ pfUI:RegisterModule("thirdparty", "vanilla:tbc", function()
     function pfUI.thirdparty.meters:RegisterMeter(side, data)
       -- abort when one addon is already register on the side
       if pfUI.thirdparty.meters[side] then return end
+      -- octo (1 Nov 2026, user: "the arrow has stopped moving the back panel on and off" after
+      -- TWThreat was switched on): pfUI Octo's panel arrow opens and shuts the right window or the
+      -- docked meters itself. Docking another addon's meter took that arrow's click away, so with
+      -- the Octo arrow such meters stay free windows of their own.
+      if pfUI.panel and pfUI.panel.ArrowToggle then return end
 
       -- load addon table
       local config, addon, frame, single, dual, show, hide, once = unpack(data)
