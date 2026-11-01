@@ -1993,7 +1993,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- not while it moves: the window itself rescales under the mouse.
   local function BuildGeneral(p)
     local PP = pfUI.pixelperfect
-    W.Heading(p, "General", { about = "Settings for the whole interface." })
+    W.Heading(p, "Scale, profiles and look", { about = "UI scale, named profiles for every character, and the character window's look." })
     W.Card(p, "UI scale", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
       tip = "How big everything on the screen is. Kept per character, and applied at every login." })
     local wait = CreateFrame("Frame")
@@ -2100,7 +2100,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       function(v) C.appearance.charlook = v and "1" or "0" pfUI.gui.settingChanged = true end)
   end
   BuildGeneral = function(p) general(p) ProfileCard(p) CharCard(p) end
-  O:AddPage("Settings", "stgeneral", "General", BuildGeneral)
+  -- ("Scale, profiles and look": pfUI's own Settings > General is a different page, 1 Nov 2026)
+  O:AddPage("Settings", "stgeneral", "Scale, profiles and look", BuildGeneral)
 
   -- ---------------------------------------------------------------- open / close
 
