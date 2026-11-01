@@ -1182,7 +1182,12 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     -- where the other frame's cast bar sits under that one
     local UO = pfUI.ufOcto
     if fk and tk and fk[1] == "unitframes" and tk[1] == "unitframes" and UO and UO.Copy then
-      KeepPlaces({ to }, function() UO.Copy(fk[2], tk[2], "all") end)
+      -- (its scale too: a target frame sized in layout mode stayed bigger than
+      -- the player's after a match, user's screenshot 1 Nov 2026)
+      KeepPlaces({ to }, function()
+        UO.Copy(fk[2], tk[2], "all")
+        if math.abs((to:GetScale() or 1) - (from:GetScale() or 1)) > .001 then SaveScale(to, from:GetScale()) end
+      end)
       local fcb = _G["pf" .. (from:GetName() == "pfPlayer" and "Player" or from:GetName() == "pfTarget" and "Target"
         or from:GetName() == "pfFocus" and "Focus" or "") .. "Castbar"]
       local tcb = _G["pf" .. (to:GetName() == "pfPlayer" and "Player" or to:GetName() == "pfTarget" and "Target"

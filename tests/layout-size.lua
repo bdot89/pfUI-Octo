@@ -513,11 +513,14 @@ do
     local keep = {}
     for k, v in pairs(cu.target) do keep[k] = v end
     cu.player.width, cu.player.poffy, cu.player.txthpleftoffx = "222", "0", "4"
+    t:SetScale(1.4)
     cu.target.width, cu.target.poffy, cu.target.txthpleftoffx = "150", "-40", "0"
     local good, err = pcall(U.MatchSize, p, t)
     ok(good, "Match a unit frame to another runs: " .. tostring(err))
     ok(cu.target.width == "222" and cu.target.poffy == "0" and cu.target.txthpleftoffx == "4",
       "the target took the player's size, power bar place and texts")
+    ok(math.abs(t:GetScale() - p:GetScale()) < .001, "and its scale")
+    t:SetScale(1)
     for k in pairs(cu.target) do cu.target[k] = nil end
     for k, v in pairs(keep) do cu.target[k] = v end
     if made then _G.pfPlayer = nil end
