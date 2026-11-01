@@ -2138,6 +2138,11 @@ do
     if SW and SW.STYLES then
       local look, keep = pfUI_config.swing.look, {}
       for k, v in pairs(pfUI_config.swing.look) do keep[k] = v end
+      local bars = {}
+      for _, b in ipairs({ "player", "target", "ranged", "cast" }) do
+        bars[b] = {}
+        for k, v in pairs(pfUI_config.swing[b]) do bars[b][k] = v end
+      end
       local bad = {}
       for _, s in ipairs(SW.STYLES) do
         local good = pcall(SW.ApplyStyle, s.key)
@@ -2145,7 +2150,9 @@ do
         if not good or SW.CurrentStyle() ~= s.key or not tex or tex == "" then table.insert(bad, s.key) end
       end
       ok(table.getn(bad) == 0, table.getn(SW.STYLES) .. " swing styles apply and read back: " .. table.concat(bad, ", "))
+      ok(pfUI_config.swing.player.height == "12" and pfUI_config.swing.player.maincolor == ".25,.5,.9,1", "a style sets the bars' height and colours too")
       for k, v in pairs(keep) do look[k] = v end
+      for b, t in pairs(bars) do for k, v in pairs(t) do pfUI_config.swing[b][k] = v end end
       if SW.ApplyLayout then SW.ApplyLayout() end
     end
     if SW then

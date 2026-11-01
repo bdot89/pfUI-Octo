@@ -44,20 +44,20 @@ pfUI:RegisterModule("swing", "vanilla", function ()
   -- examples"). bar, border, spark, back opacity; the pieces stay below it.
   local IMG = "Interface\\AddOns\\pfUI\\img\\"
   ST.STYLES = {
-    { key = "blizzard", label = "Blizzard cast bar", bar = "classic", border = "classic", spark = "1", backalpha = ".6" },
-    { key = "blizzgold", label = "Blizzard gold", bar = "classic", border = "classicgold", spark = "1", backalpha = ".6" },
-    { key = "blizzswing", label = "Blizzard swing timer", bar = "classic", border = "blizzard", spark = "1", backalpha = ".5" },
-    { key = "cdm", label = "Cooldown Manager", bar = "cdm", border = "cdm", spark = "1", backalpha = ".5" },
-    { key = "pfui", label = "pfUI", bar = IMG .. "bar", border = "pixel", spark = "1", backalpha = ".4" },
-    { key = "elvui", label = "ElvUI", bar = IMG .. "bar_elvui", border = "pixel", spark = "0", backalpha = ".35" },
-    { key = "tukui", label = "Tukui", bar = IMG .. "bar_tukui", border = "pixel", spark = "0", backalpha = ".35" },
-    { key = "smooth", label = "Smooth", bar = IMG .. "bars\\bar-smooth", border = "cdmgrey", spark = "1", backalpha = ".45" },
-    { key = "steel", label = "Steel", bar = IMG .. "bars\\bar-steel", border = "classic", spark = "1", backalpha = ".55" },
-    { key = "gradient", label = "Gradient", bar = IMG .. "bar_gradient", border = "pixel", spark = "1", backalpha = ".4" },
-    { key = "striped", label = "Striped", bar = IMG .. "bar_striped", border = "pixel", spark = "0", backalpha = ".4" },
-    { key = "pill", label = "Pill", bar = IMG .. "bars\\bar-pill", border = "none", spark = "0", backalpha = ".3" },
-    { key = "minimal", label = "Minimalist", bar = "minimal", border = "none", spark = "0", backalpha = ".25" },
-    { key = "flat", label = "Flat", bar = "plain", border = "pixel", spark = "0", backalpha = ".3" },
+    { key = "blizzard", label = "Blizzard cast bar", bar = "classic", border = "classic", spark = "1", backalpha = ".6", height = "14", me = "1,.7,0,1", them = ".8,.1,.1,1" },
+    { key = "blizzgold", label = "Blizzard gold", bar = "classic", border = "classicgold", spark = "1", backalpha = ".6", height = "14", me = "1,.82,0,1", them = ".85,.25,.1,1" },
+    { key = "blizzswing", label = "Blizzard swing timer", bar = "classic", border = "blizzard", spark = "1", backalpha = ".5", height = "12", me = ".1,.1,.9,1", them = ".8,.1,.1,1" },
+    { key = "cdm", label = "Cooldown Manager", bar = "cdm", border = "cdm", spark = "1", backalpha = ".5", height = "12", me = ".25,.55,1,1", them = ".9,.2,.2,1" },
+    { key = "pfui", label = "pfUI", bar = IMG .. "bar", border = "pixel", spark = "1", backalpha = ".4", height = "16", me = ".2,1,.8,1", them = "1,.3,.3,1" },
+    { key = "elvui", label = "ElvUI", bar = IMG .. "bar_elvui", border = "pixel", spark = "0", backalpha = ".35", height = "18", me = ".4,.6,.9,1", them = ".9,.3,.3,1" },
+    { key = "tukui", label = "Tukui", bar = IMG .. "bar_tukui", border = "pixel", spark = "0", backalpha = ".35", height = "10", me = ".8,.8,.8,1", them = ".75,.2,.2,1" },
+    { key = "smooth", label = "Smooth", bar = IMG .. "bars\\bar-smooth", border = "cdmgrey", spark = "1", backalpha = ".45", height = "14", me = ".3,.6,1,1", them = "1,.4,.4,1" },
+    { key = "steel", label = "Steel", bar = IMG .. "bars\\bar-steel", border = "classic", spark = "1", backalpha = ".55", height = "14", me = ".7,.75,.82,1", them = ".7,.3,.3,1" },
+    { key = "gradient", label = "Gradient", bar = IMG .. "bar_gradient", border = "pixel", spark = "1", backalpha = ".4", height = "16", me = ".6,.3,1,1", them = "1,.5,.1,1" },
+    { key = "striped", label = "Striped", bar = IMG .. "bar_striped", border = "pixel", spark = "0", backalpha = ".4", height = "16", me = "1,.8,.2,1", them = ".9,.2,.2,1" },
+    { key = "pill", label = "Pill", bar = IMG .. "bars\\bar-pill", border = "none", spark = "0", backalpha = ".3", height = "8", me = ".2,.9,.5,1", them = "1,.35,.35,1" },
+    { key = "minimal", label = "Minimalist", bar = "minimal", border = "none", spark = "0", backalpha = ".25", height = "4", me = "1,1,1,1", them = "1,.3,.3,1" },
+    { key = "flat", label = "Flat", bar = "plain", border = "pixel", spark = "0", backalpha = ".3", height = "12", me = ".25,.5,.9,1", them = ".85,.25,.25,1" },
   }
   -- the style the look is now, or nil (changed by hand)
   function ST.CurrentStyle()
@@ -73,6 +73,12 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       if s.key == key then
         local l = L()
         l.bar, l.border, l.spark, l.backalpha = s.bar, s.border, s.spark, s.backalpha
+        -- (height and colours too: a texture alone hardly shows on a thin bar)
+        for _, b in ipairs({ "player", "target", "ranged", "cast" }) do
+          if C.swing[b] and s.height then C.swing[b].height = s.height end
+        end
+        if C.swing.player and s.me then C.swing.player.maincolor, C.swing.player.offcolor = s.me, s.me end
+        if C.swing.target and s.them then C.swing.target.maincolor, C.swing.target.offcolor = s.them, s.them end
         if ST.ApplyLayout then ST.ApplyLayout() end
         return true
       end
