@@ -33,6 +33,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- a source is an Octo section or a pfUI category, by name
   O.NAV = {
     { "Settings", { "Settings" } },
+    { "Blizzard UI", { "Blizzard UI" } },
     { "UI layouts", { "UI layouts" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
@@ -2102,6 +2103,55 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   BuildGeneral = function(p) general(p) ProfileCard(p) CharCard(p) end
   -- ("Scale, profiles and look": pfUI's own Settings > General is a different page, 1 Nov 2026)
   O:AddPage("Settings", "stgeneral", "Scale, profiles and look", BuildGeneral)
+
+  -- ---------------------------------------------------------------- Blizzard UI
+  -- (1 Nov 2026, user: "a Blizzard UI tab on the side ... a hard switch that moves
+  -- everything to blizzard unlocked to move and make how you want with all the pfUI
+  -- functionability"). One switch for every part, each part on its own below, and
+  -- Move frames: the game's own frames get boxes too while they are Blizzard's.
+  local function BuildBlizz(p)
+    local BZ = pfUI.blizz
+    W.Heading(p, "Blizzard UI", { about = "The game's own frames - player and target, action bars, minimap, buffs, "
+      .. "chat and the rest - instead of pfUI Octo's, with everything pfUI Octo adds (meters, combat text, gear sets, "
+      .. "specs, nameplate extras...) still on. Blizzard's frames move in Move frames like pfUI's, and each UI layout "
+      .. "keeps its own places. Changes at once, no reload; Esc menu > \"pfUI Octo: undo Blizzard\" always goes back." })
+    if not BZ or not BZ.PickAll then
+      W.Note(p, "This needs pfUI Octo's Blizzard switches (module octo-blizzard), which are off.")
+      return
+    end
+    W.Card(p, "The whole UI", { icon = "Interface\\Icons\\INV_Misc_Book_09",
+      tip = "Every part at once. Switching to Blizzard's asks to be kept: not kept within 15 s, it goes back by itself." })
+    W.Buttons(p, {
+      { "Everything Blizzard's", function() BZ.PickAll(true) if O.Refresh then O:Refresh() end end, 170,
+        "Every part to the game's own frames (kept only when you say so).", role = "pick" },
+      { "Everything pfUI Octo's", function() BZ.PickAll(false) if O.Refresh then O:Refresh() end end, 170,
+        "Every part back to pfUI Octo's frames.", role = "go" },
+      { "Move frames", function() if pfUI.unlock then pfUI.unlock:Show() end end, 120,
+        "Boxes on every frame, Blizzard's too: drag them where you want them.", role = "open" },
+    })
+    W.Live(p, function()
+      local n, all = 0, 0
+      for _, id in ipairs(BZ.ORDER) do
+        if BZ.S and BZ.S[id] then
+          all = all + 1
+          if BZ.IsBlizz(id) then n = n + 1 end
+        end
+      end
+      return "Blizzard's now: |cffffffff" .. n .. " of " .. all .. "|r parts"
+    end, 1)
+
+    W.Card(p, "Each part", { icon = "Interface\\Icons\\INV_Misc_Gear_01",
+      tip = "Ticked: the game's own frames for that part. The same switches sit at the top of each part's page." })
+    for _, id in ipairs(BZ.ORDER) do
+      local s = BZ.S and BZ.S[id]
+      if s then
+        local key = id
+        W.Check(p, "Blizzard's " .. string.lower(s.label), nil, function() return BZ.IsBlizz(key) end,
+          function(v) BZ.Pick(key, v and "blizz" or "octo") end)
+      end
+    end
+  end
+  O:AddPage("Blizzard UI", "blizzui", "Blizzard UI", BuildBlizz)
 
   -- ---------------------------------------------------------------- open / close
 

@@ -3452,7 +3452,7 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Unit Frames" and heads[5] == "Swing Timer" and heads[6] == "Gear" and heads[7] == "Nameplates" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Swing Timer" and heads[7] == "Gear" and heads[8] == "Nameplates" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -4175,6 +4175,30 @@ do
       O.TabSet(p, "look")
     end
     pfUI.gui:Hide()
+  end
+end
+
+-- Blizzard UI (1 Nov 2026): the page, and Blizzard's frames as layout mode boxes
+do
+  local O = pfUI.octoui and pfUI.octoui.Options
+  local BZ = pfUI.blizz
+  if O and BZ and BZ.Movers then
+    pfUI.gui:Show()
+    local good, err = pcall(function() O:Select("o:blizzui") end)
+    ok(good and O.pages.blizzui, "the Blizzard UI page builds: " .. tostring(err))
+    pfUI.gui:Hide()
+    local cb = _G.CastingBarFrame
+    if cb and cb.GetName and cb:GetName() == "CastingBarFrame" then
+      local man = _G.UIPARENT_MANAGED_FRAME_POSITIONS
+      _G.UIPARENT_MANAGED_FRAME_POSITIONS = { CastingBarFrame = { baseY = 1 } }
+      BZ.Movers("castbar", true)
+      ok(pfUI.movables.CastingBarFrame == cb and _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame == nil,
+        "a Blizzard part's frames become layout mode boxes the game no longer places")
+      BZ.Movers("castbar", false)
+      ok(pfUI.movables.CastingBarFrame == nil and _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame ~= nil,
+        "and are given back when the part is pfUI Octo's again")
+      _G.UIPARENT_MANAGED_FRAME_POSITIONS = man
+    end
   end
 end
 

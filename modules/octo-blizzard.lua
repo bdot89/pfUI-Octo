@@ -963,6 +963,43 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     ["Bags & Loot"] = { "bags", "loot" }, ["Chat & Panels"] = { "chat", "panels" }, ["Tooltip"] = { "tooltip" },
   }
 
+  -- ---------------------------------------------------------------- Blizzard UI, movable
+  -- (1 Nov 2026, user: "a hard switch that moves everything to blizzard unlocked to
+  -- move and make how you want with all the pfUI functionability"). While a part is
+  -- Blizzard's, its game frames are layout mode boxes like pfUI's own (positions in
+  -- C.position, so per UI layout too), and the game's own placing of them
+  -- (UIPARENT_MANAGED_FRAME_POSITIONS) leaves them alone.
+  BZ.FRAMES = {
+    unitframes = { "PlayerFrame", "TargetFrame", "PartyMemberFrame1", "PartyMemberFrame2", "PartyMemberFrame3", "PartyMemberFrame4" },
+    castbar = { "CastingBarFrame" },
+    actionbars = { "MainMenuBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft",
+                   "PetActionBarFrame", "ShapeshiftBarFrame" },
+    minimap = { "MinimapCluster" },
+    buffs = { "BuffFrame", "TemporaryEnchantFrame" },
+  }
+  BZ.managed = {}
+  function BZ.Movers(id, on)
+    local list = BZ.FRAMES[id]
+    if not list or not pfUI.api or not pfUI.api.UpdateMovable then return end
+    local managed = _G.UIPARENT_MANAGED_FRAME_POSITIONS
+    for _, name in ipairs(list) do
+      local f = _G[name]
+      if f then
+        if on then
+          if managed and managed[name] and BZ.managed[name] == nil then
+            BZ.managed[name] = managed[name]
+            managed[name] = nil
+          end
+          f:SetMovable(true)
+          pcall(pfUI.api.UpdateMovable, f)
+        else
+          if managed and BZ.managed[name] then managed[name] = BZ.managed[name] BZ.managed[name] = nil end
+          if pfUI.api.RemoveMovable then pfUI.api.RemoveMovable(f) end
+        end
+      end
+    end
+  end
+
   -- ---------------------------------------------------------------- switching
 
   function BZ.IsBlizz(id) return C.blizz[id] == "1" end
@@ -975,6 +1012,7 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     C.blizz[id] = (which == "blizz") and "1" or "0"
     local ok, err = pcall(s[which == "blizz" and "blizz" or "octo"])
     BZ.state[id] = which
+    if ok then BZ.Movers(id, which == "blizz") end
     if not ok then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: " .. s.label .. ": " .. tostring(err))
       -- a switch to Blizzard's that went wrong is undone at once
@@ -994,7 +1032,20 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     for id in pairs(S) do
       if BZ.IsBlizz(id) or BZ.state[id] == "blizz" then BZ.Set(id, "octo") end
     end
-    if BZ.confirm then BZ.confirm:Hide() end
+    if BZ.confirm then BZ.confirm.id = nil BZ.confirm:Hide() end
+  end
+  -- every section Blizzard's (the Blizzard UI page's hard switch); the parts pfUI
+  -- Octo adds on top (meters, combat text, gear...) stay
+  BZ.ORDER = { "unitframes", "castbar", "raid", "actionbars", "minimap", "buffs", "worldmap", "nameplates",
+               "bags", "loot", "chat", "tooltip", "panels" }
+  function BZ.AllBlizz()
+    for _, id in ipairs(BZ.ORDER) do
+      if S[id] and not BZ.IsBlizz(id) then BZ.Set(id, "blizz") end
+    end
+  end
+  function BZ.AllIsBlizz()
+    for _, id in ipairs(BZ.ORDER) do if S[id] and not BZ.IsBlizz(id) then return false end end
+    return true
   end
 
   -- Keep it or not: a switch to Blizzard's from the options window goes back
@@ -1028,21 +1079,21 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     local id = confirm.id
     confirm.id = nil
     confirm:Hide()
-    if id then BZ.Set(id, "octo") end
+    if id == "*" then BZ.AllOcto() elseif id then BZ.Set(id, "octo") end
     local O = pfUI.octoui and pfUI.octoui.Options
     if O and O.PaintSwap then O:PaintSwap() end
   end)
   confirm:SetScript("OnUpdate", function()
     if not this.id then this:Hide() return end
     local left = math.ceil((this.untilT or 0) - GetTime())
-    local s = S[this.id]
+    local s = S[this.id] or (this.id == "*" and { label = "whole UI" })
     this.text:SetText("Blizzard's " .. string.lower(s and s.label or "") .. " is on.\nKeep it? Going back to pfUI Octo's in |cffffd100"
       .. math.max(0, left) .. "|r s.")
     if left <= 0 then
       local id = this.id
       this.id = nil
       this:Hide()
-      BZ.Set(id, "octo")
+      if id == "*" then BZ.AllOcto() else BZ.Set(id, "octo") end
       local O = pfUI.octoui and pfUI.octoui.Options
       if O and O.PaintSwap then O:PaintSwap() end
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: not kept - " .. (s and s.label or id) .. " is pfUI Octo's again.")
@@ -1061,6 +1112,15 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
       confirm:Hide()
     end
     return ok
+  end
+
+  -- the hard switch: every part Blizzard's, asked to be kept like one part
+  function BZ.PickAll(on)
+    if not on then BZ.AllOcto() return end
+    BZ.AllBlizz()
+    confirm.id = "*"
+    confirm.untilT = GetTime() + 15
+    confirm:Show()
   end
 
   -- the way back that needs no chat: a button in the Esc menu, and /octoundo
