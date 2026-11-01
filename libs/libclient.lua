@@ -122,11 +122,12 @@ function libclient.Distance(unit)
       return ((x2 - x1)^2 + (y2 - y1)^2 + (z2 - z1)^2)^.5
     end
   end
-  -- (the game's own UnitXP returns experience: only UnitXP SP3's answers
-  -- "nop" with true - without it, never ask it for a distance)
+  -- (the game's own UnitXP returns experience, a number, for anything: only
+  -- UnitXP SP3 answers "inSight" with true / false. brues-code's build has no
+  -- "nop" command - testing with it took everyone's SP3 for missing, 1 Nov 2026)
   if libclient.hasSP3 == nil then
-    local ok, r = pcall(_G.UnitXP or function() end, "nop", "nop")
-    libclient.hasSP3 = ok and r == true
+    local ok, r = pcall(_G.UnitXP or function() end, "inSight", "player", "player")
+    libclient.hasSP3 = ok and type(r) == "boolean"
   end
   if libclient.hasSP3 then
     local ok, d = pcall(_G.UnitXP, "distanceBetween", "player", unit)
