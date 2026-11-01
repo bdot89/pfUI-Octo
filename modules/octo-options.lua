@@ -2092,7 +2092,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       "A string to give to someone else (Export builds it - large settings take a few seconds)." } })
   end
   local general = BuildGeneral
-  BuildGeneral = function(p) general(p) ProfileCard(p) end
+  local function CharCard(p)
+    W.Card(p, "Character window", { icon = "Interface\Icons\INV_Chest_Cloth_17",
+      tip = "The character and inspect windows' look: a dark title shade with a thin line, your race's scenery behind the "
+        .. "model and a square Enchants button. Off: pfUI's plain look. Takes a reload." })
+    W.Check(p, "New character window look", nil, function() return C.appearance.charlook ~= "0" end,
+      function(v) C.appearance.charlook = v and "1" or "0" pfUI.gui.settingChanged = true end)
+  end
+  BuildGeneral = function(p) general(p) ProfileCard(p) CharCard(p) end
   O:AddPage("Settings", "stgeneral", "General", BuildGeneral)
 
   -- ---------------------------------------------------------------- open / close

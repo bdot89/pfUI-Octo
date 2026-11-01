@@ -337,7 +337,10 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
   local ar, ag, ab = cr, cg, cb
   if GetAccentColor then ar, ag, ab = GetAccentColor() end
 
+  -- (Settings > General: C.appearance.charlook "0" = none of this look)
+  local lookOn = not (C.appearance and C.appearance.charlook == "0")
   local function Head(f, height)
+    if not lookOn then return end
     local bg = f and (f.backdrop or f)
     if not bg or bg.octoHead then return end
     height = height or 24
@@ -346,15 +349,18 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
     strip:SetPoint("TOPLEFT", bg, "TOPLEFT", 2, -2)
     strip:SetPoint("TOPRIGHT", bg, "TOPRIGHT", -2, -2)
     strip:SetHeight(height)
-    strip:SetGradientAlpha("VERTICAL", cr, cg, cb, .04, cr, cg, cb, .32)
+    -- (1 Nov 2026, dennis: "half glossy with a weird white line" - a priest's
+    -- class colour is white: the strip is a dark shade now, the line soft)
+    strip:SetGradientAlpha("VERTICAL", 0, 0, 0, 0, 0, 0, 0, .35)
     local line = bg:CreateTexture(nil, "ARTWORK")
     line:SetTexture("Interface\\Buttons\\WHITE8X8")
     line:SetPoint("TOPLEFT", strip, "BOTTOMLEFT", 0, 0)
     line:SetPoint("TOPRIGHT", strip, "BOTTOMRIGHT", 0, 0)
     line:SetHeight(1)
-    line:SetVertexColor(ar, ag, ab, .9)
+    local lr, lg, lb = ar, ag, ab
+    if lr + lg + lb > 2.6 then lr, lg, lb = .45, .45, .48 end
+    line:SetVertexColor(lr, lg, lb, .55)
     bg.octoHead = strip
-    if bg.SetBackdropBorderColor then bg:SetBackdropBorderColor(ar * .5, ag * .5, ab * .5, 1) end
   end
   -- the race's own scenery (the game's dressing room art) behind a model;
   -- made once, its pictures swapped for another race (inspect)
@@ -365,7 +371,7 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
     { 4, 256 / 318, 256 / 383, 62 / 318, 127 / 383 },
   }
   local function Art(model, holder, unit)
-    if not model or not holder then return end
+    if not lookOn or not model or not holder then return end
     local _, race = UnitRace(unit or "player")
     race = race or "Human"
     if not model.octoArt then
@@ -447,7 +453,7 @@ pfUI:RegisterSkin("Character", "vanilla:tbc", function ()
     local ench = _G.BCSEnchantFrame
     if ench then Head(ench, 22) end
     if _G.pfGearSheet then Head(_G.pfGearSheet, 22) end
-    local tg = _G.BCSEnchantFrameToggleButton
+    local tg = lookOn and _G.BCSEnchantFrameToggleButton
     if tg and not tg.octoSquare then
       tg.octoSquare = true
       local slot = _G.CharacterMainHandSlot
