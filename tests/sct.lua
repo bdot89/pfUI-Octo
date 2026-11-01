@@ -409,6 +409,14 @@ CT:Show("first", 1, 1, 1, "plate", { guid = FOE, target = true })
 CT:Show("second", 1, 1, 1, "plate", { guid = FOE, target = true })
 local o1, o2 = LiveText("first"), LiveText("second")
 ok(o1 and o2 and o1.start < o2.start, "lines on a plate stack instead of overlapping")
+-- (1 Nov 2026) two texts at once in one screen area on opposite sides stack too
+CT:Clear()
+CT:Show("tick one", 0, 1, 0, "healing", {})
+local t1 = LiveText("tick one")
+if t1 then t1.side = -t1.side end
+CT:Show("tick two", 0, 1, 0, "healing", {})
+local t2 = LiveText("tick two")
+ok(t1 and t2 and t1.lane == t2.lane and t1.start < t2.start, "two texts at once in one area keep a line apart, whatever their side")
 B.db.sct.plates.hit = "fountain"
 -- a plate at the left edge of the screen: its text stays inside
 plate.GetCenter = function() return 2, 300 end

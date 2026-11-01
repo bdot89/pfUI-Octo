@@ -711,7 +711,9 @@ function CT:Show(text, r, g, b, where, opts)
   end
   o.plate, o.guid = plate, plate and opts.guid or nil
   o.team = team
-  o.lane = plate and (tostring(plate) .. (team and ":team" or ":you")) or (areaKey .. ":" .. o.side)
+  -- (one lane per screen area, not per side: a straight movement puts both sides
+  -- on one line, so two texts on different sides overlapped - user, 1 Nov 2026)
+  o.lane = plate and (tostring(plate) .. (team and ":team" or ":you")) or areaKey
   o.mergeKey, o.rebuild, o.mtotal, o.mcount = opts.mergeKey, opts.rebuild, opts.amount or 0, 1
   o.clamp = plate and P.clamp
   o.xv = (plate and not team and P.xVariance > 0) and (random() - 0.5) * 2 * P.xVariance or 0
@@ -780,7 +782,7 @@ function CT:Show(text, r, g, b, where, opts)
   -- (1 Nov 2026, GratisNinja: "multiple messages in one area at the same time ... all
   -- lying on top of each other ... like MSBT": every moving style keeps them a line
   -- apart now, not only the straight ones)
-  elseif (STRAIGHT[move] or (o.H or 0) > 0) and (not plate or P.stack) then
+  elseif (STRAIGHT[move] or (o.H or 0) > 0) and (not plate or P.stack ~= false) then
     Push(o.lane, move, o.size + (plate and 2 or 4))
   end
   o.start = GetTime()
