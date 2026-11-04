@@ -5,6 +5,7 @@
 --   powershell -ExecutionPolicy Bypass -File tests\run.ps1
 
 local DIR = "."
+_G.PFUI_COLLECT = os.getenv("PFUI_DUMP_STRINGS") and true or nil
 dofile(DIR .. "/tests/mock.lua")
 dofile(DIR .. "/tests/globalstrings.lua")
 
@@ -1335,6 +1336,8 @@ end
 
 -- ---------------------------------------------------------------- options pages
 -- build every page of the options window (pages build on first show)
+-- PFUI_DUMP_STRINGS=<file>: every text Octo draws or shows in a tooltip (the list to translate)
+local dumpFile = os.getenv("PFUI_DUMP_STRINGS")
 local pages, pageErrors, built = 0, {}, {}
 -- the page width in game: window 940 - 2*7 margin - 170 tree - 2*2 scroll inset
 local PAGE_WIDTH = 752
@@ -1369,6 +1372,44 @@ for path, e in pairs(pageErrors) do
   if os.getenv("PFUI_TEST_VERBOSE") then print("  page " .. path .. ": " .. tostring(e)) end
 end
 print(string.format("options pages built in the mock: %d, need more of the client: %d", pages - broken, broken))
+
+if dumpFile then
+  -- every Octo page, built once (pages are made when first opened)
+  local OO = pfUI.octoui and pfUI.octoui.Options
+  if OO and OO.BUILD then
+    local keys = {}
+    for k in pairs(OO.BUILD) do table.insert(keys, k) end
+    table.sort(keys)
+    for _, k in ipairs(keys) do
+      local good, e = pcall(function() OO:Page(k) end)
+      if not good then print("dump: page " .. k .. " failed: " .. tostring(e)) end
+    end
+    -- the topic list: section titles and page names
+    local W2 = pfUI.octoui.W
+    for _, sec in ipairs(OO.octo or {}) do
+      W2.T(sec[1])
+      for _, pg in ipairs(sec[2] or {}) do W2.T(pg[2]) end
+    end
+    for _, n in ipairs(OO.NAV or {}) do W2.T(n[1]) end
+  end
+end
+if dumpFile and pfUI.octoui and pfUI.octoui.W then
+  local list = {}
+  for s in pairs(pfUI.octoui.W.seen) do
+    -- only words: something with a letter, no colour-code-only or number-only text
+    if string.find(s, "%a%a") then table.insert(list, s) end
+  end
+  table.sort(list)
+  local h = io.open(dumpFile, "w")
+  for _, s in ipairs(list) do
+    s = string.gsub(s, "\\", "\\\\")
+    s = string.gsub(s, '"', '\\"')
+    s = string.gsub(s, "\n", "\n")
+    h:write(s, "\n")
+  end
+  h:close()
+  print("strings written: " .. table.getn(list))
+end
 ok(broken == 0, "every options page builds (" .. broken .. " failed)")
 
 -- Map Style: a preset button changes the style and the page's controls follow
@@ -5537,6 +5578,9 @@ dofile(DIR .. "/tests/bags.lua")
 
 -- automatic area looting (4 Nov 2026)
 dofile(DIR .. "/tests/autoloot.lua")
+
+-- the language of Octo's own pages (4 Nov 2026)
+dofile(DIR .. "/tests/translate.lua")
 
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")

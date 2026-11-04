@@ -157,15 +157,47 @@ end
 W.FONT = U.FONT
 local ROBOTO = FONTS .. "Roboto.ttf"
 local fontChecked
+-- Language (4 Nov 2026, user: translated pfUI was "just half of it"). Every text
+-- Octo draws goes through W.T: an exact English text is looked up in
+-- pfUI_translation[language] (env\octo_<locale>.lua add Octo's words to pfUI's
+-- own table); no entry = the English text. W.seen collects what was asked for
+-- (tests\run.lua with PFUI_DUMP_STRINGS=<file> writes it: the list to translate).
+W.seen = {}
+function W.Lang()
+  local g = pfUI_config and pfUI_config.global
+  local l = g and g.language
+  if l and pfUI_translation and pfUI_translation[l] then return l end
+  return GetLocale()
+end
+function W.T(s)
+  if type(s) ~= "string" or s == "" then return s end
+  if _G.PFUI_COLLECT then W.seen[s] = true end
+  local t = pfUI_translation and pfUI_translation[W.Lang()]
+  local v = t and rawget(t, s)
+  if v then return v end
+  return s
+end
+
 function W.UIFont()
   if not fontChecked then
     fontChecked = true
     if W.FontOK(ROBOTO) then W.FONT = ROBOTO end
   end
+  -- Roboto has neither Cyrillic nor the Asian scripts: Russian uses pfUI's PT Sans,
+  -- Korean / Chinese the client's own font for the game's language
+  local l = W.Lang()
+  if l == "ruRU" then return FONTS .. "PT-Sans-Narrow-Bold.ttf" end
+  if (l == "koKR" or l == "zhCN" or l == "zhTW") and STANDARD_TEXT_FONT then return STANDARD_TEXT_FONT end
   return W.FONT
 end
 function W.Font(fs, size, r, g, b)
   fs:SetFont(W.UIFont(), size or 12, "")
+  if not fs.octoText then
+    -- every text set on it is translated
+    fs.octoText = true
+    local raw = fs.SetText
+    fs.SetText = function(self, t) return raw(self, W.T(t)) end
+  end
   fs:SetShadowColor(0, 0, 0, 0.8)
   fs:SetShadowOffset(1, -1)
   if r then fs:SetTextColor(r, g, b) end
@@ -223,8 +255,8 @@ function W.Tip(frame, title, text)
   frame.tipTitle, frame.tipText = title, text
   frame:SetScript("OnEnter", function()
     GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-    if this.tipTitle then GameTooltip:AddLine(this.tipTitle) end
-    if this.tipText then GameTooltip:AddLine(this.tipText, 1, 1, 1, 1) end
+    if this.tipTitle then GameTooltip:AddLine(W.T(this.tipTitle)) end
+    if this.tipText then GameTooltip:AddLine(W.T(this.tipText), 1, 1, 1, 1) end
     GameTooltip:Show()
   end)
   frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -245,7 +277,8 @@ end
 -- Labelled widgets are found by the window's search box.
 local function Index(p, label, desc, region)
   if not label or not p.key then return end
-  table.insert(W.index, { page = p, card = p.cur, label = label, desc = desc, region = region })
+  -- (found by the words on screen: the search box matches the translated text)
+  table.insert(W.index, { page = p, card = p.cur, label = W.T(label), desc = W.T(desc), region = region })
 end
 
 local function Changed()

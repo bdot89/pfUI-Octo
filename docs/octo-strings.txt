@@ -1,0 +1,2777 @@
+\"+1300 (Healbot)\" on heals you get.
+\"+1300 {400}\" - from your health before the heal; may be off by a tick.
+\"-300 (120 resisted)\".
+\"2468 (Shadow Bolt)\" (SCT's skill names).
+\"512 Bob\" - the teammate's name after the number.
+\"<Fire>\" after spell damage.
+\"AGGRO!\" - tanks may want this off.
+\"Aggro  next 92%\" - for tanks.
+\"Aggro  next Jaina 92%\".
+\"Interrupted by NAME\" on the red flash.
+\"Name: 512\" on screen areas (nameplates already show who).
+\"Ready\" text
+\"Take it off\" in item menus
+% of the health bar's width and height; plates grow and shrink smoothly.
+% of the map's size.
+% of the tank's threat that counts as about to pull.
+(472, 22%) or just 472, 22%.
++ New layout
+- no set -
+- none -
+- stay as it is -
+-1 = as tall as the frame.
+-1 = as wide as its unit frame.
+-1 = as wide as the health bar.
+-1 = as wide as the unit frame.
+-1 = from the font size.
+-1 = pfUI's own text size.
+...and their name
+...for crits from
+...for huge crits from
+...of
+0 = 22. Takes a reload.
+0 = a bit bigger than the name.
+0 = a bit smaller than the name.
+0 = as big as fits the map's width (they never grow then); more = that size in px.
+0 = as big as the name.
+0 = as tall as the bar.
+0 = as wide as the bar it sits on. Takes a reload.
+0 = fits the bar.
+0 = fits the icon.
+0 = gone. Higher keeps a faint bar.
+0 = no border line.
+0 = none.
+0 = off.
+0 = off. Wins over the crit sound.
+0 = pfUI's font size.
+0 = twice the bar's height.
+0 or less hides it.
+0.4 s before the swing: change seal after it and both seals hit.
+01:45 PM
+01:45:12 PM
+0None
+1 Pixel
+1. 2. 3. before the names.
+1.12 lets weapons change in combat; armour always waits.
+1.12 lets weapons change in combat; the rest always waits for combat to end.
+1.5 s before the swing: the last moment to start a 1.5 s global cooldown that ends in time.
+12,345 (when not shortened).
+12.3k instead of 12345.
+2 Pixel
+2D pictures instead of 3D models.
+3 Pixel
+4 Pixel
+5 Pixel
+6 Pixel
+7 Pixel
+8 Pixel
+9 Pixel
+A ? on quest items, a yellow ! on items that start a quest.
+A bar and the number
+A big line in the middle of the screen, once each time you cross your cap.
+A bold one stands out: Die Die Die, Londrina Solid, Squada One, Big Noodle Titling...
+A border in my colour
+A border round each bar
+A border round the whole frame, a shade behind the bars, and flashes and highlights on it.
+A box I place (Move frames)
+A box I place: move the \"Threat Box\" with Move frames.
+A breathing glow on items you got since you logged in (looted, bought, made, from mail or a trade). Mouse over an item and its glow stops. With ClassicAPI the client marks them itself; without it, an item counts as new when you had none of it a moment before.
+A bright edge where the bar fills.
+A bright line where the bar ends.
+A button per bag: click to show or hide its slots, drag to move the bag. The arrow in the title bar toggles it too.
+A cast bar for your Aimed Shot and Multi-Shot.
+A clock wipe over each buff as it runs out.
+A coin on grey (poor) items: the ones a vendor buys for scrap.
+A colour for each kind of text. Pick \"My own colour\" and set it with the colour box beside it.
+A coloured border on the target's bar.
+A crit in the Outgoing area and on your target's nameplate.
+A dark edge around crit numbers.
+A dark edge around the letters makes them easier to read.
+A dark edge just for this area.
+A dark edge round the letters so they read on any bar.
+A dark strip behind the tabs. Takes a reload.
+A death further away than this is ignored.
+A glow around the plate when a mob is on you (or, for tanks, loose on someone else).
+A glow round the frame and a small square for aggro and combat; combat text on the frame.
+A hit and a crit in the area picked above.
+A hit, a crit, a miss and a heal on every nameplate on screen.
+A line in chat: the spec, the set and layout that went on.
+A line of every kind in your real chat, so you see the real thing. Only you see them.
+A line on the bar where execute range starts.
+A line round this frame while its unit is your target (party, raid, pet).
+A made-up conversation with Thrall: try the window, type in it - nothing is sent.
+A made-up fight so you can try every display and its breakdown.
+A mark right of the name for quest mobs, quest givers and hand-ins.
+A mob dies near you
+A new name to show instead (empty = keep).
+A question mark when no tracking is on. Takes a reload.
+A raid in a battleground is a lot of numbers - your party is the tidy choice.
+A red part at the cast's end as long as your latency: you can move once the bar reaches it.
+A red zone on the reload: a Multi-Shot started in it pushes your next Auto Shot back.
+A second panel on the right for loot, experience, reputation and skills.
+A set's key takes it off again
+A sign beside crit numbers, like ! or *
+A small button that shows or hides every meter window. Shift + drag moves it; right-click opens these options.
+A small picture of each player's class on their bar.
+A soft shadow behind the letters.
+A soft shadow round the panels. Takes a reload.
+A soft shadow under the letters.
+A soft wash of colour behind each window's title.
+A sound as you pick an enemy, a friend or nothing.
+A sound when a message of that kind comes in (not your own).
+A spark 1.5 s before the swing: an attack after it still leaves the global cooldown done in time for Slam.
+A spark on your power bar for the next energy tick.
+A spell's own cast bar colour or a new name for it.
+A star (gold elite, silver rare) or a skull (boss) by the name.
+A starburst in the crit's colour that flares and fades.
+A string to give to someone else (Export builds it - large settings take a few seconds).
+A strip under the bars with three things of your choice.
+A thin line round every bar.
+A totem shows its icon instead of a bar.
+A unit that has lost health keeps its bar.
+A wand: one bar, full when the next shot is ready. Auto Shot (hunters): the reload, then the half-second aim (moving restarts it).
+A warning when your health drops below this.
+A warning when your mana drops below this.
+A whole look in one pick: bar, border, spark and how dark the empty part is. The settings under it change one piece at a time.
+A window dropped near another sits flush against it.
+A word of the name, a spell's or debuff's name, or a health %.
+A ~ after glancing hits and a ^ after crushing ones.
+AFK, offline and dead marks
+ARIALN
+About
+Above
+Above the name
+Above the name by
+Above the nameplate
+Accent colour
+Accent colour outline
+Accent line
+Across
+Action Bars
+Action bars
+Activate, Save, Reset and Buy each ask first, with what they do - in this window and in the device's own menu.
+Active time
+Active: each player's own active time (Details' activity). Whole fight: the fight's length (Details' effective time).
+Adapta
+Add sample rows
+Add up the same attack
+Add-ons
+Addon buttons
+Addresses become links you can copy.
+Adds or changes this entry.
+After a kill
+After a reload.
+After stopping
+Aggro
+Aggro glow
+Aim
+Aimed Shot
+Aimed and Multi-Shot
+Alerts and warnings
+All
+All cast bars
+All frames: basics
+All frames: class extras
+All frames: colours
+All frames: party and raid
+All frames: text
+All mouse controls
+All of them
+All: every buff an enemy has. Important: big cooldowns only (Ice Block, Shield Wall...).
+Also at 30 s
+Also fade units behind walls.
+Also in chat
+Also in the chat
+Also on debuffs.
+Also these players
+Also when I pull aggro
+Alt-click
+Alt-click a name to invite
+Alt-click a slot there puts it on the bar or takes it off.
+Alt-click an item in a menu to hide it there; hold Alt while it opens to see hidden ones.
+Alt-click hides an item
+Alt-click in the character window
+Always
+Always flat pictures
+Always show
+Always shown
+Ammo Counter
+An NPC's own bar colour or a shorter name. Threat colours win while you fight, unless ticked below.
+An effect on the button the moment its cooldown ends.
+Angled down (SCT)
+Angled up (SCT)
+Animate hidden bars
+Animate on
+Animations
+Animations and rules
+Appearance
+Applies to debuffs.
+Arenas
+Arial Narrow (game)
+Arrange this layout: what you move is kept for the layout you are in.
+Arrows
+Art
+Ascending
+Ask before every device choice
+Ask the server for threat
+Ask to reset in a new instance
+Asking the server for threat. Off: no label, no popups, no threat window.
+Asks /who for names it has not seen. Experimental.
+At the left of the bar, as tall as it.
+Attacking an off-tank
+Attacking no one
+Attacking others
+Attacking you
+Aura names, separated by #.
+Auras
+Auras with more time left than this are not shown (seconds).
+Auto
+Auto Loot
+Auto Shot and wand
+Auto Shot: reload and aim in one bar (its colour changes for the aim). A wand is always one bar.
+Automatic
+Automatic swaps
+Automatic: on for warriors (Execute) and paladins (Hammer of Wrath).
+Automatic: tank in Defensive Stance, bear form, with Righteous Fury or marked a tank in pfUI's raid frames.
+Back opacity
+Background
+Background opacity
+Backpack
+Badge at
+Bag 1
+Bag 2
+Bag 3
+Bag 4
+Bag bar
+Bag columns
+Bag window
+Bag window: my own colour
+Bags
+Bags & Bank
+Bags & Loot
+Bagspace
+Baloo Bhaina
+Bang!
+Bank
+Bank bag 1
+Bank bag 2
+Bank bag 3
+Bank bag 4
+Bank bag 5
+Bank bag 6
+Bank columns
+Bank window
+Bank window: my own colour
+Bar
+Bar backdrop
+Bar border colour
+Bar fills up
+Bar in the aura's type colour
+Bar opacity
+Bar segments
+Bar under the map says
+Barrel explosion
+Bars
+Bars counting down to your next swing, your target's next swing and your next Auto Shot or wand shot - WeaponSwingTimer's bars, built in. Swings come from SuperWoW when it runs (the exact hand), else from the combat log.
+Bars that page
+Bars with each aura's time left, on your unit frames. Switching a bar on or off needs a reload.
+Basics
+Battleground
+Battlegrounds
+Behaviour
+Behind the bars
+Behind the bars (the empty part).
+Behind the icon: shows in empty slots.
+Bell
+Bell (SCT low mana)
+Bell toll (Alliance)
+Bell toll (Horde)
+Below
+Below 0 the bars overlap.
+Below the nameplate
+Beside or around your target's bar.
+Beside yours by
+Between the big icons, and above the normal rows.
+Bevel
+Big Noodle Titling
+Big messages
+Big size
+Big text when your health or mana gets low.
+BigNoodleTitling
+BigWigs: Alarm
+BigWigs: Alert
+BigWigs: Beep
+BigWigs: Beware
+BigWigs: Go go go
+BigWigs: Hide
+BigWigs: Incoming
+BigWigs: Long alarm
+BigWigs: Run away
+BigWigs: Stop casting
+BigWigs: Victory
+Black list
+Black pixel line
+Blacklist
+Blend
+Blinding Powder
+Blizzard
+Blizzard UI
+Blizzard cast bar
+Blizzard gold
+Blizzard numbers (the game's look, these rules)
+Blizzard numbers: the game's own damage-number look - its font, plain numbers, white melee and yellow spells, straight up, crits that pop - still placed and filtered by these pages.
+Blizzard swing timer
+Blizzard's action bars
+Blizzard's bags
+Blizzard's buffs
+Blizzard's cast bar
+Blizzard's chat
+Blizzard's loot
+Blizzard's minimap
+Blizzard's nameplates
+Blizzard's own combat text that floats over your character: heals you get (\"+954\"), damage you take. The same box as the game's Interface Options - Show Scrolling Combat Text.
+Blizzard's panels
+Blizzard's raid frames
+Blizzard's tooltip
+Blizzard's unit frames
+Blizzard's world map
+Blue glow
+Border
+Border and background
+Border colour
+Border colours
+Border in the aura's type colour
+Border only
+Border skin
+Border thickness
+Border: class colour
+Boss
+Boss Damage
+Boss colour
+Both ends
+Both in one bar
+Bottom
+Bottom Left
+Bottom Right
+Bottom left
+Bottom panel: the window sits in the window above the bottom-right bar, sharing it edge to edge with the others there (one fills it, two take half each, three a third) - up to 3. Floating: it stays exactly where you put it on the screen (Move frames, or drag its title bar).
+Bottom right
+Bottom to top
+Bottom trinket (slot 2)
+Bounce
+Bounce (a quick wobble)
+Bow ring
+Boxes on every frame, Blizzard's too: drag them where you want them.
+Brackets
+Bubble borders
+Bubble opacity
+Bubbles
+Buff Uptime
+Buff and dispel markers
+Buff bars
+Buff markers
+Buffs
+Buffs and debuffs
+Buffs fading
+Buffs gained
+Buffs on enemies - NPCs and players - on your target's frame and on nameplates.
+Buffs on enemies - NPCs and players. The same switches are on Unit frames > Frames.
+Buffs on the target frame
+Buffs per row
+Buffs the game hides on enemy players are found too (pfUI's enemy buff detection). Changes after a reload.
+Buffs, procs and cooldowns
+Buffs: Buff/Debuff Icons
+Buffs: Player Buff Bar
+Buffs: Player Debuff Bar
+Buffs: Target Debuff Bar
+Buffs: Totem Icons
+Burst as it starts
+Button
+Button 4
+Button 5
+Button size
+Buttons
+Buttons a row
+Buttons and text
+Buttons for the equipment slots you pick (as ItemRack's): each shows what you wear there with its cooldown. Click to use it; its menu swaps it for another item from your bags.
+Buttons per row
+CRIT! 2468
+Can't be interrupted
+Cast bar
+Cast bars
+Cast bars on party and raid frames
+Cast by clicking a unit frame: a spell name per mouse button and key. \"target\" targets, \"menu\" opens the menu.
+Cast on key down
+Castbar
+Casting
+Casts
+Casts none of your kicks or silences can stop (ClassicAPI tells; without it bars keep the colours above).
+Casts of a spell
+Center
+Centre
+Change the names, pictures, gear sets and layouts of your specs.
+Change the target's debuffs bar.
+Change the your buffs bar.
+Change the your debuffs bar.
+Channel names
+Channel numbers only
+Channeling
+Channelling
+Channels
+Character window
+Chat
+Chat & Panels
+Chat bubbles
+Chat summary
+Circle
+Circle !
+Circle ?
+Circling sparks
+Class
+Class and name colours
+Class and pet icons
+Class and status
+Class colour
+Class colour line
+Class colour: each bar takes its player's class. One colour: every bar the same.
+Class coloured friend names
+Class colours
+Class colours on enemies
+Class colours on friends
+Class icon
+Class icon on enemy players
+Class icon on friendly players
+Class icon size
+Class icon, class picture, the elite / rare / boss badge, and AFK, offline and dead marks.
+Class picture
+Class picture as portrait
+Classic
+Classic cast bar
+Classic cast bar (gold)
+Classic, Plain, Minimalist, Cooldown Manager, or any pfUI bar texture.
+ClassicAPI puts the look on your clipboard: paste it anywhere with Ctrl+V.
+Clean
+Clear new items
+Clear the log
+Clear when the bags close
+Clears the items hidden with Alt-click.
+Cleave
+Click
+Click a bar
+Click a bar: its settings          Shift + wheel: button size          Move frames: move the bars
+Click a swatch for the colour wheel.
+Click a tile to switch; right-click to rename, change its picture or colour, or delete it.
+Click casting
+Click through
+Click, then Ctrl+A and Ctrl+C to copy.
+Clickable names
+Clicks
+Clicks and menus
+Clip zone
+Clock
+Clock (1:25)
+Clock (game)
+Clock time
+Close all
+Close in combat
+Close the game and run |cffffd100Install pfUI Octo DLLs.bat|r in the pfUI folder: it installs WeirdUtils (weirdutils_noperf.dll) and adds it to dlls.txt. Then start the game again.
+Closes any window that mostly shows combat.
+Closing your bag window stops every glow. Off: they glow until you mouse over them.
+Colour
+Colour and opacity
+Colour by stacks
+Colour line, black outline
+Colour quest mobs
+Colour spells by school
+Colour the health bar
+Colour unknown classes
+Colour, size and position of your team's numbers.
+Colours
+Colours of the words
+Columns across, rows up or down. 5 x 8 = the eight groups as rows of five.
+Columns grow
+Columns x rows
+Combat
+Combat Text
+Combat Timer
+Combat flash
+Combat log source
+Combat state on the bar
+Combat state on the border
+Combat text
+Combat text font
+Combat text on the frame
+Combat text size
+Combine matching items
+Combo point height
+Combo point width
+Combo points
+Comet
+Commands: /autoloot (this page), /autoloot on, /autoloot off, /autoloot log, /autoloot status
+Components: Modules
+Components: Skins
+Continuum
+Cooldown
+Cooldown Manager
+Cooldown Manager (grey)
+Cooldown numbers
+Cooldown swipe
+Cooldowns
+Cooldowns that never announce they are ready.
+Coordinates corner
+Copy this layout to the others
+Copy this look
+Copy this window's look as text to give to a friend, or paste one in. What the window shows, its fight and its lock are not part of it.
+Corners
+Count
+Count colour
+Count size
+Countdown number
+Crest
+Crit colour
+Crit font
+Crit look
+Crit outline
+Crit size
+Crit sound
+Crits
+Crits can move like the hits here, stay in place, or take any other movement.
+Crits have their own page: how they appear, how they move, their size, time and travel - for each area and nameplates.
+Crits have their own page: how they appear, how they move, their size, time and travel.
+Crits in their own colour
+Crits in this area: how they appear and move  >
+Crits stay longer
+Critters
+Crowd cheer (Alliance)
+Crowd cheer (Horde)
+Crown
+Ctrl-click
+Current HP
+Current HP - Max HP
+Current HP - Max HP | Percent
+Current HP / Max HP
+Current HP / Max HP | Percent
+Current HP | Percent
+Current fight
+Current: the fight you are in (or the last one). Overall: everything since the last reset.
+Custom
+Custom 1
+Custom 2
+Custom 3
+Custom 4
+Custom 5
+Custom displays
+Cut after N letters
+Cuts the icon's edges: 0 = the whole picture.
+DPS
+Damage / healer
+Damage Done
+Damage Taken
+Damage Taken By Spell
+Damage Without Boss
+Damage and healer colours
+Damage and healers: red = the mob is on you, orange = you are about to pull it off the tank (your target, from the server's threat numbers), purple = it is on someone else. Tanks: blue = it is on you, orange = someone is about to pull it, purple = another tank has it, red = it is loose on someone else. Needs SuperWoW for plates other than your target.
+Damage done, healing, interrupts, deaths, threat... the same list as the title bar's menu.
+Damage of a spell
+Damage over time on you
+Damage school
+Damage taken from a spell
+Damage you take
+Dark frame
+Data
+Death rune
+Deaths
+Debuff Uptime
+Debuff highlight
+Debuff names separated by #.
+Debuffs
+Debuffs fading
+Debuffs on you
+Debuffs per row
+Default
+Defaults
+Deficit
+Degrees a second; minus turns the other way.
+Delete
+Demon rune
+Demon rune 2
+Descending
+Details
+Diamond !
+Die Die Die
+DieDieDie
+Direction
+Disable
+Disabled
+Dispel marker at
+Dispel marker size
+Dispel markers
+Dispels
+Display
+Display 1: name
+Display 1: shows
+Display 1: spell or aura
+Display 2: name
+Display 2: shows
+Display 2: spell or aura
+Display 3: name
+Display 3: shows
+Display 3: spell or aura
+Display 4: name
+Display 4: shows
+Display 4: spell or aura
+Display 5: name
+Display 5: shows
+Display 5: spell or aura
+Do not keep trash fights
+Dock background
+Dodge, Parry, Resist... as words.
+Done
+Dots
+Double arrows
+Double ring
+Down (first row at the top)
+Drag
+Drag a window's title to move it (new ones open from there), its corner to size it.
+Drag the bars where you want them.
+Drag the slot buttons where you want them.
+Drag your buffs, debuffs and bars where you want them.
+Drag, or click the number and type one. Below .64 or above 1 works too (the game's own menu cannot do that).
+Drains down
+Druid mana bar
+Druid mana bar height
+Druid mana text
+Dungeons
+During combat
+Dynamite
+Each bag on a new row
+Each choice shows its picture.
+Each choice shows its picture. None switches the layer off.
+Each part
+Each person who whispers you gets a small window of their own - class, level, guild, the conversation and a box to answer in - or a tab in the left chat.
+Each raid frame's health bar.
+Each raid frame. The grid keeps its columns and rows.
+Each reason is its own switch. A request that has to wait (moving, casting) is kept and done as soon as it can.
+Each text starts a little left or right at random, so they don't sit on top of each other.
+Each trinket slot can swap trinkets by itself (as TrinketMenu's auto queue): put your trinkets in order; when the one you wear goes on cooldown, the first one above the red mark that is ready goes on. A trinket with 30 seconds or less of cooldown counts as ready - putting one on starts a 30 second cooldown anyway. Swaps wait for combat to end. Alt-click a trinket on the trinket bar to switch its slot's queue on or off; a small gear on it shows the queue: gold on, grey holding (Delay), red paused.
+Edge 100%
+Edge colour
+Edge line
+Edge: class colour
+Edges by debuff type
+Editing: |cffffffffHealth left text|r
+Effect
+Effect colour
+Elastic Zoom
+Elite
+Elite colour
+Elite dragon
+Elite, rare and boss
+Elite, rare and boss marks
+ElvUI
+Empty slot
+Empty slot fill
+Empty slots
+Ends
+Enemies
+Enemies in combat
+Enemies out of combat
+Enemies red
+Enemy Damage Done
+Enemy Damage Taken
+Enemy NPCs
+Enemy buffs
+Enemy buffs on nameplates
+Enemy players
+Energy
+Energy Generated
+Energy ticks
+Energy, rage and mana regeneration as power gains (SCT's \"all power\").
+Enter keeps the last channel you typed in (whisper, officer, raid warning, channels).
+Entering combat
+Entrance
+Equipped items
+Estimate
+Every bag starts its own row, so you can tell them apart.
+Every button and text around the map goes back to pfUI's own place and size.
+Every colour and size above back to what the look in use came with.
+Every combat text this much bigger or smaller.
+Every crit entrance explained
+Every icon the macro window has, the set's items first. Or click the icon beside the set's name.
+Every kind of combat text: show it, its colour, where it comes from, always a crit, big, and a sound.
+
+Tick to show a message. The swatch is its colour. Where it comes from: a screen area, or the nameplate of the other unit. Crit = always shown as a crit. Big = bigger with a flash so it stands out (Crits sets how much). Sound: picking one plays it.
+
+The sound lists hold the game's alerts, gunshots and explosions, boss kill lines (\"Die, insect!\"), crowd cheers and victory horns, BigWigs' voices and four files of your own.
+Every kind of plate takes the size of the one you changed last (enemy NPCs if you have not changed one).
+Every message type back to how it started (formats too).
+Every meter window back to its starting place in the middle of the screen.
+Every movement explained
+Every movement hits can use, plus staying in place. Point at a name in the list to see what it does.
+Every nameplate setting - looks, sizes, colours, places, auras, lists - back to how it came (the Plater look). Click twice.
+Every other bar that is on gets this bar's button size, spacing and scale, so bars with the same buttons are the same size. Each stays where it is. One bar at a time: Move frames, click a bar, Match size...
+Every part around the map can be dragged to fit any shape.
+Every part at once. Switching to Blizzard's asks to be kept: not kept within 15 s, it goes back by itself.
+Every part back to pfUI Octo's frames.
+Every part of the look in your own colours. Parts the look in use does not have are dimmed. Picking another look starts from its own colours again.
+Every part to the game's own frames (kept only when you say so).
+Every way to turn them
+Every whisper window (conversations are kept).
+Everyone nearby (battlegrounds)
+Everything Blizzard's
+Everything about a button. Pick a group with the tabs under the sample: its look, hover and press, cooldowns, proc glow or letters. Click a part of the sample button to jump to it; the Test buttons play an effect on the sample or on your own bars.
+Everything on and around the map. Pick a part - here or by clicking it in the preview - then set when it shows, its size and its place. Drag parts in the preview to fit any shape.
+Everything pfUI Octo's
+Everything you dragged goes back to its first place.
+Exactly as the game writes it, e.g. Sunder Armor.
+Execute
+Execute range
+Experience
+Experience Bar
+Expressway
+Extra
+Extra attacks (Windfury...)
+FPS & Ping
+FRIZQT
+Face
+Fade after
+Fade old lines
+Fade out of range
+Fade out on mouse-off
+Fade out over
+Fade time
+Fade to
+Fade to the own colour
+Fade when idle
+Faded to
+Fades members more than 40 yards away.
+Fades out
+Fading bar
+Fading part
+Falling, lava, drowning...
+Fast
+Fast hits in a straight movement (Vertical, Parabola, Sway, Wave, Zigzag) push the ones above them up a line, never on top of each other.
+Fat ring
+Fight
+Fight name
+Fight time
+Fights
+Fights kept
+Fill
+Fill the log with a few made-up rows to see how it looks.
+Fill the other way
+Fill with my class's usual
+Fills from the bottom up.
+Fills up
+Filter
+Filters
+Find Herbs, Find Minerals, Track Beasts... count as buffs on 1.12. On: they stay off the buff bar and your player frame (the tracking button by the map still shows them).
+Find a setting
+Find yourself fast: a border or a different colour on your own bar.
+Finishers and wins
+Fira Sans Condensed
+Fira Sans Condensed Bold
+Fire orange, frost blue, shadow purple... instead of the message colour.
+Fire ring
+Fire rune
+Firecrackers
+Fireworks (NameplateSCT)
+Five places on the screen text can scroll in. Pick one below to change it; each message picks its area on Messages.
+
+Move frames at the top shows the areas as blue boxes to drag and size. Each message type picks an area (Messages page) or the nameplate of the other unit.
+Flag taken
+Flash
+Flash + pulse + ring
+Flash Powder
+Flash behind big ones
+Flash behind crits
+Flash in the last 30 seconds (player)
+Flash size
+Flash when it ends
+Flash white
+Flat
+Flat picture when no model
+Focus
+Focus target
+Font
+Font size
+For Marching lines.
+For Pop and Bounce.
+For a minute every nameplate you can see gets pretend threat colours and casts (every other one interrupted by Bob). V shows enemy plates, Shift-V friendly ones, e.g. in a city. Click again to stop.
+For a minute, sample texts keep coming in every area and on every nameplate on screen (V shows enemy nameplates, Shift-V friendly ones). Click again to stop.
+For bigger / smaller.
+For every crit, everywhere: their own letters, colour, a flash and a mark.
+For every frame, unless a frame has its own (its Colours card).
+For portraits drawn on the health bar.
+For the bar colour and the glow.
+For the player, target and focus cast bars.
+Forget everything in the log.
+Format
+Formats: alerts and warnings
+Formats: damage you take
+Formats: healing, power and buffs you get
+Formats: rewards
+Formats: your damage
+Formats: your healing
+Fountain (NameplateSCT)
+Frags
+Frame
+Frame enemy buffs you can purge
+Frame height
+Frame width
+Frames
+Frames per second
+Frames with click casting
+Free / all slots at the bottom (red when full, gold when nearly).
+Free slots
+Friendly Fire
+Friendly NPCs
+Friendly NPCs green
+Friendly players
+Friendly players blue
+Friends
+Friends Online
+Friends in cities
+Friends in dungeons and raids
+Friends in the open world
+Friz Quadrata (game)
+From everyone the game has shown you (group, target, mouse-over, /who).
+From the middle
+From the middle of the screen.
+Frost rune
+Frost wave
+Further than
+GCD line
+GCD mark
+GM-Mode
+Game alerts
+Game damage numbers
+Game frame
+Game healing numbers
+Game pet damage numbers
+Game scrolling text over you
+Gap
+Gap between frames
+Gap between icons
+Gap between rows
+Gap between slots.
+Gap to the health bar
+Gap under the name
+Gather addon buttons
+Gear
+Gear set
+Gear set 1
+Gear set 10
+Gear set 2
+Gear set 3
+Gear set 4
+Gear set 5
+Gear set 6
+Gear set 7
+Gear set 8
+Gear set 9
+Gear sets
+Gear sets as ItemRack and Outfitter make them: pick a set on the left, tick the slots it should change, click a slot to pick its item (or Save to take what you wear), then Wear. In combat your weapons change at once and the rest when combat ends. Also: the Gear sets list beside your character window, the set button, keys, /gear equip <set>.
+Gear tooltip size
+Gear you can't wear and items you can't use show red (pfUI's tooltip check; ClassicAPI answers first when you have it). Switching it on without ClassicAPI takes a reload.
+Gem
+Gems
+General
+Ghost auras
+Glancing ~ and crushing ^
+Glass
+Gloss
+Glossy
+Glow
+Glow (add)
+Glow / shadow
+Glow / shadow size
+Glow and indicators
+Glow at 5
+Glow brightens what is under it; Normal paints over it.
+Glow colour
+Glow in combat
+Glow ring
+Glow round it
+Glow with aggro
+Glow: class colour
+Goes to its out-of-combat opacity a moment after the last swing.
+Gold
+Gold dragon
+Gold line
+Gold while a member casts, green while they channel - see who is casting what at a glance (exact with ClassicAPI or SuperWoW).
+Gradient
+Green glow
+Green tint (pfUI)
+Green when the cast went off, red when it was stopped.
+Grid
+Grid lines in the preview on or off, with a yellow middle line across and down each sample to line parts up.
+Group labels
+Grow
+Grow at the end
+Grow from small (Zoom)
+Gryphon
+Gryphons
+Guild
+Guild Online
+Guild names
+Gun reload
+Gunshot
+Gunshot 2
+Gunshot 3
+HPS
+HUD angled (SCT)
+HUD curved (SCT)
+Hand in
+Healer names
+Healing Done
+Healing Taken
+Healing and power
+Healing of a spell
+Healing, power and buffs you get
+Heals
+Heals on you
+Heals over time on you
+Heals smaller than this are not shown (0 = all).
+Heals you cast on others.
+Heals, mana, rage and energy you get, and buffs you gain or lose.
+Health
+Health - Auto
+Health - Current
+Health - Max
+Health - Min/Max
+Health - Missing
+Health - Percentage
+Health background
+Health bar
+Health bar colour
+Health bar speed
+Health in its colour
+Health text
+Healthbar Embedded
+Hearth
+Height
+Height above the plate
+Heroic Strike / Raptor Strike
+Hexagon
+Hidden auras
+Hidden bags keep their items; their slots are just not drawn. Same as clicking them in the bag bar.
+Hide
+Hide by itself
+Hide cooldowns shorter than
+Hide hits under \"Small hits below\" instead of shrinking them.
+Hide in combat
+Hide it
+Hide lines with
+Hide or shrink the small stuff so the numbers that matter stand out.
+Hide out of combat
+Hide party frames in a raid
+Hide small hits
+Hide the black list
+Hide the combat log
+Hide the game's cast bar
+Hide the loot window
+Hide the tracking buff
+Hide while stealthed
+Highlight your target
+Highlights
+Hits
+Hits and heals on the portrait or bar.
+Hits below this are not shown at all (0 = all).
+Hits this close together are added up into one number.
+Hits, misses and debuffs that land on you.
+HoTs
+HoTs of every class
+Hold right-click on a plate to turn; a quick click targets and attacks.
+Holy rune
+Holy rune 2
+Homespun
+Honor
+Honor, experience, reputation, loot and money.
+Hooge
+Horizontal
+Horizontal (SCT)
+Hours
+Hover
+Hover a slot of your character for what can go in it.
+Hover and press
+Hover border
+Hover colour
+Hover look
+Hover: class colour
+Hover: the mouse is over a button. Press: it is held down, by mouse or key.
+How Dodge, Parry, Resist and the like move.
+How big everything on the screen is. Kept per character, and applied at every login.
+How big it is. Bar height: as tall as the bar.
+How big nameplate text is.
+How big the flash behind crits is.
+How big the names are.
+How big the numbers on the right are.
+How big the text is in this area.
+How big the title is.
+How each crit entrance looks.
+How every line reads: the time in front, channel tags, names, links and whispers.
+How far right of the middle of the plate their column is (negative: left).
+How far sideways crits can travel.
+How far sideways the text can travel.
+How far the arrows sit from the bar. Or drag them in the preview.
+How far the lines stand out above and below the bar.
+How far up (or down) crits travel.
+How far up (or down) the text travels.
+How far up the text travels.
+How fast all texts move: below 1 they stay longer, above 1 they pass quicker.
+How fast bars slide to a new value.
+How fights are kept and timed, as in Details!.
+How heals move.
+How it works
+How long a crit stays here (Crit look's 'stay longer' still adds to it).
+How long each text stays.
+How long to wait after a death before looting (the corpse needs a moment).
+How many
+How many buttons this bar has. Rows and columns changes to fit.
+How many letters are kept when names are cut.
+How many lines a window keeps, fading and scrolling.
+How many players a report sends.
+How much bigger big messages are.
+How much bigger crits are than normal hits here.
+How much bigger crits are than normal hits.
+How much it grows
+How much of the swing's end is marked: Slam started in it delays your next swing the least.
+How much threat you allow yourself before the label turns red and the popup shouts.
+How often a calm plate redraws, per second. Lower = more frames per second in big pulls; 60 = every frame.
+How see-through the plates that are not your target are.
+How short a right-click must be to count as a click.
+How small the small hits are.
+How solid it is when nothing is going on. 0 hides it.
+How solid the coloured part is.
+How solid the text is. Lower = more see-through.
+How solid the whole window is while you fight.
+How solid your team's numbers are.
+How tall each bar is.
+How tall the strip is.
+How tall the window is when it floats (more height = more bars). In the bottom panel: the panel's height.
+How text moves in this area. The switch turns the area on or off.
+How the buttons are laid out: columns x rows. Only the shapes that fit this bar's number of buttons are listed.
+How the raid frames are laid out: columns and rows, which way they grow, the gap, and the size of each frame. Layout mode (Move frames) moves the whole raid as one box; its mouse wheel sizes the frames a pixel at a time and keeps the grid.
+How the slots fill the grid.
+How the text moves away from the nameplate.
+How the time left is written.
+How they appear
+How they move
+How whispers show up.
+How wide the window is when it floats. You can also drag its corner. In the bottom panel the windows share the panel evenly instead.
+How your hits move. The choices under the lists change to the ways it can go.
+How your target's plate stands out, plates that fade when far away or out of sight (needs UnitXP), and the colour of a mob low enough to execute.
+Huge crit sound
+Hunters: by range
+Icon
+Icon and lag
+Icon from its items
+Icon pulse
+Icon size
+Icon zoom
+Icons
+Icons above the name: your debuffs and crowd control on the mob, then its important buffs (gold edge), with timers and stacks. Edges show the debuff type: blue Magic, purple Curse, brown Disease, green Poison. Special auras are big icons on top; ghost auras are your own debuffs missing from a mob you fight, faded. With SuperWoW every plate knows its auras; without it only your target does. Timers are known for your own debuffs (and others' when ClassicAPI tells).
+Immune, evade, deflect, reflect
+Impact (SCT low health)
+Important ones
+In a Whispers tab
+In a battleground
+In a dungeon
+In a raid
+In a row of their own
+In a window per person
+In arenas
+In battlegrounds
+In brackets
+In combat
+In combat (weapons swap at once, armour after)
+In druid stealth
+In dungeons
+In full
+In full (12345)
+In raids
+In the chat only
+In the item's quality colour.
+Incoming
+Incoming heals
+Incoming heals past full
+Incoming whisper colour
+Incoming whispers stand out. Whisper windows of their own come in phase 3.
+Initials (SB)
+Inner Fire rune
+Inner glow
+Inner shade
+Instant
+Instant swap (ClassicAPI)
+Instead of the message's colour.
+Interrupts
+Invite on a whispered word
+Invites
+It casts
+It has the debuff
+It is your target
+It stays where it is (Move Frames still moves it).
+Item Durability
+Item marks
+Item menu on the slots
+Item menu size
+Item menu: items per row
+Item tooltip on mouse-over
+Item tooltips
+Item tooltips on the gear buttons, menus and under the sets.
+Items looted
+Items you wear, put on a bar (trinkets, weapons).
+Its chest, main hand or head picture.
+Its health is below (%)
+Its name has
+Its own colours
+Its own colours: as the tick boxes below say (health, power, class...).
+Its own spells
+Its place and its own colours again.
+Junk coin
+Just bigger, no flash.
+Just the number: 72%
+Keep a log
+Keep chat history
+Keep every kind the same size
+Keep it tidy
+Keep text on screen
+Keep the normal colour
+Keep the window off the screen in or out of combat.
+Keeps the normal colour; only the new name is used.
+Kel'Thuzad kill line
+Key
+Key colour
+Key size
+Kidney Shot hit
+Kill range
+Killing blow
+Killing blows
+Label
+Labels: across
+Labels: up / down
+Lag
+Large
+Last 5 seconds
+Last slot first
+Latency
+Latency part
+Layout
+Layout mode: drag the meter windows (and everything else) where you want them.
+Layout mode: drag the raid box; the mouse wheel over it sizes the frames (Shift: 5 px a notch).
+Layouts
+Layouts - Normal, Raid, PvP and any you make - each remember where every frame is (everything you move in Move frames), the spells on your action bars, whether the meters show, and a gear set. Switch with the button on your screen (click = next, right-click = pick), /layout, or a tile here. Whatever you arrange while in a layout is kept for it. A talent spec can pick a layout too (Gear > Talent specs): changing spec at the Brainwashing Device switches to it, with that spec's own spells in it.
+Leader
+Leave
+Leave empty to use the spell's name.
+Leave out gear you could still trade.
+Leaving combat
+Left
+Left (first column on the right)
+Left / right
+Left Actionbar
+Left Chat Frame
+Left bar
+Left button
+Left end at
+Left end only
+Left of the name
+Left of the nameplate
+Left of the text
+Left panel (over the chat)
+Left text
+Left to right
+Left window
+Left-click a slot button uses its item. Its menu lists what else can go in.
+Legacy
+Less clutter
+Less spam: lines from players that have a word you hide, or say the same thing again too soon.
+Letters
+Letters just for this area. 'Same as all' uses the one on General.
+Letters kept
+Level
+Level in its colour
+Level next to names
+Level up
+Light
+Light under the bar
+Lights a button when it is worth pressing now.
+Like %H:%M:%S (hours, minutes, seconds; %I = 12-hour, %p = AM / PM).
+Line height
+Line the texts up on the left, middle or right.
+Lines
+Lines a wheel step scrolls.
+Lines kept
+Lines kept for /find
+Lines kept per person
+Lines on your main hand bar for seal twisting (paladins).
+Links
+Lion
+Lists of names, separated by commas, as the game spells them. Press Enter to save.
+Load
+Local time
+Lock or unlock the window: unlocked, drag the title to move it and the corner to resize it.
+Lock position
+Lock size and place
+Lock the bars
+Lock the log window
+Locked: it cannot be dragged or resized by accident.
+Londrina Solid
+Long names are cut.
+Long spell names
+Look
+Look and size
+Look colours
+Look of all text
+Look up unknown classes
+Looks
+Loot
+Loot & Spam (as before)
+Loot & Spam window
+Loot log
+Loot master
+Loots right after a kill. Only mobs inside loot range count.
+Loots the corpses near you by itself when a mob dies, when you stop moving and when a fight ends - no clicking. It waits while you move, cast, hold a loot window open or a scan is still running. Needs the ClassicAPI DLL (Install pfUI Octo DLLs.bat).
+Loots whatever is around you each time you come to a stop.
+Losing it
+Lost
+Lost a window off the screen? Reset puts it back.
+Loud
+Low health
+Low health moves towards it.
+Low health under
+Low health, low mana, combat start and end, procs, cooldowns ready.
+Low mana
+Low mana under
+MORPHEUS
+Macro colour
+Macro name
+Macro size
+Magic blue, curse purple, poison green, disease brown.
+Magic buffs on enemies get a blue frame. Needs ClassicAPI (the plain game does not say a buff's type); with it others' buffs also show their time left.
+Main Actionbar
+Main hand
+Main hand / Off hand.
+Main hand on top; the off hand under it when you dual wield.
+Make it bigger
+Make it smaller
+Make the gear sets to pick from.
+Mana
+Mana - Auto
+Mana - Current
+Mana - Max
+Mana - Min/Max
+Mana - Missing
+Mana - Percentage
+Mana Restored
+Mana colour
+Mana ticks
+Mana, rage and energy gains add up and show once per this many seconds (0 = each).
+Mana, rage or energy gains smaller than this are not shown.
+Mana, rage, energy gains
+Map
+Map size
+Marching lines
+Mark
+Mark crits
+Mark equipped items
+Mark my own bar
+Marker
+Marker colour
+Marker distance
+Marker size
+Marker spacing
+Markers at
+Marks for quest units (from pfQuest when it is on, else your quest log), class icons on players and paws on pets, and nameplates that switch on and off by themselves.
+Marks on your main hand bar for Slam (warriors who know it).
+Match all bars to this one
+Match all sizes
+Maul
+Medium
+Melee hits on you
+Melee, spells, damage over time, pet, damage shields and misses rise from the enemy you hit.
+Melee, spells, damage over time, pet, damage shields and misses.
+Members behind a wall or a hill fade like ones out of range: you cannot heal them.
+Menu button
+Menu on right-click
+Menu only with Shift held
+Menu opens
+Menu side
+Merge hits
+Merge pets into their owner
+Merge trash
+Merge window
+Message
+Messages
+Messages and sounds
+Metal
+Meter data
+Meter windows
+Meter windows, docked
+Meters
+Meters > Windows: tick the meter windows that sit in the panel's window.
+Meters button on the screen
+Meters shown
+Middle
+Middle button
+Minimalist
+Minimap
+Minimap & Buffs
+Minimap Panel
+Minimap button
+Minimap: Addon Buttons
+Minimap: Buttons & Extras
+Minimap: Map Style
+Minimap: Minimap
+Minus = lower. Or drag the cast bar in the preview.
+Minutes
+Mirror
+Misses
+Misses on you
+Modern
+Money
+Money looted
+Monochrome
+More target effects
+Morpheus (game)
+Most on screen
+Most texts per plate
+Mounted
+Mouse over the map
+Mouse over the map: it shows while the mouse is over the map.
+Mouse wheel speed
+Mouse-over highlight
+Move frames
+Move the raid frames
+Movement
+Movement when you crit a unit, or when a plate becomes your target.
+Moves every plate up (or down) from where the game puts it.
+Moves the texts in from the button's edges.
+Moving one of the four sizes above moves the others with it.
+Multi-Shot
+Multi-Shot clip zone
+My bar's colour
+My name
+My own border colour
+My own colour
+My own colour (set below)
+My own colours
+My own skin colour
+My party (and its pets)
+My whole raid
+Myriad Condensed
+Myriad Pro
+Myriad-Pro
+NEW
+NPC colour wins over threat
+NPC colours and names
+NPC name
+Name
+Name (Linebreak) -Health Missing
+Name (Short)
+Name (Short) | Health Missing
+Name colour
+Name in class colour
+Name of who hit
+Name only (no bar) on
+Name size
+Name | Health Missing
+Name, spell, debuff or %
+Name: across
+Name: up / down
+Named profiles are kept for your whole account: save one here, load it on any other character.
+Nameplate
+Nameplate crits: how they appear and move  >
+Nameplates
+Nameplates on friendly units at login (Shift-V in game).
+Nameplates on hostile units at login (V turns them on and off in game).
+Nameplates switch themselves on or off. Leave = as you set them with V / Shift-V.
+Names
+Names in system messages become links.
+Names separated by #. Shown big, on top, edged in the accent colour.
+Names separated by #. pfUI's raid frame tank marks count too.
+Names, comma separated - anyone, in your group or not, on any side.
+Names: my colour
+Nature rune
+Near your cap
+Needs a reload.
+Nefarian kill line
+Neon
+Neon glow (accent)
+Neutral NPCs
+Neutral yellow
+Never
+Never say ready
+Never show
+Never shown as gained or fading (long buffs, auras you do not care about).
+New character window look
+New cooldowns use it; ones running keep their spot.
+New item glow
+New profile
+Next to the text, relative to its height.
+No Anchor
+No colour
+No icon here
+No list
+No mark
+No plate showing
+No sound
+No spell name, school or names on crits - shorter and punchier.
+No swipe or number on short ones, like the global cooldown.
+None
+None, just bigger
+Normal
+Nostalgia
+Not installed
+Not marked
+Not on your own frame. Experimental.
+Not usable
+Not usable colour
+Nothing
+Nothing (popups only)
+Notice other spec changes
+Notifications
+Nowhere (hide)
+Number size
+Numbers
+Numbers, reports and tooltips
+Numbers: my colour
+ON
+Octo
+Octo Bevel
+Octo Cloud
+Octo Diagonal
+Octo Flat
+Octo Glass
+Octo Gloss
+Octo Minimal
+Octo Pill
+Octo Smooth
+Octo Soft
+Octo Split
+Octo Steel
+Octo flat
+Octo glass
+Octo gloss
+Octo soft
+Octo split
+Of your own nameplate text size.
+Off
+Off = the game's own frames (after a reload).
+Off hand
+Off hand bar
+Off: crits stay as long and travel as far as the hits here. On: the settings below are just for crits.
+Off: each border skin's own colour (black, accent, gold...).
+Off: every addon button stays on the map. Takes a reload.
+Off: every teammate in the colour beside it.
+Off: first in the buff row.
+Off: from 60 s.
+Off: it opens when the mouse is over a trinket, and right-click opens the trinket queue. The cog in a trinket's corner: left-click = queue on / off, right-click = its queue.
+Off: only the bars show. Right-click the window for its menu.
+Off: only with a two-hander.
+Off: only your target's plate shows text.
+Off: pfUI's black, or its target / combat state colours.
+Off: pfUI's panel colours.
+Off: side by side.
+Off: the bar empties as the swing comes.
+Off: the game's difficulty colour.
+Off: the key only puts the set on.
+Off: under it.
+Off: under the map, showing only round its edge.
+Off: waits until the fight is over, then does one pass.
+Off: whispers show only in their windows.
+Off: white, orange in a fight, class colours as set on Threat and colours.
+Officer
+Offline opacity
+Old debuff row
+On
+On Key Press
+On State Change
+On a flight path
+On a new whisper (the game plays its own too). Picking one plays it.
+On another tank
+On another tank, and you are near its threat (your target).
+On right-click
+On someone else
+On someone else: no colour of its own.
+On the Messages page any message can be ticked big (killing blows are): it shows bigger, with the same flash.
+On the health bar
+On the left of the name, or at the right end of the bar.
+On the screen, when an item used from a button is ready again.
+On the slot buttons and the trinket bar.
+On you
+On: buffs the game hides on enemy players are found too (pfUI's enemy buff detection), so your target's frame shows all of them. Changes after a reload.
+On: exact events when ClassicAPI is installed. Off: always the chat log's text lines.
+On: the title takes your accent colour. Off: the colour below.
+One bar
+One colour
+One line in chat after each pass: how many items and how much money.
+One or the other.
+One row per item with its total. Off: every loot with its time, newest first.
+One window for all your bags and one for the bank, in the Octo look: a title bar to drag them by, a search box, a bag bar that shows or hides each bag's slots, free slots and money at the bottom, and a sort button. Bagnon's ideas, written fresh for 1.12 on pfUI's own bag slots. Bank bags not bought yet show red in the bank's bag bar: click one at the banker to buy it.
+Only after cooldowns of
+Only boss fights stay in the list (the overall still counts the trash).
+Only damage on my target
+Only in combat
+Only on my target
+Only out of combat
+Only soulbound items
+Only spells with a cooldown this long say when they are ready.
+Only the debuffs you put on.
+Only the number
+Only the white list
+Only under
+Only what you can cure
+Only what you can dispel
+Only with Shift held
+Only with a pet
+Only with a target
+Only without a pet
+Only your own
+Only your own debuffs
+Only your target
+Only yours
+Opacity
+Opacity in combat
+Opacity out of combat
+Open / shut it now
+Open / shut the bottom panel
+Open a breakdown
+Open a test window
+Open a threat window
+Open at login
+Open my bags
+Open the log
+Open the log at login
+Open the specs window
+Open world
+Opens at once
+Opens folded
+Or Shift + wheel over it in the preview.
+Or Shift + wheel over the art in the preview.
+Or Shift + wheel over the bar in the preview.
+Or Shift + wheel over the icons in the preview.
+Or Shift + wheel over the map in the preview.
+Or drag it in the preview.
+Or drag the cast bar in the preview.
+Or drag the icon in the preview.
+Or drag the icons in the preview.
+Or drag the level in the preview.
+Or drag the mark in the preview.
+Or drag the name in the preview.
+Or drag them in the preview.
+Orange name in a fight
+Orb
+Orbs
+Order
+Other addons' minimap buttons, gathered into a panel the arrow opens.
+Other enemies' opacity
+Other enemies' size
+Other plates
+Other plates redraw
+Other tanks
+Other units' casts are not shown.
+Out of a group with your pet tanking (Voidwalker, hunter pet): you and your pet's threat on your target, ESTIMATED from your hits (the server sends threat to groups only). In a group the server's exact numbers are used as before.
+Out of combat
+Out of mana
+Out of range
+Out of range opacity
+Out of sight fades too
+Out of sight too
+Outgoing
+Outgoing damage to anyone else is not shown (SCT - Damage).
+Outline
+Outline colour
+Outline of the shape
+Over the map
+Overall
+Overheal (estimated)
+Overhealing
+Overlap - no jumping (stacking off)
+Own colour
+Own colour at full health
+Own font for this frame
+Own format
+Own health background
+Own health colour
+Own power background
+Own spells
+Own tags
+Own whisper look
+PT Sans Narrow
+PT Sans Narrow Bold
+PT-Sans-Narrow-Bold
+PT-Sans-Narrow-Regular
+Padlock button
+Pageable
+Paging
+Paging Actionbar
+Paging bar
+Paladin: seal twisting
+Panel
+Panel arrow
+Panel arrow options  >
+Panel opens
+Panel side
+Parabola (MSBT)
+Part
+Parts of the windows, each on or off.
+Party
+Party bubbles
+Party pets
+Party targets
+Past your cap
+Paste (Ctrl+V) and press Enter: this window takes it.
+Paste a look here
+Patchwerk kill line
+Paw on pets
+Per row
+Per second
+Per second over
+Percent
+Percent  total (per second)
+Percent only
+Pet
+Pet Actionbar
+Pet autocast mark
+Pet happiness (pet frame)
+Pet happiness only when unhappy
+Pet happiness size
+Pet target
+PetMeleeDamage.
+Pets' damage as well.
+Pick a bar, then its layout, when it shows, and its text. Move frames (top) moves the bars.
+Pick a colour
+Pick a frame with the tabs: its preview shows at the top. Under it, pick what to change: size and bars, text, buffs, icons, look, the raid layout or what all frames share. Click a part of the preview to jump to its card. The cards named \"All frames\" change every frame.
+Pick a place below, then how its crits appear and how they move. Point at any name in a list to see what it does.
+
+Each place - nameplates and the five scroll areas - has its own crit entrance (how a crit appears: slam in, pop, swell...) and its own crit movement (the same as its hits, staying in place, or any of the movements hits can use), and can give crits their own time on screen, travel and direction. The crit look at the bottom (letters, colour, flash, mark) is for every crit. Crit sounds are on Messages and sounds.
+Pick a window with the tabs above the preview (or make a new one), then change it card by card: each card is one part of the window - the picture on its title says which. Every window has its own settings; the preview shows the one you are editing and every change shows at once. Click a part of the preview to jump to its card. Hover any setting for what it does.
+Pick an icon
+Pick one, then Load, Save over it or Delete.
+Picking a corner puts the coordinates in it.
+Picking one plays it.
+Picking one switches Colour to One colour.
+Picture size
+Pictures
+Pill
+Ping
+Pixel perfect
+Pixel perfect makes one game pixel one screen pixel (0.71 on 1920x1080): the sharpest borders, but small on big screens.
+Place
+Plain
+Plater
+Plater's ideas on pfUI's nameplates: aggro colours that flip for tanks, sizes per kind of unit, target arrows, a Plater cast bar that says who interrupted, execute range, plates that fade out of range. The art is pfUI Octo's own.
+Plater: the icon left of the bar, the spell's name in the bar, the time on the right. pfUI: as pfUI had it.
+Plates cross over each other smoothly instead of jumping apart to make room. Best with many targets.
+Plates ignore the mouse.
+Plates shrink to this while you are not fighting.
+Plates that move when something happens, and your own rules: when a plate matches, its bar changes colour, glows, grows, shrinks or hides (Plater's scripts, without code).
+Play 1
+Play 2
+Play 3
+Play 4
+Play on the preview
+Player
+Player Unitframe
+Players only.
+Players show their class icon in place of the portrait.
+Plays on crits at least as big as the number beside it (instead of the crit sound).
+Plays on crits at least as big as the number beside it.
+Plays over the icon as the action goes off.
+Plays when you get a killing blow.
+Poisons, oils and sharpening stones on your weapons.
+Pop (SCT Sticky)
+Pop (grow and settle)
+Popup
+Popups
+Portrait
+Portrait on the bar: opacity
+Power background
+Power bar
+Power bar height
+Power gains every
+Power gains when full
+Power in its colour
+Press
+Press animation
+Press border
+Press colour
+Press look
+Press: class colour
+Preview
+Priority     Pause     Delay
+Proc buffs
+Proc glow
+Proc: class colour
+Procs
+Procs (your list)
+Procs of every class
+Profile
+Profiles
+Pulling
+Pulling at
+Pulsing inner glow
+Push 90%
+Pushback
+Put .wav or .mp3 files in Interface\\AddOns\\pfUI\\img\\sct\\sounds\\custom\\ and type their names here (finishhim.mp3). New files are read when the game starts, not on /reload.
+Put back after
+Put every part back
+Put it back
+Put on when this layout goes on.
+Put parts back
+Puts both windows back where they start.
+PvP
+PvP flag
+PvP flag at
+PvP flag size
+PvP flag: across
+PvP flag: up / down
+PvP warning
+Quality border
+Quest
+Quest complete
+Quest giver colour
+Quest marks
+Quest mob
+Quest mob colour
+Quest mob mark
+Quest mobs' bars in the objective colour (threat and NPC colours win).
+Quest to hand in
+Quest to take
+Quests
+Quests, icons and auto
+Queued attacks
+Queued spell
+Quick click under
+Rage
+Rage Generated
+Ragnaros: By fire be purged!
+Ragnaros: Die, insect!
+Raid
+Raid frames
+Raid frames at most
+Raid frames for the party
+Raid layout
+Raid mark
+Raid mark at
+Raid mark size
+Raid mark, PvP flag, leader, loot master and (pet) happiness.
+Raid mark: across
+Raid mark: up / down
+Raid warning
+Raids
+Rainbow arc (SCT)
+Rainfall (NameplateSCT)
+Raise plates by
+Random mix
+Random spread
+Range
+Range check
+Range check every
+Range colour
+Rank
+Rank numbers
+Rare
+Rare colour
+Rare elite
+Razuvious kill line
+Reactive abilities
+Reactive skills (Overpower, Revenge...)
+Ready-made looks first, then one card for each part of a plate - everything about it in one place: shown or not, letters, size, colour and where it sits. Click a part in the preview to jump to its card.
+Ready-made looks for every bar, from ideas in Masque's skins, ElvUI, Bartender and the game. Click one to use it.
+Ready-made looks: background, border, title bar, bar texture, spacing and icons in one click. Change anything afterwards in the cards below.
+Ready-made styles for all combat text: letters, how each area moves, how crits appear. Colours, messages and places stay as they are.
+Ready-made styles: bar texture, border skin, sizes, text and target marker in one click.
+Ready: cooldowns from
+Reagent count
+Red round the frame on a hit, green on a heal.
+Red tint on items you can't use
+Regeneration ticks
+Reload / wand
+Reload for buff bars
+Remember debuffs seen on a unit for plates that cannot read them.
+Remove
+Remove this window
+Remove window
+Removes the picked profile for every character.
+Report button
+Report lines
+Reputation
+Reputation Bar
+Reset button
+Reset everything
+Reset positions
+Reset to the look's own colours
+Resisted, blocked, absorbed
+Resting (city or inn)
+Resurrects
+Reverses the order: the last bag's last slot comes first.
+Rewards
+Right
+Right (first column on the left)
+Right Actionbar
+Right Chat Frame
+Right bar
+Right button
+Right end at
+Right end of the bar
+Right end only
+Right of the nameplate
+Right of the text
+Right panel
+Right-click
+Right-click turns the camera
+Right-click uses the item
+Rising dragon
+Roboto
+Roboto Mono
+Role
+Round the tags and names. Takes a reload.
+Rows
+Rows and columns
+Rows grow
+Rule 1
+Rule 2
+Rule 3
+Rule 4
+Rule 5
+Rule 6
+Rune burst
+Rune circle
+Rune circle 2
+Rune circle A
+Rune circle B
+Rune circle C
+Rune circle D
+SAMPLE BUTTON
+SKURRI
+Safe
+Safe 70%
+Same as all
+Same as the hits here
+Same as the text
+Same line again within
+Sample on my target (8 s)
+Save
+Saves your settings now under a new name.
+Say and yell
+Say each automatic swap
+Say each swap in chat
+Say so in chat
+Say what changed
+Say when a swap waits
+Say when an item is ready
+Say when gear waits for combat
+Scale
+Scale, profiles and look
+Screenshot
+Scroll areas
+Scrolling
+Scrolling combat text in five screen areas you place - or rising from nameplates: your damage from the enemy you hit.
+
+Everything SCT and SCT - Damage showed (and Mik's Scrolling Battle Text, NameplateSCT, the game's own options over the years). Test combat text sends sample texts everywhere for a minute; Move frames shows the areas as blue boxes to drag and size.
+
+The other combat text pages: Scroll areas (where and how text moves), Nameplates (and teammates' damage on them), Crits, Messages and sounds (what shows, its colour, where it comes from), Text and filters, Threat.
+Search
+Search box
+Seconds
+Seconds from 90 s
+Seconds, minutes as 2m
+See your team's damage too: smaller numbers in their class colour beside yours.
+Self-cast: Alt
+Self-cast: right-click
+Server time
+Set button
+Set button size
+Set name under it
+Sets beside the window
+Settings
+Settings that belong to one part only.
+Several hits of one spell within a moment become one text with the total and \"x3\" (screen areas).
+Shade behind the bars
+Shade from
+Shade to
+Shadow
+Shape and border
+Shape, border and art in one click. Buttons, sizes and places stay as they are.
+Shapeshift Bar
+Share
+Share Bold
+Share as text...
+Share this look
+Shield
+Shift + wheel
+Shift + wheel: top or bottom. Ctrl + wheel: a page.
+Shift / Ctrl + wheel jumps
+Shift-click
+Shift-drag always
+Shockwave
+Short (12.3k)
+Short names
+Short numbers
+Shorten long spell names so texts stay small.
+Shorter cooldowns end quietly.
+Shotgun
+Shout when I pass my cap
+Show
+Show / hide all
+Show Slam marks
+Show a crit
+Show as
+Show buffs
+Show debuffs
+Show every enemy buff (NPCs and players)
+Show every enemy buff on your target's frame
+Show every hidden item again
+Show heals you cast on yourself.
+Show in combat
+Show it
+Show it as
+Show mana, rage or energy gains even when you are already full.
+Show plates when I log in
+Show resting
+Show test lines in my chat
+Show the fight
+Show the label
+Show the loot log window.
+Show the per-second figure.
+Show the points you do not have yet, dimmed.
+Show the share of the whole.
+Show the slot buttons
+Show the spell icon, and on which side.
+Show the status bar
+Show the time
+Show the title bar
+Show the trinket bar
+Show this bag's slots.
+Show this bar
+Show this cast bar
+Show this frame
+Show weapon buffs
+Shown again when their window opens.
+Shown in its own letters. Areas can pick their own on Scroll areas.
+Shows
+Shows after a reload.
+Shows as many rows as fit.
+Shows or hides your real bag window.
+Shows the set you wear; click for your sets, Shift-click to take it off.
+Shrink & Return
+Shrink in from big (SCT Flash)
+Silver dragon
+Silver line
+Size
+Size and height of the text, and how other enemies' text looks.
+Size and shape of both windows.
+Size by kind
+Size from the button
+Size, background, border, and how it shows in and out of combat.
+Size, crit size and letters of the text in this area.
+Size, opacity and zoom
+Skill gains
+Skin colour
+Skull
+Skurri (game)
+Slam and shake
+Slam in (MSBT Pow)
+Slam in, pop, swell like the game's own, grow, or just bigger.
+Slam window
+Slim
+Slot buttons
+Slot colour
+Slot order
+Slot size
+Slot: class colour
+Slots per row in the bag window.
+Slots per row in the bank window.
+Slow
+Small
+Small hit size
+Small hits below
+Small markers for your buffs, HoTs and procs, and for debuffs you can dispel. Best on party and raid frames.
+Small marks on items so you can see at a glance what is new, junk, for a quest or no use to you.
+Small numbers
+Smaller text for hits under this amount (0 = off).
+Smallest damage shown
+Smallest heal shown
+Smallest power gain
+Smooth
+Smoothness
+Sniglet
+Soft (pastel) colours
+Soft glow
+Soft glow (accent)
+Soft outer glow
+Soft shadow
+Solid colour
+Solo with a pet too
+Someone whispering just that word gets an invite (when you can invite).
+Sort button
+Sort my bags
+Sorts the window's items: instantly with ClassicAPI, else one item at a time.
+Sorts your bags (instantly with ClassicAPI, else one item at a time).
+Soulshard Counter
+Sound
+Sounds
+Sounds for killing blows and big crits. Picking a sound plays it.
+Space between the bar and the icons.
+Space between the buttons.
+Space between the name and the bar.
+Spacing
+Spacing, every bar
+Spark
+Sparkle
+Spec  (click the picture or Activate to switch)
+Special auras
+Speech bubbles over players who talk near you.
+Speed
+Spell colours and names
+Spell hits on you
+Spell icon
+Spell icons
+Spell name
+Spell name (pfUI layout)
+Spell names
+Spell rank
+Spells
+Spells in macros
+Spin
+Spiral
+Sprinkler (SCT)
+Spy
+Spy: Kill On Sight
+Spy: enemy nearby
+Spy: list add
+Spy: stealth
+Squada One
+Square
+Square at
+Square in combat
+Square size
+Square with aggro
+Squares
+Stack lines
+Stack size
+Stacks
+Stance Bar 1
+Stance Bar 2
+Stance Bar 3
+Stance Bar 4
+Stance bar 1
+Stance bar 2
+Stance bar 3
+Stance bar 4
+Stances and forms show up here on characters that have them.
+Star
+Star rune
+Starbursts
+Start the other layouts from this one.
+Start with a look
+Static (MSBT / messages)
+Status bar
+Stay in place (SCT Sticky)
+Stay under
+Stealth
+Stealthed
+Steel
+Sticky channels
+Still a bar on the target
+Still a bar when hurt
+Stopped
+Stops every new-item glow now.
+Stops lots of numbers piling on top of each other.
+Striped
+Stripes
+Strong
+Style
+SuperWoW's healing text (HealingText).
+SuperWoW: the border shows who the mob attacks (colours below).
+Swapping
+Swaps asked for while dead go on when you are alive again (off: they are refused).
+Swaps wait for your cast or channel to end, so they never cut it short.
+Sway
+Sweep the other way
+Swell and settle (Blizzard)
+Swimming
+Swing Timer
+Swipe
+Swipe colour
+Swipe the other way
+Switch pages
+Switch the main bar's page with a key held down, in druid stealth, or by range (hunters).
+Switch to the new fight
+Switches the enemy plates on (V) - turn them off yourself (SCT - Damage did the same).
+Switching
+Tabs and dock
+Tabs flash on new messages
+Tabs on mouse-over only
+Takes a reload.
+Takes the spell your target is casting right now.
+Takes this name off the list.
+Takes this window away for good (window 1 cannot be removed).
+Takes your target's name.
+Taking it from a tank
+Talent specs
+Talents changed some other way (the device's own menu, another addon): when they match one of your specs, this window marks it as on. Gear and spells are left alone.
+Talk to a Goblin Brainwashing Device and this window takes the place of its menu: each talent slot with its name, picture and talents. Pick a gear set and a UI layout for each; when you switch, the set goes on (armour after combat), the layout changes and the spec's own spells go back on your bars. /gear specs or /specs opens it anywhere to change what goes with each spec.
+Tank
+Tank colours
+Target
+Target of target
+Target size
+Target sounds
+Target's debuffs
+Target's debuffs only (experimental).
+Target's swing
+Target's target's target
+Target, range and execute
+Teammates' damage
+Teammates' look
+Teammates' numbers only on the enemy you are targeting.
+Tenths at the end
+Test combat text
+Test on my bars (20 s)
+Test on nameplates
+Test on real nameplates
+Test the popup
+Test this area
+Text
+Text alignment
+Text and filters
+Text colour
+Text colours and font
+Text in the aura's type colour
+Text inset
+Text of a nameplate at the screen edge stays inside the screen.
+Text on enemies you are not targeting is this see-through.
+Text on enemies you are not targeting is this size.
+Text on other enemies
+Text on your target is this much bigger.
+Text set to \"Nameplate\" rises from the other unit's plate and follows it - and your team's damage can too.
+
+The damage you deal rises from the enemy you hit (every enemy, not just your target), the damage you take from whoever hit you. Your damage starts that way; any message can (Messages page).
+
+A plate has to be on screen: enemy nameplates on (V), within nameplate range. With no plate the text goes to the fallback area. Works with pfUI's nameplates.
+
+Teammates: the damage your party deals rises from the plate of whoever they hit - smaller, in their class colour, in a column beside your own numbers. Your own damage is never shown twice, and teammates' text never goes to the screen areas.
+Text shadow
+Text size
+Texts
+Texture
+Thaddius kill line
+The 1. 2. 3. before each name.
+The ON / OFF switch swaps these for you; here they can be set one by one.
+The Plater layout always shows it.
+The arrow moves to that edge unless you dragged it.
+The arrow on or off (Chat > Panel arrow).
+The art at the ends of the main bar: the game's gryphon, lion and dragons.
+The art of this mark; None = no mark.
+The bar colour for this name. No colour = only the new name.
+The bar in my colour
+The bar lights up under the mouse.
+The bar shows health missing.
+The bar's colour once the mob is in execute range.
+The border or bar colour used by \"Mark my own bar\".
+The box you type in, speech bubbles, invites, scrolling, searching and commands.
+The buff bars are made when you log in: switching one on or off shows after a reload.
+The button that clears the data (it asks first).
+The button that opens the display menu.
+The button that sends the window to chat.
+The cast bars under the player, target and focus frames. Pick one with the tabs; the colours and texture at the bottom are for all of them.
+The cast bars use the unit frames' font (after a reload).
+The character and inspect windows' look: a dark title shade with a thin line, your race's scenery behind the model and a square Enchants button. Off: pfUI's plain look. Takes a reload.
+The choices under a movement: which of them show depends on the movement picked.
+The class picture on each bar.
+The client's floating damage over targets (CombatDamage).
+The colour a bar lights up in when you point at it (click it for its breakdown).
+The colour and see-through of the window behind the bars.
+The colour behind the title.
+The colour crits use when 'Crits in their own colour' is ticked.
+The colour of that line.
+The colour used when Colour is \"One colour\".
+The colour used when class colours are off.
+The coloured bars, one per player or row.
+The corner they start from; drag them in the preview to move them from there.
+The crit's entrance. Point at a name in the list to see what it does.
+The damage you deal - from the enemy's nameplate or on screen.
+The dark part grows as the time runs out (with ClassicAPI).
+The dark part over a button cooling down.
+The defaults suit most people.
+The display this window opens with and the fight it follows (its title bar changes both while you play).
+The edge around the health and cast bars.
+The edge round the window. Soft glow and Accent follow your accent colour.
+The empty part of each row (what is left of the bar).
+The empty part of the bar.
+The empty part of the cast bar (lighter than the health bar's, so a new cast shows).
+The fill of the health and cast bars. The Octo ones are pfUI Octo's own art.
+The font and outline of every text on plates.
+The font of every unit frame; try it on the preview above. A frame can use its own on Text colours and font.
+The frame in the colour of its debuff (magic blue, curse purple, poison green, disease brown).
+The game's crit: the number pops and moves on.
+The game's empty slot
+The game's own frames - player and target, action bars, minimap, buffs, chat and the rest - instead of pfUI Octo's, with everything pfUI Octo adds (meters, combat text, gear sets, specs, nameplate extras...) still on. Blizzard's frames move in Move frames like pfUI's, and each UI layout keeps its own places. Changes at once, no reload; Esc menu > \"pfUI Octo: undo Blizzard\" always goes back.
+The game's own loot window flashes up for each corpse; this closes it. Off: a window that opens is left for you.
+The game's own numbers
+The gap between bars.
+The guild under a player's name.
+The health bar fills from the bottom up.
+The health just lost stays a moment and fades away.
+The icon changes colour when the action cannot be used right now.
+The icons next to the minimap.
+The item's tooltip on the gear buttons, trinket bar and item menus. They never cover an item menu.
+The key, macro name and count on each button. The cooldown number is under Cooldowns.
+The label by your target's nameplate (or in a box you place).
+The label turns yellow at this share of your cap.
+The last part of a text's time it fades away in.
+The layout that goes on here.
+The letters of names and numbers on plates.
+The letters, size, outline and speed of every combat text. Areas can pick their own on Scroll areas.
+The line in big letters at the top of the screen for a few seconds.
+The look round every button, the icon, and what fills an empty slot. Ready-made looks: General.
+The main chat panel. Move it with Move frames.
+The main hand bar changes colour while an attack waits on your next swing.
+The main number on the right.
+The map zooms all the way out after this long (0 = never).
+The map's look: a ready-made style, its shape, border, the spell art around it, size and opacity. Buttons and texts around it are on \"Buttons and text\".
+The marker in pfUI Octo's accent colour.
+The minimap and everything on it (zone name, clock, buttons, the bar under it) hide while you are in these places, and come back when you leave.
+The name on the left and the numbers on the right.
+The name turns orange while the unit fights.
+The off hand as a thin bar inside the main hand's.
+The order of total, per second and percent on the right.
+The outline takes pfUI Octo's accent colour.
+The part you picked. Click a part in the preview to pick it there.
+The pattern of the bar's fill.
+The per-second and percent figures and their brackets.
+The points pulse when you have all five.
+The pull point: where the mob turns to you (110% of the tank's threat in melee, 130% at range). The top player: stay behind the tank; the top two or three: behind the off-tank or a big hitter too.
+The same as clicking the meters button on your screen.
+The same as the arrow at the right end of the bottom-right bar.
+The same attack on the same enemy within the merge window (Text and filters) adds to the number already there: \"1840 x3\" instead of three lines.
+The same flash crits get.
+The same for mana after the five-second rule.
+The same looks for every bar.
+The same messages scroll in the Outgoing area (SCT - Damage).
+The seconds counting down on every cooldown.
+The set button (click: your sets) and the minimap button.
+The set picked on the left.
+The set worn while this lasts.
+The shot's name and the time left.
+The size of your own arrow on the map.
+The small arrow at the right end of the bottom-right bar (time and fps), as pfUI always had it: a click opens or shuts the window above it. Loot & Spam: the window opens with Loot & Spam in it, and on shutting Loot & Spam goes back to a tab in the left chat. Meters: the window opens with your meter windows docked in it, side by side. In Move frames, right-click that bar to come here.
+The space between buttons on all bars (one bar: Bars page).
+The spell name and time.
+The spell's icon next to its number.
+The spell's name (and rank) on the left, the timer on the right.
+The stack count on the icon.
+The strip at the top: the display's name, the fight, and the buttons.
+The strip under the bars.
+The tabs over each chat panel.
+The thin border round the bars, and the skin around that.
+The thin border round the health and cast bars.
+The time and name of the fight beside the title.
+The title's colour when it is not in the accent colour.
+The way the text travels: straight up, in an arc, sideways, bouncing... Point at a name in the list to see what it does. The choices under it change to the ways that movement can go.
+The whole UI
+The whole bar bigger or smaller.
+The width of the whole frame.
+The window
+The window above the bar holds
+The windows no longer move when dragged.
+The word
+The wording of each message. %a = amount, %s = spell, %n = name, %t = kind. Empty = the original.
+The writing of the names and numbers.
+The writing of the title and the fight.
+Their damage over time
+Their misses
+Their own time and travel
+Their pets too
+Then
+Then give \"Gear set N\" a key in Key Bindings (pfUI Octo: gear sets).
+These bars change with the main bar's page.
+These buffs show as a proc alert (\"Clearcasting!\", crit size, Notifications) instead of a plain buff.
+These show just their name and level.
+Thick Outline
+Thick black
+Thick gold numbers that slam in with a flash and a !
+Thick outline
+Thickness
+Thickness for Border only.
+Thin black
+Thin black (pfUI)
+Thin colour line
+Thin ring
+Thirdparty: Integrations
+This character takes the picked profile's settings (reloads).
+This frame's own colours (off = the ones on General).
+This layout keeps its own spells, items and macros on the action bars: what you put there while in it comes back when you switch to it. (A talent spec with its own spells keeps them per layout instead.)
+This set
+This window's look
+Thistle Tea
+Thousands separators
+Threat
+Threat and colours
+Threat meter
+Three texts on the health bar and three on the power bar. Pick one with the tabs, or click it in the preview.
+Ticked: the game's own frames for that part. The same switches sit at the top of each part's page.
+Ticks of DoTs too - busy with several warlocks or priests.
+Time a cast lost to hits: \"+0.5\" in the timer and a red stretch at the end of the bar. Your own casts, and with ClassicAPI anyone's (your target's too).
+Time inside the icon
+Time left
+Time left as a sweep
+Time left as text
+Time left on the icon (red under 3 s).
+Time on screen
+Time on screen of a crit compared with a hit.
+Timer
+Timer size
+Timer: across
+Timer: up / down
+Timers
+Timestamps
+Timestamps, channel names, colours, background and dock in one click. Some parts take a reload.
+Timing
+Tint and border
+Tint colour
+Title
+Title bar
+Title bar colour
+Title colour
+Title font
+Title in the accent colour
+Title size
+To the left
+To the right
+Tooltip
+Tooltip lines
+Tooltip on mouse-over
+Tooltips on the bars
+Tooltips under the sets
+Top
+Top Actionbar
+Top Left
+Top Right
+Top bar
+Top left
+Top of the list = first choice. Use ^ and v to move trinkets and the red mark; the wheel scrolls.
+Top right
+Top to bottom
+Top trinket (slot 1)
+Total (per second, percent)
+Total (percent, per second)
+Total only
+Totems
+Totems as icons
+Towards the middle
+Tracking
+Tracking when off
+Trash fights in a row become one \"Trash\" fight; boss fights stay apart.
+Travel height
+Travel width
+Trinket bar
+Trinket menu
+Trinket queue
+Troll gong
+Try it on my bars
+Try it on the preview
+Try it without a fight
+Try the popup
+TukUI
+Tukui
+Turn the art round: it faces away from the bar.
+Turns test mode on and opens the breakdown of window 1's top bar.
+Twist line
+Type the name and press Enter (an entry already listed is loaded).
+Type to dim every item that does not match (names and tooltip text).
+Typing and tools
+Typing box
+UI layout
+UI layouts
+UI scale
+UI scale, named profiles for every character, and the character window's look.
+Under
+Under the bars
+Under the health bar at
+Under the mouse
+Unhappy pet flashes
+Unit Frames
+Unit Frames: Click Casting
+Unit Frames: Focus-Target
+Unit Frames: General
+Unit Frames: Group
+Unit Frames: Group-Pet
+Unit Frames: Group-Target
+Unit Frames: Pet
+Unit Frames: Pet-Target
+Unit Frames: Player
+Unit Frames: Raid
+Unit Frames: Target
+Unit Frames: Target-Target
+Unit Frames: Target-Target-Target
+Unit String
+Unit String (Reverse)
+Unit frame font
+Unit frame fonts
+Unit frames
+Unknown class colour
+Up (first row at the bottom)
+Up / down
+Up and down
+Up to three layers of the game's spell art round the map. Pick a layer, then its art.
+Upright bar
+Uptime of a buff
+Uptime of a debuff
+Use ClassicAPI's combat log
+Use it
+Use my target
+Use pfUI's unit frame font when no font is picked above.
+Use pfUI's unit frames
+Use the colours on General
+Use the meters
+Used by the border choice \"Own colour\".
+Used when Names is \"My own colour\".
+Used when Numbers is \"My own colour\".
+Used when the bag window is set to My own colour.
+Used when the bank window is set to My own colour.
+Vertical
+Vertical (SCT)
+Vertical Actionbar
+Vertical bar
+Very Fast
+Very Slow
+Victory (Alliance)
+Victory (Horde)
+Visibility
+Voices (BigWigs)
+Wait while casting
+Wait while dead
+Waiting
+Waits until the fight ends
+Warlock: Corruption, Curse of Agony, Immolate; priest: Shadow Word: Pain; and so on.
+Warnings
+Warrior: Slam
+Water wave
+Wave
+Weapon buffs
+Weapons change in combat
+Weapons swap in combat
+Wear
+Wear a set while something is happening - riding, swimming, in a stance or form, in a city, a battleground or a raid - and put back what you wore when it ends. The first one in the list that is happening wins. Armour waits for combat to end (weapons swap at once); everything waits while you are dead or casting.
+Web links
+WeirdUtils
+WeirdUtils is a client DLL (codeberg.org/MarcelineVQ/WeirdUtils) with world markers, minimap tracking, a big cursor, PNG screenshots, per-day logs and several fixes. This page controls all of it.
+WeirdUtils is not running in this game.
+What \"its own colours\" means for this frame, and its font.
+What a click on the arrow does.
+What a new whisper does while you fight.
+What a unit is casting, under its plate. When a cast ends it flashes green (done) or red (stopped), with who interrupted it when the combat log says.
+What each movement in the lists does (the same for hits, crits, areas and nameplates).
+What else the Normal layout changes.
+What else the PvP layout changes.
+What else the Raid layout changes.
+What every text says, what is left out, which buffs are procs, and each message's wording.
+
+Formats: %a amount, %s spell, buff, item or other thing, %n the other unit's name, %t the kind (Dodge, Fire, Rage, Falling...). Spell names and names are added by themselves when the format leaves them out and their boxes under What the texts say are ticked. Press Enter to save; empty = the original.
+
+Lists: names separated by commas, as the game spells them. Press Enter to save.
+What happens when a spec goes on.
+What is written next to the numbers.
+What it picked up: items from your loot messages and the money you gained.
+What it shows
+What only happens in a fight, played on the preview for a few seconds.
+What shows
+What the arrow opens
+What the bar shows. Takes a reload.
+What the left third shows (time, your value, fight, clock, fps, ping).
+What the meters track and keep.
+What the middle shows.
+What the right shows.
+What the texts say
+What this text says.
+When
+When a fight starts, windows showing an earlier one show it.
+When a plate matches, this happens to it. Rules further down win over earlier ones.
+When gear cannot change yet, the swap waits and goes on by itself.
+When it becomes your target
+When it ends, wear again what you wore before.
+When it is ready
+When more texts than this are showing, the oldest goes first.
+When the accent colour is off.
+When the bar shows. All the rules have to agree.
+When the menu does not open on right-click.
+When the mouse is over it
+When to loot
+When you crit it
+Where
+Where nameplate messages go when the unit has no plate.
+Where on the button
+Where the area sits on screen. Easier: tick Move frames at the top and drag it.
+Where the first column is.
+Where the first row is: at the bottom, the next ones above it (pfUI's way), or at the top.
+Where the meters read what happens. ClassicAPI's combat log gives every hit, heal, cast, interrupt, dispel and aura exactly - with the spell's own number, who cast a debuff and what a dispel removed. Without it the meters read the chat log's text lines, which works with less detail.
+Where the text starts, above the nameplate.
+Where they are
+Where you change gear: the slots and a list of your sets.
+Where your damage goes
+Where your target's buffs (and an enemy's) sit. Off: none on the target frame.
+Where your windows go
+Whether the frame shows, its tooltip and how see-through it is.
+Whether this cast bar shows, and its size.
+Which bags
+Which bottom panel the docked windows sit in. Left: over the left chat window.
+Which end the first bar is at.
+Which meter windows dock  >
+Which nameplates get text, and what happens when there is no nameplate.
+Which side
+Which sound
+Which way the grid fills: a row at a time, or a column at a time.
+While Alt is held
+While Ctrl is held
+While Shift is held
+While the character window is open, item tooltips from its slots and menus sit in one place under the gear sets.
+Whisper
+Whisper chime
+Whisper windows
+Whispers
+Whispers go
+White
+White list
+White, the player's class colour, or one colour of your own.
+Whitelist
+Who hit you / you hit
+Who interrupted
+Whole fight
+Whole seconds (85)
+Whose damage
+Width
+Window
+Window 1 stays; the others can go.
+Window height
+Window look
+Window width
+Windows
+Windows snap together
+With ClassicAPI the whole set goes on at once, without the cursor; off = one item at a time, as without it.
+With ClassicAPI.
+With aggro: the next player
+With commas (12,345)
+With one-handers too
+Wobble Zoom
+Word (Elite, Rare, Boss)
+Word colour
+Words
+Words to highlight, like: Onyxia, summon, guild bank (at least 3 letters each).
+Words, like: gold, cheap, www (lines from players only).
+Words: Threat 72%
+Wow Skill
+Wow Status
+XP Bar: Experience Bar
+XP Bar: Reputation Bar
+XP Percentage
+Yellow from
+Yellow to red by count
+You absorb
+You block
+You dodge
+You interrupt someone
+You must stand still this long before it loots; moving again cancels it.
+You parry
+You resist
+You stop moving
+Your action bars: their look, its colours, and how buttons behave. Each bar's layout and when it shows are on Bars; every button effect (hover, press, cooldown, glow, letters) on Buttons.
+Your arrow
+Your buffs
+Your buffs, debuffs and weapon buffs by the minimap, the buff bars on your unit frames, and your totems. The Blizzard switch above puts the game's own buff frame back.
+Your cap
+Your cast bar: the spell you queued shows at its right end until it goes off (needs nampower; after a reload).
+Your cast interrupted
+Your chat comes back after a reload or relog.
+Your chat panels, their tabs and windows. The preview shows a line of every kind with your settings; the switches over it turn real windows on and off.
+Your combo points under the target's plate.
+Your cooldowns ready again
+Your crits at least this big (0 = off).
+Your damage
+Your damage on nameplates
+Your damage on screen
+Your damage over time
+Your damage shields (Thorns...)
+Your debuffs
+Your debuffs to keep up, separated by #. Their icons come from your spellbook.
+Your dispels
+Your gold at the bottom of the bag window.
+Your healing
+Your heals on others
+Your heals on yourself
+Your heals over time on others
+Your latency in red at the end of the bar: you can start the next spell there.
+Your layouts
+Your mana while in a form (SuperWoW).
+Your melee and Auto Shot
+Your misses (dodge, parry, resist...)
+Your name and words you pick stand out in chat, with a sound and a popup if you like.
+Your name in other people's messages.
+Your name in the title bar.
+Your other trinkets: left-click puts one in the top slot, right-click in the bottom one.
+Your own (Sounds page)
+Your own buffs pulse before they run out.
+Your own displays: one spell's damage, healing, casts or damage taken, or one buff's or debuff's uptime, per player. They show under Custom in a window's title menu once a spell is set.
+Your own short tag per channel, like: Trade=T, LookingForGroup=LFG, World=W, LocalDefense=LD. A channel listed here shows its tag instead of its number.
+Your own sounds
+Your pet's damage
+Your real bars run a made-up fight for 20 seconds, so you can place them. Click again to stop.
+Your settings now go into the picked profile.
+Your shaman totems with their time left.
+Your sound 1
+Your sound 2
+Your sound 3
+Your sound 4
+Your specs show up here after you talk to a Goblin Brainwashing Device.
+Your spells
+Your swing
+Your target bigger by
+Your target's plate grows to this.
+Your target's swing at you; shows while you fight it.
+Your target, casting plates and plates that are moving always redraw on every frame.
+Your threat as a share of the reference below.
+Your threat label shows a made-up reading on your target for 8 seconds. Click again to stop.
+Your threat on the mob you target, from the server (the same answers TWThreat shows): only in a party or raid, on a mob in combat. A label by your target's nameplate turns yellow near your cap and red past it, a popup and a sound can warn you, and a meter window can show everyone's threat.
+Your two trinkets with their cooldowns, as TrinketMenu: click one to use it.
+Your value and rank
+Yours and crowd control
+Yours and teammates' are counted apart.
+Yourself in the party frames
+Yourself in the raid frames
+Zigzag
+Zone Name
+Zoom
+Zoom & Fade
+Zoom back out after
+Zoom by
+[2] instead of [2. Trade].
+[W] tags and their own colour. Takes a reload.
+a bag  show / hide its slots
+a bar  its settings
+a line, tab, time or the typing box  its settings
+a part  its settings
+a part  move it
+a real window's title  move it
+an area  options
+bar / title height
+big
+bigger / smaller
+button size
+chat text size
+colour
+copy of the one you are in
+crit
+icon size
+it  put it back
+its settings
+its title  this page
+move
+move (the map too)
+move it
+move the bars
+move the panels
+move them
+options
+own spells
+pfGear
+pfUI
+pfUI (5, 2m, 1h)
+pfUI Octo (as set up on these pages)
+pfUI frame (square only)
+pfUI glow
+pfUI's
+pfUI's font
+pfUI's frame works on the square map only.
+pfUI's own bar colours by combat state (threat colours above win).
+pfUI's own colours on the bar's border.
+pfUI's own debuff icons, used while Auras is off.
+pfUI's own place and size for this part.
+pfUI's small squares
+pfUI's soft glow behind the target.
+pfUI's thin line
+pfUI's zoom: the target's bar gets wider and taller.
+pick
+put back
+show
+size: all
+sound
+stays here while the page scrolls
+switches at once - no reload
+taller / shorter
+text size
+the corner grip  size
+the label  its settings
+the name or timer  move it
+the pull point (110% melee, 130% range)
+the top player (the tank)
+the top three
+the top two
+v1.0.0  -  your whole interface: frames, bars, meters, map and combat text
+where it comes from
+|cff33b2ffNormal|r
+|cff33ccffpfUI|r Octo
+|cff55ff77ON NOW|r
+|cff73bfffDirection|r
+|cffffd100Up|r  Texts travel upwards.
+|cffffd100Down|r  Texts travel downwards.
+|cffffd100Up and down, taking turns|r  Each new text goes the other way, starting from the middle.
+
+|cff73bfffSide|r
+|cffffd100Alternate left and right|r  Each new text goes to the other side.
+|cffffd100Left|r  Every text goes left.
+|cffffd100Right|r  Every text goes right.
+|cffffd100Random side|r  Left or right, picked at random each time.
+|cffffd100Damage left, heals right|r  Damage goes left, heals go right.
+|cffffd100Damage right, heals left|r  Damage goes right, heals go left.
+
+|cff73bfffStraight or diagonal|r (movements that rise or fall)
+|cffffd100Straight|r  Straight up or down.
+|cffffd100Diagonal left|r  Slants to the left as it travels.
+|cffffd100Diagonal right|r  Slants to the right as it travels.
+|cffffd100Diagonal to the side|r  Slants to the side picked under Side (alternate, random, damage left...).
+
+|cff73bfffHeight as it goes|r (movements that go sideways)
+|cffffd100At a random height|r  Each text starts a little higher or lower at random.
+|cffffd100Level|r  Straight across, all at the same height.
+|cffffd100Rising (diagonal up)|r  Climbs as it goes sideways.
+|cffffd100Falling (diagonal down)|r  Drops as it goes sideways.
+
+|cff73bfffAngle|r  How steep a diagonal is: 15, 30, 45 or 60 degrees.
+|cffe53f3fPvP|r
+|cffff5555-- stop the queue here --|r
+|cffff8c26Raid|r
+|cffffd100Pop (SCT Sticky)|r  Pops a little bigger for a moment as it appears.
+|cffffd100Slam in (MSBT Pow)|r  Starts twice as big and slams down to size.
+|cffffd100Slam and shake|r  Slams in like Pow, then shakes for half a second.
+|cffffd100Shrink in from big (SCT Flash)|r  Starts twice as big and shrinks to size over a third of a second.
+|cffffd100Swell and settle (Blizzard)|r  The game's own crit: swells fast, then settles a little bigger than a hit.
+|cffffd100Grow from small (Zoom)|r  Starts small and grows to size, with a little overshoot.
+|cffffd100None, just bigger|r  No entrance: the crit is simply bigger than a hit.
+
+|cffffd100Vertical (SCT)|r  Straight up (or down) the area, one line after another.
+|cffffd100Rainbow arc (SCT)|r  Arcs out to the side and drops, like a rainbow.
+|cffffd100Horizontal (SCT)|r  Slides out sideways at a random height.
+|cffffd100Angled down (SCT)|r  Shoots out and down, shakes, holds, then drifts away.
+|cffffd100Angled up (SCT)|r  Shoots out and up, shakes, holds, then drifts up.
+|cffffd100Sprinkler (SCT)|r  Each new text leaves at the next angle of a fan.
+|cffffd100HUD curved (SCT)|r  Runs up the side of a circle round the middle of the screen.
+|cffffd100HUD angled (SCT)|r  Runs up a slanted line beside the middle of the screen.
+|cffffd100Parabola (MSBT)|r  Rises and bulges out half way up, MSBT style.
+|cffffd100Static (MSBT / messages)|r  Stays put; new lines push the older ones along. Good for messages.
+|cffffd100Fountain (NameplateSCT)|r  Flies up out to the side and falls, like a fountain.
+|cffffd100Rainfall (NameplateSCT)|r  Falls down from a random spot.
+|cffffd100Fireworks (NameplateSCT)|r  Bursts out in a random direction.
+|cffffd100Sway|r  Rises with a slow sway from side to side.
+|cffffd100Wave|r  Rises in a quicker wave.
+|cffffd100Zigzag|r  Rises zigzagging left and right.
+|cffffd100Spiral|r  Rises turning in a spiral.
+|cffffd100Bounce|r  Bounces up and out to the side.
+|cffffd100Shockwave|r  Blasts out to the side fast, then slows.
+|cffffd100Comet|r  Streaks out to the side in a curve.
+|cffffd100Random mix|r  A different movement each time, picked at random.
+
+|cffffffff8 columns x 5 rows|r of 48 x 24 px frames - the whole raid 410 x 152 px
