@@ -620,6 +620,24 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end, (what or mod) .. " on or off (takes a reload: the options window offers it when you close it)." }
   end
   -- ON / OFF for a "1" / "0" setting; after(v) runs when it changes
+  -- the flag of the language in use is lit and underlined, the others dimmed
+  function O.PaintFlags()
+    local fl = pfUI.gui and pfUI.gui.flags
+    if not fl then return end
+    local cur = W.Lang()
+    for _, b in ipairs(fl) do
+      local on = b.lang == cur
+      b.tex:SetAlpha(on and 1 or .55)
+      if on then b.mark:Show() else b.mark:Hide() end
+    end
+  end
+  function O.SetLanguage(code)
+    if W.Lang() == code then return end
+    C.global.language = code
+    O.PaintFlags()
+    CreateQuestionDialog(T["Do you want to reload the UI now?"], function() ReloadUI() end)
+  end
+
   function O.KeySwitch(group, key, tip, after)
     return { function() return group()[key] ~= "0" end, function(v)
       group()[key] = v and "1" or "0"
@@ -706,6 +724,42 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, -6)
     close:SetScript("OnClick", function() g:Hide() end)
     W.Tip(close, "Close", "Escape closes it too.")
+
+    -- language flags (4 Nov 2026; user: "add flags at the top linked to languages quick easy"):
+    -- one click sets pfUI's language and offers the reload it needs
+    O.LANGS = {
+      { "enUS", "English" }, { "deDE", "German" }, { "frFR", "French" }, { "esES", "Spanish" },
+      { "ruRU", "Russian" }, { "koKR", "Korean" }, { "zhCN", "Chinese (Simplified)" }, { "zhTW", "Chinese (Traditional)" },
+    }
+    f.flags = {}
+    local nflags = table.getn(O.LANGS)
+    for i, l in ipairs(O.LANGS) do
+      local b = CreateFrame("Button", nil, f)
+      b:SetWidth(26)
+      b:SetHeight(16)
+      b:SetPoint("TOPRIGHT", f, "TOPRIGHT", -40 - (nflags - i) * 31, -10)
+      b.tex = b:CreateTexture(nil, "ARTWORK")
+      b.tex:SetAllPoints(b)
+      b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\flags\\" .. l[1])
+      b.tex:SetTexCoord(0, 1, 0, .625)
+      b.mark = b:CreateTexture(nil, "OVERLAY")
+      b.mark:SetTexture(K.accent[1], K.accent[2], K.accent[3], 1)
+      b.mark:SetHeight(2)
+      b.mark:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
+      b.mark:SetPoint("TOPRIGHT", b, "BOTTOMRIGHT", 0, -2)
+      b.lang, b.name = l[1], l[2]
+      b:SetScript("OnClick", function() O.SetLanguage(this.lang) end)
+      b:SetScript("OnEnter", function()
+        this.tex:SetAlpha(1)
+        GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine(this.name)
+        GameTooltip:AddLine("Switch pfUI to this language (it reloads).", 1, 1, 1, 1)
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() GameTooltip:Hide() O.PaintFlags() end)
+      f.flags[i] = b
+    end
+    O.PaintFlags()
 
     self:BuildQuickBar(f)
 

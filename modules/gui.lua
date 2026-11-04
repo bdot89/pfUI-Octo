@@ -1312,7 +1312,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
     -- [[ Static Dropdowns ]] --
     pfUI.gui.dropdowns = {
       ["languages"] = {
-        -- "deDE:German",
+        "deDE:German",
         -- "enGB:British English",
         "enUS:English",
         "esES:Spanish",
