@@ -83,6 +83,9 @@
   <Include file="..\modules\weirdutils-bar.lua"/>
   <Include file="..\modules\weirdutils-tracking.lua"/>
   <Include file="..\modules\weirdutils-options.lua"/>
+  <Include file="..\modules\autoloot.lua"/>
+  <Include file="..\modules\autoloot-log.lua"/>
+  <Include file="..\modules\autoloot-options.lua"/>
   <Include file="..\modules\gear-specs.lua"/>
   <Include file="..\modules\chat-options.lua"/>
   <Include file="..\modules\loot.lua"/>

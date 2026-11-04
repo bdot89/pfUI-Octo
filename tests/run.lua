@@ -5535,6 +5535,9 @@ dofile(DIR .. "/tests/clientapi.lua")
 -- the Bagnon-style bag windows (modules/bags-octo.lua)
 dofile(DIR .. "/tests/bags.lua")
 
+-- automatic area looting (4 Nov 2026)
+dofile(DIR .. "/tests/autoloot.lua")
+
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
 
