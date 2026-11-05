@@ -111,6 +111,7 @@ public static class MarkArt {
   static double[][] Ramp(string name) {
     switch (name) {
       case "gold": return new double[][] { new double[] { 92, 54, 6 }, new double[] { 214, 160, 36 }, new double[] { 255, 238, 150 } };
+      case "chrome": return new double[][] { new double[] { 96, 98, 108 }, new double[] { 222, 224, 232 }, new double[] { 255, 255, 255 } };
       case "silver": return new double[][] { new double[] { 56, 62, 76 }, new double[] { 172, 182, 198 }, new double[] { 248, 252, 255 } };
       case "red": return new double[][] { new double[] { 76, 6, 8 }, new double[] { 206, 38, 34 }, new double[] { 255, 176, 150 } };
       case "yellow": return new double[][] { new double[] { 120, 80, 0 }, new double[] { 255, 214, 20 }, new double[] { 255, 252, 190 } };
@@ -219,7 +220,7 @@ public static class MarkArt {
   }
   public static void Elite(string path, string style, string kind) {
     byte[] data = Tga(64, 32);
-    string col = kind == "elite" ? "gold" : (kind == "rare" ? "silver" : "red");
+    string col = kind == "elite" ? "gold" : (kind == "rare" ? "silver" : (kind == "metal" ? "chrome" : "red"));
     Cell(data, 64, 32, 0, 0, 64, 32, Crest(style), Ramp(col), "gloss", 3.2, 0.9, 0.5);
     File.WriteAllBytes(path, data);
   }
@@ -235,3 +236,6 @@ foreach ($s in "wings", "star", "shield", "skull", "crown") {
   foreach ($k in "elite", "rare", "boss") { [MarkArt]::Elite((Join-Path $elite ("$s-$k.tga")), $s, $k) }
 }
 Get-ChildItem $marks, $elite -Filter *.tga | ForEach-Object { "{0,-18} {1,7} bytes" -f $_.Name, $_.Length }
+# neutral chrome crests for the nameplates: tinted by the elite / rare / boss colours in game
+$plates = Join-Path $Root "img\plates"
+foreach ($s in "wings", "star", "shield", "skull", "crown") { [MarkArt]::Elite((Join-Path $plates ("crest-$s.tga")), $s, "metal") }

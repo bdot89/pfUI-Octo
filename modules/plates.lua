@@ -621,10 +621,18 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     { key = "orb", label = "Orb", art = "cp-orb" }, { key = "skull", label = "Skull", art = "skull" },
     { key = "diamond", label = "Diamond !", art = "quest-objective" }, { key = "circle", label = "Circle !", art = "quest-circle" },
     { key = "bang", label = "!", art = "quest-start" }, { key = "ask", label = "?", art = "quest-end" },
-    { key = "circleask", label = "Circle ?", art = "quest-circle-ask" }, { key = "none", label = "None" },
+    { key = "circleask", label = "Circle ?", art = "quest-circle-ask" },
+    -- 3D chrome crests (5 Nov 2026, tools\MakeMarkArt.ps1): wide, tinted by the mark's colour
+    { key = "crest-wings", label = "3D winged gem", art = "crest-wings", wide = true },
+    { key = "crest-star", label = "3D star", art = "crest-star", wide = true },
+    { key = "crest-shield", label = "3D shield", art = "crest-shield", wide = true },
+    { key = "crest-skull", label = "3D skull", art = "crest-skull", wide = true },
+    { key = "crest-crown", label = "3D crown", art = "crest-crown", wide = true },
+    { key = "none", label = "None" },
   }
   local MARKBY = {}
-  for _, m in ipairs(P.MARKART) do MARKBY[m.key] = m.art end
+  P.MARKWIDE = {}
+  for _, m in ipairs(P.MARKART) do MARKBY[m.key] = m.art P.MARKWIDE[m.key] = m.wide end
   function P.MarkArt(key) return MARKBY[key or ""] and Art(MARKBY[key]) end
   -- unit kind -> its style and colour settings
   local MARKS = {
@@ -725,6 +733,9 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if tex then
       local c = COL[mark[2]]
       o.mark:SetTexture(tex)
+      -- (a 3D crest is twice as wide as tall)
+      local mh = o.mark:GetHeight() or 0
+      if mh > 0 then o.mark:SetWidth(P.MARKWIDE[S[mark[1]] or ""] and mh * 2 or mh) end
       o.mark:SetVertexColor(c[1], c[2], c[3], c[4])
       o.mark:Show()
     else
