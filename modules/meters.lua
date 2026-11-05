@@ -1140,7 +1140,7 @@ pfUI:RegisterModule("meters", "vanilla", function ()
 
   f:SetScript("OnUpdate", function()
     if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + .2
+    this.tick = GetTime() + (tonumber(C.meters.refresh) or .1)
     -- once a second: everyone's damage and healing so far, for the charts
     -- (Details' "timed data for charts"); an hour at most
     if M.current and (this.sample or 0) <= GetTime() then

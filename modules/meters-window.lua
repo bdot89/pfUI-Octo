@@ -1289,6 +1289,12 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   local function RefreshAll()
     for _, w in ipairs(M.windows) do Refresh(w) end
   end
+  -- (6 Nov 2026) only the threat windows, at once: the server's answer is on screen as it arrives
+  function M.RefreshThreat()
+    for _, w in ipairs(M.windows or {}) do
+      if w.mode == "threat" and w:IsVisible() then Refresh(w) end
+    end
+  end
 
   -- the padlock's look: gold locked (or docked), grey unlocked
   function M.PaintLock(win)

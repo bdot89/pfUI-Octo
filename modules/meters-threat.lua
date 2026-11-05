@@ -13,9 +13,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   if not pfUI.meters then return end
 
   local M = pfUI.meters
-  local TH = { list = nil, at = 0, silent = 0, answers = 0, gaveUp = nil, warned = nil }
+  local TH = { list = nil, at = 0, askAt = 0, silent = 0, answers = 0, gaveUp = nil, warned = nil }
   M.threat = TH
   local GIVE_UP = 20
+  -- seconds between two asks of the server (C.meters.threatrate, 0.1 - 1)
+  function TH.Rate()
+    local r = tonumber(C.meters.threatrate) or .2
+    if r < .1 then r = .1 elseif r > 1 then r = 1 end
+    return r
+  end
 
   -- "TWTv4=Name:tank:threat:perc:melee;..." -> sorted list or nil
   function TH.Parse(msg)
@@ -119,12 +125,16 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   function TH.Ask()
     if not TH.Wanted() or TH.gaveUp then return end
-    if GetTime() - TH.at < .45 then return end
+    -- (6 Nov 2026, "threat meter updating slow ... INSTANT": asked every C.meters.threatrate seconds,
+    -- default 0.2, no longer every 0.5; an answer anyone got in half that time is used instead)
+    local rate = TH.Rate()
+    if GetTime() - TH.askAt < rate or GetTime() - TH.at < rate * .5 then return end
     -- solo with a pet: the estimate (the server answers groups only)
     if Solo() then TH.Estimate() return end
     -- (grouped again: the server's numbers only, never the estimate)
     if TH.estimated then TH.list, TH.estimated = nil, nil end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
+      TH.askAt = GetTime()
       TH.silent = TH.silent + 1
       if TH.silent >= GIVE_UP and TH.answers == 0 then TH.gaveUp = true end
     end
@@ -165,20 +175,26 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       TH.estimated = nil
       TH.Warn()
       M.Changed()
+      -- shown at once, not at the next .2 s redraw of every window
+      if M.RefreshThreat then M.RefreshThreat() end
     elseif event == "ZONE_CHANGED_NEW_AREA" then
       TH.gaveUp, TH.silent, TH.answers = nil, 0, 0
     else
       TH.list, TH.warned, TH.estimated = nil, nil, nil
       -- (a fight over: the solo tallies start again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
+      -- a new target: ask at once
+      if event == "PLAYER_TARGET_CHANGED" then TH.askAt = 0 end
       M.Changed()
     end
   end)
 
   f:SetScript("OnUpdate", function()
     if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + .5
+    this.tick = GetTime() + .03
     TH.Ask()
+    if (this.stale or 0) > GetTime() then return end
+    this.stale = GetTime() + .25
     -- answers older than 3 s are stale
     if TH.list and GetTime() - TH.at > 3 then
       TH.list = nil

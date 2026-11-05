@@ -920,6 +920,11 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Chk(p, "Solo with a pet too", "Out of a group with your pet tanking (Voidwalker, hunter pet): you and your pet's "
       .. "threat on your target, ESTIMATED from your hits (the server sends threat to groups only). In a group the "
       .. "server's exact numbers are used as before.", G, "threatsolo")
+    Sld(p, "Update speed", "How often the server is asked (seconds). Lower = faster numbers, a little more traffic. "
+      .. "Each answer is on screen the moment it arrives.", .1, 1, .05, G, "threatrate",
+      function(v) return string.format("%.2f s", v) end, function() end)
+    Sld(p, "Window redraw", "How often all meter windows redraw (seconds). Lower = smoother, a little more work.",
+      .05, .5, .05, G, "refresh", function(v) return string.format("%.2f s", v) end, function() end)
 
     W.Card(p, "Your cap", { tip = "How much threat you allow yourself before the label turns red and the popup shouts." })
     Sld(p, "Stay under", "Your threat as a share of the reference below.", 10, 150, 5, G, "threatwarn", Pct2, function() end)
