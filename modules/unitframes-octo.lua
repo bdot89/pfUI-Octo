@@ -331,10 +331,21 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     local special = kind == "elite" or kind == "rareelite" or kind == "rare" or kind == "worldboss"
     if special and mode == "graphic" then
       local rare = kind == "rare" or kind == "rareelite"
-      f.octoElite:SetTexture(ART .. (rare and "uf-rare" or "uf-elite"))
-      if kind == "worldboss" then f.octoElite:SetVertexColor(1, .35, .3)
-      elseif rare then f.octoElite:SetVertexColor(.8, .85, .95)
-      else f.octoElite:SetVertexColor(1, .82, .3) end
+      -- (5 Nov 2026, Art page: a drawn crest in its own gold / silver / red, bigger)
+      local crest = pfUI.art and pfUI.art.Crest(nil, kind == "worldboss" and "boss" or (rare and "rare" or "elite"))
+      if crest then
+        f.octoElite:SetTexture(crest)
+        f.octoElite:SetVertexColor(1, 1, 1)
+        f.octoElite:SetWidth(46)
+        f.octoElite:SetHeight(23)
+      else
+        f.octoElite:SetTexture(ART .. (rare and "uf-rare" or "uf-elite"))
+        f.octoElite:SetWidth(36)
+        f.octoElite:SetHeight(18)
+        if kind == "worldboss" then f.octoElite:SetVertexColor(1, .35, .3)
+        elseif rare then f.octoElite:SetVertexColor(.8, .85, .95)
+        else f.octoElite:SetVertexColor(1, .82, .3) end
+      end
       f.octoElite:Show()
       f.octoEliteText:Hide()
     elseif special and mode == "text" then

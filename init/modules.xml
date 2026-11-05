@@ -1,6 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
   <!-- first: notes Blizzard's frames before any module changes them -->
   <Include file="..\modules\octo-blizzard.lua"/>
+  <Include file="..\modules\art.lua"/>
   <Include file="..\modules\gui.lua"/>
   <Include file="..\modules\octo-widgets.lua"/>
   <Include file="..\modules\octo-options.lua"/>
@@ -86,6 +87,7 @@
   <Include file="..\modules\autoloot.lua"/>
   <Include file="..\modules\autoloot-log.lua"/>
   <Include file="..\modules\autoloot-options.lua"/>
+  <Include file="..\modules\art-options.lua"/>
   <Include file="..\modules\gear-specs.lua"/>
   <Include file="..\modules\chat-options.lua"/>
   <Include file="..\modules\loot.lua"/>

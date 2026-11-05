@@ -5582,6 +5582,9 @@ dofile(DIR .. "/tests/autoloot.lua")
 -- the language of Octo's own pages (4 Nov 2026)
 dofile(DIR .. "/tests/translate.lua")
 
+-- art sets (5 Nov 2026)
+dofile(DIR .. "/tests/art.lua")
+
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
 
