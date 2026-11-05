@@ -328,6 +328,15 @@ pfUI:SetScript("OnEvent", function()
     -- updatenotify broadcasts to other pfUI users
     pfUI.version.octo = GetAddOnMetadata(pfUI.name, "X-Octo-Version") or "0"
 
+    -- octo (6 Nov 2026, "attempt to index global 'pfUI_init' (a nil value)" in firstrun / updatenotify): a
+    -- saved variable that came back empty (a damaged saved variables file) is made again, never nil
+    pfUI_init = pfUI_init or {}
+    pfUI_config = pfUI_config or {}
+    pfUI_cache = pfUI_cache or {}
+    pfUI_profiles = pfUI_profiles or {}
+    pfUI_playerDB = pfUI_playerDB or {}
+    pfUI_addon_profiles = pfUI_addon_profiles or {}
+
     -- use the "Octo" profile (env/octo.lua) on a fresh install
     if pfUI.api.isempty(pfUI_init) and pfUI.api.isempty(pfUI_config) then
       pfUI_config = pfUI.octo.Profile()
