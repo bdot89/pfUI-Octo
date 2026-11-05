@@ -100,6 +100,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     M.Record = function(r)
       record(r)
       pcall(TH.EstRecord, r)
+      pcall(TH.GroupRecord, r)
     end
   end
   -- the target's numbers as the server's list would give them
@@ -121,6 +122,68 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     TH.list, TH.at, TH.estimated = list, GetTime(), true
     TH.Warn()
     M.Changed()
+  end
+
+  -- ------------------------------------------------- between the server's answers
+  -- (6 Nov 2026, user: "make it faster and smoother"). The server answers a few times a second;
+  -- in between, every hit and heal the meters read moves that player's threat by what it
+  -- added last time (TH.k = threat per point of damage, learnt from the last two answers,
+  -- 1 to start), so the numbers and bars move the instant a hit lands. Each answer replaces
+  -- the guess with the server's number. The bars glide to their value (TH.Animate).
+  TH.k, TH.dmg, TH.shown = {}, {}, {}
+  function TH.Snapshot(list)
+    if TH.base and TH.baseBy then
+      for _, e in ipairs(list) do
+        local old, d = TH.baseBy[e.name], TH.dmg[e.name]
+        if old and d and d >= 100 then
+          local k = (e.threat - old) / d
+          if k > .3 and k < 6 then TH.k[e.name] = (TH.k[e.name] or 1) * .5 + k * .5 end
+        end
+      end
+    end
+    TH.base, TH.baseBy, TH.dmg = list, {}, {}
+    for _, e in ipairs(list) do TH.baseBy[e.name] = e.threat end
+    TH.dirty = nil
+  end
+  function TH.GroupRecord(r)
+    if not r or M.testOn or not TH.base or not r.src or not TH.baseBy[r.src] then return end
+    local amt = tonumber(r.amt)
+    if not amt or amt <= 0 then return end
+    if r.kind == "dmg" and r.tgt and r.tgt == UnitName("target") then
+      TH.dmg[r.src] = (TH.dmg[r.src] or 0) + amt
+    elseif r.kind == "heal" then
+      TH.dmg[r.src] = (TH.dmg[r.src] or 0) + amt / 2
+    else
+      return
+    end
+    TH.dirty = true
+  end
+  -- the list as it is now: the server's numbers plus what has been done since
+  function TH.Rebuild()
+    local out, tankT, top = {}, 0, 0
+    for _, e in ipairs(TH.base) do
+      local t = e.threat + (TH.k[e.name] or 1) * (TH.dmg[e.name] or 0)
+      table.insert(out, { name = e.name, tank = e.tank, threat = t, melee = e.melee, perc = e.perc })
+      if t > top then top = t end
+      if e.tank then tankT = t end
+    end
+    if tankT <= 0 then tankT = top end
+    for _, c in ipairs(out) do
+      if c.tank then c.perc = 100 elseif tankT > 0 then c.perc = c.threat / tankT * 100 end
+    end
+    table.sort(out, function(a, b) return a.threat > b.threat end)
+    TH.list = out
+  end
+  -- bars glide: true when a bar is still on its way
+  function TH.Animate()
+    local moving
+    for _, e in ipairs(TH.list or {}) do
+      local s = TH.shown[e.name] or e.perc
+      local d = e.perc - s
+      if d > .2 or d < -.2 then s = s + d * .35 moving = true else s = e.perc end
+      TH.shown[e.name] = s
+    end
+    return moving
   end
 
   function TH.Ask()
@@ -172,6 +235,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       local list = TH.Parse(arg2)
       if not list then return end
       TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
+      TH.Snapshot(list)
       TH.estimated = nil
       TH.Warn()
       M.Changed()
@@ -181,6 +245,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       TH.gaveUp, TH.silent, TH.answers = nil, 0, 0
     else
       TH.list, TH.warned, TH.estimated = nil, nil, nil
+      TH.base, TH.baseBy, TH.dmg, TH.shown = nil, nil, {}, {}
       -- (a fight over: the solo tallies start again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
       -- a new target: ask at once
@@ -193,11 +258,20 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if (this.tick or 0) > GetTime() then return end
     this.tick = GetTime() + .03
     TH.Ask()
+    -- a hit or heal landed: the numbers move now; bars glide
+    if TH.dirty and TH.base then
+      TH.dirty = nil
+      TH.Rebuild()
+      TH.Warn()
+      if M.RefreshThreat then M.RefreshThreat() end
+    elseif TH.list and TH.Animate() and M.RefreshThreat then
+      M.RefreshThreat()
+    end
     if (this.stale or 0) > GetTime() then return end
     this.stale = GetTime() + .25
     -- answers older than 3 s are stale
     if TH.list and GetTime() - TH.at > 3 then
-      TH.list = nil
+      TH.list, TH.base = nil, nil
       M.Changed()
     end
   end)

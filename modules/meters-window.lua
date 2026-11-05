@@ -351,10 +351,12 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       local TH = M.threat
       if not TH or not TH.list then return rows end
       local top = 1
-      for _, e in ipairs(TH.list) do if e.perc > top then top = e.perc end end
+      -- (bars glide: TH.shown holds the value on its way to e.perc)
+      local function Shown(e) return (TH.shown and TH.shown[e.name]) or e.perc end
+      for _, e in ipairs(TH.list) do if Shown(e) > top then top = Shown(e) end end
       for _, e in ipairs(TH.list) do
         local w = M.Who(e.name)
-        table.insert(rows, { name = e.name, value = e.perc, max = top, class = w and w.class,
+        table.insert(rows, { name = e.name, value = Shown(e), max = top, class = w and w.class,
                              text = floor(e.perc) .. "%", extra = Num(e.threat), tank = e.tank })
       end
       return rows

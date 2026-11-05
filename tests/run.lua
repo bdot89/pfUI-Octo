@@ -3731,6 +3731,62 @@ do
     ok(X.Zone() == "raid", "a raid")
     inRaid, inBG = false, true
     ok(X.Zone() == "bg", "a battleground")
+    -- this server's arenas: battlefield "active", IsInInstance "pvp" (never "arena"); the zone name decides
+    do
+      local stub, realZone = IsInInstance, GetRealZoneText
+      local zone, kind = "Orgrimmar", "none"
+      _G.GetRealZoneText = function() return zone end
+      _G.IsInInstance = function() if kind == "none" then return nil, "none" end return 1, kind end
+      inBG = true
+      for _, name in ipairs({ "Blood Ring", "Lordaeron Arena", "Sunstrider Court" }) do
+        zone, kind = name, "pvp"
+        ok(X.Zone() == "arena", name .. " is an arena, though the status is active and the kind pvp")
+      end
+      inBG = false
+      ok(X.Zone() == "arena", "an arena by kind pvp alone")
+      inBG, kind = true, "none"
+      ok(X.Zone() == "arena", "an arena by the active battlefield alone")
+      zone, kind = "Warsong Gulch", "pvp"
+      ok(X.Zone() == "bg", "any other pvp zone stays a battleground")
+      inBG = false
+      ok(X.Zone() == "bg", "also by kind pvp alone")
+      zone, kind = "Orgrimmar", "arena"
+      ok(X.Zone() == "arena", "a client that does say arena still counts")
+      zone, kind = "Blood Ring", "none"
+      ok(X.Zone() == "world", "after a match: the arena's name, kind none, no battlefield = the open world")
+      -- the way in: the old zone name with kind pvp for half a second; the 2 s poll puts it right
+      local told = {}
+      X.listeners.testarena = function(z, old) table.insert(told, tostring(old) .. ">" .. z) end
+      zone, kind, inBG = "Orgrimmar", "none", false
+      X.Check()
+      kind, inBG = "pvp", true
+      X.Check()
+      ok(X.zone == "bg", "the old zone name still reads as a battleground on the way in")
+      zone = "Blood Ring"
+      X.ev.t = 0
+      Mock.Run(X.ev, "OnUpdate", 1.5)
+      ok(X.zone == "bg", "the poll is not due yet at 1.5 s")
+      Mock.Run(X.ev, "OnUpdate", 0.6)
+      ok(X.zone == "arena" and told[table.getn(told)] == "bg>arena", "the 2 s poll corrects it to arena (" .. tostring(X.zone) .. ")")
+      -- so arenas go by their own map setting, not the battleground's
+      local map = pfUI.minimap
+      if map then
+        pfUI_config.mapauto.bg, pfUI_config.mapauto.arena, pfUI_config.mapauto.tell = "1", "0", "0"
+        map:Show()
+        X.ApplyMap()
+        ok(map:IsShown(), "the battleground setting does not hide the minimap in an arena")
+        pfUI_config.mapauto.bg, pfUI_config.mapauto.arena = "0", "1"
+        X.ApplyMap()
+        ok(not map:IsShown(), "the arena setting does")
+        pfUI_config.mapauto.arena = "0"
+      end
+      X.listeners.testarena = nil
+      zone, kind, inBG = "Orgrimmar", "none", false
+      X.Check()
+      if map then ok(map:IsShown(), "and the minimap comes back on leaving") end
+      _G.IsInInstance, _G.GetRealZoneText = stub, realZone
+      inBG = true
+    end
     -- the minimap hides by itself in battlegrounds and comes back after
     local map = pfUI.minimap
     if map then
@@ -5584,6 +5640,9 @@ dofile(DIR .. "/tests/translate.lua")
 
 -- art sets (5 Nov 2026)
 dofile(DIR .. "/tests/art.lua")
+
+-- threat between the answers (6 Nov 2026)
+dofile(DIR .. "/tests/threat.lua")
 
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
