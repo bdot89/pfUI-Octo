@@ -387,6 +387,13 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
         FCF_UnDockFrame(frame)
         frame:SetParent(UIParent)
         tab:SetParent(UIParent)
+        -- octo (5 Nov 2026, Barbeque: an undocked Misc tab piled on the other chat): a window with
+        -- no place of its own, or still hung on a chat panel, gets its own spot above the panels
+        local _, rel = frame:GetPoint()
+        if frame:GetNumPoints() == 0 or (rel and (rel == pfUI.chat.left or rel == pfUI.chat.right)) then
+          frame:ClearAllPoints()
+          frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 60 + (i - 1) * 24, 300 + (i - 1) * 24)
+        end
       end
 
       -- Combat Log

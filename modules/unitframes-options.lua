@@ -49,12 +49,20 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   local function Sec(v) return v .. " s" end
   local function Reload() if pfUI.gui then pfUI.gui.settingChanged = true end end
 
+  -- octo (5 Nov 2026, Barbeque: Blizzard's unit frame broke after a class colour change in these
+  -- options): a pfUI frame redone while the Blizzard frames are on is put away again and Blizzard's
+  -- own frames are set up once more
+  local function KeepBlizz()
+    local BZ = pfUI.blizz
+    if BZ and BZ.IsBlizz and BZ.IsBlizz("unitframes") and BZ.S and BZ.S.unitframes then pcall(BZ.S.unitframes.blizz) end
+  end
   -- after a change: the real frame, then the preview
   function UF.Apply(key)
     local u = BY[key or UF.cur]
     local real = u and pfUI.uf[u[3]]
     if real and real.UpdateConfig then real:UpdateConfig() end
     if UF.mini then UF.mini.Reconfigure(key or UF.cur) end
+    KeepBlizz()
   end
   local function Up() UF.Apply() end
   function UF.ApplyAll()
@@ -63,6 +71,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       if real and real.UpdateConfig then real:UpdateConfig() end
     end
     if UF.mini then UF.mini.Reconfigure() end
+    KeepBlizz()
   end
 
   local function Chk(p, label, desc, group, key, after) return PfChk(p, label, desc, group, key, after or Up) end

@@ -1423,9 +1423,11 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     elseif i == 6 then -- top
       bars[i]:SetPoint("BOTTOM", bars[1], "TOP", 0, -spacing)
     elseif i == 11 then -- stances
-      bars[i]:SetPoint("BOTTOM", bars[6], "TOP", 0, 3*border)
+      -- octo (5 Nov 2026): above the top bar when it is on, else straight above the main bar
+      -- (Barbeque: the aspect bar sat inside the other bars)
+      bars[i]:SetPoint("BOTTOM", ((bars[6] and bars[6]:IsShown()) and bars[6] or bars[1]), "TOP", 0, 3*border)
     elseif i == 12 then -- pet
-      bars[i]:SetPoint("BOTTOM", bars[6], "TOP", 0, 3*border)
+      bars[i]:SetPoint("BOTTOM", ((bars[6] and bars[6]:IsShown()) and bars[6] or bars[1]), "TOP", 0, 3*border)
 
       -- make stance bar dodge by default
       bars[i]:SetScript("OnShow", function()
@@ -1440,7 +1442,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
       bars[i]:SetScript("OnHide", function()
         if bars[11] and bars[11]:IsShown() then
           bars[11]:ClearAllPoints()
-          bars[11]:SetPoint("BOTTOM", bars[6], "TOP", 0, 3*border)
+          bars[11]:SetPoint("BOTTOM", ((bars[6] and bars[6]:IsShown()) and bars[6] or bars[1]), "TOP", 0, 3*border)
           UpdateMovable(bars[11], true)
         end
       end)
