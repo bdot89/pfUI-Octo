@@ -959,7 +959,7 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
   -- which sections each topic of the options window has
   BZ.GROUPS = {
     ["Unit Frames"] = { "unitframes", "castbar", "raid" }, ["Action Bars"] = { "actionbars" }, ["Nameplates"] = { "nameplates" },
-    ["Combat Text"] = { "combattext" }, ["Meters"] = { "meters" }, ["Minimap & Buffs"] = { "minimap", "buffs", "worldmap" },
+    ["Combat"] = { "combattext", "meters" }, ["Minimap & Buffs"] = { "minimap", "buffs", "worldmap" },
     ["Bags & Loot"] = { "bags", "loot" }, ["Chat & Panels"] = { "chat", "panels" }, ["Tooltip"] = { "tooltip" },
   }
 

@@ -1097,29 +1097,29 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       .. "the elite badge to move it (right-click puts it back); "
       .. "hold Shift and scroll over a bar, the buffs or a mark to resize it. Scroll the mouse wheel to zoom, drag empty "
       .. "space to move the view, double-click to fit it again. Click this bar to fold it away.", function(p)
-      -- the frames as tabs, two rows of six
-      local rows = { W.Row(p, 24, 0, 4), W.Row(p, 24, 0, 6) }
-      local tabs = {}
-      for n, u in ipairs(UF.UNITS) do
-        local b = W.Button(rows[(n <= 6) and 1 or 2], u[2], 124, 22)
-        b:SetPoint("LEFT", b:GetParent(), "LEFT", math.mod(n - 1, 6) * 128, 0)
-        b.key = u[1]
-        b:SetScript("OnClick", function()
-          UF.cur = this.key
-          if UF.mini then
-            UF.mini.FitView()
-            UF.mini.Refresh()
-          end
-          -- (the raid tab opens on its layout, the rest of its cards a tab away)
-          if this.key == "raid" and UF.sec == "size" then UF.SetSection("raid", true) return end
-          O:Refresh()
-        end)
-        tabs[n] = b
-      end
+      -- the frames: one drop-down instead of two rows of twelve tabs (5 Nov 2026, user: "the
+      -- amount of tabs here is so overwhelming")
+      local row = W.Row(p, 26, 0, 6)
+      local lab = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, 1, 1, 1)
+      lab:SetPoint("LEFT", row, "LEFT", 2, 0)
+      lab:SetText("Frame")
+      local list = {}
+      for _, u in ipairs(UF.UNITS) do table.insert(list, { key = u[1], label = u[2] }) end
+      local drop, paint = W.MiniDrop(row, 220, list, function() return UF.cur end, function(k)
+        UF.cur = k
+        if UF.mini then
+          UF.mini.FitView()
+          UF.mini.Refresh()
+        end
+        -- (the raid tab opens on its layout, the rest of its cards a tab away)
+        if k == "raid" and UF.sec == "size" then UF.SetSection("raid", true) return end
+        O:Refresh()
+      end)
+      drop:SetPoint("LEFT", row, "LEFT", 60, 0)
       -- (25 Oct 2026: 170 -> 136 high, so more of the page shows under it)
       local mini = UF.Mini(W.Box(p, 136))
       table.insert(p.items, { Refresh = function()
-        for _, b in ipairs(tabs) do W.Pick(b, b.key == UF.cur) end
+        if paint then paint() end
         mini.Refresh()
       end })
       UF.SectionTabs(p)

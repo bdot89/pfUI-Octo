@@ -37,19 +37,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "UI layouts", { "UI layouts" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
-    { "Swing Timer", { "Swing Timer" } },
-    { "Gear", { "Gear" } },
     { "Nameplates", { "Nameplates" } },
-    { "Combat Text", { "Combat Text" } },
-    { "Meters", { "Meters" } },
+    { "Art & Extras", { "Art", "WeirdUtils" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
-    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
-    { "Auto Loot", { "Auto Loot" } },
-    { "Art", { "Art" } },
+    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot", "Auto Loot" } },
+    { "Combat", { "Combat Text", "Meters", "Swing Timer" } },
+    { "Gear", { "Gear" } },
     { "Tooltip", { "Tooltip" } },
     { "Add-ons", { "Thirdparty", "Components" } },
-    { "WeirdUtils", { "WeirdUtils" } },
     { "About", { "About" } },
   }
 
@@ -1109,7 +1105,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     thirdparty = "INV_Gizmo_01", components = "Trade_Engineering", about = "INV_Misc_QuestionMark",
     skins = "INV_Misc_Orb_01", threat = "Ability_Warrior_DefensiveStance", uilayouts = "INV_Misc_Map_01",
     actionbars = "Ability_DualWield", chatpanels = "INV_Scroll_03", minimapbuffs = "INV_Misc_Map_01",
-    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", art = "INV_Misc_Gem_Variety_01",
+    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
   }
   function O.IconFor(name)
     local k = string.gsub(string.lower(name or ""), "[^%a]", "")

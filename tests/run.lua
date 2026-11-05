@@ -3493,7 +3493,7 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Swing Timer" and heads[7] == "Gear" and heads[8] == "Nameplates" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[7] == "Art & Extras" and heads[11] == "Combat" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -4133,7 +4133,7 @@ do
       Mock.Run(O.swap.parts[1].octo, "OnClick")
       ok(pfUI_config.blizz.unitframes == "0", "one click back")
       O:Select("o:ctgeneral")
-      ok(O.swap:IsShown() and O.swap.parts[1].octo.id == "combattext" and not O.swap.parts[2].octo:IsShown(), "one switch where a section has one")
+      ok(O.swap:IsShown() and O.swap.parts[1].octo.id == "combattext" and O.swap.parts[2].octo.id == "meters" and not O.swap.parts[3].octo:IsShown(), "Combat: a switch for combat text and one for meters")
       local about
       for k in pairs(O.nav) do if string.find(k, "About") then about = k end end
       if about then
