@@ -131,6 +131,45 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- 1 to start), so the numbers and bars move the instant a hit lands. Each answer replaces
   -- the guess with the server's number. The bars glide to their value (TH.Animate).
   TH.k, TH.dmg, TH.shown = {}, {}, {}
+  -- (6 Nov 2026, ClassicAPI) the mob you target by its own id when the combat log gives it
+  -- (a pack of the same name is told apart); the name otherwise
+  function TH.IsTarget(r)
+    local g = TH.targetGuid
+    if g and r.tgtGuid and string.len(g) == string.len(r.tgtGuid) and string.sub(g, 1, 2) == string.sub(r.tgtGuid, 1, 2) then
+      return g == r.tgtGuid
+    end
+    return r.tgt and r.tgt == UnitName("target")
+  end
+  -- what changes a player's threat: Defensive Stance / Bear Form x1.3, Salvation x0.7
+  -- (read from the buff pictures, group members only, every 3 s)
+  TH.MODTEX = {
+    ["Ability_Warrior_DefensiveStance"] = 1.3, ["Ability_Racial_BearForm"] = 1.3,
+    ["Spell_Holy_SealOfSalvation"] = .7, ["Spell_Holy_GreaterBlessingofSalvation"] = .7,
+  }
+  TH.mods = {}
+  function TH.ScanMods()
+    local units = { "player" }
+    local n = GetNumRaidMembers()
+    if n > 0 then for i = 1, n do table.insert(units, "raid" .. i) end
+    else for i = 1, GetNumPartyMembers() do table.insert(units, "party" .. i) end end
+    for _, u in ipairs(units) do
+      local name = UnitName(u)
+      if name then
+        local m = 1
+        for i = 1, 32 do
+          local tex = UnitBuff(u, i)
+          if not tex then break end
+          local _, _, file = string.find(tex, "([^\\]+)$")
+          local f = file and TH.MODTEX[file]
+          if f then m = m * f end
+        end
+        if TH.mods[name] and TH.mods[name] ~= m then TH.k[name] = nil end   -- a change: relearn
+        TH.mods[name] = m
+      end
+    end
+  end
+  -- threat per point of damage: what was learnt, else from the auras
+  function TH.K(name) return TH.k[name] or TH.mods[name] or 1 end
   function TH.Snapshot(list)
     if TH.base and TH.baseBy then
       for _, e in ipairs(list) do
@@ -149,7 +188,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if not r or M.testOn or not TH.base or not r.src or not TH.baseBy[r.src] then return end
     local amt = tonumber(r.amt)
     if not amt or amt <= 0 then return end
-    if r.kind == "dmg" and r.tgt and r.tgt == UnitName("target") then
+    if r.kind == "dmg" and TH.IsTarget(r) then
       TH.dmg[r.src] = (TH.dmg[r.src] or 0) + amt
     elseif r.kind == "heal" then
       TH.dmg[r.src] = (TH.dmg[r.src] or 0) + amt / 2
@@ -162,7 +201,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   function TH.Rebuild()
     local out, tankT, top = {}, 0, 0
     for _, e in ipairs(TH.base) do
-      local t = e.threat + (TH.k[e.name] or 1) * (TH.dmg[e.name] or 0)
+      local t = e.threat + TH.K(e.name) * (TH.dmg[e.name] or 0)
       table.insert(out, { name = e.name, tank = e.tank, threat = t, melee = e.melee, perc = e.perc })
       if t > top then top = t end
       if e.tank then tankT = t end
@@ -249,7 +288,12 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       -- (a fight over: the solo tallies start again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
       -- a new target: ask at once
-      if event == "PLAYER_TARGET_CHANGED" then TH.askAt = 0 end
+      if event == "PLAYER_TARGET_CHANGED" then
+        TH.askAt = 0
+        local lc = pfUI.api and pfUI.api.libclient
+        TH.targetGuid = lc and lc.GUID and lc.GUID("target") or nil
+        TH.scanAt = 0
+      end
       M.Changed()
     end
   end)
@@ -266,6 +310,11 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       if M.RefreshThreat then M.RefreshThreat() end
     elseif TH.list and TH.Animate() and M.RefreshThreat then
       M.RefreshThreat()
+    end
+    -- buffs that change threat: looked at every 3 s while the numbers are on screen
+    if TH.list and (TH.scanAt or 0) <= GetTime() then
+      TH.scanAt = GetTime() + 3
+      TH.ScanMods()
     end
     if (this.stale or 0) > GetTime() then return end
     this.stale = GetTime() + .25

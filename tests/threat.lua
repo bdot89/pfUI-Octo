@@ -35,3 +35,19 @@ for i = 1, 60 do TH.Animate() end
 ok(math.abs(TH.shown.Rogue - 125) < .3, "and arrives")
 _G.UnitName = saved
 TH.base, TH.baseBy, TH.dmg, TH.shown, TH.list = nil, nil, {}, {}, nil
+
+-- the exact mob, and the threat multipliers
+_G.UnitName = function(u) if u == "target" then return "Onyxia" end return "Tester" end
+TH.targetGuid = "0xF130000000000001"
+ok(TH.IsTarget({ tgt = "Onyxia", tgtGuid = "0xF130000000000001" }), "the targeted mob by its id")
+ok(not TH.IsTarget({ tgt = "Onyxia", tgtGuid = "0xF130000000000002" }), "another mob of the same name is told apart")
+ok(TH.IsTarget({ tgt = "Onyxia" }), "no id in the record: the name decides")
+TH.targetGuid = "12345"
+ok(TH.IsTarget({ tgt = "Onyxia", tgtGuid = "0xF130000000000002" }), "ids in another form: the name decides")
+TH.targetGuid = nil
+TH.k, TH.mods = {}, { Tank = 1.3 }
+ok(TH.K("Tank") == 1.3 and TH.K("Rogue") == 1, "a stance gives its multiplier until one is learnt")
+TH.k.Tank = 2
+ok(TH.K("Tank") == 2, "a learnt value wins")
+TH.mods, TH.k = {}, {}
+_G.UnitName = saved

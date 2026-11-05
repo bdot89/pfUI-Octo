@@ -127,6 +127,7 @@ pfUI:RegisterModule("meters-clog", "vanilla", function ()
     else
       return
     end
+    if r and dg then r.tgtGuid = dg end
     M.Record(r)
   end
 
