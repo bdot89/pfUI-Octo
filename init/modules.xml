@@ -88,6 +88,8 @@
   <Include file="..\modules\autoloot-log.lua"/>
   <Include file="..\modules\autoloot-options.lua"/>
   <Include file="..\modules\art-options.lua"/>
+  <Include file="..\modules\range.lua"/>
+  <Include file="..\modules\range-options.lua"/>
   <Include file="..\modules\gear-specs.lua"/>
   <Include file="..\modules\chat-options.lua"/>
   <Include file="..\modules\loot.lua"/>

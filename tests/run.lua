@@ -2592,7 +2592,7 @@ do
   if UF and O then
     local sec
     for _, s in ipairs(O.octo) do if s[1] == "Unit Frames" then sec = s end end
-    ok(sec and table.getn(sec[2]) == 3, "Unit Frames: three pages (Frames, Click casting, Cast bars) instead of fifteen")
+    ok(sec and table.getn(sec[2]) == 4, "Unit Frames: four pages (Frames, Click casting, Cast bars, Target range) instead of fifteen")
     local old = 0
     for k in pairs(O.legacy) do if string.find(k, "^l:Unit Frames") then old = old + 1 end end
     ok(old == 0, "pfUI's own Unit Frames pages are gone from the list")
@@ -5643,6 +5643,9 @@ dofile(DIR .. "/tests/art.lua")
 
 -- threat between the answers (6 Nov 2026)
 dofile(DIR .. "/tests/threat.lua")
+
+-- target range (6 Nov 2026)
+dofile(DIR .. "/tests/range.lua")
 
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
