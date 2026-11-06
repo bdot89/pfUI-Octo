@@ -308,7 +308,13 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
       for i, n in ipairs({ "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarRight", "MultiBarLeft" }) do
         Restore(_G[n], false)
       end
+      -- the bars the character has switched on, as the game keeps them (the snapshot at load comes before the
+      -- game has read them)
       local m = BZ.multi
+      if GetActionBarToggles then
+        local a, b, c, d = GetActionBarToggles()
+        if a or b or c or d then m = { a, b, c, d } end
+      end
       SHOW_MULTI_ACTIONBAR_1, SHOW_MULTI_ACTIONBAR_2, SHOW_MULTI_ACTIONBAR_3, SHOW_MULTI_ACTIONBAR_4 = m[1], m[2], m[3], m[4]
       if SetActionBarToggles then SetActionBarToggles(m[1], m[2], m[3], m[4]) end
       if MultiActionBar_Update then pcall(MultiActionBar_Update) end

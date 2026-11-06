@@ -462,14 +462,23 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
   -- octo (6 Nov 2026, Barbeque: General and Misc drawn on top of each other - "should NEVER happen"):
   -- of the windows docked together only the selected one may be on screen. Done after every
   -- refresh, when a tab is picked, and once a second as the last word.
-  function pfUI.chat.FixDock()
+  function pfUI.chat.FixDock(report)
     if pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("chat") then return end
-    local sel = _G.SELECTED_CHAT_FRAME
-    if not sel or not sel.isDocked then return end
+    local sel = _G.SELECTED_CHAT_FRAME or _G.ChatFrame1
+    if not sel then return end
+    local docked = {}
     for i = 1, (_G.NUM_CHAT_WINDOWS or 7) do
       local f = _G["ChatFrame" .. i]
-      if f and f ~= sel and f.isDocked and f:IsShown() and not (pfUI.chat.right and f:GetParent() == pfUI.chat.right) then
+      if f and (f.isDocked or f:GetParent() == (pfUI.chat.left or 0)) and not (pfUI.chat.right and f:GetParent() == pfUI.chat.right) then
+        docked[f] = true
+      end
+    end
+    for _, f in pairs(_G.DOCKED_CHAT_FRAMES or {}) do docked[f] = true end
+    if not docked[sel] then return end
+    for f in pairs(docked) do
+      if f ~= sel and f:IsShown() then
         f:Hide()
+        if report then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r chat: hid " .. (f:GetName() or "?")) end
       end
     end
   end
@@ -479,10 +488,35 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
     pfUI.chat.FixDock()
   end
   if _G.FCF_SelectDockFrame then hooksecurefunc("FCF_SelectDockFrame", pfUI.chat.FixDock) end
+  -- (6 Nov 2026, Barbeque: two chat windows on top of each other after login) /pfchat lists each window
+  -- and puts the docked ones in order, so a report says what is where
+  SLASH_PFCHATFIX1 = "/pfchat"
+  _G.SlashCmdList["PFCHATFIX"] = function()
+    local sel = _G.SELECTED_CHAT_FRAME
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r chat windows (selected: " .. (sel and sel:GetName() or "none") .. "):")
+    for i = 1, (_G.NUM_CHAT_WINDOWS or 7) do
+      local f = _G["ChatFrame" .. i]
+      if f then
+        local par = f:GetParent()
+        local a, rel, rp, x, y = f:GetPoint()
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("  %d  docked=%s shown=%s parent=%s at %s %s %.0f,%.0f", i, tostring(f.isDocked),
+          tostring(f:IsShown() and true or false), par and par:GetName() or "?", tostring(a), rel and rel.GetName and rel:GetName() or "?", x or 0, y or 0))
+      end
+    end
+    pfUI.chat.FixDock(true)
+  end
   local dockCheck = CreateFrame("Frame")
+  dockCheck:RegisterEvent("PLAYER_ENTERING_WORLD")
+  dockCheck:SetScript("OnEvent", function() this.login = GetTime() + 2 end)
   dockCheck:SetScript("OnUpdate", function()
     if (this.t or 0) > GetTime() then return end
     this.t = GetTime() + 1
+    -- two seconds after login: the game puts the selected window up and every other docked one away
+    if this.login and GetTime() >= this.login then
+      this.login = nil
+      local sel = _G.SELECTED_CHAT_FRAME or _G.ChatFrame1
+      if sel and _G.FCF_SelectDockFrame and not (pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("chat")) then pcall(_G.FCF_SelectDockFrame, sel) end
+    end
     pfUI.chat.FixDock()
   end)
 

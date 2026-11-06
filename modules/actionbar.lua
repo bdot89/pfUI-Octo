@@ -76,11 +76,15 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
   end
 
   -- enable all possible actionbar pages
-  SetActionBarToggles(0, 0, 0, 0)
-  _G.SHOW_MULTI_ACTIONBAR_1 = nil
-  _G.SHOW_MULTI_ACTIONBAR_2 = nil
-  _G.SHOW_MULTI_ACTIONBAR_3 = nil
-  _G.SHOW_MULTI_ACTIONBAR_4 = nil
+  -- (octo, 6 Nov 2026, Barbeque: the extra Blizzard bars "weren't saved" - this reset runs at every login and
+  -- the game keeps the result for the character. With Blizzard's action bars chosen they are left as they are.)
+  if not (C.blizz and C.blizz.actionbars == "1") then
+    SetActionBarToggles(0, 0, 0, 0)
+    _G.SHOW_MULTI_ACTIONBAR_1 = nil
+    _G.SHOW_MULTI_ACTIONBAR_2 = nil
+    _G.SHOW_MULTI_ACTIONBAR_3 = nil
+    _G.SHOW_MULTI_ACTIONBAR_4 = nil
+  end
 
   -- events that provide special updater functions
   local special_events = {
