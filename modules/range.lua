@@ -152,6 +152,11 @@ pfUI:RegisterModule("range", "vanilla", function ()
     end
   end
 
+  -- the one colour of "One colour" as numbers
+  function RG.Fixed()
+    local r, g, b = GetStringColor(G().textcolor or "1,1,1,1")
+    return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, 1
+  end
   function RG.Colour(d)
     local key = "c_out"
     if d then
@@ -216,13 +221,51 @@ pfUI:RegisterModule("range", "vanilla", function ()
     local host = _G.pfTarget or _G.TargetFrame
     if host then f:SetPoint("TOP", host, "BOTTOM", 0, -4) else f:SetPoint("CENTER", UIParent, "CENTER", 0, -120) end
   end
+  function RG.TextFont()
+    local path = G().font
+    if not path or path == "" then path = pfUI.font_default or STANDARD_TEXT_FONT end
+    return path
+  end
+  -- every part is its own switch: the box, the arrow, the number, the bar. The frame is as big as what is
+  -- on, so with only the number it is just that number (and it moves anywhere).
   function RG.Layout()
-    local s = Num("scale", 100) / 100
-    f:SetScale(s)
-    local fs = Num("fontsize", 16)
-    f.text:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, fs, "OUTLINE")
-    if On("arrow") then f.arrow:Show() f.text:SetPoint("LEFT", f.arrow, "RIGHT", 6, 0) else f.arrow:Hide() f.text:SetPoint("LEFT", f, "LEFT", 8, 4) end
-    if On("trend") then f.holder:Show() f:SetHeight(42) else f.holder:Hide() f:SetHeight(32) end
+    f:SetScale(Num("scale", 100) / 100)
+    local size = Num("fontsize", 16)
+    local outline = G().outline
+    if outline == nil or outline == "none" then outline = "" end
+    f.text:SetFont(RG.TextFont(), size, outline)
+    if G().shadow == "1" then f.text:SetShadowOffset(1, -1) f.text:SetShadowColor(0, 0, 0, 1) else f.text:SetShadowOffset(0, 0) end
+    -- the widest the number gets, to size the frame by
+    local dec = floor(Num("decimals", 1))
+    local sample = "88" .. (dec > 0 and ("." .. string.rep("8", dec)) or "") .. (On("unit") and " yd" or "")
+    f.text:SetText(sample)
+    local tw = (f.text:GetStringWidth() or 60) + 2
+    local pad = On("box") and 8 or 2
+    local arrow = On("arrow")
+    local trend = On("trend")
+    local aw = arrow and (size + 8) or 0
+    f.arrow:SetWidth(size + 4)
+    f.arrow:SetHeight(size + 4)
+    f:SetWidth(math.max(40, pad * 2 + aw + tw))
+    f:SetHeight(pad * 2 + size + 2 + (trend and 9 or 0))
+    f.arrow:ClearAllPoints()
+    f.text:ClearAllPoints()
+    local up = trend and 4 or 0
+    if arrow then
+      f.arrow:SetPoint("LEFT", f, "LEFT", pad, up)
+      f.arrow:Show()
+      f.text:SetPoint("LEFT", f.arrow, "RIGHT", 4, 0)
+      f.text:SetPoint("RIGHT", f, "RIGHT", -pad, up)
+    else
+      f.arrow:Hide()
+      f.text:SetPoint("CENTER", f, "CENTER", 0, up)
+    end
+    f.holder:ClearAllPoints()
+    f.holder:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", pad, pad - (On("box") and 2 or 0))
+    f.holder:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -pad, pad - (On("box") and 2 or 0))
+    if trend then f.holder:Show() else f.holder:Hide() end
+    if f.backdrop then if On("box") then f.backdrop:Show() else f.backdrop:Hide() end end
+    if f.backdrop_shadow then if On("box") then f.backdrop_shadow:Show() else f.backdrop_shadow:Hide() end end
   end
   RG.Dock()
   UpdateMovable(f)
@@ -238,16 +281,16 @@ pfUI:RegisterModule("range", "vanilla", function ()
     local text
     if dist then
       local dec = floor(Num("decimals", 1))
-      text = string.format("%." .. dec .. "f", dist) .. " yd"
+      text = string.format("%." .. dec .. "f", dist) .. (On("unit") and " yd" or "")
     else
-      text = (band or "--") .. " yd"
+      text = (band or "--") .. (On("unit") and " yd" or "")
     end
     f.text:SetText(text)
-    f.text:SetTextColor(RG.Colour(dist))
+    if G().colormode == "fixed" then f.text:SetTextColor(RG.Fixed()) else f.text:SetTextColor(RG.Colour(dist)) end
 
     if On("arrow") then
       if bearing then
-        f.arrow:SetVertexColor(RG.Colour(dist))
+        if G().colormode == "fixed" then f.arrow:SetVertexColor(RG.Fixed()) else f.arrow:SetVertexColor(RG.Colour(dist)) end
         pfUI.octoui.U.Rotate(f.arrow, (bearing + pi / 2) * (On("flip") and -1 or 1))
         f.arrow:SetAlpha(1)
       else
@@ -287,6 +330,12 @@ pfUI:RegisterModule("range", "vanilla", function ()
     local now = GetTime()
     if not On("enable") then f:Hide() return end
     if (_G.UnitExists and UnitExists("target")) or now < RG.testUntil then RG.Calibrate(now) end
+    -- Move Frames: a made-up reading, so there is something to see and drag
+    if pfUI.unlock and pfUI.unlock:IsShown() then
+      RG.Draw(22.5, nil, .5, now)
+      f:Show()
+      return
+    end
     if now < RG.testUntil then
       local ph = (now * .6)
       RG.Draw(22 + 20 * sin(ph), nil, Wrap(ph * 1.7), now)

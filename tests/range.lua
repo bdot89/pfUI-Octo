@@ -71,3 +71,25 @@ do
   for k, v in pairs(sv) do _G[k] = v end
   S.axis = "6"
 end
+
+-- the look: every part is a switch, the frame is as big as what is on
+do
+  local f = RG.frame
+  S.box, S.arrow, S.trend, S.unit, S.scale, S.fontsize = "1", "1", "1", "1", "100", "16"
+  RG.Layout()
+  local fullW, fullH = f:GetWidth(), f:GetHeight()
+  ok(f.backdrop == nil or f.backdrop:IsShown(), "the full box has its backdrop")
+  S.box, S.arrow, S.trend, S.unit = "0", "0", "0", "0"
+  RG.Layout()
+  ok(f:GetWidth() < fullW and f:GetHeight() < fullH, "only the number: a much smaller frame (" .. f:GetWidth() .. " x " .. f:GetHeight() .. ")")
+  ok(f.backdrop == nil or not f.backdrop:IsShown(), "no box: no backdrop")
+  S.fontsize = "32"
+  RG.Layout()
+  ok(f:GetHeight() > 32, "a bigger font makes a bigger frame")
+  S.box, S.arrow, S.trend, S.unit, S.fontsize = "1", "1", "1", "1", "16"
+  RG.Layout()
+  S.colormode, S.textcolor = "fixed", "0.50,0.60,0.70,1"
+  local r, g, b = RG.Fixed()
+  ok(math.abs(r - .5) < .01 and math.abs(g - .6) < .01 and math.abs(b - .7) < .01, "one colour read as numbers")
+  S.colormode = "range"
+end
