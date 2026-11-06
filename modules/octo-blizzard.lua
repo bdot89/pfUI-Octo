@@ -210,9 +210,23 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
         if not f.octoPreview then Away(f) end
       end
       if pfUI.combopoints then for _, c in pairs(pfUI.combopoints) do if type(c) == "table" and c.SetParent then Away(c) end end end
+      -- (6 Nov 2026, Barbeque: the player frame came back without portrait or health bar. The game's
+      -- XML runs UnitFrame_Initialize first - name / portrait / power events and the bars' health
+      -- events - and then PlayerFrame_OnLoad; only the second used to be done here)
+      local function Init(frame, unit, name, portrait, hb, ht, mb, mt)
+        if type(UnitFrame_Initialize) ~= "function" or not frame then return end
+        local old = _G.this
+        _G.this = frame
+        pcall(UnitFrame_Initialize, unit, _G[name], _G[portrait], _G[hb], _G[ht], _G[mb], _G[mt])
+        _G.this = old
+      end
       Restore(PlayerFrame, true)
+      Init(PlayerFrame, "player", "PlayerName", "PlayerPortrait", "PlayerFrameHealthBar", "PlayerFrameHealthBarText",
+        "PlayerFrameManaBar", "PlayerFrameManaBarText")
       Call(PlayerFrame_OnLoad, PlayerFrame)
       Restore(TargetFrame, false)
+      Init(TargetFrame, "target", "TargetName", "TargetPortrait", "TargetFrameHealthBar", "TargetFrameHealthBarText",
+        "TargetFrameManaBar", "TargetFrameManaBarText")
       Call(TargetFrame_OnLoad, TargetFrame)
       Call(TargetFrame_Update, TargetFrame)
       for i = 1, 4 do

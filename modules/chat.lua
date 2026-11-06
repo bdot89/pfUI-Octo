@@ -459,6 +459,33 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
     end
   end
 
+  -- octo (6 Nov 2026, Barbeque: General and Misc drawn on top of each other - "should NEVER happen"):
+  -- of the windows docked together only the selected one may be on screen. Done after every
+  -- refresh, when a tab is picked, and once a second as the last word.
+  function pfUI.chat.FixDock()
+    if pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("chat") then return end
+    local sel = _G.SELECTED_CHAT_FRAME
+    if not sel or not sel.isDocked then return end
+    for i = 1, (_G.NUM_CHAT_WINDOWS or 7) do
+      local f = _G["ChatFrame" .. i]
+      if f and f ~= sel and f.isDocked and f:IsShown() and not (pfUI.chat.right and f:GetParent() == pfUI.chat.right) then
+        f:Hide()
+      end
+    end
+  end
+  local rawRefresh = pfUI.chat.RefreshChat
+  function pfUI.chat:RefreshChat()
+    rawRefresh(self)
+    pfUI.chat.FixDock()
+  end
+  if _G.FCF_SelectDockFrame then hooksecurefunc("FCF_SelectDockFrame", pfUI.chat.FixDock) end
+  local dockCheck = CreateFrame("Frame")
+  dockCheck:SetScript("OnUpdate", function()
+    if (this.t or 0) > GetTime() then return end
+    this.t = GetTime() + 1
+    pfUI.chat.FixDock()
+  end)
+
   hooksecurefunc("FCF_SaveDock", pfUI.chat.RefreshChat)
 
   if C.chat.global.tabmouse == "1" then
