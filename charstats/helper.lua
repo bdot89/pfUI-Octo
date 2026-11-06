@@ -1673,20 +1673,17 @@ end
 
 --Weapon Skill code adapted from https://github.com/pepopo978/BetterCharacterStats
 function BCS:GetWeaponSkill(skillName)
-	-- loop through skills
-	local skillIndex = 1
-	while true do
+	-- loop through the skills that exist (6 Nov 2026: on this client GetSkillLineInfo with an index past the
+	-- last skill does not return nil, it crashes the game - ERROR #132 at 0x4D38AE, every few minutes since the
+	-- character stats came in. The count is asked first and never passed)
+	local count = GetNumSkillLines and GetNumSkillLines() or 0
+	for skillIndex = 1, count do
 		local name, _, _, skillRank, _, skillModifier = GetSkillLineInfo(skillIndex)
-		if not name then
-			return 0
-		end
-
 		if name == skillName then
-			return skillRank + skillModifier
+			return (skillRank or 0) + (skillModifier or 0)
 		end
-
-		skillIndex = skillIndex + 1
 	end
+	return 0
 end
 
 function BCS:GetWeaponSkillForWeaponType(weaponType)

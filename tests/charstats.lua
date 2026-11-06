@@ -236,7 +236,10 @@ function UnitHealthMax(u) return 3800 end
 function UnitHealth(u) return 3500 end
 function UnitManaMax(u) return 6200 end
 function UnitMana(u) return 6000 end
-function GetSkillLineInfo(i) return nil end
+local skillCalls = 0
+function GetNumSkillLines() return 2 end
+-- (the real client crashes on an index past the last skill: this one counts the calls)
+function GetSkillLineInfo(i) skillCalls = skillCalls + 1 if i > 2 then error("past the last skill") end if i == 1 then return "Weapon Skills" end return "Swords", nil, nil, 290, nil, 5 end
 function GetNumSpellTabs() return 0 end
 function GetNumTalentTabs() return 0 end
 function GetPlayerBuff(i, f) return -1 end
@@ -728,3 +731,11 @@ ok(table.getn(Rows()) == 0 and BCSEnchantFrame.empty.shown, "empty text when not
 print(string.format("%d checks, %d failed", checks, fails))
 if fails > 0 then os.exit(1) end
 
+
+-- GetSkillLineInfo is never asked past the last skill (it crashes the real client)
+do
+  local good, v = pcall(function() return BCS:GetWeaponSkill("Swords") end)
+  ok(good and v == 295, "weapon skill found without going past the last skill")
+  good, v = pcall(function() return BCS:GetWeaponSkill("Maces") end)
+  ok(good and v == 0, "an unknown skill: 0, no call past the end")
+end
