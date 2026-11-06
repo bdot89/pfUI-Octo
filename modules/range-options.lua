@@ -38,6 +38,11 @@ pfUI:RegisterModule("range-options", "vanilla", function ()
     Chk(p, "Direction arrow", "Points at the target from where you face. Needs positions (ClassicAPI or SuperWoW).", "arrow")
     Chk(p, "Closing / backing off bar", "Green to the right = you are closing in, red to the left = it is moving away.", "trend")
 
+    W.Dropdown(p, "Distance measured", "Edge to edge: the bodies' size is taken off, as the game's own range checks do (UnitXP SP3, "
+      .. "the default). Melee reach: how far to your melee swing. Centre to centre: the plain distance between the two (ClassicAPI / SuperWoW).",
+      { { key = "edge", label = "Edge to edge (spell range)" }, { key = "melee", label = "Melee reach" }, { key = "centre", label = "Centre to centre" } },
+      function() return G().source end, function(v) G().source = v end)
+
     W.Card(p, "Look", { icon = "Interface\\Icons\\INV_Misc_Note_01" })
     Sld(p, "Size", "The whole frame.", 60, 200, 5, "scale", function(v) return v .. "%" end)
     Sld(p, "Text size", nil, 10, 30, 1, "fontsize", function(v) return v .. " px" end)
@@ -64,8 +69,14 @@ pfUI:RegisterModule("range-options", "vanilla", function ()
         .. tostring(G().axis) .. "."
     end)
     Chk(p, "Flip the arrow", "If it points the wrong way round (left for right), turn this on.", "flip")
-    W.Buttons(p, { { "Learn the direction again", function() G().axis = "1" for k = 1, 8 do RG.votes[k] = 0 end end, 200,
-      "Run forward for a few seconds afterwards." } })
+    W.Buttons(p, {
+      { "Target is straight ahead", function()
+        local ok, why = RG.CalibrateToTarget()
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: " .. (ok and "arrow learnt from your target." or ("arrow: " .. tostring(why))))
+      end, 190, "Face your target (about 15 yards or more away) and press: the arrow learns which way is ahead." },
+      { "Learn by running again", function() G().axis = "6" for k = 1, 8 do RG.votes[k] = 0 end end, 190,
+        "Forget what was learnt; run forward for a few seconds afterwards." },
+    })
   end
 
   O:AddPage("Unit Frames", "ufrange", "Target range", Build)

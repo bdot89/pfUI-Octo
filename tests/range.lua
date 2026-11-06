@@ -5,7 +5,7 @@ local RG = pfUI.range
 ok(RG and RG.Colour and RG.Distance and RG.Bearing and RG.Calibrate, "range loaded (pfUI.range)")
 if not RG then return end
 local S = pfUI_config.range
-ok(S and S.enable == "1" and S.melee == "5" and S.axis == "1", "range defaults")
+ok(S and S.enable == "1" and S.melee == "5" and S.axis == "6" and S.source == "edge", "range defaults")
 local O = pfUI.octoui and pfUI.octoui.Options
 ok(O and O.BUILD and O.BUILD.ufrange, "options page Target range registered")
 local good, e = pcall(function() O:Page("ufrange") end)
@@ -53,3 +53,21 @@ ok(S.axis == "2", "running forward teaches that the numbers are swapped (reading
 RG.Facing = hadFacing
 for k, v in pairs(saved) do _G[k] = v end
 S.axis = "1"
+
+-- "my target is straight ahead" picks the reading
+do
+  local sv = { UnitPosition = rawget(_G, "UnitPosition"), UnitExists = rawget(_G, "UnitExists") }
+  local hf = RG.Facing
+  local pos = { player = { 100, 100 }, target = { 110, 140 } }
+  _G.UnitExists = function(u) return pos[u] ~= nil end
+  _G.UnitPosition = function(u) local p = pos[u] return p[1], p[2], 0 end
+  RG.Facing = function() return math.atan2(10, 40) end   -- read as (second, first) the target is straight ahead
+  S.axis = "1"
+  local good = RG.CalibrateToTarget()
+  ok(good and S.axis == "2", "straight ahead teaches the swapped reading (axis " .. tostring(S.axis) .. ")")
+  pos.target = { 101, 100.5 }
+  ok(not RG.CalibrateToTarget(), "a target right next to you is refused")
+  RG.Facing = hf
+  for k, v in pairs(sv) do _G[k] = v end
+  S.axis = "6"
+end

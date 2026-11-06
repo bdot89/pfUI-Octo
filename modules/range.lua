@@ -99,10 +99,50 @@ pfUI:RegisterModule("range", "vanilla", function ()
     last.x, last.y, last.t = x, y, now
   end
 
+  -- "my target is straight ahead": the reading under which it is, kept (for when you are not running)
+  function RG.CalibrateToTarget()
+    local f = RG.Facing()
+    local px, py = Pos("player")
+    local tx, ty = Pos("target")
+    if not (f and px and tx) then return false, "needs a target and a facing" end
+    local best, bestErr, second = nil, 9, 9
+    for k = 1, 8 do
+      local ax, ay = TR[k](px, py)
+      local bx, by = TR[k](tx, ty)
+      if abs(bx - ax) + abs(by - ay) < 2 then return false, "the target is too close to tell" end
+      local e = abs(Wrap(atan2(by - ay, bx - ax) - f))
+      if e < bestErr then second, bestErr, best = bestErr, e, k elseif e < second then second = e end
+    end
+    if best and bestErr < .6 and second - bestErr > .4 then
+      G().axis = tostring(best)
+      return true
+    end
+    return false, "not sure: face the target straight on and stand further away"
+  end
+
   -- distance to the target, in yards (exact) or a band (text, no number)
+  -- (6 Nov 2026, first look in game: 12.7 yd here, 9.8 yd in the Rangecheck addon on the same target.
+  -- ClassicAPI's number is centre to centre; UnitXP SP3's "distanceBetween" takes the bodies' size off, as
+  -- the game's own range checks do. So UnitXP SP3's number is the default when there is one, and the
+  -- others are a choice: C.range.source edge | melee | centre)
+  local function SP3()
+    if not lc then return false end
+    if lc.hasSP3 == nil then
+      local ok, r = pcall(_G.UnitXP or function() end, "inSight", "player", "player")
+      lc.hasSP3 = ok and type(r) == "boolean"
+    end
+    return lc.hasSP3
+  end
   function RG.Distance()
     if not UnitExists("target") then return end
     if UnitIsUnit("target", "player") then return end
+    local src = G().source or "edge"
+    if src ~= "centre" and SP3() then
+      local ok, d
+      if src == "melee" then ok, d = pcall(_G.UnitXP, "distanceBetween", "player", "target", "meleeAutoAttack")
+      else ok, d = pcall(_G.UnitXP, "distanceBetween", "player", "target") end
+      if ok and type(d) == "number" and d >= 0 then return d end
+    end
     local d = lc and lc.Distance and lc.Distance("target")
     if d then return d end
     if CheckInteractDistance then
