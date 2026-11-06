@@ -28,7 +28,8 @@ ok(f.backdrop == nil or f.backdrop:IsShown(), "the full box has its backdrop")
 S.box, S.trend, S.unit = "0", "0", "0"
 RG.Layout()
 ok(f:GetWidth() < fullW and f:GetHeight() < fullH, "only the number: a smaller frame (" .. f:GetWidth() .. " x " .. f:GetHeight() .. ")")
-ok(f.backdrop == nil or not f.backdrop:IsShown(), "no box: no backdrop")
+ok(f.backdrop == nil or not f.backdrop:IsShown(), "no box: no backdrop child")
+ok(not f.GetBackdrop or not f:GetBackdrop(), "no box: no backdrop on the frame itself either (only the number is left)")
 S.fontsize = "32"
 RG.Layout()
 ok(f:GetHeight() > 32, "a bigger font makes a bigger frame")

@@ -69,7 +69,7 @@ pfUI:RegisterModule("range", "vanilla", function ()
   -- ------------------------------------------------------------------- the frame
   local f = CreateFrame("Frame", "pfTargetRange", UIParent)
   RG.frame = f
-  f:SetFrameStrata("MEDIUM")
+  f:SetFrameStrata("HIGH")   -- above unit frame portraits (moved in there, 6 Nov 2026)
   f:SetWidth(100)
   f:SetHeight(30)
   f:EnableMouse(false)
@@ -149,8 +149,16 @@ pfUI:RegisterModule("range", "vanilla", function ()
     f.holder:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", pad, pad - (On("box") and 2 or 0))
     f.holder:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -pad, pad - (On("box") and 2 or 0))
     if trend then f.holder:Show() else f.holder:Hide() end
-    if f.backdrop then if On("box") then f.backdrop:Show() else f.backdrop:Hide() end end
-    if f.backdrop_shadow then if On("box") then f.backdrop_shadow:Show() else f.backdrop_shadow:Hide() end end
+    -- (6 Nov 2026, GratisNinja: "add a setting to deactivate the background ... inside the portrait": the box
+    -- is the frame's own backdrop - legacy CreateBackdrop - so off means no backdrop on the frame at all:
+    -- nothing is left but the number)
+    if On("box") then
+      CreateBackdrop(f, nil, true)
+    else
+      f:SetBackdrop(nil)
+      if f.backdrop then f.backdrop:Hide() end
+      if f.backdrop_shadow then f.backdrop_shadow:Hide() end
+    end
   end
   RG.Dock()
   UpdateMovable(f)

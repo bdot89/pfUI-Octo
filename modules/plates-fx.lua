@@ -65,7 +65,10 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
       o.fxflash = plate.health:CreateTexture(nil, "OVERLAY")
       o.fxflash:SetTexture("Interface\\Buttons\\WHITE8X8")
       o.fxflash:SetBlendMode("ADD")
-      o.fxflash:SetAllPoints(plate.health)
+      -- (6 Nov 2026, GratisNinja: "the bar is full for half a second, then back to its fill": the white
+      -- covered the whole bar, so a half empty bar looked full. Now only the filled part lights up.)
+      local fill = plate.health.GetStatusBarTexture and plate.health:GetStatusBarTexture()
+      o.fxflash:SetAllPoints(fill or plate.health)
     end
     o.fxflash:SetVertexColor(1, 1, 1, .7 * (1 - t))
     o.fxflash:Show()
