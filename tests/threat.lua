@@ -100,3 +100,40 @@ do
   TH.gaveUp = nil
   for k, v in pairs(sv) do _G[k] = v end
 end
+
+-- a normal mob in a group: asked a few times, estimated meanwhile; an answer proves the server does them too
+do
+  local sv = { UnitClassification = rawget(_G, "UnitClassification"), UnitExists = rawget(_G, "UnitExists"), GetNumPartyMembers = rawget(_G, "GetNumPartyMembers"),
+    GetNumRaidMembers = rawget(_G, "GetNumRaidMembers"), SendAddonMessage = rawget(_G, "SendAddonMessage") }
+  local sent = 0
+  _G.SendAddonMessage = function() sent = sent + 1 end
+  _G.UnitExists = function() return true end
+  _G.GetNumPartyMembers = function() return 1 end
+  _G.GetNumRaidMembers = function() return 0 end
+  _G.UnitClassification = function() return "normal" end
+  pfUI_config.meters.normalok = "0"
+  TH.probes, TH.askAt, TH.at = 0, 0, 0
+  ok(not TH.Asks() and TH.UseEst(), "normal mob, nothing learnt yet: estimated")
+  pfUI_config.meters.normalok = "1"
+  ok(TH.Asks() and not TH.UseEst(), "once the server has answered for one, normal mobs use the server")
+  pfUI_config.meters.normalok = "0"
+  for k, v in pairs(sv) do _G[k] = v end
+end
+
+-- taunts and flat threat in the estimate
+do
+  local sv = { UnitName = rawget(_G, "UnitName"), UnitExists = rawget(_G, "UnitExists"), GetNumPartyMembers = rawget(_G, "GetNumPartyMembers"), GetNumRaidMembers = rawget(_G, "GetNumRaidMembers"), Who = pfUI.meters.Who }
+  _G.UnitName = function(u) if u == "target" then return "Boar" end return "Me" end
+  _G.UnitExists = function() return true end
+  _G.GetNumPartyMembers = function() return 1 end
+  _G.GetNumRaidMembers = function() return 0 end
+  pfUI.meters.Who = function(n) if n == "Boar" then return { kind = "OTHER" } end return { kind = "PLAYER" } end
+  TH.gaveUp, TH.est, TH.k, TH.mods = true, {}, {}, {}
+  TH.EstRecord({ kind = "dmg", src = "Rogue", tgt = "Boar", amt = 1000 })
+  TH.EstRecord({ kind = "dmg", src = "Warrior", tgt = "Boar", spl = "Sunder Armor", amt = 100 })
+  ok(TH.est.Boar.Warrior == 360, "Sunder Armor: its damage plus 260 flat")
+  TH.EstRecord({ kind = "cast", src = "Warrior", tgt = "Boar", spl = "Taunt" })
+  ok(TH.est.Boar.Warrior == 1001, "a taunt puts the warrior just above the top (" .. tostring(TH.est.Boar.Warrior) .. ")")
+  for k, v in pairs(sv) do if k == "Who" then pfUI.meters.Who = v else _G[k] = v end end
+  TH.est, TH.gaveUp = {}, nil
+end

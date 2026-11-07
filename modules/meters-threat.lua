@@ -96,9 +96,18 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     local c = UnitClassification and UnitClassification("target")
     return (c == "elite" or c == "worldboss" or c == "rareelite") and true or false
   end
+  -- (7 Nov 2026, "can we implement so normal mobs work too") Normal mobs are tried too, a few asks per
+  -- target, with the estimate on screen meanwhile. If the server ever answers for one, normal mobs are
+  -- asked about from then on, for good (C.meters.normalok): its numbers replace the estimate.
+  function TH.NormalOK() return C.meters.normalok == "1" end
+  function TH.Asks() return TH.ServerKind() or TH.NormalOK() end
   function TH.UseEst()
-    return Solo() or (InGroup() and (TH.gaveUp or not TH.ServerKind())) and true or false
+    return Solo() or (InGroup() and (TH.gaveUp or not TH.Asks())) and true or false
   end
+  -- flat threat some warrior hits carry on top of their damage (highest rank: lower ranks give a little less)
+  -- and the taunts that put the caster at the top (the mob's next hit then goes to them)
+  TH.BONUS = { ["Heroic Strike"] = 145, ["Sunder Armor"] = 260, ["Revenge"] = 355 }
+  TH.TAUNTS = { ["Taunt"] = true, ["Growl"] = true, ["Mocking Blow"] = true }
   local function Member(name)
     local w = name and M.Who and M.Who(name)
     return w and w.kind ~= "OTHER" and true or false
@@ -107,10 +116,21 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   function TH.EstRecord(r)
     if not TH.UseEst() or not r or M.testOn then return end
     local me, pet = UnitName("player"), UnitName("pet")
+    -- a taunt puts its caster at the top of that mob's list
+    if r.spl and TH.TAUNTS[r.spl] and r.src and (r.kind == "cast" or r.kind == "dmg") and (r.src == me or Member(r.src)) then
+      local mob = r.tgt or UnitName("target")
+      local t = mob and TH.est[mob]
+      if t then
+        local top = 0
+        for _, v in pairs(t) do if v > top then top = v end end
+        t[r.src] = math.max(t[r.src] or 0, top + 1)
+      end
+    end
     if r.kind == "dmg" and r.amt and r.src and r.tgt and r.tgt ~= r.src then
       local mine = (r.src == me or r.src == pet)
       if mine and r.tgt ~= me and r.tgt ~= pet or (not mine and Solo() == false and Member(r.src) and not Member(r.tgt)) then
-        TH.EstAdd(r.tgt, r.src, r.amt * (mine and 1 or TH.K(r.src)))
+        -- the damage, times what changes it (stance, Salvation), plus the flat threat some hits carry
+        TH.EstAdd(r.tgt, r.src, r.amt * (mine and 1 or TH.K(r.src)) + (TH.BONUS[r.spl or ""] or 0))
       end
     elseif r.kind == "heal" and r.amt and r.src and UnitExists("target") and (r.src == me or (not Solo() and Member(r.src))) then
       TH.EstAdd(UnitName("target"), r.src, r.amt / 2)
@@ -273,7 +293,17 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     -- solo with a pet: the estimate (the server answers groups only)
     if Solo() then TH.Estimate() return end
     -- (the server sent nothing in a group: the estimate for everyone, from the hits and heals the meters read)
-    if TH.gaveUp or not TH.ServerKind() then TH.Estimate() return end
+    if TH.gaveUp then TH.Estimate() return end
+    if not TH.Asks() then
+      -- a normal mob: tried a few times (the answer, if there is one, is what proves it), the estimate shows
+      if (TH.probes or 0) < 8 then
+        TH.probes = (TH.probes or 0) + 1
+        pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY")
+        TH.askAt = GetTime()
+      end
+      TH.Estimate()
+      return
+    end
     -- (grouped again: the server's numbers only, never the estimate)
     if TH.estimated then TH.list, TH.estimated = nil, nil end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
@@ -285,7 +315,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   -- what the window shows when there are no numbers
   function TH.Status()
-    if InGroup() and TH.Wanted() and not TH.ServerKind() then return "Estimated from the fight (the server sends threat for elites and bosses)" end
+    if InGroup() and TH.Wanted() and not TH.ServerKind() then return "Estimated from the fight (asking the server too: it has sent threat for elites and bosses)" end
     if TH.gaveUp then return T["No threat data from this server"] .. " - estimating from the fight" end
     if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
@@ -318,6 +348,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       local list = TH.Parse(arg2)
       if not list then return end
       TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
+      -- an answer for a normal mob: this server sends them too
+      if UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
       TH.Snapshot(list)
       TH.estimated = nil
       TH.Warn()
@@ -340,7 +372,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       -- a new target: ask at once
       if event == "PLAYER_TARGET_CHANGED" then
         TH.askAt = 0
-        TH.gaveUp, TH.silent = nil, 0   -- every target gets its own try
+        TH.gaveUp, TH.silent, TH.probes = nil, 0, 0   -- every target gets its own try
         local lc = pfUI.api and pfUI.api.libclient
         TH.targetGuid = lc and lc.GUID and lc.GUID("target") or nil
         TH.scanAt = 0
