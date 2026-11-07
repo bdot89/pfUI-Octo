@@ -80,3 +80,23 @@ do
   for k, v in pairs(sv) do if k == "Who" then pfUI.meters.Who = v else _G[k] = v end end
   TH.est, TH.gaveUp, TH.list, TH.estimated = {}, nil, nil, nil
 end
+
+-- only elites and bosses are asked about; a normal mob in a group gets the estimate
+do
+  local sv = { UnitClassification = rawget(_G, "UnitClassification"), UnitExists = rawget(_G, "UnitExists"), GetNumPartyMembers = rawget(_G, "GetNumPartyMembers"), GetNumRaidMembers = rawget(_G, "GetNumRaidMembers") }
+  _G.UnitExists = function() return true end
+  _G.GetNumPartyMembers = function() return 1 end
+  _G.GetNumRaidMembers = function() return 0 end
+  local kind = "normal"
+  _G.UnitClassification = function() return kind end
+  TH.gaveUp = nil
+  ok(not TH.ServerKind() and TH.UseEst(), "a normal mob in a group: not asked, estimated")
+  kind = "elite"
+  ok(TH.ServerKind() and not TH.UseEst(), "an elite: the server is asked")
+  kind = "worldboss"
+  ok(TH.ServerKind(), "a boss: the server is asked")
+  TH.gaveUp = true
+  ok(TH.UseEst(), "an elite the server stays silent about: the estimate")
+  TH.gaveUp = nil
+  for k, v in pairs(sv) do _G[k] = v end
+end

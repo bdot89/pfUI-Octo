@@ -1024,6 +1024,7 @@ if ME then
     fighting = true
     UnitExists = function(u) return u == "target" or partyNames[u] ~= nil end
     UnitCanAttack = function(a, b) return b == "target" end
+    UnitClassification = function() return "elite" end   -- the server answers elites and bosses only
     local oldIsPlayer = UnitIsPlayer
     UnitAffectingCombat = function(u) return u == "target" or (fighting and partyNames[u] ~= nil) end
     Mock.sent = {}

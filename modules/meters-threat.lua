@@ -15,7 +15,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   local M = pfUI.meters
   local TH = { list = nil, at = 0, askAt = 0, silent = 0, answers = 0, gaveUp = nil, warned = nil }
   M.threat = TH
-  local GIVE_UP = 20
+  local GIVE_UP = 40   -- asks (8 s at the default speed) for an elite or boss with no answer at all
   -- seconds between two asks of the server (C.meters.threatrate, 0.1 - 1)
   function TH.Rate()
     local r = tonumber(C.meters.threatrate) or .2
@@ -86,8 +86,18 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- (7 Nov 2026, GratisNinja: in a party the server sent no threat data and the meter showed only that hint)
   -- In a group whose server stays silent the same estimate is made for everyone: the hits and heals the meters
   -- read, with the stance / Salvation multipliers (TH.K). TH.UseEst() says when it replaces the server's numbers.
+  -- (7 Nov 2026) What the server answers. The TWThreat addon this protocol comes from only asks for ELITE
+  -- creatures and bosses, in a party or raid, while you and the target are in combat (its README: "in party or
+  -- raid, attacking elite creatures or bosses"). pfUI asked for every mob, got nothing for the normal ones and
+  -- gave up after 4 s, for the whole session - GratisNinja's "no data from the server" in a party. Now normal
+  -- mobs are never asked about (they get the estimate), and a silent elite only costs that one target.
+  function TH.ServerKind()
+    if not UnitExists("target") then return false end
+    local c = UnitClassification and UnitClassification("target")
+    return (c == "elite" or c == "worldboss" or c == "rareelite") and true or false
+  end
   function TH.UseEst()
-    return Solo() or (InGroup() and TH.gaveUp) and true or false
+    return Solo() or (InGroup() and (TH.gaveUp or not TH.ServerKind())) and true or false
   end
   local function Member(name)
     local w = name and M.Who and M.Who(name)
@@ -263,7 +273,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     -- solo with a pet: the estimate (the server answers groups only)
     if Solo() then TH.Estimate() return end
     -- (the server sent nothing in a group: the estimate for everyone, from the hits and heals the meters read)
-    if TH.gaveUp then TH.Estimate() return end
+    if TH.gaveUp or not TH.ServerKind() then TH.Estimate() return end
     -- (grouped again: the server's numbers only, never the estimate)
     if TH.estimated then TH.list, TH.estimated = nil, nil end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
@@ -275,6 +285,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   -- what the window shows when there are no numbers
   function TH.Status()
+    if InGroup() and TH.Wanted() and not TH.ServerKind() then return "Estimated from the fight (the server sends threat for elites and bosses)" end
     if TH.gaveUp then return T["No threat data from this server"] .. " - estimating from the fight" end
     if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
@@ -329,6 +340,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       -- a new target: ask at once
       if event == "PLAYER_TARGET_CHANGED" then
         TH.askAt = 0
+        TH.gaveUp, TH.silent = nil, 0   -- every target gets its own try
         local lc = pfUI.api and pfUI.api.libclient
         TH.targetGuid = lc and lc.GUID and lc.GUID("target") or nil
         TH.scanAt = 0
