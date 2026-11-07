@@ -692,6 +692,27 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Chk(p, "Merge pets into their owner", nil, G, "mergepets", function() M.who = {} end)
     Chk(p, "Everyone nearby (battlegrounds)", nil, G, "trackall", function() M.who = {} end)
     Drop(p, "Fights kept", nil, List({ { "5", "5" }, { "10", "10" }, { "20", "20" }, { "30", "30" } }), G, "history", function() end)
+    W.Card(p, "Avoidable damage", { icon = "Interface\\Icons\\Ability_Rogue_Feint",
+      tip = "Damage a player took from something they could have stepped out of: breath, sweeps, fire on the ground. "
+        .. "Show it with the display \"Avoidable Damage Taken\" (the title menu > Damage)." })
+    Chk(p, "Falling, lava, slime and fire", "Damage from the environment counts as avoidable.", G, "avoidenv", function() end)
+    W.Edit(p, "Spells that count", "Names (English, as the combat log spells them) separated by ;. Damage from these that a player "
+      .. "takes counts as avoidable. Change it as you learn the fights.",
+      function() return C.meters.avoidlist or M.AVOID_DEFAULT end, function(v) C.meters.avoidlist = v end, 520)
+    W.Buttons(p, {
+      { "Add the last spell that hit me", function()
+        local s = M.lastHitSpell
+        if not s then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: nothing has hit you yet.") return end
+        local list = C.meters.avoidlist or M.AVOID_DEFAULT
+        if not string.find(";" .. string.lower(list) .. ";", ";%s*" .. string.gsub(string.lower(s), "%p", "%%%0") .. "%s*;") then
+          C.meters.avoidlist = list .. "; " .. s
+        end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: \"" .. s .. "\" counts as avoidable now.")
+        if O.Refresh then O:Refresh() end
+      end, 210, "Takes the last spell that damaged you (in a fight) and adds it to the list." },
+      { "Put the list back", function() C.meters.avoidlist = nil if O.Refresh then O:Refresh() end end, 150, "Back to the built-in list." },
+    })
+
     W.Card(p, "Fights", { tip = "How fights are kept and timed, as in Details!." })
     Chk(p, "Merge trash", "Trash fights in a row become one \"Trash\" fight; boss fights stay apart.", G, "mergetrash", function() end)
     Chk(p, "Switch to the new fight", "When a fight starts, windows showing an earlier one show it.", G, "autocurrent", function() end)

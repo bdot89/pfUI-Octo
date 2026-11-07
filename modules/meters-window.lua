@@ -235,6 +235,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       plain = function(a) return M.OtherTargets(a), a.damage - M.BossDamage(a) end },
     { key = "taken", group = "Damage", name = T["Damage Taken"], value = function(a) return a.taken end,
       list = function(a) return a.tspells, a.taken end },
+    { key = "avoid", group = "Damage", name = T["Avoidable Damage Taken"], value = function(a) return a.avtotal or 0 end,
+      list = function(a) return a.avspells, a.avtotal or 0 end },
     { key = "ff", group = "Damage", name = T["Friendly Fire"], value = function(a) return a.ff or 0 end,
       list = function(a) return a.ffspells, a.ff end },
     { key = "enemytaken", group = "Damage", name = T["Enemy Damage Taken"], rows = function(seg)
@@ -731,6 +733,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       local av = ""
       for how, n in pairs(a.avoid) do av = av .. n .. " " .. (HOWS[how] or how) .. "   " end
       if av ~= "" then table.insert(rows, { wide = " " }) table.insert(rows, { wide = T["Avoided"] .. ": " .. av }) end
+    elseif win.mode == "avoid" then
+      local pct = a.taken > 0 and math.floor((a.avtotal or 0) / a.taken * 100 + .5) or 0
+      table.insert(rows, { wide = T["Avoidable Damage Taken"] .. ": " .. Num(a.avtotal or 0) .. "   (" .. pct .. "% of all damage taken)" })
+      SpellRows(rows, a.avspells, a.avtotal or 0)
     elseif win.mode == "interrupts" then
       table.insert(rows, { head = true, cells = { T["Interrupted"], T["Time"] } })
       for _, e in ipairs(a.ilist) do

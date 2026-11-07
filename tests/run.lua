@@ -5644,6 +5644,9 @@ dofile(DIR .. "/tests/art.lua")
 -- threat between the answers (6 Nov 2026)
 dofile(DIR .. "/tests/threat.lua")
 
+-- avoidable damage taken (7 Nov 2026)
+dofile(DIR .. "/tests/avoid.lua")
+
 -- target range (6 Nov 2026)
 dofile(DIR .. "/tests/range.lua")
 

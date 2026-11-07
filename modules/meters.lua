@@ -428,7 +428,9 @@ pfUI:RegisterModule("meters", "vanilla", function ()
             -- phase 2: friendly fire, healing taken, kills, resources, ress, cooldowns, uptime
             ff = 0, ffspells = {}, fftargets = {}, htaken = 0, hsources = {}, frags = 0, fraglist = {},
             power = {}, psources = {}, ress = 0, resslist = {}, cds = 0, cdlist = {},
-            buffs = {}, debuffs = {}, buffsum = 0, debuffsum = 0 }
+            buffs = {}, debuffs = {}, buffsum = 0, debuffsum = 0,
+            -- avoidable damage taken (7 Nov 2026)
+            avtotal = 0, avspells = {} }
       seg.actors[name] = a
     end
     if info and info.class and not a.class then a.class = info.class end
@@ -647,6 +649,33 @@ pfUI:RegisterModule("meters", "vanilla", function ()
     if M.current then fn(M.current) end
   end
 
+  -- ---------------------------------------------------------------- avoidable damage
+  -- (7 Nov 2026, user: "avoidable damage taken ... damage taken that could have been avoided by a player").
+  -- What counts: damage from a spell on the list C.meters.avoidlist (names, English, separated by ;) and, with
+  -- C.meters.avoidenv, the environment (falling, lava, slime, fire, drowning: a hit with a spell name and no
+  -- source). The mode "Avoidable damage taken" ranks who stood in it; its breakdown names each spell. The list
+  -- is yours to change on Meters > Data; "Add the last spell that hit me" puts one in from a fight.
+  M.AVOID_DEFAULT = "Deep Breath; Tail Sweep; Rain of Fire; Arcane Explosion; Eruption; Blizzard; Frost Breath; "
+    .. "Poison Cloud; Sand Blast; Dark Glare; Shadow Fissure; Flame Buffet; Hellfire; Fire Nova"
+  local avSet, avFrom
+  local function AvoidSet()
+    local text = C.meters.avoidlist
+    if text == nil then text = M.AVOID_DEFAULT end
+    if text ~= avFrom then
+      avFrom, avSet = text, {}
+      for name in string.gfind(text, "[^;,]+") do
+        name = string.lower((string.gsub((string.gsub(name, "^%s+", "")), "%s+$", "")))
+        if name ~= "" then avSet[name] = true end
+      end
+    end
+    return avSet
+  end
+  function M.Avoidable(r)
+    if not r or not r.spl then return false end
+    if not r.src then return C.meters.avoidenv ~= "0" end
+    return AvoidSet()[string.lower(r.spl)] and true or false
+  end
+
   function M.Record(r)
     if not r or not r.kind then return end
     local now = GetTime()
@@ -770,7 +799,16 @@ pfUI:RegisterModule("meters", "vanilla", function ()
           s.total = s.total + r.amt
           s.hits = s.hits + 1
           if r.amt > s.max then s.max = r.amt end
+          -- the part of it that could have been avoided
+          if M.Avoidable(r) then
+            a.avtotal = (a.avtotal or 0) + r.amt
+            local av = Spell(a.avspells, label .. " - " .. who)
+            av.total = av.total + r.amt
+            av.hits = av.hits + 1
+            if r.amt > av.max then av.max = r.amt end
+          end
         end)
+        if tgtname == UnitName("player") and r.spl then M.lastHitSpell = r.spl end
         Remember(tgtname, "dmg", r.amt, label, r.src, r.crit)
       end
 

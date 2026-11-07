@@ -111,6 +111,12 @@ pfUI:RegisterModule("meters-test", "vanilla:tbc", function ()
             if Alive(n) then Rec({ kind = "dmg", src = BOSS, tgt = n, spl = "Flame Breath", amt = Rand(1600, 2400) }) end
           end
         end
+        -- (avoidable damage for the "Avoidable Damage Taken" display: people standing in the tail sweep)
+        if math.mod(t, 18) == 5 then
+          for _, n in ipairs({ Who(everyone), Who(everyone) }) do
+            if Alive(n) then Rec({ kind = "dmg", src = BOSS, tgt = n, spl = "Tail Sweep", amt = Rand(500, 900) }) end
+          end
+        end
         if math.mod(t, 20) == 11 then Rec({ kind = "dmg", src = BOSS, tgt = "Garrosh", spl = "Wing Buffet", amt = Rand(700, 1000) }) end
         if add then
           local n = Who(everyone)
