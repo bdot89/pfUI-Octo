@@ -81,6 +81,7 @@
   <Include file="..\modules\gear-options.lua"/>
   <Include file="..\modules\gear-events.lua"/>
   <Include file="..\modules\gear-queue.lua"/>
+  <Include file="..\modules\weirdutils-guard.lua"/>
   <Include file="..\modules\weirdutils-bar.lua"/>
   <Include file="..\modules\weirdutils-tracking.lua"/>
   <Include file="..\modules\weirdutils-options.lua"/>

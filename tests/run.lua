@@ -5647,6 +5647,9 @@ dofile(DIR .. "/tests/threat.lua")
 -- avoidable damage taken (7 Nov 2026)
 dofile(DIR .. "/tests/avoid.lua")
 
+-- the guard round WeirdUtils tracking calls (7 Nov 2026)
+dofile(DIR .. "/tests/wuguard.lua")
+
 -- target range (6 Nov 2026)
 dofile(DIR .. "/tests/range.lua")
 

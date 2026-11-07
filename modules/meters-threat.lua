@@ -83,13 +83,27 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     t[who] = (t[who] or 0) + amount
   end
   -- every record the meters read: yours and your pet's against a mob
+  -- (7 Nov 2026, GratisNinja: in a party the server sent no threat data and the meter showed only that hint)
+  -- In a group whose server stays silent the same estimate is made for everyone: the hits and heals the meters
+  -- read, with the stance / Salvation multipliers (TH.K). TH.UseEst() says when it replaces the server's numbers.
+  function TH.UseEst()
+    return Solo() or (InGroup() and TH.gaveUp) and true or false
+  end
+  local function Member(name)
+    local w = name and M.Who and M.Who(name)
+    return w and w.kind ~= "OTHER" and true or false
+  end
+  -- every record the meters read: yours, your pet's and your group's against a mob
   function TH.EstRecord(r)
-    if not Solo() or not r or (M.testOn) then return end
+    if not TH.UseEst() or not r or M.testOn then return end
     local me, pet = UnitName("player"), UnitName("pet")
-    if r.kind == "dmg" and r.amt and (r.src == me or r.src == pet) and r.tgt and r.tgt ~= me and r.tgt ~= pet then
-      TH.EstAdd(r.tgt, r.src, r.amt)
-    elseif r.kind == "heal" and r.amt and r.src == me and UnitExists("target") then
-      TH.EstAdd(UnitName("target"), me, r.amt / 2)
+    if r.kind == "dmg" and r.amt and r.src and r.tgt and r.tgt ~= r.src then
+      local mine = (r.src == me or r.src == pet)
+      if mine and r.tgt ~= me and r.tgt ~= pet or (not mine and Solo() == false and Member(r.src) and not Member(r.tgt)) then
+        TH.EstAdd(r.tgt, r.src, r.amt * (mine and 1 or TH.K(r.src)))
+      end
+    elseif r.kind == "heal" and r.amt and r.src and UnitExists("target") and (r.src == me or (not Solo() and Member(r.src))) then
+      TH.EstAdd(UnitName("target"), r.src, r.amt / 2)
     elseif (r.kind == "cast" or r.kind == "dmg" or r.kind == "miss") and r.src == pet and TH.FIXED[r.spl or ""] then
       TH.EstAdd(r.tgt or UnitName("target"), pet, TH.Fixed(r.spl))
     end
@@ -108,16 +122,31 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     local mob = UnitName("target")
     local t = mob and TH.est[mob]
     local me, pet = UnitName("player"), UnitName("pet")
-    if not (me and pet) then return end
-    local mine, its = t and t[me] or 0, t and t[pet] or 0
-    local holder = (UnitIsUnit("targettarget", "player") and me) or (UnitIsUnit("targettarget", "pet") and pet)
-      or (its >= mine and pet or me)
-    local top = holder == me and mine or its
-    local function Perc(v) return top > 0 and math.floor(v / top * 1000 + .5) / 10 or 0 end
-    local list = {
-      { name = pet, tank = holder == pet, threat = math.floor(its + .5), perc = Perc(its), melee = true },
-      { name = me, tank = holder == me, threat = math.floor(mine + .5), perc = Perc(mine), melee = CheckInteractDistance("target", 3) and true or false },
-    }
+    if not me then return end
+    local list, top, topName = {}, 0, nil
+    local seen = {}
+    local function Add(name, v)
+      if not name or seen[name] then return end
+      seen[name] = true
+      table.insert(list, { name = name, tank = false, threat = math.floor(v + .5), perc = 0, melee = true })
+      if v > top then top, topName = v, name end
+    end
+    for name, v in pairs(t or {}) do Add(name, v) end
+    -- you and your pet are always on it (solo, that is the whole list)
+    Add(me, 0)
+    if pet and Solo() then Add(pet, 0) end
+    -- the tank: whoever the mob is attacking, else the top
+    local holder
+    if UnitIsUnit("targettarget", "player") then holder = me
+    elseif UnitIsUnit("targettarget", "pet") then holder = pet
+    else holder = UnitName("targettarget") end
+    if not holder or not seen[holder] then holder = topName end
+    local tankT = 0
+    for _, e in ipairs(list) do if e.name == holder then e.tank = true tankT = e.threat end end
+    for _, e in ipairs(list) do
+      if e.tank then e.perc = 100 elseif tankT > 0 then e.perc = math.floor(e.threat / tankT * 1000 + .5) / 10 end
+      if e.name == me then e.melee = CheckInteractDistance("target", 3) and true or false end
+    end
     table.sort(list, function(a, b) return a.threat > b.threat end)
     TH.list, TH.at, TH.estimated = list, GetTime(), true
     TH.Warn()
@@ -226,13 +255,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   end
 
   function TH.Ask()
-    if not TH.Wanted() or TH.gaveUp then return end
+    if not TH.Wanted() then return end
     -- (6 Nov 2026, "threat meter updating slow ... INSTANT": asked every C.meters.threatrate seconds,
     -- default 0.2, no longer every 0.5; an answer anyone got in half that time is used instead)
     local rate = TH.Rate()
     if GetTime() - TH.askAt < rate or GetTime() - TH.at < rate * .5 then return end
     -- solo with a pet: the estimate (the server answers groups only)
     if Solo() then TH.Estimate() return end
+    -- (the server sent nothing in a group: the estimate for everyone, from the hits and heals the meters read)
+    if TH.gaveUp then TH.Estimate() return end
     -- (grouped again: the server's numbers only, never the estimate)
     if TH.estimated then TH.list, TH.estimated = nil, nil end
     if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
@@ -244,7 +275,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   -- what the window shows when there are no numbers
   function TH.Status()
-    if TH.gaveUp then return T["No threat data from this server"] end
+    if TH.gaveUp then return T["No threat data from this server"] .. " - estimating from the fight" end
     if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
     if TH.answers == 0 then return T["Asking the server..."] end
@@ -268,6 +299,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   f:RegisterEvent("PLAYER_TARGET_CHANGED")
   f:RegisterEvent("PLAYER_REGEN_ENABLED")
   f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  f:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  f:RegisterEvent("RAID_ROSTER_UPDATE")
   f:SetScript("OnEvent", function()
     if event == "CHAT_MSG_ADDON" then
       if type(arg2) ~= "string" or not string.find(arg2, "TWTv4=", 1, true) then return end
@@ -280,6 +313,12 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       M.Changed()
       -- shown at once, not at the next .2 s redraw of every window
       if M.RefreshThreat then M.RefreshThreat() end
+    elseif event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE" then
+      -- (7 Nov 2026, GratisNinja: the meter did not go back to solo when the group was dismissed) a new group,
+      -- or none: the server gets asked again, and an estimate of the old one goes
+      TH.gaveUp, TH.silent, TH.answers = nil, 0, 0
+      TH.list, TH.base, TH.estimated, TH.est = nil, nil, nil, {}
+      M.Changed()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
       TH.gaveUp, TH.silent, TH.answers = nil, 0, 0
     else

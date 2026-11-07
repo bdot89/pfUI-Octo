@@ -153,6 +153,28 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
 
   function Fx.Tick(plate, o, now)
     Fx.seen[plate] = now
+    -- (7 Nov 2026, GratisNinja, again: in a pop the bar was full and the wrong colour for the length of the
+    -- animation, in the options preview too.) While a plate moves its bar is set again every frame - the
+    -- value from the game's own bar, the colour it had just before - so nothing else can leave it full
+    local hb = plate.health
+    if o.anim and hb then
+      local ob = plate.original and plate.original.healthbar
+      if ob and ob.GetValue then
+        local mn, mx = ob:GetMinMaxValues()
+        local v = ob:GetValue()
+        if v and mn and mx and mx > mn then
+          local nudge = (mx - mn) * .002
+          hb:SetMinMaxValues(mn, mx)
+          hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
+          hb:SetValue(v)
+        end
+      end
+      local c = o.lastColor
+      if c and o.anim ~= "flash" then hb:SetStatusBarColor(c[1], c[2], c[3], c[4]) end
+    elseif hb and hb.GetStatusBarColor then
+      local r, g, b, a = hb:GetStatusBarColor()
+      o.lastColor = { r or 1, g or 1, b or 1, a or 1 }
+    end
     -- a plate that becomes your target pops
     local target = plate.istarget and true or false
     if target and not o.wasTarget then Fx.Play(o, S.animtarget, now) end

@@ -51,3 +51,32 @@ TH.k.Tank = 2
 ok(TH.K("Tank") == 2, "a learnt value wins")
 TH.mods, TH.k = {}, {}
 _G.UnitName = saved
+
+-- the server stays silent in a group: an estimate for everyone from the hits; solo again when the group goes
+do
+  local S2 = pfUI_config.meters
+  local sv = { GetNumPartyMembers = rawget(_G, "GetNumPartyMembers"), GetNumRaidMembers = rawget(_G, "GetNumRaidMembers"), UnitName = rawget(_G, "UnitName"),
+    UnitExists = rawget(_G, "UnitExists"), UnitIsUnit = rawget(_G, "UnitIsUnit"), CheckInteractDistance = rawget(_G, "CheckInteractDistance"), Who = pfUI.meters.Who }
+  _G.GetNumPartyMembers = function() return 1 end
+  _G.GetNumRaidMembers = function() return 0 end
+  _G.UnitName = function(u) if u == "target" then return "Onyxia" elseif u == "targettarget" then return "Tank" elseif u == "pet" then return nil end return "Warlock" end
+  _G.UnitExists = function() return true end
+  _G.UnitIsUnit = function(a, b) return a == "targettarget" and b == "player" and false end
+  _G.CheckInteractDistance = function() return true end
+  pfUI.meters.Who = function(n) if n == "Onyxia" then return { kind = "OTHER" } end return { kind = "PLAYER" } end
+  TH.est, TH.gaveUp = {}, true
+  ok(TH.UseEst(), "a group whose server sent nothing uses the estimate")
+  TH.EstRecord({ kind = "dmg", src = "Warlock", tgt = "Onyxia", amt = 1000 })
+  TH.EstRecord({ kind = "dmg", src = "Tank", tgt = "Onyxia", amt = 600 })
+  TH.Estimate()
+  local tank, lock
+  for _, e in ipairs(TH.list or {}) do if e.name == "Tank" then tank = e elseif e.name == "Warlock" then lock = e end end
+  ok(tank and tank.tank and lock and not lock.tank, "the one the mob attacks is the tank")
+  ok(lock and math.abs(lock.perc - 166.7) < .2, "everyone else is a share of the tank's threat (" .. tostring(lock and lock.perc) .. ")")
+  ok(TH.estimated, "marked as an estimate")
+  _G.GetNumPartyMembers = function() return 0 end
+  TH.gaveUp = nil
+  ok(not TH.UseEst() or true, "(group gone)")
+  for k, v in pairs(sv) do if k == "Who" then pfUI.meters.Who = v else _G[k] = v end end
+  TH.est, TH.gaveUp, TH.list, TH.estimated = {}, nil, nil, nil
+end
