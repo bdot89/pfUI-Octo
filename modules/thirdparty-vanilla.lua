@@ -964,6 +964,29 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
       SkinButton(frame.LinkButton)
       frame.LinkButton:SetHeight(20)
 
+      -- (octo, 7 Nov 2026, GratisNinja: "the search bar in the Enchanting window is inside the list") the
+      -- skin makes the list fill the window, so Crafty's search box lay over its last rows. The list loses
+      -- two rows (and the strip they were) and the search box goes under it.
+      local host = frame:GetParent()
+      local isCraft = host == _G.CraftFrame
+      local scroll = _G[isCraft and "CraftListScrollFrame" or "TradeSkillListScrollFrame"]
+      if scroll and not frame.pfSearchMoved then
+        frame.pfSearchMoved = true
+        local dname = isCraft and "CRAFTS_DISPLAYED" or "TRADE_SKILLS_DISPLAYED"
+        local template = isCraft and "Craft" or "TradeSkillSkill"
+        local old = _G[dname] or 23
+        _G[dname] = old - 2
+        for i = old - 1, old do
+          local b = _G[template .. i]
+          if b then b:Hide() end
+        end
+        scroll:SetHeight((scroll:GetHeight() or 400) - 40)
+        frame.SearchBox:ClearAllPoints()
+        frame.SearchBox:SetPoint("TOPLEFT", scroll, "BOTTOMLEFT", 6, -10)
+        frame.SearchBox:SetWidth(math.max(120, (scroll:GetWidth() or 300) - 40))
+        frame.SearchBox:SetHeight(22)
+      end
+
       CreateBackdrop(frame.SearchBox, nil, true)
       for _,v in ipairs({frame.SearchBox:GetRegions()}) do
         if v.GetTexture then

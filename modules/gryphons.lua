@@ -32,6 +32,30 @@ pfUI:RegisterModule("gryphons", "vanilla:tbc", function ()
     for _, a in ipairs(pfUI.gryphons.art) do if a.key == key then return a end end
   end
 
+  -- (7 Nov 2026, Mr_Rosh: support for pfUI-CustomMedia, github.com/mr-rosh/pfUI-CustomMedia, MIT) Add-ons that
+  -- bring their own gryphon pictures put them in pfUI.gryphons.textures (name -> path) as pfUI's own page
+  -- expects; the picture list of this page is made from pfUI.gryphons.art, so they are added to it as they
+  -- come: at login, when everything has loaded. (Its bar textures and fonts go into pfUI.gui.dropdowns lists,
+  -- which every Octo texture / font menu reads when it opens.)
+  function pfUI.gryphons.MergeTextures()
+    local have = {}
+    for _, a in ipairs(pfUI.gryphons.art) do have[a.key] = true end
+    local added = 0
+    for name, path in pairs(pfUI.gryphons.textures) do
+      if type(name) == "string" and type(path) == "string" and not have[name] then
+        table.insert(pfUI.gryphons.art, { key = name, label = name, tex = path, coords = { 0, 1, 0, 1 } })
+        added = added + 1
+      end
+    end
+    return added
+  end
+  local gm = CreateFrame("Frame")
+  gm:RegisterEvent("PLAYER_LOGIN")
+  gm:SetScript("OnEvent", function()
+    pfUI.gryphons.MergeTextures()
+    if pfUI.gryphons.UpdateConfig then pfUI.gryphons.UpdateConfig() end
+  end)
+
   pfUI.gryphons.UpdateConfig = function()
     local set = C.bars.gryphons
     local art = pfUI.gryphons.Art(set.texture)

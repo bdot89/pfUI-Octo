@@ -33,3 +33,17 @@ for _, s in ipairs(A.ELITE) do
     end
   end
 end
+
+-- gryphon pictures brought by other add-ons (pfUI-CustomMedia) join the Gryphons page's list
+do
+  local GR = pfUI.gryphons
+  ok(GR and GR.MergeTextures, "gryphons can take other add-ons' pictures")
+  if GR then
+    local n = table.getn(GR.art)
+    GR.textures["Custom Phoenix"] = "Interface\\AddOns\\pfUI-CustomMedia\\gryphons\\phoenix"
+    ok(GR.MergeTextures() == 1 and table.getn(GR.art) == n + 1 and GR.Art("Custom Phoenix") and GR.Art("Custom Phoenix").coords, "a new picture is added once")
+    ok(GR.MergeTextures() == 0, "and not twice")
+    GR.textures["Custom Phoenix"] = nil
+    table.remove(GR.art, table.getn(GR.art))
+  end
+end

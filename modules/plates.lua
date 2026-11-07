@@ -755,6 +755,26 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
 
   -- ---------------------------------------------------------------- every frame
 
+  -- (7 Nov 2026, GratisNinja: with Pop and Bounce - not Flash white - the bar was full for the length of the
+  -- animation, in the options preview too.) Those scale the plate every frame, and the client lays a status
+  -- bar's fill out when the value is set. So after a scale change the fill is laid out again: the value off by a
+  -- hair and back, and the bar's texture set again (the colour it had put back).
+  function P.Refill(hb, v, mn, mx)
+    if not hb or not hb.GetValue then return end
+    if v == nil then v = hb:GetValue() end
+    if mn == nil then mn, mx = hb:GetMinMaxValues() end
+    if not (v and mn and mx and mx > mn) then return end
+    local r, g, b, a = hb:GetStatusBarColor()
+    local tex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
+    local path = tex and tex.GetTexture and tex:GetTexture()
+    if type(path) == "string" and hb.SetStatusBarTexture then hb:SetStatusBarTexture(path) end
+    hb:SetMinMaxValues(mn, mx)
+    local nudge = (mx - mn) * .002
+    hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
+    hb:SetValue(v)
+    if r then hb:SetStatusBarColor(r, g, b, a) end
+  end
+
   function P.CastEnd(plate, o, done, now)
     if S.castend ~= "1" then return end
     local unit = o.unit
@@ -865,16 +885,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       -- (7 Nov 2026, GratisNinja: the bar looked full while a plate popped or zoomed - a status bar lays its fill
       -- out when its value is set, so a scale change after that left it stretched to the whole bar.)
       -- The value is set again at the new scale: once off by a hair, then as it was.
-      local hb = plate.health
-      if hb and hb.GetValue and hb.GetMinMaxValues then
-        local v = hb:GetValue()
-        local mn, mx = hb:GetMinMaxValues()
-        if v and mn and mx and mx > mn then
-          local nudge = (mx - mn) * .002
-          hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
-          hb:SetValue(v)
-        end
-      end
+      P.Refill(plate.health)
     end
 
     -- range / line of sight: fade (after pfUI's non-target alpha)

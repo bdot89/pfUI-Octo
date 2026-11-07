@@ -162,12 +162,7 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
       if ob and ob.GetValue then
         local mn, mx = ob:GetMinMaxValues()
         local v = ob:GetValue()
-        if v and mn and mx and mx > mn then
-          local nudge = (mx - mn) * .002
-          hb:SetMinMaxValues(mn, mx)
-          hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
-          hb:SetValue(v)
-        end
+        if v and mn and mx and mx > mn then P.Refill(hb, v, mn, mx) end
       end
       local c = o.lastColor
       if c and o.anim ~= "flash" then hb:SetStatusBarColor(c[1], c[2], c[3], c[4]) end
