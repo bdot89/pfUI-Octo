@@ -862,6 +862,19 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       -- a preview plate sits in the options window, already at the UI's scale
       plate:SetScale((pv and 1 or UIParent:GetScale()) * final)
       o.applied = final
+      -- (7 Nov 2026, GratisNinja: the bar looked full while a plate popped or zoomed - a status bar lays its fill
+      -- out when its value is set, so a scale change after that left it stretched to the whole bar.)
+      -- The value is set again at the new scale: once off by a hair, then as it was.
+      local hb = plate.health
+      if hb and hb.GetValue and hb.GetMinMaxValues then
+        local v = hb:GetValue()
+        local mn, mx = hb:GetMinMaxValues()
+        if v and mn and mx and mx > mn then
+          local nudge = (mx - mn) * .002
+          hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
+          hb:SetValue(v)
+        end
+      end
     end
 
     -- range / line of sight: fade (after pfUI's non-target alpha)
