@@ -1091,3 +1091,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    (SetRaidTarget, click again = off), fold button. C.raidtools.show = lead (default) | group | raid | always | never.
    1.12 has no world markers or role check. Tests: QoL tabs (QoL, Raid Tools, Screenshots, Auto Loot), pages
    build, the window exists; sidebar order test moved by one.
+26. Sidebar like EllesmereUI's (8 Nov 2026, NOT seen in game; NEW TEXTURES = full client restart; user: "headers
+   for each section. the icons on ours look childish ... icons ... which are just white and simple ... every page
+   should be inline and match the look"). img\octo\icons\*.tga (move, key, profile, install, settings, power) are
+   our own 64x64 white line glyphs, drawn by tools\mkicons.c (MinGW gcc ~/tools/winlibs: distance-based
+   anti-aliased strokes, 32-bit TGA, shape in alpha). The four big entries use them (tinted .86); section rows are
+   plain words indented 20 under 13 px accent headings in title case (h.pic hidden, O.ICONS kept for pages); the
+   on / off marker is the power glyph tinted W.ROLE on / off. Pages: actionbar-options Grid() now makes W.Check /
+   W.Color rows (two to a line, dimmed colours keep their tooltip note) instead of 4 columns of tick boxes;
+   W.Toggles (Heading extras, Bags' bag ticks) = W.Check pill rows. Combat Text's event table keeps its columns.
+   Tests: no section pictures, power glyphs, four glyph entries.

@@ -1128,11 +1128,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
       hl:SetAllPoints(b)
       b.pic = b:CreateTexture(nil, "ARTWORK")
-      b.pic:SetTexture("Interface\\Icons\\" .. icon)
-      b.pic:SetTexCoord(.08, .92, .08, .92)
+      -- (8 Nov 2026, user: the item icons "look childish": our own white line glyphs, img\octo\icons)
+      b.pic:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\" .. icon)
+      b.pic:SetVertexColor(.86, .87, .9, 1)
       b.pic:SetWidth(18)
       b.pic:SetHeight(18)
-      b.pic:SetPoint("LEFT", b, "LEFT", 4, 0)
+      b.pic:SetPoint("LEFT", b, "LEFT", 8, 0)
       b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.text[1], K.text[2], K.text[3])
       b.text:SetPoint("LEFT", b.pic, "RIGHT", 9, 0)
       b.text:SetText(text)
@@ -1141,14 +1142,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       y = y - 26
       return b
     end
-    Entry(T["Move Frames"], "INV_Misc_Map_01", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
+    Entry(T["Move Frames"], "move", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
       .. "Alt-click two boxes to give the second the first one's size; right-click a box for its options.", function()
       -- layout mode closes this window and opens it again when done
       if pfUI.unlock then pfUI.unlock:Show() end
     end)
     -- Keybinds: pfUI's hover binding or the Key Map keyboard (user, 20 Oct 2026)
     local kb
-    kb = Entry(T["Keybinds"], "INV_Misc_Key_01", "Pick how to bind keys: hover an action button and press a key, or a "
+    kb = Entry(T["Keybinds"], "key", "Pick how to bind keys: hover an action button and press a key, or a "
       .. "picture of your keyboard to drag spells onto (/keymap).", function()
       if not kb.menu then
         kb.menu = W.Menu(kb, {
@@ -1170,12 +1171,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       W.CloseMenus()
       if not open then kb.menu:Show() end
     end)
-    Entry(T["Profiles"], "INV_Misc_Book_11", "Named profiles for every character on this account, and profile strings to share.", function()
+    Entry(T["Profiles"], "profile", "Named profiles for every character on this account, and profile strings to share.", function()
       -- (31 Oct 2026, GratisNinja: this once pressed Export by itself and
       -- froze the game; it only opens the Profiles card)
       if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("stgeneral", "Profiles") else O:Open("stgeneral") end
     end)
-    Entry(T["Install"], "INV_Misc_Note_01", "Run the setup again: profile, layout, chat (/pfui install).", function()
+    Entry(T["Install"], "install", "Run the setup again: profile, layout, chat (/pfui install).", function()
       if pfUI.firstrun then
         g:Hide()
         pfUI.firstrun:Restart()
@@ -1468,13 +1469,16 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     h.pic:SetWidth(18)
     h.pic:SetHeight(18)
     h.pic:SetPoint("LEFT", h, "LEFT", 14, 0)
+    -- (8 Nov 2026, user: the item icons "look childish") the sections are plain
+    -- text under their headings; the picture stays only for the page's own use
+    h.pic:Hide()
     h.sel = W.Fill(h, K.accent, 0.16, "BACKGROUND")
     h.sel:SetAllPoints(h)
     h.sel:Hide()
     local hl = W.Fill(h, { 1, 1, 1 }, 0.04, "HIGHLIGHT")
     hl:SetAllPoints(h)
     h.text = W.Font(h:CreateFontString(nil, "OVERLAY"), 13, .82, .83, .86)
-    h.text:SetPoint("LEFT", h, "LEFT", 30, 0)
+    h.text:SetPoint("LEFT", h, "LEFT", 20, 0)
     h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
     h.text:SetJustifyH("LEFT")
     h.text:SetText(label)
@@ -1639,9 +1643,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         seen[hname] = true
         local hf = CreateFrame("Frame", nil, self.navFrame)
         hf:SetHeight(20)
-        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 11, K.accent[1], K.accent[2], K.accent[3])
+        -- (8 Nov 2026, user: "headers for each section") clear headings in the
+        -- accent colour, the sections' words indented under them
+        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 13, K.accent[1], K.accent[2], K.accent[3])
         hf.text:SetPoint("BOTTOMLEFT", hf, "BOTTOMLEFT", 8, 3)
-        hf.text:SetText((W.Caps or string.upper)(hname))
+        hf.text:SetText(hname)
         hf:EnableMouseWheel(true)
         hf:SetScript("OnMouseWheel", self.navFrame:GetScript("OnMouseWheel"))
         grp.headFrame = hf
@@ -1679,7 +1685,6 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         local on = self:PowerOn(grp)
         local col = W.ROLE[on and "on" or "off"]
         d.dot:SetVertexColor(col[1], col[2], col[3], 1)
-        d.ring:SetVertexColor(col[1], col[2], col[3], .35)
       end
     end
   end
@@ -1691,15 +1696,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     d:SetHeight(18)
     d:SetPoint("RIGHT", h, "RIGHT", -4, 0)
     d:SetFrameLevel(h:GetFrameLevel() + 2)
-    d.ring = d:CreateTexture(nil, "ARTWORK")
-    d.ring:SetTexture(W.ART.disc)
-    d.ring:SetWidth(14)
-    d.ring:SetHeight(14)
-    d.ring:SetPoint("CENTER", d, "CENTER", 0, 0)
+    -- (8 Nov 2026) a power glyph of our own (img\octo\icons\power), green on / red off
     d.dot = d:CreateTexture(nil, "OVERLAY")
-    d.dot:SetTexture(W.ART.disc)
-    d.dot:SetWidth(8)
-    d.dot:SetHeight(8)
+    d.dot:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\power")
+    d.dot:SetWidth(14)
+    d.dot:SetHeight(14)
     d.dot:SetPoint("CENTER", d, "CENTER", 0, 0)
     d.grp = grp
     d:SetScript("OnClick", function()
@@ -1783,11 +1784,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if h.rowH ~= rh then
         h.rowH = rh
         h:SetHeight(rh - 1)
-        local ps = math.max(12, math.min(22, rh - 6))
-        h.pic:SetWidth(ps)
-        h.pic:SetHeight(ps)
+        -- (8 Nov 2026) plain words under the headings, no pictures
         h.text:ClearAllPoints()
-        h.text:SetPoint("LEFT", h.pic, "RIGHT", 8, 0)
+        h.text:SetPoint("LEFT", h, "LEFT", 20, 0)
         h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
         W.Font(h.text, (rh >= 26) and 14 or ((rh >= 21) and 13 or 12))
       end

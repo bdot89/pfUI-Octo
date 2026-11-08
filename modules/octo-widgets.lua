@@ -727,28 +727,18 @@ function W.Switch(parent, get, set, tip)
   return f
 end
 
--- A line of small tick boxes: { { label, get, set, tip }, ... }
+-- Switches: { { label, get, set, tip }, ... } (8 Nov 2026, user: "every page
+-- should be inline and match the look") - the shared rows, label left and an
+-- on / off pill right, two to a line; it was a line of small tick boxes.
+-- Returns the last row.
 function W.Toggles(p, list)
-  local row = W.Row(p, 22, 0, 4)
-  local x = 0
+  local last
   for i = 1, table.getn(list) do
     local d = list[i]
-    local cb = W.CheckBox(row, 14)
-    cb:SetPoint("LEFT", row, "LEFT", x, 0)
-    local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 11, C.dim[1], C.dim[2], C.dim[3])
-    fs:SetPoint("LEFT", cb, "RIGHT", 6, 0)
-    fs:SetText(d[1])
-    cb.get, cb.set = d[2], d[3]
-    cb:SetScript("OnClick", function()
-      this.set(this:GetChecked() and true or false)
-      Changed()
-    end)
-    W.Tip(cb, d[1], d[4])
-    Index(p, d[1], d[4], row)
-    Track(p, { Refresh = function() cb:SetChecked(cb.get() and 1 or nil) end })
-    x = x + 34 + (fs:GetStringWidth() or 60)
+    local cb = W.Check(p, d[1], d[4], d[2], d[3])
+    last = cb and cb:GetParent() or last
   end
-  return row
+  return last
 end
 
 -- ---------------------------------------------------------------- text

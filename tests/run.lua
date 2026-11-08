@@ -3603,6 +3603,21 @@ do
       end
       ok(pfUI.raidtools and pfUI.raidtools.frame and pfUI.raidtools.Pull, "the Raid Tools window is made")
     end
+    -- (8 Nov 2026, user: the item icons "look childish") plain words in the sections, our own white
+    -- glyphs on the big entries only, a power glyph for on / off
+    do
+      local pics, power = 0, 0
+      for _, grp in ipairs(O.groups) do
+        if grp.header.pic:IsShown() then pics = pics + 1 end
+        if grp.power and string.find(grp.power.dot.texture or "", "octo\\icons\\power", 1, true) then power = power + 1 end
+      end
+      ok(pics == 0 and power > 0, "sidebar sections: no pictures, power glyphs (" .. pics .. " / " .. power .. ")")
+      local glyphs = 0
+      for _, k in ipairs({ O.navFrame:GetChildren() }) do
+        if k.pic and string.find(k.pic.texture or "", "octo\\icons\\", 1, true) then glyphs = glyphs + 1 end
+      end
+      ok(glyphs == 4, "the four big entries wear our white glyphs (" .. glyphs .. ")")
+    end
     -- (8 Nov 2026, user screenshot: the header was empty on the Settings page) every way in names the page
     for _, how in ipairs({ "select", "open", "profiles" }) do
       pfUI.gui:Hide()

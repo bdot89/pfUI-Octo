@@ -117,69 +117,35 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     end, used)
   end
 
-  -- small controls in even columns, cols to a row (user, 25 Oct 2026: the
-  -- Behaviour tick boxes sat unevenly)
+  -- The tick boxes and colours of a card (8 Nov 2026, user: "every page should
+  -- be inline and match the look"): the shared rows - label left, pill or
+  -- colour square right, two to a line - instead of four small columns of
+  -- tick boxes. cols is kept for the callers; the rows decide. A colour whose
+  -- part the look in use does not have is dimmed (its tooltip says so).
   local function Grid(p, cols, items)
-    local w = math.floor((W.CW + 8) / cols)
-    local row
-    for n, item in ipairs(items) do
+    for _, item in ipairs(items) do
       local d = item
-      local col = math.mod(n - 1, cols)
-      if col == 0 then row = W.Row(p, 24, 0, 4) end
-      local cell = CreateFrame("Frame", nil, row)
-      cell:SetWidth(w - 8)
-      cell:SetHeight(24)
-      cell:SetPoint("LEFT", row, "LEFT", col * w, 0)
-      local ctl, Refresh
       if d.kind == "tick" then
-        ctl = W.CheckBox(cell, 16)
-        Refresh = function() ctl:SetChecked(d.group()[d.key] == "1" and 1 or nil) end
+        W.Check(p, d.label, d.desc, function() return d.group()[d.key] == "1" end, function(v)
+          d.group()[d.key] = v and "1" or "0"
+          local after = d.after or U
+          after()
+        end)
       else
-        ctl = W.Swatch(cell, 16)
         -- (the tests' list of every colour picker)
         if W.ColorMade then W.ColorMade(d.label, d.get) end
-        Refresh = function()
-          ctl.fill:SetVertexColor(d.get())
-          local off = d.used and not d.used()
-          cell:SetAlpha(off and .4 or 1)
-          -- (dimmed: the tooltip says why)
-          local tip = (d.desc or "Click to pick a colour.") .. (off and "\n\n|cffaaaaaaNot in use with the look / style picked now.|r" or "")
-          ctl.tipText = tip
-          if cell.hit then cell.hit.tipText = tip end
+        local sw = W.Color(p, d.label, d.desc, d.get, d.set)
+        if d.used then
+          local row = sw:GetParent()
+          local function Dim()
+            local off = not d.used()
+            row:SetAlpha(off and .4 or 1)
+            sw.tipText = (d.desc or "Click to pick a colour.") .. (off and "\n\n|cffaaaaaaNot in use with the look / style picked now.|r" or "")
+          end
+          table.insert(p.items, { Refresh = Dim })
+          Dim()
         end
       end
-      ctl:SetPoint("LEFT", cell, "LEFT", 2, 0)
-      local fs = W.Font(cell:CreateFontString(nil, "OVERLAY"), 12, W.C.text[1], W.C.text[2], W.C.text[3])
-      fs:SetPoint("LEFT", ctl, "RIGHT", 8, 0)
-      fs:SetWidth(w - 40)
-      fs:SetHeight(16)
-      fs:SetJustifyH("LEFT")
-      fs:SetText(d.label)
-      local function Click()
-        if d.kind == "tick" then
-          d.group()[d.key] = ctl:GetChecked() and "1" or "0"
-          ;(d.after or U)()
-          W.Changed()
-        else
-          OpenPicker(d.get, d.set, function() Refresh() W.Changed() end)
-        end
-      end
-      ctl:SetScript("OnClick", Click)
-      -- the words work as the box does
-      local hit = CreateFrame("Button", nil, cell)
-      hit:SetPoint("TOPLEFT", fs, "TOPLEFT", -2, 2)
-      hit:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -2)
-      hit:SetScript("OnClick", function()
-        if d.kind == "tick" then ctl:SetChecked(not ctl:GetChecked() and 1 or nil) end
-        Click()
-      end)
-      local tip = ctl.tipText or d.desc or (d.kind == "colour" and "Click to pick a colour." or nil)
-      W.Tip(ctl, d.label, tip)
-      W.Tip(hit, d.label, tip)
-      cell.hit = hit
-      if p.key then table.insert(W.index, { page = p, card = p.cur, label = d.label, desc = d.desc, region = row }) end
-      table.insert(p.items, { Refresh = Refresh })
-      Refresh()
     end
   end
 
