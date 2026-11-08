@@ -37,7 +37,10 @@ see "Roadmap" below.
   FULLSCREEN, often on frame levels 1-4 (pfUI's plates / cast bars): NEVER put a fill, panel or texture
   on a frame that lies above them (W.ZoomBox's clip / canvas, a pin's child frame). A box's dark fill is
   its own backdrop in the window's layer (DIALOG). tests\run.lua checks every zoom box after building
-  every page.
+  every page. And never pin a preview to a fixed low level (SetFrameLevel(1)): inside a zoom box that
+  lay under the box's frames and the cast bar / nameplate previews stayed dark even after the fill went.
+  Let the holder inherit (box level + 1, as swing does); pfUI's own fixed levels on sample plates are
+  moved up by P.Raise.
 
 ## Testing
 - `powershell -ExecutionPolicy Bypass -File tests\run.ps1`: loads every file in the toc (following

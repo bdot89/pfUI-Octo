@@ -5794,6 +5794,44 @@ do
     local P = pfUI.plates
     local g = P and P.previews and P.previews[1] and P.previews[1]:GetParent().grid
     ok(not g or g:GetFrameLevel() < P.previews[1].nameplate.health:GetFrameLevel(), "nameplate preview grid lies under the bars")
+    -- the sample plates' parts all sit above their (zoom) box, in pfUI's order; still so after a settings change
+    if P and P.AttachPreview then
+      local stage = CreateFrame("Frame", nil, UIParent)
+      stage:SetFrameLevel(30)
+      stage:SetWidth(640)
+      stage:SetHeight(118)
+      local zgood, zs = pcall(P.AttachPreview, stage)
+      if zgood and zs and zs[1] then
+        local low = {}
+        local function Walk(f)
+          for _, k in ipairs({ f:GetChildren() }) do
+            if k.kind ~= "Texture" and k.kind ~= "FontString" and (k:GetFrameLevel() or 0) <= 30 then table.insert(low, tostring(k:GetFrameLevel())) end
+            Walk(k)
+          end
+        end
+        pcall(pfUI.nameplates.OnConfigChange, zs[1])
+        for _, s in ipairs(zs) do Walk(s) end
+        local hp = zs[1].nameplate.health
+        ok(table.getn(low) == 0 and hp.backdrop:GetFrameLevel() < hp:GetFrameLevel(),
+          "sample plates above their box, backdrop still under the bar (low levels: " .. table.concat(low, " ") .. ")")
+        for _, s in ipairs(zs) do s:Hide() for i, v in ipairs(P.previews) do if v == s then table.remove(P.previews, i) break end end end
+      else
+        ok(false, "sample plates on a raised box build: " .. tostring(zs))
+      end
+    end
+    -- (the mock does not hand frame levels down: read the zoom previews' code instead) no preview
+    -- holder is pinned to a fixed low level - it would lie under its zoom box
+    local pinned = {}
+    for _, file in ipairs({ "castbar-options", "actionbar-options", "buffs-options", "chat-options", "gear-options",
+      "meters-options", "minimap-options", "swing-options", "plates", "plates-options", "sct-preview", "bags-options" }) do
+      local h = io.open(DIR .. "/modules/" .. file .. ".lua", "rb")
+      if h then
+        local src = h:read("*a")
+        h:close()
+        if string.find(src, "holder:SetFrameLevel%(%d%)") or string.find(src, "game:SetFrameLevel%(%d%)") then table.insert(pinned, file) end
+      end
+    end
+    ok(table.getn(pinned) == 0, "no zoom preview pinned to a low frame level: " .. table.concat(pinned, ", "))
   end
 end
 print(string.format("%d checks, %d failed", checks, fails))

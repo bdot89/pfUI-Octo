@@ -1285,6 +1285,22 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     P.Refresh()
   end
 
+  -- A sample's parts that pfUI put on a fixed low level (below the sample
+  -- itself) go up by the sample's level - 1: as on a real plate (level 1),
+  -- only above the preview box. Called again after pfUI sets levels anew.
+  function P.Raise(game)
+    local base = game and game.preview and game:GetFrameLevel()
+    if not base or base < 10 then return end
+    local function Walk(f)
+      for _, kid in ipairs({ f:GetChildren() }) do
+        local l = kid:GetFrameLevel() or 0
+        if l < base - 1 then kid:SetFrameLevel(l + base - 1) end
+        Walk(kid)
+      end
+    end
+    Walk(game)
+  end
+
   local function SamplePlate(box, d)
     local game = CreateFrame("Button", nil, box)
     -- pfUI builds a plate on low frame levels (bar 4, its dark backdrop 3).
@@ -1292,8 +1308,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     -- covered the fill; a layer of its own above the window (menus and
     -- tooltips stay on top) lets every part keep pfUI's own levels.
     -- Children made later take this layer too.
+    -- (8 Nov 2026) Not on level 1 though: inside a zoom box the plate's parts
+    -- (pfUI's own levels 1-8) lay under the box's frames and came out dark
+    -- (user screenshots, twice). The plate starts above the box and P.Raise
+    -- moves pfUI's fixed low levels up by the same amount, keeping their order.
     game:SetFrameStrata("FULLSCREEN")
-    game:SetFrameLevel(1)
+    game:SetFrameLevel((box:GetFrameLevel() or 0) + 20)
     game:SetWidth(150)
     game:SetHeight(60)
     local hb = CreateFrame("StatusBar", nil, game)
@@ -1324,6 +1344,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     game.preview = { state = d.state, target = d.target, class = d.class, cast = d.cast, combat = true, ghost = d.ghost,
       quest = d.quest, data = d }
     NP.OnCreate(game)
+    P.Raise(game)
     -- every part can be clicked to open its options
     local pl = game.nameplate
     local po = pl.octo
@@ -1441,7 +1462,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     box.grid = Grid(box, cells)
     -- (8 Nov 2026) the grid under the plates (bar 4, backdrop 3), not over the
     -- bars; the box's dark fill is in the window's layer (W.ZoomBox)
-    box.grid:SetFrameLevel(1)
+    box.grid:SetFrameLevel((box:GetFrameLevel() or 0) + 1)
     for i = 1, n do
       local game = SamplePlate(box, SAMPLES[i])
       local c = cells[i]
@@ -1478,6 +1499,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       for _, game in ipairs(list) do
         if not hide and not game:IsShown() then game:Show() elseif hide and game:IsShown() then game:Hide() end
         if whole then P.Fit(game) end
+        P.Raise(game)
       end
     end)
     return list
@@ -1539,6 +1561,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   NP.OnConfigChange = function(frame)
     OnConfigChange(frame)
     P.Configure(frame and frame.nameplate)
+    if frame and frame.preview then P.Raise(frame) end
   end
 
   local OnDataChanged = NP.OnDataChanged
@@ -1555,6 +1578,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
     if plate and not plate.octo then return end
     P.Update(plate)
+    if plate.parent and plate.parent.preview then P.Raise(plate.parent) end
   end
 
   -- Calm plates redraw C.plates.calmfps times a second instead of on every
