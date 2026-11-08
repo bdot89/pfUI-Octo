@@ -1302,6 +1302,10 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
         local b = kid.backdrop
         local kl = kid:GetFrameLevel() or 0
         if b and b.GetFrameLevel and kl >= 1 and (b:GetFrameLevel() or 0) >= kl then b:SetFrameLevel(kl - 1) end
+        -- (8 Nov 2026, "STILL DARK") and drawn as textures on the parent, under
+        -- the bar whatever the client does with levels (W.Underlay)
+        local OW = pfUI.octoui and pfUI.octoui.W
+        if b and OW and OW.Underlay then OW.Underlay(kid) end
       end
     end
     Walk(game)

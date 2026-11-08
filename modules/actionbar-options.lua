@@ -345,7 +345,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     local function MiniButton(r)
       local mb = CreateFrame("Frame", nil, r)
       mb:SetFrameLevel(r:GetFrameLevel() + 3)
-      CreateBackdrop(mb)
+      CreateBackdrop(mb) if W.Underlay then W.Underlay(mb) end
       -- (the picture on its own layer, on top: under the copies' parts every
       -- icon came out dark - user, 26 Oct 2026 "still dark")
       mb.art = CreateFrame("Frame", nil, mb)
@@ -427,7 +427,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     b:SetPoint("CENTER", side, "CENTER", 0, 4)
     b.icon = b:CreateTexture(nil, "BACKGROUND")
     b.icon:SetAllPoints(b)
-    CreateBackdrop(b)
+    CreateBackdrop(b) if W.Underlay then W.Underlay(b) end
     -- each text in its own corner, as on a real button
     b.hotkey = b:CreateFontString(nil, "OVERLAY")
     b.hotkey:SetPoint("TOPRIGHT", b, "TOPRIGHT", -3, -3)
@@ -470,7 +470,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
       s:SetPoint(anchor, b, anchor == "RIGHT" and "LEFT" or "RIGHT", x, -18)
       s.icon = s:CreateTexture(nil, "BACKGROUND")
       s.icon:SetAllPoints(s)
-      CreateBackdrop(s)
+      CreateBackdrop(s) if W.Underlay then W.Underlay(s) end
       return s
     end
     local empty = Small("RIGHT", -12)
@@ -807,7 +807,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
       s:SetPoint("TOP", t, "TOP", 0, -11)
       s.icon = s:CreateTexture(nil, "BACKGROUND")
       s.icon:SetAllPoints(s)
-      CreateBackdrop(s)
+      CreateBackdrop(s) if W.Underlay then W.Underlay(s) end
       t.sample = s
       t.key, t.skin, t.zoom = pr[1], pr[3].skin, tonumber(pr[3].zoom) or .08
       t:SetScript("OnClick", function()

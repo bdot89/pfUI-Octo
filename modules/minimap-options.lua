@@ -260,7 +260,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
         h.hl:SetVertexColor(ar, ag, ab, .3)
         local kind = Sample(part.key)
         if kind == "text" or kind == "bar" then
-          if kind == "bar" then CreateBackdrop(h) end
+          if kind == "bar" then CreateBackdrop(h) if W.Underlay then W.Underlay(h) end end
           h.text = h:CreateFontString(nil, "OVERLAY")
           h.text:SetPoint("CENTER", h, "CENTER", 0, 0)
         elseif kind == "icon" then

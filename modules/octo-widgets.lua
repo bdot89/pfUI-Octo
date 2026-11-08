@@ -857,6 +857,59 @@ local function Panel(f, top)
 end
 W.Panel = Panel
 
+-- A pfUI backdrop (f.backdrop: a child FRAME one level under f) drawn as
+-- textures on f's parent instead, for the options previews. (8 Nov 2026, user
+-- after three fixes that kept the backdrop frame "one level under": "STILL
+-- DARK PLEASE FIX THIS ALL PREVIEWS". In game that frame still ended up over
+-- the bar at about half strength. A parent's own textures always draw under
+-- its children, whatever the client does with frame levels.) The original
+-- backdrop frame stays (pfUI code keeps colouring it) but draws nothing; its
+-- colours and f's visibility are copied over every frame.
+function W.Underlay(f)
+  local b = f and f.backdrop
+  local host = f and f.GetParent and f:GetParent()
+  if not b or not host or f.octoUnder then return f and f.octoUnder end
+  if (f:GetFrameLevel() or 0) <= (host:GetFrameLevel() or 0) then f:SetFrameLevel((host:GetFrameLevel() or 0) + 1) end
+  local u = { parts = {} }
+  local function Tex(layer)
+    local t = host:CreateTexture(nil, layer)
+    t:SetTexture(U.WHITE)
+    table.insert(u.parts, t)
+    return t
+  end
+  u.bg = Tex("BACKGROUND")
+  u.bg:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+  u.bg:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+  u.edges = {}
+  local function Edge(p1, p2, horiz)
+    local t = Tex("BORDER")
+    if horiz then t:SetHeight(1) else t:SetWidth(1) end
+    t:SetPoint(p1, b, p1, 0, 0)
+    t:SetPoint(p2, b, p2, 0, 0)
+    table.insert(u.edges, t)
+  end
+  Edge("TOPLEFT", "TOPRIGHT", true)
+  Edge("BOTTOMLEFT", "BOTTOMRIGHT", true)
+  Edge("TOPLEFT", "BOTTOMLEFT")
+  Edge("TOPRIGHT", "BOTTOMRIGHT")
+  b:SetAlpha(0)
+  function u.Sync()
+    if b:GetAlpha() ~= 0 then b:SetAlpha(0) end
+    local show = f:IsVisible() and true or false
+    local r, g, bl, a = b:GetBackdropColor()
+    local er, eg, eb, ea = b:GetBackdropBorderColor()
+    if r then u.bg:SetVertexColor(r, g, bl, a or 1) end
+    if er then for _, t in ipairs(u.edges) do t:SetVertexColor(er, eg, eb, ea or 1) end end
+    for _, t in ipairs(u.parts) do if show then t:Show() else t:Hide() end end
+  end
+  -- kept in step (pfUI recolours borders: target, threat, settings)
+  local watch = CreateFrame("Frame", nil, host)
+  watch:SetScript("OnUpdate", u.Sync)
+  u.Sync()
+  f.octoUnder = u
+  return u
+end
+
 -- Title text in capitals, colour codes kept working (|c / |r stay lower case).
 function W.Caps(text)
   local s = string.upper(W.T(text or ""))

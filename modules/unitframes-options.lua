@@ -859,7 +859,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         local cb = CreateFrame("StatusBar", nil, set)
         cb:SetMinMaxValues(0, 100)
         cb:SetValue(60)
-        CreateBackdrop(cb)
+        CreateBackdrop(cb) if W.Underlay then W.Underlay(cb) end
         cb.text = cb:CreateFontString(nil, "OVERLAY")
         cb.text:SetPoint("LEFT", cb, "LEFT", 3, 0)
         cb.key = key

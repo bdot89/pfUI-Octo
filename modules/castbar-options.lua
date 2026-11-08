@@ -154,6 +154,9 @@ pfUI:RegisterModule("castbar-options", "vanilla:tbc", function ()
     cb.bar.lag:SetPoint("BOTTOMRIGHT", cb.bar, "BOTTOMRIGHT", 0, 0)
     cb.bar.lag:SetTexture(1, .2, .2, .35)
     M.cb = cb
+    -- (8 Nov 2026, "STILL DARK") the dark backdrops as textures on cb, under
+    -- the icon and the bar for sure (W.Underlay in octo-widgets)
+    if W.Underlay then W.Underlay(cb.icon) W.Underlay(cb.bar) end
 
     -- clickable spots
     M.hots = {}

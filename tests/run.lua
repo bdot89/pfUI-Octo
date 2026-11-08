@@ -2800,6 +2800,12 @@ do
     ok(CB and CB.mini and CB.mini.cb, "the cast bar page has its preview")
     if CB and CB.mini then
       local cb = CB.mini.cb
+      -- (8 Nov 2026, "STILL DARK") the dark backdrops draw nothing themselves: their look is textures on the
+      -- parent, under the bar and the icon whatever the levels
+      for _, part in ipairs({ cb.bar, cb.icon }) do
+        local u = part.octoUnder
+        ok(u and part.backdrop:GetAlpha() == 0 and table.getn(u.parts) == 5, "cast bar preview: the backdrop is drawn under its part, on the parent")
+      end
       local sc = pfUI_config.castbar.player
       sc.showicon, sc.showlag = "1", "1"
       CB.mini.Refresh()

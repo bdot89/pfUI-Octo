@@ -1053,3 +1053,10 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    TAB_TOP 88. W.Heading = a slim 14 px line (no picture; p.headingIcon brings it back). Setting rows: faint white
    .025 wash, label at 10, controls at -10 (long-label limits 12 px less). MiniDrop with no value shows a grey
    "Pick one..." (was "nil"); the Profile dropdown starts on C.global.profile when that is a saved profile.
+   Dark previews, fourth time (8 Nov, user screenshot of the cast bar preview: "STILL DARK PLEASE FIX THIS ALL
+   PREVIEWS"). Keeping pfUI's backdrop FRAME one level under its bar (KeepUnder, P.Raise) passed in the mock but
+   not in game. W.Underlay(f) (octo-widgets): the backdrop's fill + 1 px edges as textures on f's PARENT (always
+   under its children), f.backdrop alpha 0, colours / visibility copied each frame (pfUI recolours borders). Used
+   by the cast bar preview (bar, icon), plate samples (P.Raise walk), action bar samples (4), the minimap's bar
+   samples and the unit frame page's cast bar sample. NOT the minimap's outer border frame (its fill would cover
+   the map). Test: cast bar preview backdrops alpha 0 with 5 underlay textures.
