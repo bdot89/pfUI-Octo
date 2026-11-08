@@ -1013,3 +1013,10 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    window's f.title / f.version = the section's name (22 px) and its line (O.SUBTITLE). Footer (O:BuildFooter,
    O.quick): Reload UI (gold while g.settingChanged), Background slider, language button (flag + name, menu ->
    O.SetLanguage), Close. Content sits between tabs (+ the Octo / Blizzard strip) and footer (LayoutSwap).
+   Seen in game 8 Nov; user: the sidebar scrolled ("ALL SHOULD SHOW ALWAYS", scaled to the window), our own
+   features belong in the sidebar not in tabs, tabs "don't stand out", pinned cast bar preview dark. Now: Combat
+   split into Combat Text / Meters / Swing Timer sections and Auto Loot out of Bags & Loot (O.NAV; BZ.GROUPS
+   gained "Combat Text" / "Meters"); LayoutNav sizes rows to the sidebar's height (15-26 px, headings 20 or 15,
+   test at 560 px); tabs are 30 px buttons (lit panel, 14 px words; open = accent fill + edge + 3 px line); card
+   and pin panels are textures on the card itself (W.Panel) - as a child frame the pin's panel lay over the
+   preview at .85 and darkened it.

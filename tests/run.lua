@@ -3525,7 +3525,7 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[7] == "Art & Extras" and heads[11] == "Combat" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[7] == "Art & Extras" and heads[12] == "Combat Text" and heads[13] == "Meters" and heads[14] == "Swing Timer" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -3544,7 +3544,14 @@ do
     local shown = 0
     for _, grp in ipairs(O.groups) do if grp.header:IsShown() then shown = shown + 1 end end
     ok(shown == table.getn(O.groups), "every section shows in a tall list (" .. shown .. "/" .. table.getn(O.groups) .. ")")
+    -- (8 Nov 2026) a short sidebar shrinks its rows: still every section, no scrolling
+    nav.GetHeight = function() return 560 end
+    O:LayoutNav()
+    shown = 0
+    for _, grp in ipairs(O.groups) do if grp.header:IsShown() then shown = shown + 1 end end
+    ok(shown == table.getn(O.groups) and not nav.down:IsShown(), "every section shows in a short list too (" .. shown .. "/" .. table.getn(O.groups) .. ")")
     nav.GetHeight = gh
+    O:LayoutNav()
     -- the corner grip scales the window, within limits, and remembers it
     ok(O.grip ~= nil, "the window has a resize grip")
     O:ApplyScale(3)
@@ -4221,7 +4228,10 @@ do
       Mock.Run(O.swap.parts[1].octo, "OnClick")
       ok(pfUI_config.blizz.unitframes == "0", "one click back")
       O:Select("o:ctgeneral")
-      ok(O.swap:IsShown() and O.swap.parts[1].octo.id == "combattext" and O.swap.parts[2].octo.id == "meters" and not O.swap.parts[3].octo:IsShown(), "Combat: a switch for combat text and one for meters")
+      -- (8 Nov 2026) combat text and meters are sections of their own, each with its switch
+      ok(O.swap:IsShown() and O.swap.parts[1].octo.id == "combattext" and not O.swap.parts[2].octo:IsShown(), "Combat Text: its own switch")
+      O:Select("o:mtwindows")
+      ok(O.swap:IsShown() and O.swap.parts[1].octo.id == "meters", "Meters: its own switch")
       local about
       for k in pairs(O.nav) do if string.find(k, "About") then about = k end end
       if about then

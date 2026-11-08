@@ -504,11 +504,7 @@ function W.Pin(p, title, tip, build)
   pin:SetWidth(W.WIDTH)
   pin:SetHeight(CARD_HEAD)
   -- (8 Nov 2026) the same capitals label as a card, the preview on a soft panel under it
-  local back = CreateFrame("Frame", nil, pin)
-  back:SetPoint("TOPLEFT", pin, "TOPLEFT", 0, -CARD_HEAD)
-  back:SetPoint("BOTTOMRIGHT", pin, "BOTTOMRIGHT", 0, 0)
-  back:SetFrameLevel(pin:GetFrameLevel())
-  W.Flat(back, C.card, 0.85, C.cardLine)
+  local back = W.Panel(pin, CARD_HEAD)
   local head = CreateFrame("Button", nil, pin)
   head:SetPoint("TOPLEFT", pin, "TOPLEFT", 0, 0)
   head:SetPoint("TOPRIGHT", pin, "TOPRIGHT", 0, 0)
@@ -820,6 +816,45 @@ end
 --   tip    = hover text for the bar
 --   text   = one plain line at the top of the card: what it is for
 -- Everything added after it goes inside, until the next card or W.Done.
+-- The soft panel under a card's or pin's label, drawn as textures ON that
+-- frame, from `top` down: a frame's own textures sit under all its children.
+-- (8 Nov 2026: it was a child frame and lay OVER the pinned previews - the
+-- cast bar preview came out dark, user screenshot.) :Show() / :Hide().
+local function Panel(f, top)
+  local parts = {}
+  local function Tex(layer, col, a)
+    local t = f:CreateTexture(nil, layer)
+    t:SetTexture(U.WHITE)
+    t:SetVertexColor(col[1], col[2], col[3], a)
+    table.insert(parts, t)
+    return t
+  end
+  local bg = Tex("BACKGROUND", C.card, 0.85)
+  bg:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -top)
+  bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+  local e = Tex("BORDER", C.cardLine, 1)
+  e:SetHeight(1)
+  e:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -top)
+  e:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, -top)
+  e = Tex("BORDER", C.cardLine, 1)
+  e:SetHeight(1)
+  e:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+  e:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+  e = Tex("BORDER", C.cardLine, 1)
+  e:SetWidth(1)
+  e:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -top)
+  e:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
+  e = Tex("BORDER", C.cardLine, 1)
+  e:SetWidth(1)
+  e:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, -top)
+  e:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
+  local p = {}
+  function p.Show() for i = 1, table.getn(parts) do parts[i]:Show() end end
+  function p.Hide() for i = 1, table.getn(parts) do parts[i]:Hide() end end
+  return p
+end
+W.Panel = Panel
+
 -- Title text in capitals, colour codes kept working (|c / |r stay lower case).
 function W.Caps(text)
   local s = string.upper(W.T(text or ""))
@@ -839,11 +874,7 @@ function W.Card(p, title, o)
   card:SetWidth(W.WIDTH - 2 * X)
   card:SetHeight(CARD_HEAD)
   Put(p, card, 0, (table.getn(p.cards) == 0) and 10 or 14)
-  local panel = CreateFrame("Frame", nil, card)
-  panel:SetPoint("TOPLEFT", card, "TOPLEFT", 0, -CARD_HEAD)
-  panel:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", 0, 0)
-  panel:SetFrameLevel(card:GetFrameLevel())
-  W.Flat(panel, C.card, 0.85, C.cardLine)
+  local panel = Panel(card, CARD_HEAD)
   local head = CreateFrame("Button", nil, card)
   head:SetPoint("TOPLEFT", card, "TOPLEFT", 0, 0)
   head:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, 0)

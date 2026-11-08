@@ -41,8 +41,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Art & Extras", { "Art", "WeirdUtils" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
-    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot", "Auto Loot" } },
-    { "Combat", { "Combat Text", "Meters", "Swing Timer" } },
+    -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
+    -- should be on this bar also for easy access not ... inside a tab")
+    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
+    { "Auto Loot", { "Auto Loot" } },
+    { "Combat Text", { "Combat Text" } },
+    { "Meters", { "Meters" } },
+    { "Swing Timer", { "Swing Timer" } },
     { "Gear", { "Gear" } },
     { "Tooltip", { "Tooltip" } },
     { "Add-ons", { "Thirdparty", "Components" } },
@@ -61,7 +66,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   O.NAVGROUPS = {
     { "General", { "Settings", "Blizzard UI", "UI layouts" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat", "Gear", "Tooltip" } },
+    { "Combat & Items", { "Bags & Loot", "Auto Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
@@ -78,8 +83,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Art & Extras"] = "Gryphons, panels and small extras.",
     ["Chat & Panels"] = "Chat windows, tabs, the info panels and the XP bar.",
     ["Minimap & Buffs"] = "The minimap, its buttons, and your buffs and debuffs.",
-    ["Bags & Loot"] = "Bags, bank, loot rolls and auto loot.",
-    ["Combat"] = "Combat text, meters and the swing timer.",
+    ["Bags & Loot"] = "Bags, bank and loot rolls.",
+    ["Auto Loot"] = "What is looted for you, and its log.",
+    ["Combat Text"] = "Numbers over heads and around your character.",
+    ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
+    ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
@@ -1123,15 +1131,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
     local x, line, width = 0, 0, row:GetWidth() or 600
     for _, b in ipairs(grp and grp.buttons or {}) do
-      local w = math.floor((b.text:GetStringWidth() or 60) + 22)
+      local w = math.max(70, math.floor((b.text:GetStringWidth() or 60) + 30))
       if x > 0 and x + w > width then x, line = 0, line + 1 end
       b:ClearAllPoints()
-      b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -line * 24)
+      b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -line * 34)
       b:SetWidth(w)
       b:Show()
-      x = x + w + 2
+      x = x + w + 4
     end
-    local h = (line + 1) * 24
+    local h = line * 34 + 30
     row:SetHeight(h)
     return h
   end
@@ -1249,20 +1257,28 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- One topic = a text tab over the page (8 Nov 2026; they used to unfold
   -- under their section in the sidebar): grey words, the picked one white
   -- with an accent line under it. O:LayoutTabs places them.
+  -- (8 Nov 2026, user: the text tabs "don't stand out no where near enough
+  -- ... should be the first thing you see") Real buttons: a lit panel with
+  -- bright words; the open one filled with the accent, a bright edge and a
+  -- thick accent line under it.
+  local TAB_H = 30
   local function NavButton(label, indent)
     local b = CreateFrame("Button", nil, O.tabRow or O.navFrame)
-    b:SetHeight(24)
+    b:SetHeight(TAB_H)
+    W.Flat(b, K.btn, 1, K.lineHi)
+    b.tab = true
     b.sel = W.Fill(b, K.accent, 0, "BACKGROUND")
     b.sel:SetAllPoints(b)
     b.sel:Hide()
-    b.bar = W.Fill(b, K.accent, 1, "BORDER")
-    b.bar:SetHeight(2)
-    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 6, 0)
-    b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 0)
+    b.bar = W.Fill(b, K.accent, 1, "OVERLAY")
+    b.bar:SetHeight(3)
+    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 1, 1)
+    b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
     b.bar:Hide()
-    local hl = W.Fill(b, { 1, 1, 1 }, 0.04, "HIGHLIGHT")
-    hl:SetAllPoints(b)
-    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.dim[1], K.dim[2], K.dim[3])
+    local hl = W.Fill(b, { 1, 1, 1 }, 0.08, "HIGHLIGHT")
+    hl:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
+    hl:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 14, .9, .91, .93)
     b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
     b.text:SetText(label)
     b.indent = indent
@@ -1278,7 +1294,17 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     else
       b.sel:Hide()
       b.bar:Hide()
-      b.text:SetTextColor(K.dim[1], K.dim[2], K.dim[3])
+      b.text:SetTextColor(b.tab and .9 or K.dim[1], b.tab and .91 or K.dim[2], b.tab and .93 or K.dim[3])
+    end
+    if b.tab then
+      local a = K.accent
+      if on then
+        b:SetBackdropColor(a[1] * .42, a[2] * .42, a[3] * .42, 1)
+        b:SetBackdropBorderColor(a[1], a[2], a[3], 1)
+      else
+        b:SetBackdropColor(K.btn[1], K.btn[2], K.btn[3], 1)
+        b:SetBackdropBorderColor(K.lineHi[1], K.lineHi[2], K.lineHi[3], 1)
+      end
     end
   end
 
@@ -1596,19 +1622,44 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- than the column. The pages are tabs over the page, not rows here.
   function O:LayoutNav()
     local nav = self.navFrame
+    -- (8 Nov 2026, user: "should not need scrolling ... ALL SHOULD SHOW
+    -- ALWAYS") the rows shrink to whatever height the sidebar has
+    local known = (nav:GetHeight() or 0) - 10
+    local fit = (known >= 100) and known or 700
+    local n, m = 0, 0
+    for _, grp in ipairs(self.groups) do
+      n = n + 1
+      if grp.headFrame then m = m + 1 end
+    end
+    local hh, gap = 20, 6
+    local rh = math.floor((fit - NAV_TOP - m * hh - math.max(0, m - 1) * gap) / math.max(n, 1))
+    if rh < 24 then
+      hh, gap = 15, 2
+      rh = math.floor((fit - NAV_TOP - m * hh - math.max(0, m - 1) * gap) / math.max(n, 1))
+    end
+    rh = math.max(15, math.min(26, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
       if grp.headFrame then
-        y = y + ((y > NAV_TOP) and 6 or 0)
-        table.insert(rows, { grp.headFrame, 0, y, 20 })
-        y = y + 20
+        y = y + ((y > NAV_TOP) and gap or 0)
+        grp.headFrame:SetHeight(hh)
+        table.insert(rows, { grp.headFrame, 0, y, hh })
+        y = y + hh
       end
-      y = y + 1
-      table.insert(rows, { grp.header, 0, y, 24 })
-      y = y + 25
+      local h = grp.header
+      if h.rowH ~= rh then
+        h.rowH = rh
+        h:SetHeight(rh - 1)
+        local ps = math.max(12, math.min(18, rh - 6))
+        h.pic:SetWidth(ps)
+        h.pic:SetHeight(ps)
+        W.Font(h.text, (rh >= 22) and 13 or 12)
+      end
+      table.insert(rows, { h, 0, y, rh - 1 })
+      y = y + rh
       self:PowerFor(grp)
     end
-    local room = (nav:GetHeight() or 0) - 10
+    local room = known
     if room >= 100 then nav.laidH = room + 10 end
     if room < 100 then
       -- the height is not known yet (the client reports it a frame late):
@@ -1738,7 +1789,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local grp = key and self.groupOf and self.groupOf[key]
     local ids = BZ and grp and BZ.GROUPS and BZ.GROUPS[grp.name]
     -- (8 Nov 2026) under the page tabs, above the footer
-    local top = TAB_TOP + (self.tabsH or 24) + 8
+    local top = TAB_TOP + (self.tabsH or 30) + 8
     self.content:ClearAllPoints()
     self.content:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -12, 12 + FOOT + 6)
     if not ids then
