@@ -241,9 +241,10 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       W.Tip(new, "New window", "Adds a meter window (up to " .. M.MAXWIN .. "). It floats: move it with Move frames or its title bar.")
       MO.newBtn = new
       -- (user, 24 Oct 2026: at the top, whichever window is being changed)
-      local row2 = W.Row(p, 24, 0, 4)
-      local match = W.Button(row2, "Match all windows to this one", 230, 22)
-      match:SetPoint("LEFT", row2, "LEFT", 0, 0)
+      -- (8 Nov 2026: on the test row's end - its own row made the preview too tall)
+      local row3 = W.Row(p, 24, 0, 4)
+      local match = W.Button(row3, "Match others", 110, 22)
+      match:SetPoint("RIGHT", row3, "RIGHT", 0, 0)
       match:SetScript("OnClick", function()
         local n = M.MatchAll and M.MatchAll(MO.cur) or 0
         DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r meters: " .. n .. " " .. (n == 1 and "window" or "windows")
@@ -255,7 +256,6 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       -- (25 Oct 2026, user: "i want this button to open the preview box up the top ... a test mode for everything
       -- added ... it should be clear") the tests sit up here, always in view: a made-up fight for every window,
       -- the breakdown on top of everything, a tour of its views, the threat label and the status bar
-      local row3 = W.Row(p, 24, 0, 4)
       local function TestFight() if M.TestMode and not M.testOn then M.TestMode(true) end end
       local function OpenBreakdown(tour)
         TestFight()
@@ -290,7 +290,9 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         b:SetScript("OnClick", function() fn() end)
         W.Tip(b, t[1], t[4])
       end
-      local box = (W.ZoomBox or W.Box)(p, 250)
+      -- (8 Nov 2026, user: the preview took most of the window - "previews ... should be slender": 150 high, the
+      -- window is scaled to fit it)
+      local box = (W.ZoomBox or W.Box)(p, 150)
       MO.box = box
       -- the preview window, a real one
       local pw = M.CreateWindow(MO.cur, { parent = box, cfg = MO.cur })

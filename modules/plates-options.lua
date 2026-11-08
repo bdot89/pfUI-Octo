@@ -169,7 +169,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     -- (29 Oct 2026, user: the preview "takes up too much room"): the full one
     -- on General and Look and size; a short box without the legend elsewhere
     local full = not p.key or p.key == "npgeneral" or p.key == "nplook"
-    local box = (W.ZoomBox or W.Box)(p, h or (full and 215 or 110))
+    local box = (W.ZoomBox or W.Box)(p, h or (full and 170 or 110))
     local samples = P.AttachPreview(box)
     -- Shift + wheel anywhere on the box sizes the part under the mouse; the
     -- plain wheel scrolls the page

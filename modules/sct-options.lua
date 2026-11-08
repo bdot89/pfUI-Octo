@@ -106,7 +106,7 @@ local function Preview(p)
   W.Pin(p, "Preview", "A small copy of your screen: every scroll area where it sits, an enemy nameplate, and "
     .. "sample texts moving as you set them. Click an area for its options, drag it to move it, hold Shift and scroll "
     .. "the mouse wheel over it for its text size, right-click it to put it back. Click this bar to fold it away.", function(p)
-  local mini = CT.Mini((W.ZoomBox or W.Box)(p, 190), function(key)
+  local mini = CT.Mini((W.ZoomBox or W.Box)(p, 150), function(key)
     if key == "plate" then
       O:Open("ctplates")
     else
