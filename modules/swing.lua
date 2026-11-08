@@ -815,6 +815,9 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       return
     end
     if evt == "START_AUTOREPEAT_SPELL" then Speeds() s.rgSeen = now() return end
+    -- (8 Nov 2026, user: the wand bar "stays up for a long time after you finish shooting it should go
+    -- instant") stopping the wand / Auto Shot takes the bar away at once (it waited 10 s)
+    if evt == "STOP_AUTOREPEAT_SPELL" then s.rgSeen = 0 return end
     -- SuperWoW: the exact hand, your target's swings, shots and next-swing attacks
     if evt == "UNIT_CASTEVENT" then
       local caster, kind, id = a1, a3, a4

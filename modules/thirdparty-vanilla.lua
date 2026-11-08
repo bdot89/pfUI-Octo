@@ -954,6 +954,11 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
       if not frame or not frame.SearchBox or not frame.MaterialsButton or not frame.LinkButton then
         return
       end
+      -- (octo, 8 Nov 2026: each Crafty frame once - the trade skill window and the craft window
+      -- (Enchanting) each have their own; a flag for the whole skin left the second one unskinned,
+      -- its search box over the list)
+      if frame.pfCraftySkinned then return end
+      frame.pfCraftySkinned = true
 
       StripTextures(frame)
       CreateBackdrop(frame)
@@ -998,11 +1003,9 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
         end
       end
 
-      self.skinned = true
     end
 
     craftyskin:SetScript("OnEvent", function()
-      if this.skinned then return end
       craftyskin:Show()
     end)
 
