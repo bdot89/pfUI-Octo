@@ -1044,3 +1044,12 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    interface", version at its foot, accent capitals headings, sections indented 14. Rows 32 px; every slider 120
    (+ number box) and every dropdown 180 wide, right edges -4, so controls share one column; labels over 172 px
    take the whole row. Footer: Reload UI 120 left, Close 120 right, Background + language centred.
+   Third pass (8 Nov, NOT seen in game; user via the top session: "the header shows in BIG what page you are on
+   ... ours still looks very unprofesinal"). Their screenshot of Settings had an EMPTY header and no tab: BuildNav
+   kept one source per name, so pfUI's "Settings" category replaced the Octo "Settings" section and
+   "o:stgeneral" had no topic (shown via OpenSection / O:Open without Select doing anything). Now a source can be
+   both (octo pages first, then the category's); test opens Settings by Select / Open / OpenSection and wants
+   the title and a tab. Header title 34 px FiraSansCondensed-SemiBold (not for ru / ko / zh), subtitle 13 px,
+   TAB_TOP 88. W.Heading = a slim 14 px line (no picture; p.headingIcon brings it back). Setting rows: faint white
+   .025 wash, label at 10, controls at -10 (long-label limits 12 px less). MiniDrop with no value shows a grey
+   "Pick one..." (was "nil"); the Profile dropdown starts on C.global.profile when that is a saved profile.

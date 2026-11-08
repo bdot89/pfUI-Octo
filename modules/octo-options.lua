@@ -61,7 +61,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (8 Nov 2026, the EllesmereUI-like shell) where the section list starts in
   -- the sidebar (under the name and the big entries), where the page tabs
   -- sit, and the footer's height
-  local NAV_TOP, TAB_TOP, FOOT = 168, 74, 34
+  local NAV_TOP, TAB_TOP, FOOT = 168, 88, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
@@ -811,11 +811,18 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- itself is a darker well. Title 28 px, a grey line under it.
     f.title:ClearAllPoints()
     f.title:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 34, -16)
-    W.Font(f.title, 28, K.text[1], K.text[2], K.text[3])
+    W.Font(f.title, 34, K.text[1], K.text[2], K.text[3])
+    -- (8 Nov 2026, user: "the header shows in BIG what page you are on")
+    -- a bold face for the big title, where the language has its letters
+    local BOLD = "Interface\\AddOns\\pfUI\\fonts\\FiraSansCondensed-SemiBold.ttf"
+    local lang = W.Lang()
+    if lang ~= "ruRU" and lang ~= "koKR" and lang ~= "zhCN" and lang ~= "zhTW" and W.FontOK(BOLD) then
+      f.title:SetFont(BOLD, 34, "")
+    end
     f.title:SetText("")
     f.version:ClearAllPoints()
-    f.version:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 1, -6)
-    W.Font(f.version, 12, K.dim[1], K.dim[2], K.dim[3])
+    f.version:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 2, -6)
+    W.Font(f.version, 13, .72, .73, .77)
     f.version:SetText("")
     local close = W.Button(f, "X", 26, 26)
     close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -14)
@@ -1477,8 +1484,16 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       -- pfUI's own children are hidden away; gui.lua keeps driving them
       e.cat:SetParent(hidden)
       for _, pg in ipairs(e.pages) do pg.btn:SetParent(hidden) end
-      sources[e.name] = { legacy = e }
-      table.insert(order, e.name)
+      -- (8 Nov 2026) an Octo section and a pfUI category of the same name
+      -- ("Settings") are one section with both sets of pages: the category
+      -- used to replace the Octo pages, so "Scale, profiles and look" had no
+      -- topic - opened from Profiles it showed with an empty header and tabs
+      if sources[e.name] then
+        sources[e.name].legacy = e
+      else
+        sources[e.name] = { legacy = e }
+        table.insert(order, e.name)
+      end
     end
 
     -- the sections in O.NAV's order (user, 22 Oct 2026: "reorder them in order
@@ -1508,7 +1523,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     for _, sec in ipairs(plan) do
       local title, list = sec[1], sec[2]
       local only = sources[list[1]]
-      if table.getn(list) == 1 and only.legacy and table.getn(only.legacy.pages) == 0 then
+      if table.getn(list) == 1 and only.legacy and not only.octo and table.getn(only.legacy.pages) == 0 then
         -- one pfUI category without pages: the header is the topic
         local e = only.legacy
         local grp = Group(title, true)
@@ -1526,7 +1541,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
           local s = sources[name]
           if s.octo then
             for _, pg in ipairs(s.octo[2]) do Topic(grp, "o:" .. pg[1], pg[2]) end
-          else
+          end
+          if s.legacy then
             local e = s.legacy
             if table.getn(e.pages) == 0 then
               local key = "l:" .. e.name
@@ -2542,7 +2558,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       return out
     end
     W.Dropdown(p, "Profile", "Pick one, then Load, Save over it or Delete.", List,
-      function() return O.prof.pick end, function(v) O.prof.pick = v end)
+      function()
+        -- nothing picked yet: the profile in use, when it is a saved one
+        if O.prof.pick == nil then
+          local cur = C.global and C.global.profile
+          if cur and pfUI_profiles and pfUI_profiles[cur] then O.prof.pick = cur end
+        end
+        return O.prof.pick
+      end, function(v) O.prof.pick = v end)
     W.Buttons(p, {
       { "Load", function()
         local n = O.prof.pick

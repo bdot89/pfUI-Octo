@@ -761,10 +761,12 @@ end
 function W.Heading(p, text, o)
   o = o or {}
   p.title = text
-  local fs = W.Font(p.body:CreateFontString(nil, "OVERLAY"), 17, C.text[1], C.text[2], C.text[3])
+  -- (8 Nov 2026) the window's big header names the page now; this is a slim
+  -- line for its switch and "How it works" (no picture: the sidebar has it)
+  local fs = W.Font(p.body:CreateFontString(nil, "OVERLAY"), 14, C.text[1], C.text[2], C.text[3])
   fs:SetText(text)
-  Put(p, fs, p.icon and 30 or 2, 6)
-  if p.icon then
+  Put(p, fs, 2, 6)
+  if p.icon and p.headingIcon then
     local ic = p.body:CreateTexture(nil, "ARTWORK")
     ic:SetTexture(p.icon)
     ic:SetTexCoord(.08, .92, .08, .92)
@@ -1028,9 +1030,12 @@ end
 local function SettingRow(p, label, full)
   local row, c = Cell(p, ROW, full)
   local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  fs:SetPoint("LEFT", row, "LEFT", 4, 0)
+  fs:SetPoint("LEFT", row, "LEFT", 10, 0)
   fs:SetJustifyH("LEFT")
   fs:SetText(label)
+  -- (8 Nov 2026, EllesmereUI-like: "subtle row backgrounds") a faint wash per row
+  local wash = W.Fill(row, { 1, 1, 1 }, 0.025, "BACKGROUND")
+  wash:SetAllPoints(row)
   local line = W.Fill(row, C.rowLine, 1, "BACKGROUND")
   line:SetHeight(1)
   line:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
@@ -1096,10 +1101,10 @@ end
 -- full: take the whole row (a label too long for half a row does by itself).
 function W.Check(p, label, desc, get, set, full)
   local row, c, fs = SettingRow(p, label, full)
-  if not full and LabelWidth(fs) > HALF - 56 then full = true end
+  if not full and LabelWidth(fs) > HALF - 68 then full = true end
   row:SetWidth(full and c.width or HALF)
   local cb = W.CheckPill(row)
-  cb:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+  cb:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   local function Click()
     cb.Paint()
     set(cb:GetChecked() and true or false)
@@ -1181,7 +1186,7 @@ function W.Slider(p, label, desc, min, max, step, get, set, fmt)
   -- (8 Nov 2026) one line: label left, slider and its number box right
   local row, c, lab = SettingRow(p, label)
   local val = W.NumberBox(row, 52)
-  val:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+  val:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   -- the number sits in a faint box so it reads as something to type in
   val:SetBackdropColor(C.field[1], C.field[2], C.field[3], .8)
   val:SetBackdropBorderColor(C.cardLine[1], C.cardLine[2], C.cardLine[3], 1)
@@ -1195,7 +1200,7 @@ function W.Slider(p, label, desc, min, max, step, get, set, fmt)
   -- (one width for every slider and every dropdown, so the controls line up in one column)
   local sw = 120
   -- a label too long for half a row takes the whole row
-  local full = LabelWidth(lab) > HALF - 84 - sw
+  local full = LabelWidth(lab) > HALF - 96 - sw
   if full then row:SetWidth(c.width) sw = 220 end
   local s = W.SliderBar(row, sw, Name("Slider"))
   s:SetPoint("RIGHT", val, "LEFT", -8, 0)
@@ -1602,6 +1607,12 @@ function W.MiniDrop(parent, width, options, get, set, menuWidth)
         return
       end
     end
+    -- (8 Nov 2026: the Profiles card showed "nil") nothing picked = a grey hint
+    if k == nil then
+      W.Font(text, 11, C.dim[1], C.dim[2], C.dim[3])
+      text:SetText("Pick one...")
+      return
+    end
     W.Font(text, 11, C.text[1], C.text[2], C.text[3])
     text:SetText(tostring(k))
   end
@@ -1679,11 +1690,11 @@ function W.Dropdown(p, label, desc, options, get, set)
   -- (8 Nov 2026) one line: label left, the box right
   local row, c, lab = SettingRow(p, label)
   local dw = 180 -- = slider (120) + gap + number box: right-hand controls share one left edge
-  local full = LabelWidth(lab) > HALF - 24 - dw
+  local full = LabelWidth(lab) > HALF - 36 - dw
   if full then row:SetWidth(c.width) dw = 280 end
   RowHit(row, lab, label, desc)
   local f, Refresh, hit = W.MiniDrop(row, dw, options, get, set, math.max(dw, 200))
-  f:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+  f:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   W.Tip(hit, label, desc)
   if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
@@ -1710,7 +1721,7 @@ function W.Color(p, label, desc, get, set)
   -- (8 Nov 2026) label left, the swatch right; the whole row picks
   local row, c, fs = SettingRow(p, label)
   local sw = W.Swatch(row, 18)
-  sw:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+  sw:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   local function Apply() sw.fill:SetVertexColor(get()) end
   RowHit(row, fs, label, desc or "Click to pick a colour.", function() sw:Click() end)
   sw:SetScript("OnClick", function()

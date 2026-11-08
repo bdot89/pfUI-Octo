@@ -3583,6 +3583,18 @@ do
       Mock.Run(row, "OnClick")
       ok(was ~= "k1" and picked == was, "a scrolled long menu picks the row clicked (" .. tostring(was) .. " -> " .. tostring(picked) .. ")")
     end
+    -- (8 Nov 2026, user screenshot: the header was empty on the Settings page) every way in names the page
+    for _, how in ipairs({ "select", "open", "profiles" }) do
+      pfUI.gui:Hide()
+      O.frame.title:SetText("")
+      if how == "select" then pfUI.gui:Show() O:Select("o:stgeneral")
+      elseif how == "open" then O:Open("stgeneral")
+      else pfUI.plates.OpenSection("stgeneral", "Profiles") end
+      local t = O.frame.title:GetText()
+      local tabs = 0
+      for _, b in ipairs(O.groupOf["o:stgeneral"] and O.groupOf["o:stgeneral"].buttons or {}) do if b:IsShown() then tabs = tabs + 1 end end
+      ok(t and t ~= "" and tabs > 0, "Settings opened by " .. how .. ": big title (" .. tostring(t) .. ") and its tab")
+    end
     -- the corner grip scales the window, within limits, and remembers it
     ok(O.grip ~= nil, "the window has a resize grip")
     O:ApplyScale(3)
