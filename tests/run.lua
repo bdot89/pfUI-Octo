@@ -3525,7 +3525,7 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    ok(heads[1] == "Settings" and heads[2] == "Blizzard UI" and heads[3] == "UI layouts" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[7] == "Art & Extras" and heads[12] == "Combat Text" and heads[13] == "Meters" and heads[14] == "Swing Timer" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[9] == "Art & Extras" and heads[10] == "Gear" and heads[11] == "Meters" and heads[12] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do

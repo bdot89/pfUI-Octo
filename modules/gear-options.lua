@@ -446,6 +446,10 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
       local k = spot:GetEffectiveScale() / UIParent:GetEffectiveScale()
       local l, bt = (spot:GetLeft() or 0) * k, (spot:GetBottom() or 0) * k
       local w, h = (spot:GetWidth() or 1) * k, (spot:GetHeight() or 1) * k
+      -- (8 Nov 2026, user: "the character is zoomed in like this") a model fills its frame's width, so a
+      -- wide spot made the body taller than it: the frame keeps a dressing room's shape, centred in the spot
+      local fw = math.min(w, h * .8)
+      l, w = l + (w - fw) / 2, fw
       if l ~= model.l or bt ~= model.b or w ~= model.w or h ~= model.h then
         model.l, model.b, model.w, model.h = l, bt, w, h
         model:ClearAllPoints()

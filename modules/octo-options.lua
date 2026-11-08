@@ -31,25 +31,27 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   O.replaced = O.replaced or {}
   -- the topic list, most used first: { section title, { sources... } };
   -- a source is an Octo section or a pfUI category, by name
+  -- (8 Nov 2026, user: "re order these by importance Gear for example should be at the top of combat and
+  -- items"): most used first within each sidebar heading
   O.NAV = {
     { "Settings", { "Settings" } },
-    { "Blizzard UI", { "Blizzard UI" } },
     { "UI layouts", { "UI layouts" } },
+    { "Blizzard UI", { "Blizzard UI" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Nameplates", { "Nameplates" } },
-    { "Art & Extras", { "Art", "WeirdUtils" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
+    { "Art & Extras", { "Art", "WeirdUtils" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
-    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
-    { "Auto Loot", { "Auto Loot" } },
-    { "Combat Text", { "Combat Text" } },
-    { "Meters", { "Meters" } },
-    { "Swing Timer", { "Swing Timer" } },
     { "Gear", { "Gear" } },
+    { "Meters", { "Meters" } },
+    { "Combat Text", { "Combat Text" } },
+    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
+    { "Swing Timer", { "Swing Timer" } },
     { "Tooltip", { "Tooltip" } },
+    { "Auto Loot", { "Auto Loot" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
   }
