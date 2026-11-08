@@ -5685,6 +5685,9 @@ dofile(DIR .. "/tests/wuguard.lua")
 -- target range (6 Nov 2026)
 dofile(DIR .. "/tests/range.lua")
 
+-- pfUI-CustomMedia built in (7 Nov 2026)
+dofile(DIR .. "/tests/custommedia.lua")
+
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
 

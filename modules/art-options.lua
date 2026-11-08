@@ -14,6 +14,33 @@ pfUI:RegisterModule("art-options", "vanilla", function ()
     W.Heading(p, "Art", { about = "Pictures for the raid marks and the elite / rare / boss crests on unit frames. "
       .. "Every set is drawn for pfUI Octo." })
 
+    -- ------------------------------------------------------------ custom media
+    local CM = pfUI.custommedia
+    if CM then
+      local L = CM.list
+      W.Card(p, "Custom media", { icon = "Interface\\Icons\\INV_Misc_Gem_Variety_02",
+        tip = "pfUI-CustomMedia by Mr_Rosh (MIT) is built in. Every texture, font and gryphon menu in pfUI Octo has these: long menus scroll and have a box to type a filter." })
+      W.Note(p, table.getn(L.bars) .. " bar textures, " .. table.getn(L.fonts) .. " fonts, " .. table.getn(L.gryphons) .. " gryphon pictures and "
+        .. table.getn(L.backgrounds) .. " button backgrounds - pfUI-CustomMedia by Mr_Rosh. They are in every bar texture menu (unit frames, "
+        .. "cast bars, nameplates, meters, swing timer, XP bar), every font menu, and the Gryphons page.")
+      W.Card(p, "Button backgrounds", { icon = "Interface\\Icons\\INV_Misc_Gem_Pearl_02",
+        tip = "A picture behind every action button, or every bag slot." })
+      local function Back(label, texKey, colKey)
+        local opts = { { key = "none", label = "None" } }
+        for _, b in ipairs(CM.BACK) do table.insert(opts, { key = b.key, label = b.label, texture = b.texture }) end
+        W.Dropdown(p, label, nil, opts, function() return C.custommedia[texKey] end, function(v) C.custommedia[texKey] = v CM.Apply() end)
+        W.Color(p, label .. " colour", "The picture's colour and see-through-ness.", function()
+          local r, g, b, a = GetStringColor(C.custommedia[colKey] or "1,1,1,.5")
+          return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
+        end, function(r, g, b, a)
+          C.custommedia[colKey] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
+          CM.Apply()
+        end)
+      end
+      Back("Action buttons", "actionbar_texture", "actionbar_color")
+      Back("Bag slots", "bags_texture", "bags_color")
+    end
+
     -- ---------------------------------------------------------------- raid marks
     W.Card(p, "Raid marks", { icon = "Interface\\Icons\\INV_Misc_Gem_Variety_01",
       tip = "The eight marks (star, circle, diamond, triangle, moon, square, cross, skull) on unit frames, nameplates and the game's own frames." })

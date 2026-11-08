@@ -1408,6 +1408,13 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     Drop(p, "Right end at", nil, DD("xpanchors"), GRY, "anchor_right", UGP)
     Sld(p, "Left / right", nil, -200, 200, 1, GRY, "offset_h", Px, UGP)
     Sld(p, "Up / down", nil, -100, 100, 1, GRY, "offset_v", Px, UGP)
+    -- (8 Nov 2026, pfUI-CustomMedia's movable gryphons: Move frames drags each end on its own)
+    W.Buttons(p, {
+      { "Move them", function() if pfUI.unlock then pfUI.unlock:Show() end end, 110,
+        "Move frames: drag each end anywhere on the screen.", role = "open" },
+      { "Put back on the bar", function() if pfUI.gryphons and pfUI.gryphons.ResetPosition then pfUI.gryphons.ResetPosition() end end, 150,
+        "Both ends back at the bar's ends (the places above).", role = "danger" },
+    })
   end
 
   O.replaced[T["Actionbar"]] = true

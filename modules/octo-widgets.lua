@@ -151,7 +151,8 @@ for i = 1, table.getn(W.FONTS) do W.FONTS[i].font = W.FONTS[i].key end
 function W.Fonts()
   local out = {}
   for i = 1, table.getn(W.FONTS) do
-    if W.FontOK(W.FONTS[i].key) then table.insert(out, W.FONTS[i]) end
+    -- (trusted: shipped fonts are not loaded just to be tried - 72 of them would stall the first menu)
+    if W.FONTS[i].trusted or W.FontOK(W.FONTS[i].key) then table.insert(out, W.FONTS[i]) end
   end
   return out
 end
@@ -1220,7 +1221,115 @@ end
 -- in that font; an option with `group` starts a heading line. More than
 -- MENU_ROWS lines wrap into further columns so a long list stays on screen.
 local MENU_ROWS = 20
+-- A long list (bar textures, fonts, gryphons: hundreds) as ONE column of LONG_ROWS rows that scrolls with
+-- the wheel and has a box to type a filter in (7 Nov 2026, pfUI-CustomMedia's 400 textures). Only the rows
+-- in view are made and only their pictures / fonts are loaded - the client reads those on the main thread, so
+-- a menu that loaded all of them would freeze it. Same options and the same answer as W.Menu.
+local LONG_ROWS = 18
+local LONG_AFTER = 40
+function W.LongMenu(anchor, options, width, onPick)
+  local w = math.max(width, 250)
+  local menu = CreateFrame("Frame", nil, UIParent)
+  menu:SetWidth(w)
+  menu:SetHeight(LONG_ROWS * 17 + 8 + 30 + 14)
+  menu:SetFrameStrata("FULLSCREEN_DIALOG")
+  menu:SetClampedToScreen(true)
+  menu:EnableMouse(true)
+  menu:EnableMouseWheel(true)
+  W.Flat(menu, C.card, 0.98, C.lineHi)
+  menu:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+  menu:Hide()
+  table.insert(W.menus, menu)
+  menu.long = true
+  local view, offset = {}, 0
+  local box = W.EditBox(menu, w - 16, Name("MenuFilter"))
+  box:SetPoint("TOPLEFT", menu, "TOPLEFT", 8, -6)
+  local hint = W.Font(box:CreateFontString(nil, "OVERLAY"), 11, C.dim[1], C.dim[2], C.dim[3])
+  hint:SetPoint("LEFT", box, "LEFT", 7, 0)
+  hint:SetText("Type to filter...")
+  local count = W.Font(menu:CreateFontString(nil, "OVERLAY"), 10, C.dim[1], C.dim[2], C.dim[3])
+  count:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -8, 4)
+  local rows = {}
+  local function Refresh()
+    local total = table.getn(view)
+    local maxoff = math.max(0, total - LONG_ROWS)
+    if offset > maxoff then offset = maxoff end
+    if offset < 0 then offset = 0 end
+    for i = 1, LONG_ROWS do
+      local e, o = rows[i], view[offset + i]
+      if o then
+        e.opt, e.key = o, o.key
+        e.t:SetFont(o.font or W.UIFont(), o.font and 13 or 11, (o.texture and not o.font) and "OUTLINE" or "")
+        e.t:SetText(o.label)
+        if o.group then e.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) else e.t:SetTextColor(C.text[1], C.text[2], C.text[3]) end
+        if o.texture then e.strip:SetTexture(o.texture) e.strip:Show() else e.strip:Hide() end
+        e.hl:SetAlpha(o.key ~= nil and 1 or 0)
+        e:Show()
+      else
+        e.opt = nil
+        e:Hide()
+      end
+    end
+    count:SetText(total == 0 and "nothing matches" or ((offset + 1) .. " - " .. math.min(offset + LONG_ROWS, total) .. " of " .. total))
+  end
+  local function Filter()
+    view = {}
+    local q = string.lower(box:GetText() or "")
+    for _, o in ipairs(options) do
+      if q == "" or string.find(string.lower(o.label or ""), q, 1, true) then table.insert(view, o) end
+    end
+    offset = 0
+    if q == "" and not box.typing then hint:Show() else hint:Hide() end
+    Refresh()
+  end
+  local function Wheel() offset = offset - (_G.arg1 or 0) * 3 Refresh() end
+  menu:SetScript("OnMouseWheel", Wheel)
+  for i = 1, LONG_ROWS do
+    local e = CreateFrame("Button", nil, menu)
+    e:SetWidth(w - 8)
+    e:SetHeight(17)
+    e:SetPoint("TOPLEFT", menu, "TOPLEFT", 4, -32 - (i - 1) * 17)
+    e:EnableMouseWheel(true)
+    e:SetScript("OnMouseWheel", Wheel)
+    e.strip = e:CreateTexture(nil, "BORDER")
+    e.strip:SetVertexColor(.82, .84, .88, 1)
+    e.strip:SetPoint("TOPLEFT", e, "TOPLEFT", 1, -2)
+    e.strip:SetPoint("BOTTOMRIGHT", e, "BOTTOMRIGHT", -1, 2)
+    e.strip:Hide()
+    e.t = W.Font(e:CreateFontString(nil, "OVERLAY"), 11, C.text[1], C.text[2], C.text[3])
+    e.t:SetPoint("LEFT", e, "LEFT", 6, 0)
+    e.t:SetWidth(w - 20)
+    e.t:SetJustifyH("LEFT")
+    e.hl = e:CreateTexture(nil, "HIGHLIGHT")
+    e.hl:SetAllPoints(e)
+    e.hl:SetTexture(U.WHITE)
+    e.hl:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], 0.25)
+    e:SetScript("OnClick", function()
+      if this.key == nil then return end
+      menu:Hide()
+      onPick(this.key)
+    end)
+    rows[i] = e
+  end
+  box:SetScript("OnTextChanged", function() Filter() end)
+  box:SetScript("OnEscapePressed", function() menu:Hide() end)
+  box:SetScript("OnEnterPressed", function()
+    local o = view[1]
+    if o and o.key ~= nil then menu:Hide() onPick(o.key) end
+  end)
+  box.OnFocus = function() Filter() end
+  menu:SetScript("OnShow", function()
+    box:SetText("")
+    Filter()
+    box:SetFocus()
+  end)
+  menu:SetScript("OnHide", function() box:ClearFocus() end)
+  Filter()
+  return menu
+end
+
 function W.Menu(anchor, options, width, onPick)
+  if table.getn(options) > LONG_AFTER then return W.LongMenu(anchor, options, width, onPick) end
   local menu = CreateFrame("Frame", nil, UIParent)
   local n = table.getn(options)
   local cols = math.ceil(n / MENU_ROWS)

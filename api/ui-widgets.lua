@@ -251,12 +251,76 @@ do -- dropdown
       return self.menu
     end,
     ["ShowMenu"] = function(self)
+      local mf = self.menuframe
+      -- (octo, 7 Nov 2026) a long list (pfUI-CustomMedia: 400 textures, 70 fonts) shows 15 rows at a time
+      -- with a filter box and the mouse wheel; only the rows in view are made, so no hundreds of pictures and
+      -- fonts are loaded at once
+      mf.long = table.getn(self.menu or {}) > 40
+      mf:SetFrameLevel(self:GetFrameLevel() + 8)
+      if mf.long then
+        mf:SetHeight(15 * 20 + 4 + 24)
+        mf:Show()
+        self:UpdateLongMenu(true)
+        mf.filter:SetFocus()
+        return
+      end
       self:UpdateMenu()
-      self.menuframe:SetFrameLevel(self:GetFrameLevel() + 8)
-      self.menuframe:SetHeight(table.getn(self.menu)*20+4)
-      self.menuframe:Show()
+      mf:SetHeight(table.getn(self.menu)*20+4)
+      mf:Show()
+    end,
+    ["UpdateLongMenu"] = function(self, reset)
+      local mf = self.menuframe
+      if not mf.filter then
+        local eb = CreateFrame("EditBox", nil, mf)
+        eb:SetPoint("TOPLEFT", mf, "TOPLEFT", 3, -3)
+        eb:SetPoint("TOPRIGHT", mf, "TOPRIGHT", -3, -3)
+        eb:SetHeight(20)
+        eb:SetFont(pfUI.font_default, pfUI_config.global.font_size - 1, "OUTLINE")
+        eb:SetTextInsets(5, 5, 0, 0)
+        eb:SetAutoFocus(false)
+        CreateBackdrop(eb, nil, true)
+        -- (typing: back to the top of what matches - "typed", not true, which would clear the box again)
+        eb:SetScript("OnTextChanged", function() this:GetParent().button:UpdateLongMenu("typed") end)
+        eb:SetScript("OnEscapePressed", function() this:GetParent().button:HideMenu() end)
+        mf.filter = eb
+        local function Wheel()
+          mf.offset = (mf.offset or 0) - (tonumber(_G.arg1) or 0) * 3
+          self:UpdateLongMenu()
+        end
+        mf.wheel = Wheel
+        mf:EnableMouseWheel(true)
+        mf:SetScript("OnMouseWheel", Wheel)
+      end
+      if reset == true and mf.filter:GetText() ~= "" and not mf.resetting then
+        -- a new opening starts with an empty filter (clearing it comes back here once, by its change event)
+        mf.resetting = true
+        mf.filter:SetText("")
+        mf.resetting = nil
+      end
+      if reset then mf.offset = 0 end
+      -- refresh the caption and find the entries that match
+      if self.menufunc then self.menu = self.menufunc() end
+      if not self.menu then return end
+      self.text:SetText(self.menu[self.id] and self.menu[self.id].text or "")
+      local q = string.lower(mf.filter:GetText() or "")
+      local view = {}
+      for id = 1, table.getn(self.menu) do
+        local e = self.menu[id]
+        if e and (q == "" or string.find(string.lower(e.text or ""), q, 1, true)) then table.insert(view, id) end
+      end
+      local maxoff = math.max(0, table.getn(view) - 15)
+      if (mf.offset or 0) > maxoff then mf.offset = maxoff end
+      if (mf.offset or 0) < 0 then mf.offset = 0 end
+      mf.view = view
+      mf.rowTop = 26
+      for _, element in pairs(mf.elements) do element:Hide() end
+      for slot = 1, 15 do
+        local id = view[(mf.offset or 0) + slot]
+        if id then self:CreateMenuEntry(id, slot) end
+      end
     end,
     ["HideMenu"] = function(self)
+      if self.menuframe.filter then self.menuframe.filter:ClearFocus() end
       self.menuframe:Hide()
     end,
     ["ToggleMenu"] = function(self)
@@ -274,6 +338,13 @@ do -- dropdown
       -- set caption to the current value
       self.text:SetText(self.menu[self.id] and self.menu[self.id].text or "")
 
+      -- (octo) a long list builds its rows only while it is open (UpdateLongMenu)
+      if table.getn(self.menu) > 40 then
+        if self.menuframe:IsShown() then self:UpdateLongMenu() end
+        return
+      end
+      self.menuframe.rowTop = 2
+
       -- refresh menu buttons
       for id, element in pairs(self.menuframe.elements) do
         element:Hide()
@@ -283,25 +354,36 @@ do -- dropdown
         self:CreateMenuEntry(id)
       end
     end,
-    ["CreateMenuEntry"] = function(self, id)
+    ["CreateMenuEntry"] = function(self, id, slot)
       if not self.menu[id] then return end
 
       local frame, entry
-      for count, existing in pairs(self.menuframe.elements) do
-        if not existing:IsShown() then
-          frame = existing
-          entry = count
-          break
+      if slot then
+        -- (a long list: row number slot of the 15 in view)
+        frame, entry = self.menuframe.elements[slot], slot
+      else
+        for count, existing in pairs(self.menuframe.elements) do
+          if not existing:IsShown() then
+            frame = existing
+            entry = count
+            break
+          end
         end
       end
 
-      if not frame and not entry then
-        entry = table.getn(self.menuframe.elements) + 1
+      if not frame and not entry then entry = table.getn(self.menuframe.elements) + 1 end
+      if not frame then
+        local top = self.menuframe.rowTop or 2
         frame = CreateFrame("Button", nil, self.menuframe)
         frame:SetFrameStrata("FULLSCREEN")
         frame:ClearAllPoints()
-        frame:SetPoint("TOPLEFT", self.menuframe, "TOPLEFT", 2, -(entry-1)*20-2)
-        frame:SetPoint("TOPRIGHT", self.menuframe, "TOPRIGHT", -2, -(entry-1)*20-2)
+        frame:SetPoint("TOPLEFT", self.menuframe, "TOPLEFT", 2, -(entry-1)*20-top)
+        frame:SetPoint("TOPRIGHT", self.menuframe, "TOPRIGHT", -2, -(entry-1)*20-top)
+        frame:EnableMouseWheel(true)
+        frame:SetScript("OnMouseWheel", function()
+          local mf = this.parent.menuframe
+          if mf.wheel then mf.wheel() end
+        end)
         frame:SetHeight(20)
         frame.parent = self
 

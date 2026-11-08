@@ -1,8 +1,9 @@
 pfUI:RegisterModule("gryphons", "vanilla:tbc", function ()
   pfUI.gryphons = {
     frames = {
-      left = CreateFrame("Frame"),
-      right = CreateFrame("Frame"),
+      -- (named: layout mode moves them, as pfUI-CustomMedia did - 8 Nov 2026)
+      left = CreateFrame("Frame", "pfGryphonLeft"),
+      right = CreateFrame("Frame", "pfGryphonRight"),
     }
   }
 
@@ -97,7 +98,17 @@ pfUI:RegisterModule("gryphons", "vanilla:tbc", function ()
       else
         frame:Hide()
       end
+      -- the bar end is the default place (middle-click in layout mode); a place you dragged it to wins
+      if UpdateMovable and frame:GetName() then UpdateMovable(frame, true) end
     end
+  end
+
+  -- both ends back on the bar (Gryphons page)
+  pfUI.gryphons.ResetPosition = function()
+    for _, frame in pairs(pfUI.gryphons.frames) do
+      if frame:GetName() then C.position[frame:GetName()] = nil end
+    end
+    pfUI.gryphons.UpdateConfig()
   end
 
   pfUI.gryphons.UpdateConfig()
