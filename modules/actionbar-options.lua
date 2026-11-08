@@ -771,69 +771,176 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     end)
   end
 
-  -- ---------------------------------------------------------------- general
-
-  -- the looks as picture tiles, seven to a row: each draws a button in that
-  -- look; the one in use is lit purple and shows your own colours
-  local TILE_W, TILE_H, PER = 104, 76, 7
-  local function Looks(p)
-    local tiles = {}
-    local row
-    local function Paint(force)
-      local cur = AB.CurrentLook()
-      local sig = AB.LookSig() .. tostring(cur) .. FirstIcon()
-      for _, t in ipairs(tiles) do
-        if t.picked ~= (t.key == cur) or force then PickPaint(t, t.key == cur) end
-        if force or sig ~= t.sig then
-          t.sig = sig
-          local mine = t.key == cur
-          local z = mine and (tonumber(C.bars.zoom) or .08) or t.zoom
-          t.sample.icon:SetTexture(FirstIcon())
-          t.sample.icon:SetTexCoord(z, 1 - z, z, 1 - z)
-          AB.Draw(t.sample, t.skin, not mine)
+  -- The preview of General and Bars (8 Nov 2026, user with EllesmereUI's
+  -- Action Bars page: "match ours to this ... the preview box look like in the
+  -- first SS"): a bar picker in the middle (a key button beside it opens the
+  -- Key Map), and that bar's buttons in one row under it, big, in your look,
+  -- with their key letters. Click a button: that bar's settings. The Buttons
+  -- page keeps the small screen and the sample button (Preview).
+  local ROWBTN, ROWGAP = 44, 4
+  local function BarRow(p)
+    W.Pin(p, "Preview", "One bar at a time, drawn in your look with its own icons and keys. Pick the bar above it; "
+      .. "click a button for that bar's settings, hold Shift and scroll the mouse wheel over it for bigger or smaller "
+      .. "buttons. Move frames (left) moves the bars themselves. Click this bar to fold it away.", function(pp)
+      -- the picker row
+      local top = W.Row(pp, 30, 0, 6)
+      local key = CreateFrame("Button", nil, top)
+      key:SetWidth(28)
+      key:SetHeight(24)
+      W.Flat(key, W.C.btn, 1, W.C.line)
+      local kt = key:CreateTexture(nil, "ARTWORK")
+      kt:SetTexture(ICON .. "INV_Misc_Key_01")
+      kt:SetTexCoord(.08, .92, .08, .92)
+      kt:SetPoint("TOPLEFT", key, "TOPLEFT", 3, -2)
+      kt:SetPoint("BOTTOMRIGHT", key, "BOTTOMRIGHT", -3, 2)
+      W.Hover(key)
+      key:SetScript("OnClick", function() if pfUI.keymap then pfUI.keymap:Toggle() end end)
+      W.Tip(key, "Key Map", "Your keyboard with every bound spell on it: drag spells onto keys.")
+      local function Names()
+        local out = {}
+        for _, i in ipairs(AB.ORDER) do
+          if pfUI.bars[i] then table.insert(out, { key = i, label = (AB.NAMES[i] or ("Bar " .. i)) .. "  (bar " .. i .. ")" }) end
+        end
+        return out
+      end
+      local drop, DropRefresh = W.MiniDrop(top, 260, Names, function() return TAB.cur end, function(v)
+        TAB.cur = v
+        O:Refresh()
+      end, 260)
+      local cw = (top:GetWidth() or W.CW)
+      key:SetPoint("LEFT", top, "LEFT", math.floor((cw - 28 - 8 - 260) / 2), 0)
+      drop:SetPoint("LEFT", key, "RIGHT", 8, 0)
+      -- the buttons
+      local strip = W.Row(pp, ROWBTN + 14, 0, 6)
+      local btns = {}
+      local function Button(j)
+        local mb = btns[j]
+        if mb then return mb end
+        mb = CreateFrame("Button", nil, strip)
+        mb:SetWidth(ROWBTN)
+        mb:SetHeight(ROWBTN)
+        CreateBackdrop(mb) if W.Underlay then W.Underlay(mb) end
+        mb.art = CreateFrame("Frame", nil, mb)
+        mb.art:SetAllPoints(mb)
+        mb.art:SetFrameLevel(mb:GetFrameLevel() + 6)
+        mb.icon = mb.art:CreateTexture(nil, "OVERLAY")
+        mb.icon:SetAllPoints(mb)
+        mb.key = mb.art:CreateFontString(nil, "OVERLAY")
+        mb.key:SetPoint("TOPRIGHT", mb, "TOPRIGHT", -2, -2)
+        mb.j = j
+        mb:SetScript("OnClick", function() O:Open("abbars") O:Refresh() end)
+        mb:SetScript("OnEnter", function()
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:AddLine((AB.NAMES[TAB.cur] or "Bar") .. ", button " .. this.j)
+          GameTooltip:AddLine("Click: this bar's settings", 1, 1, 1)
+          GameTooltip:AddLine("Shift + mouse wheel: bigger / smaller buttons", 1, 1, 1)
+          GameTooltip:Show()
+        end)
+        mb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        mb:EnableMouseWheel(true)
+        mb:SetScript("OnMouseWheel", function()
+          if IsShiftKeyDown() then
+            local d = C.bars["bar" .. TAB.cur]
+            d.icon_size = tostring(math.max(10, math.min(64, (tonumber(d.icon_size) or 20) + (arg1 or 0))))
+            U()
+          elseif pfUI.plates and pfUI.plates.PassWheel then
+            pfUI.plates.PassWheel(this)
+          end
+        end)
+        btns[j] = mb
+        return mb
+      end
+      local off = W.Font(strip:CreateFontString(nil, "OVERLAY"), 12, W.C.dim[1], W.C.dim[2], W.C.dim[3])
+      off:SetPoint("CENTER", strip, "CENTER", 0, 0)
+      local sig
+      local function Refresh()
+        DropRefresh()
+        local bar = pfUI.bars[TAB.cur]
+        local list = {}
+        for j = 1, 12 do
+          local btn = bar and bar[j]
+          -- (pfUI hides an empty slot's backdrop when the bar hides empty slots)
+          if btn and btn:IsShown() and not (btn.backdrop and not btn.backdrop:IsShown()) then table.insert(list, j) end
+        end
+        local n = table.getn(list)
+        if n == 0 then
+          off:SetText(bar and "This bar is hidden or empty - Bars page: show it" or "No such bar")
+        else
+          off:SetText("")
+        end
+        local width = n * ROWBTN + math.max(0, n - 1) * ROWGAP
+        local x0 = math.floor(((strip:GetWidth() or W.CW) - width) / 2)
+        local look = AB.LookSig()
+        local redraw = look ~= sig
+        sig = look
+        local font = pfUI.media[C.bars.font] or pfUI.font_default
+        for j = 1, 12 do if btns[j] then btns[j]:Hide() end end
+        for idx, j in ipairs(list) do
+          local btn = bar[j]
+          local mb = Button(idx)
+          mb.j = j
+          local fresh = not mb.drawn
+          mb:ClearAllPoints()
+          mb:SetPoint("TOPLEFT", strip, "TOPLEFT", x0 + (idx - 1) * (ROWBTN + ROWGAP), -7)
+          local tex = btn.icon and btn.icon:GetTexture()
+          if tex and tex ~= "" then mb.icon:SetTexture(tex) mb.icon:Show() else mb.icon:Hide() end
+          local k = btn.keybind and btn.keybind:GetText()
+          mb.key:SetFont(font, 11, "OUTLINE")
+          mb.key:SetText(k or "")
+          if fresh or redraw then
+            mb.drawn = true
+            AB.Zoom(mb)
+            AB.Draw(mb, C.bars.skin)
+            AB.Slot(mb)
+          end
+          mb:Show()
         end
       end
+      strip:SetScript("OnUpdate", function()
+        if (this.tick or 0) > GetTime() then return end
+        this.tick = GetTime() + .5
+        Refresh()
+      end)
+      table.insert(pp.items, { Refresh = Refresh })
+      Refresh()
+      -- how to use it
+      local band = W.Row(pp, 20, 0, 4)
+      local how = W.Font(band:CreateFontString(nil, "OVERLAY"), 11, 1, 1, 1)
+      how:SetText("Click a button: its bar's settings          Shift + wheel: button size          Move frames: move the bars")
+      if W.HowTo then W.HowTo(pp, band, how:GetText()) end
+    end)
+  end
+  AB.BarRow = BarRow
+
+  -- ---------------------------------------------------------------- general
+
+  -- the look as one dropdown (8 Nov 2026; the 14 picture tiles above were
+  -- "overkill"); a mix of your own changes shows as "Your own mix"
+  local function LookDrop(p)
+    local opts = {}
+    for _, pr in ipairs(AB.PRESETS) do
+      table.insert(opts, { key = pr[1], label = pr[2] })
+      if p.key then table.insert(W.index, { page = p, card = p.cur, label = "Look: " .. pr[2], desc = pr[5] }) end
     end
-    for i, pr in ipairs(AB.PRESETS) do
-      local col = math.mod(i - 1, PER)
-      if col == 0 then row = W.Row(p, TILE_H, 0, 6) end
-      local t = W.Button(row, pr[2], TILE_W, TILE_H)
-      t:SetPoint("LEFT", row, "LEFT", col * (TILE_W + 6), 0)
-      t.label:ClearAllPoints()
-      t.label:SetPoint("BOTTOM", t, "BOTTOM", 0, 8)
-      local s = CreateFrame("Frame", nil, t)
-      s:SetWidth(32)
-      s:SetHeight(32)
-      s:SetPoint("TOP", t, "TOP", 0, -11)
-      s.icon = s:CreateTexture(nil, "BACKGROUND")
-      s.icon:SetAllPoints(s)
-      CreateBackdrop(s) if W.Underlay then W.Underlay(s) end
-      t.sample = s
-      t.key, t.skin, t.zoom = pr[1], pr[3].skin, tonumber(pr[3].zoom) or .08
-      t:SetScript("OnClick", function()
-        AB.ApplyPreset(this.key)
-        Paint(true)
+    table.insert(opts, { key = "_mix", label = "Your own mix" })
+    local f = W.Dropdown(p, "Look", "Click to pick a look for every bar: border, icon zoom, spacing, bar backdrops and "
+      .. "empty slots change with it. Its colours are below.", opts,
+      function()
+        local key = AB.CurrentLook()
+        if not key then return "_mix" end
+        return key
+      end,
+      function(k)
+        if k == "_mix" then return end
+        AB.ApplyPreset(k)
         O:Refresh()
       end)
-      W.Tip(t, pr[2], (pr[5] or "") .. "\n\nClick to use it on every bar: border, icon zoom, spacing, bar backdrops and "
-        .. "empty slots change with it. Its colours are under Look colours.")
-      if p.key then table.insert(W.index, { page = p, card = p.cur, label = "Look: " .. pr[2], desc = pr[5], region = row }) end
-      table.insert(tiles, t)
+    -- the Find entries above point at this row
+    for i = table.getn(W.index), 1, -1 do
+      local e = W.index[i]
+      if e.page == p and not e.region and string.find(e.label or "", "^Look: ") then e.region = f end
     end
-    W.Live(p, function()
-      local key, label, exact = AB.CurrentLook()
-      if not key then return "In use: |cffffffffyour own mix|r" end
-      local idea
-      for _, pr in ipairs(AB.PRESETS) do if pr[1] == key then idea = pr[5] end end
-      return "In use: |cffffffff" .. label .. (exact and "" or " with your own changes") .. "|r   " .. (idea or "")
-    end)
-    row:SetScript("OnUpdate", function()
-      if (this.tick or 0) > GetTime() then return end
-      this.tick = GetTime() + .5
-      Paint()
-    end)
-    table.insert(p.items, { Refresh = function() Paint() end })
-    Paint(true)
+    return f
   end
 
   -- every colour of the look, four to a row
@@ -889,12 +996,13 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
   BUILD.abgeneral = function(p)
     W.Heading(p, "Action bars", { on = O.ModuleSwitch("actionbar", "Action bars"), about = "Your action bars: their look, its colours, and how buttons behave. "
       .. "Each bar's layout and when it shows are on Bars; every button effect (hover, press, cooldown, glow, letters) on Buttons." })
-    Preview(p)
-    W.Card(p, "Looks", { icon = ICON .. "INV_Misc_Gem_Variety_01", tip = "Ready-made looks for every bar, from ideas in "
-      .. "Masque's skins, ElvUI, Bartender and the game. Click one to use it." })
-    Looks(p)
-    W.Card(p, "Look colours", { icon = ICON .. "INV_Fabric_Silk_02", tip = "Every part of the look in your own colours. "
-      .. "Parts the look in use does not have are dimmed. Picking another look starts from its own colours again." })
+    BarRow(p)
+    -- (8 Nov 2026, user: "no need for our big looks boxes either overkill")
+    -- the looks are one dropdown at the top of the look's card
+    W.Card(p, "Look", { icon = ICON .. "INV_Fabric_Silk_02", tip = "A ready-made look for every bar (ideas from "
+      .. "Masque's skins, ElvUI, Bartender and the game), then every part of it in your own colours. Parts the look "
+      .. "in use does not have are dimmed. Picking another look starts from its own colours again." })
+    LookDrop(p)
     LookColours(p)
     W.Card(p, "Behaviour", { icon = ICON .. "INV_Misc_Gear_01" })
     Grid(p, 4, {
@@ -918,7 +1026,7 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
 
   BUILD.abbars = function(p)
     W.Heading(p, "Bars", { about = "Pick a bar, then its layout, when it shows, and its text. Move frames (top) moves the bars." })
-    Preview(p, false, true)
+    BarRow(p)
     -- the bars as tabs, two rows of six (pick one: purple)
     local rows = { W.Row(p, 24, 0, 8), W.Row(p, 24, 0, 4) }
     local tabs = {}

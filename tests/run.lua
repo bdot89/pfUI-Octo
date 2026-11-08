@@ -4338,6 +4338,14 @@ do
       ok(p.last == p.cards[1].card or p.last:IsShown(), "the page ends at the last card shown")
       AB.BSetSection("look")
     end
+    -- (8 Nov 2026) General: one bar's row as the preview, the looks as one dropdown that Find still reaches
+    local okg, errg = pcall(function() O:Select("o:abgeneral") end)
+    ok(okg and O.pages.abgeneral and AB.BarRow, "Action bars > General builds with the one-bar preview: " .. tostring(errg))
+    local found
+    for _, e in ipairs(pfUI.octoui.W.index) do
+      if e.page == O.pages.abgeneral and e.label == "Look: Glass" and e.region then found = true end
+    end
+    ok(found, "Find knows the looks on the Look dropdown")
     pfUI.gui:Hide()
   end
 end

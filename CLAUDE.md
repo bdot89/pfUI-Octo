@@ -1070,3 +1070,10 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    Then (user: "Small text links"): W.Links(p, list) in octo-options = W.Buttons' list as a centred row of 12 px
    words in their role colours, "-" between, accent underline while `on`, white on hover, repainted every .25 s.
    The nameplate preview's Reset everything / Put parts back / Test on real nameplates / Grid use it.
+   Action Bars like EllesmereUI's (8 Nov, NOT seen in game; user: "match ours to this no need for our big looks
+   boxes ... the preview box look like in the first SS"). actionbar-options AB.BarRow(p) = the General and Bars
+   pages' pin: a key button (Key Map) + a 260 px bar picker (TAB.cur, AB.ORDER / AB.NAMES) centred, then that
+   bar's shown buttons in one centred row, 44 px, in the look (AB.Zoom / Draw / Slot, W.Underlay), the real key
+   text; click = Bars page, Shift + wheel = icon size; refreshed every .5 s. The Buttons page keeps the small
+   screen + sample button (Preview). The 14 look tiles (Looks) are gone: a "Look" dropdown (LookDrop, "Your own
+   mix" when changed) heads the Look card (was "Look colours"); Find's "Look: <name>" entries point at it.
