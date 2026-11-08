@@ -5225,6 +5225,12 @@ do
     ST.OnEvent("PLAYER_SWING_RANGE_UPDATE", 0, 1, 1)
     ok(st.outMelee == false, "back in reach")
     st.mhStart, st.mhSpeed, st.cw = keep[1], keep[2], keep[3]
+    -- (8 Nov 2026) stopping the wand keeps its bar 5 s more (the bar shows while rgSeen is under 10 s old)
+    local rg = st.rgSeen
+    ST.OnEvent("STOP_AUTOREPEAT_SPELL")
+    local left = 10 - (GetTime() - (st.rgSeen or 0))
+    ok(left > 4.9 and left < 5.1, "wand bar stays 5 s after shooting stops (" .. tostring(left) .. ")")
+    st.rgSeen = rg
   end
   for k, v in pairs(was) do _G[k] = v end
 end
