@@ -1023,3 +1023,6 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    W.LongMenu (8 Nov; user: after scrolling a click "just picks any"): a row click took focus from the filter
    box, box.OnFocus ran Filter, which reset the scroll to the top before OnClick - the row then held another
    option. Filter now only rebuilds when the text changed (Filter(true) on show); test in run.lua.
+   Sidebar again (8 Nov, user screenshot: 15 px rows, list still scrolled, half the column empty): in game
+   navFrame:GetHeight() reported far less than its anchored height. LayoutNav now uses the window's height - 24
+   (we set it) and lets rows grow to 32 px so the list fills the column; tests at 740 and 600 with a wrong 120.
