@@ -40,6 +40,7 @@
   <Include file="..\modules\xpbar.lua"/>
   <Include file="..\modules\autoshift.lua"/>
   <Include file="..\modules\autovendor.lua"/>
+  <Include file="..\modules\raidtools.lua"/>
   <Include file="..\modules\bags.lua"/>
   <Include file="..\modules\bags-octo.lua"/>
   <Include file="..\modules\bags-options.lua"/>
@@ -88,6 +89,7 @@
   <Include file="..\modules\autoloot.lua"/>
   <Include file="..\modules\autoloot-log.lua"/>
   <Include file="..\modules\autoloot-options.lua"/>
+  <Include file="..\modules\qol-options.lua"/>
   <Include file="..\modules\art-options.lua"/>
   <Include file="..\modules\range.lua"/>
   <Include file="..\modules\range-options.lua"/>

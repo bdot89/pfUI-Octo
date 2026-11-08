@@ -110,10 +110,10 @@ table.setn(ITEM_QUALITY_COLORS, 7)
 FONT_COLOR_CODE_CLOSE = "|r"
 
 -- modules that must start cleanly (the octo ones, as they are added)
-local MUST_LOAD = { "unlock", "gui", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
+local MUST_LOAD = { "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "raidtools" }
 
 -- ---------------------------------------------------------------- load
 
@@ -3531,7 +3531,8 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Unit Frames" and heads[6] == "Nameplates" and heads[9] == "Art & Extras" and heads[10] == "Gear" and heads[11] == "Meters" and heads[12] == "Combat Text" and heads[table.getn(heads)] == "About",
+    -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it
+    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Unit Frames" and heads[7] == "Nameplates" and heads[10] == "Art & Extras" and heads[11] == "Gear" and heads[12] == "Meters" and heads[13] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -3588,6 +3589,19 @@ do
       if lm.box:GetScript("OnEditFocusLost") then Mock.Run(lm.box, "OnEditFocusLost") end
       Mock.Run(row, "OnClick")
       ok(was ~= "k1" and picked == was, "a scrolled long menu picks the row clicked (" .. tostring(was) .. " -> " .. tostring(picked) .. ")")
+    end
+    -- (8 Nov 2026) the Quality of Life section: its own tabs, then Auto Loot's
+    do
+      local qgrp = O.groupOf["o:qolgeneral"]
+      local labels = {}
+      for _, b in ipairs(qgrp and qgrp.buttons or {}) do table.insert(labels, b.text:GetText() or "") end
+      ok(qgrp and qgrp.name == "Quality of Life" and labels[1] == "QoL" and labels[2] == "Raid Tools" and labels[3] == "Screenshots"
+        and labels[4] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
+      for _, k in ipairs({ "qolgeneral", "qolraid", "qolshots" }) do
+        local okq, errq = pcall(function() O:Select("o:" .. k) end)
+        ok(okq and O.pages[k], "QoL page " .. k .. " builds: " .. tostring(errq))
+      end
+      ok(pfUI.raidtools and pfUI.raidtools.frame and pfUI.raidtools.Pull, "the Raid Tools window is made")
     end
     -- (8 Nov 2026, user screenshot: the header was empty on the Settings page) every way in names the page
     for _, how in ipairs({ "select", "open", "profiles" }) do

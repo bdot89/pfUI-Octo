@@ -37,6 +37,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Settings", { "Settings" } },
     { "UI layouts", { "UI layouts" } },
     { "Blizzard UI", { "Blizzard UI" } },
+    -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
+    -- in here") qol-options.lua's pages, then Auto Loot's
+    { "Quality of Life", { "Quality of Life", "Auto Loot" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Nameplates", { "Nameplates" } },
@@ -51,7 +54,6 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
     { "Swing Timer", { "Swing Timer" } },
     { "Tooltip", { "Tooltip" } },
-    { "Auto Loot", { "Auto Loot" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
   }
@@ -66,9 +68,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
-    { "General", { "Settings", "Blizzard UI", "UI layouts" } },
+    { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Auto Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Tooltip" } },
+    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
@@ -86,7 +88,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Chat & Panels"] = "Chat windows, tabs, the info panels and the XP bar.",
     ["Minimap & Buffs"] = "The minimap, its buttons, and your buffs and debuffs.",
     ["Bags & Loot"] = "Bags, bank and loot rolls.",
-    ["Auto Loot"] = "What is looted for you, and its log.",
+    ["Quality of Life"] = "Small helpers in one place: vendor, loot, raid tools, screenshots and auto loot.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
@@ -1438,7 +1440,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     thirdparty = "INV_Gizmo_01", components = "Trade_Engineering", about = "INV_Misc_QuestionMark",
     skins = "INV_Misc_Orb_01", threat = "Ability_Warrior_DefensiveStance", uilayouts = "INV_Misc_Map_01",
     actionbars = "Ability_DualWield", chatpanels = "INV_Scroll_03", minimapbuffs = "INV_Misc_Map_01",
-    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
+    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", qualityoflife = "INV_Misc_PocketWatch_01", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
   }
   function O.IconFor(name)
     local k = string.gsub(string.lower(name or ""), "[^%a]", "")

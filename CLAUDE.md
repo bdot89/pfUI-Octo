@@ -1077,3 +1077,17 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    text; click = Bars page, Shift + wheel = icon size; refreshed every .5 s. The Buttons page keeps the small
    screen + sample button (Preview). The 14 look tiles (Looks) are gone: a "Look" dropdown (LookDrop, "Your own
    mix" when changed) heads the Look card (was "Look colours"); Find's "Look: <name>" entries point at it.
+25. Quality of Life section + Raid Tools (8 Nov 2026, NOT seen in game; NEW FILES = full client restart; user with
+   EllesmereUI's QoL page: "a QoL section ... adding all of our QoL into one page ... raid markers auto loot
+   everything in here"). O.NAV "Quality of Life" (General heading, after Blizzard UI) = qol-options.lua's pages +
+   the Auto Loot page (its own sidebar entry is gone). modules/qol-options.lua: QoL (vendor and loot, map and
+   tooltips, screen and messages - the same C.* keys as pfUI's own pages, a change marks reload; Helpers = the
+   switch-less modules via O.ModuleSwitch: autoshift, feigndeath, itemclick, mouseover, farmmode, afkcam,
+   chatcopy, whisperproxy, socialmod, macrotweak), Raid Tools (C.raidtools show / collapsed / scale, Show it now,
+   Move it; WeirdUtils' marker bar keys when C.weirdutils exists), Screenshots (C.screenshot.*).
+   modules/raidtools.lua (pfUI.raidtools, frame pfRaidTools, a layout mode box): Ready Check (DoReadyCheck, lead or
+   assist), Convert to Raid, Disband (asks; UninviteByName everyone, LeaveParty), pull countdown 3 / 5 / 10 / Stop
+   (one line a second to RAID_WARNING with assist, else RAID / PARTY, else own chat), the 8 target markers + clear
+   (SetRaidTarget, click again = off), fold button. C.raidtools.show = lead (default) | group | raid | always | never.
+   1.12 has no world markers or role check. Tests: QoL tabs (QoL, Raid Tools, Screenshots, Auto Loot), pages
+   build, the window exists; sidebar order test moved by one.
