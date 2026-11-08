@@ -3544,12 +3544,27 @@ do
     local shown = 0
     for _, grp in ipairs(O.groups) do if grp.header:IsShown() then shown = shown + 1 end end
     ok(shown == table.getn(O.groups), "every section shows in a tall list (" .. shown .. "/" .. table.getn(O.groups) .. ")")
-    -- (8 Nov 2026) a short sidebar shrinks its rows: still every section, no scrolling
-    nav.GetHeight = function() return 560 end
-    O:LayoutNav()
-    shown = 0
-    for _, grp in ipairs(O.groups) do if grp.header:IsShown() then shown = shown + 1 end end
-    ok(shown == table.getn(O.groups) and not nav.down:IsShown(), "every section shows in a short list too (" .. shown .. "/" .. table.getn(O.groups) .. ")")
+    nav.GetHeight = gh
+    -- (8 Nov 2026) the sidebar is sized from the window's height (the client reported the sidebar
+    -- too short and the rows came out tiny with half the column empty): every section, no scrolling,
+    -- and the rows fill the column - the last one ends near its bottom
+    local fgh = O.frame.GetHeight
+    for _, H in ipairs({ 740, 600 }) do
+      O.frame.GetHeight = function() return H end
+      nav.GetHeight = function() return 120 end   -- a wrong, small report must not matter
+      O:LayoutNav()
+      shown = 0
+      local last
+      for _, grp in ipairs(O.groups) do
+        if grp.header:IsShown() then shown = shown + 1 end
+        last = grp.header
+      end
+      local _, _, _, _, y = last:GetPoint(1)
+      local bottom = -(y or 0) + (last:GetHeight() or 0)
+      ok(shown == table.getn(O.groups) and not nav.down:IsShown() and bottom > H - 24 - 60 and bottom <= H - 24,
+        "window " .. H .. ": every section shows and the list fills the sidebar (" .. shown .. "/" .. table.getn(O.groups) .. ", ends at " .. bottom .. ")")
+    end
+    O.frame.GetHeight = fgh
     nav.GetHeight = gh
     O:LayoutNav()
     -- (8 Nov 2026, user: a long menu "just picks any" after scrolling) the click takes focus from the

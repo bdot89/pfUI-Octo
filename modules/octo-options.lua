@@ -1624,8 +1624,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local nav = self.navFrame
     -- (8 Nov 2026, user: "should not need scrolling ... ALL SHOULD SHOW
     -- ALWAYS") the rows shrink to whatever height the sidebar has
-    local known = (nav:GetHeight() or 0) - 10
-    local fit = (known >= 100) and known or 700
+    -- (the same day, user screenshot: rows at their smallest, the list still
+    -- scrolled, half the column empty - the client reported the sidebar far
+    -- shorter than it is.) The sidebar is the window minus 12 px top and
+    -- bottom, and the window's height is set by us: measure from that.
+    local known = (self.frame and self.frame:GetHeight() or HEIGHT) - 24 - 10
+    if known < 300 then known = HEIGHT - 34 end
+    local fit = known
     local n, m = 0, 0
     for _, grp in ipairs(self.groups) do
       n = n + 1
@@ -1637,7 +1642,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       hh, gap = 15, 2
       rh = math.floor((fit - NAV_TOP - m * hh - math.max(0, m - 1) * gap) / math.max(n, 1))
     end
-    rh = math.max(15, math.min(26, rh))
+    -- rows fill the column (bigger in a tall window), never below 15
+    rh = math.max(15, math.min(32, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
       if grp.headFrame then
@@ -1650,10 +1656,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if h.rowH ~= rh then
         h.rowH = rh
         h:SetHeight(rh - 1)
-        local ps = math.max(12, math.min(18, rh - 6))
+        local ps = math.max(12, math.min(22, rh - 6))
         h.pic:SetWidth(ps)
         h.pic:SetHeight(ps)
-        W.Font(h.text, (rh >= 22) and 13 or 12)
+        h.text:ClearAllPoints()
+        h.text:SetPoint("LEFT", h.pic, "RIGHT", 8, 0)
+        h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
+        W.Font(h.text, (rh >= 26) and 14 or ((rh >= 21) and 13 or 12))
       end
       table.insert(rows, { h, 0, y, rh - 1 })
       y = y + rh
