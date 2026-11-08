@@ -125,7 +125,7 @@ pfUI:RegisterSkin("Inspect", "tbc", function ()
       StripTextures(InspectTalentFrameScrollFrame)
       SkinScrollbar(InspectTalentFrameScrollFrameScrollBar)
 
-      for i = 1, MAX_NUM_TALENTS do
+      for i = 1, (tonumber(MAX_NUM_TALENTS) or 64) do
         local talent = _G["InspectTalentFrameTalent"..i]
         if talent then
           StripTextures(talent)
