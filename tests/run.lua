@@ -3382,6 +3382,23 @@ do
       ok(fp.health.backdrop and fp.health.backdrop:GetFrameLevel() < fp.health:GetFrameLevel()
         and fp.health:GetFrameLevel() > box:GetFrameLevel(),
         "sample bar: above its box, its dark backdrop still under the fill")
+      -- (8 Nov 2026) in a zoom box the canvas's dark fill lay over the bars: it goes, the box keeps its own
+      do
+        local zb = CreateFrame("Frame", nil, UIParent)
+        local canvas = CreateFrame("Frame", nil, zb)
+        local under = canvas:CreateTexture(nil, "BACKGROUND")
+        canvas.GetRegions = function() return under end
+        local stage = CreateFrame("Frame", nil, canvas)
+        stage:SetWidth(640)
+        stage:SetHeight(118)
+        stage.view, stage.outer = {}, zb
+        local zgood, zs = pcall(P.AttachPreview, stage)
+        ok(zgood and not under:IsShown() and stage.grid:GetFrameLevel() < zs[1].nameplate.health:GetFrameLevel(),
+          "zoom box preview: no fill over the plates, grid under the bars (" .. tostring(zgood and "" or zs) .. ")")
+        if zgood then
+          for _, s in ipairs(zs) do s:Hide() for k, v in ipairs(P.previews) do if v == s then table.remove(P.previews, k) break end end end
+        end
+      end
       pfUI_config.nameplates.cpdisplay = "1"
       local seen = {}
       for i = 1, 12 do
