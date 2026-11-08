@@ -1026,3 +1026,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    Sidebar again (8 Nov, user screenshot: 15 px rows, list still scrolled, half the column empty): in game
    navFrame:GetHeight() reported far less than its anchored height. LayoutNav now uses the window's height - 24
    (we set it) and lets rows grow to 32 px so the list fills the column; tests at 740 and 600 with a wrong 120.
+   EllesmereUI look, second pass (8 Nov, NOT seen in game; user via the top session: "how open it is, colour
+   matching how the header and side columns work together ... selected with an underline ... CENTERED ... IN
+   LINE"). Window, header, sidebar and footer = one tone (K.panel; nav / footer backdrops clear, ApplyAlpha), the
+   page = darker well (K.bg); thin accent lines (.45) down the sidebar's edge and under the tabs. Title 28 px +
+   12 px grey line, TAB_TOP 74; top right: Window Scale slider + % (applies on mouse up, follows ApplyScale) and
+   a 26 px X. Tabs = plain 15 px words, grey; open = white + 3 px accent underline on the accent line (they were
+   lit buttons an hour before; the user then pointed at the underline). Sidebar: 24 px name + "your whole
+   interface", version at its foot, accent capitals headings, sections indented 14. Rows 32 px; every slider 120
+   (+ number box) and every dropdown 180 wide, right edges -4, so controls share one column; labels over 172 px
+   take the whole row. Footer: Reload UI 120 left, Close 120 right, Background + language centred.

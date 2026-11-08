@@ -62,7 +62,7 @@ local COL2 = 390   -- where the right-hand column starts
 local CTRL = 196   -- whole-row controls start here, after their label
 local CARD_HEAD = 22 -- the card's capitals label line
 local CARD_TOP = 28 -- card top to its first control
-local ROW = 28      -- (8 Nov 2026) every setting row: label left, control right
+local ROW = 32      -- (8 Nov 2026) every setting row: label left, control right (32: more air, EllesmereUI-like)
 
 local MEDIA = "Interface\\AddOns\\pfUI\\img\\octo\\"
 local FONTS = "Interface\\AddOns\\pfUI\\fonts\\"
@@ -1099,7 +1099,7 @@ function W.Check(p, label, desc, get, set, full)
   if not full and LabelWidth(fs) > HALF - 56 then full = true end
   row:SetWidth(full and c.width or HALF)
   local cb = W.CheckPill(row)
-  cb:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+  cb:SetPoint("RIGHT", row, "RIGHT", -4, 0)
   local function Click()
     cb.Paint()
     set(cb:GetChecked() and true or false)
@@ -1192,7 +1192,8 @@ function W.Slider(p, label, desc, min, max, step, get, set, fmt)
     this:SetBackdropBorderColor(C.cardLine[1], C.cardLine[2], C.cardLine[3], 1)
   end)
   W.Tip(val, label, "Click and type a number for an exact value, then press Enter.")
-  local sw = math.max(90, math.min(170, HALF - LabelWidth(lab) - 84))
+  -- (one width for every slider and every dropdown, so the controls line up in one column)
+  local sw = 120
   -- a label too long for half a row takes the whole row
   local full = LabelWidth(lab) > HALF - 84 - sw
   if full then row:SetWidth(c.width) sw = 220 end
@@ -1677,9 +1678,9 @@ end
 function W.Dropdown(p, label, desc, options, get, set)
   -- (8 Nov 2026) one line: label left, the box right
   local row, c, lab = SettingRow(p, label)
-  local dw = math.max(130, math.min(190, HALF - LabelWidth(lab) - 24))
+  local dw = 180 -- = slider (120) + gap + number box: right-hand controls share one left edge
   local full = LabelWidth(lab) > HALF - 24 - dw
-  if full then row:SetWidth(c.width) dw = 220 end
+  if full then row:SetWidth(c.width) dw = 280 end
   RowHit(row, lab, label, desc)
   local f, Refresh, hit = W.MiniDrop(row, dw, options, get, set, math.max(dw, 200))
   f:SetPoint("RIGHT", row, "RIGHT", -4, 0)
@@ -1709,7 +1710,7 @@ function W.Color(p, label, desc, get, set)
   -- (8 Nov 2026) label left, the swatch right; the whole row picks
   local row, c, fs = SettingRow(p, label)
   local sw = W.Swatch(row, 18)
-  sw:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+  sw:SetPoint("RIGHT", row, "RIGHT", -4, 0)
   local function Apply() sw.fill:SetVertexColor(get()) end
   RowHit(row, fs, label, desc or "Click to pick a colour.", function() sw:Click() end)
   sw:SetScript("OnClick", function()

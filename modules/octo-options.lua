@@ -59,7 +59,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (8 Nov 2026, the EllesmereUI-like shell) where the section list starts in
   -- the sidebar (under the name and the big entries), where the page tabs
   -- sit, and the footer's height
-  local NAV_TOP, TAB_TOP, FOOT = 168, 62, 32
+  local NAV_TOP, TAB_TOP, FOOT = 168, 74, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
@@ -805,18 +805,51 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
     -- (8 Nov 2026) the window's title and version line are now the open
     -- section's big title and its one grey line; the name moved into the sidebar
+    -- (8 Nov 2026, user with EllesmereUI's Global Settings: "how open it is,
+    -- colour matching how the header and side columns work together ... LOOK
+    -- HOW CENTERED IT ALL IS AND IN LINE") The header and the sidebar are the
+    -- window's one tone, split from the page by thin accent lines; the page
+    -- itself is a darker well. Title 28 px, a grey line under it.
     f.title:ClearAllPoints()
-    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 26, -14)
-    W.Font(f.title, 22, K.text[1], K.text[2], K.text[3])
+    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 34, -16)
+    W.Font(f.title, 28, K.text[1], K.text[2], K.text[3])
     f.title:SetText("")
     f.version:ClearAllPoints()
-    f.version:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 1, -5)
-    W.Font(f.version, 11, K.dim[1], K.dim[2], K.dim[3])
+    f.version:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 1, -6)
+    W.Font(f.version, 12, K.dim[1], K.dim[2], K.dim[3])
     f.version:SetText("")
-    local close = W.Button(f, "X", 22, 22)
-    close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, -6)
+    local close = W.Button(f, "X", 26, 26)
+    close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -14)
     close:SetScript("OnClick", function() g:Hide() end)
     W.Tip(close, "Close", "Escape closes it too.")
+    -- Window scale, top right (the corner grip still works too)
+    local ws = W.SliderBar(f, 110, "pfOctoWinScale")
+    ws:SetPoint("RIGHT", close, "LEFT", -64, 0)
+    ws:SetMinMaxValues(.6, 1.6)
+    ws:SetValueStep(.05)
+    local wsl = W.Font(f:CreateFontString(nil, "OVERLAY"), 12, K.dim[1], K.dim[2], K.dim[3])
+    wsl:SetPoint("RIGHT", ws, "LEFT", -10, 0)
+    wsl:SetText("Window Scale")
+    local wsv = W.Font(f:CreateFontString(nil, "OVERLAY"), 12, K.text[1], K.text[2], K.text[3])
+    wsv:SetPoint("LEFT", ws, "RIGHT", 10, 0)
+    ws:SetScript("OnValueChanged", function()
+      W.SliderPaint(this)
+      wsv:SetText(math.floor(this:GetValue() * 100 + .5) .. "%")
+      if this.loading then return end
+      -- applied when the mouse lets go (scaling the window under the mouse
+      -- while dragging its own slider makes the knob run away)
+      this.want = this:GetValue()
+    end)
+    ws:SetScript("OnMouseUp", function()
+      if this.want then O:ApplyScale(this.want) this.want = nil end
+    end)
+    QuickTip(ws, "Window Scale", "How big this window is. Let go of the knob to apply. Right-click the corner grip for normal size.")
+    self.winScale, self.winScaleText = ws, wsv
+    -- the thin accent lines: down the sidebar's right edge, under the tabs
+    local vline = W.Fill(f, K.accent, .45, "ARTWORK")
+    vline:SetWidth(1)
+    vline:SetPoint("TOPLEFT", f, "TOPLEFT", 12 + NAV_W + 2, -12)
+    vline:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12 + NAV_W + 2, 12)
 
     -- language flags (4 Nov 2026; user: "add flags at the top linked to languages quick easy"):
     -- one click sets pfUI's language and offers the reload it needs
@@ -934,6 +967,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", l * old / new, t * old / new)
     end
     B.Store().winscale = s
+    -- the header's Window Scale slider follows (the grip changes it too)
+    if self.winScale then
+      self.winScale.loading = true
+      self.winScale:SetValue(s)
+      self.winScale.loading = nil
+      W.SliderPaint(self.winScale)
+      self.winScaleText:SetText(math.floor(s * 100 + .5) .. "%")
+    end
   end
 
   function O:BuildGrip(f)
@@ -1003,11 +1044,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
 
   -- The sidebar's top: the name, the version, then the big entries.
   function O:BuildSideTop(nav)
-    local logo = W.Font(nav:CreateFontString(nil, "OVERLAY"), 20, K.text[1], K.text[2], K.text[3])
-    logo:SetPoint("TOPLEFT", nav, "TOPLEFT", 14, -12)
+    local logo = W.Font(nav:CreateFontString(nil, "OVERLAY"), 24, K.text[1], K.text[2], K.text[3])
+    logo:SetPoint("TOPLEFT", nav, "TOPLEFT", 14, -14)
     logo:SetText("|cff33ccffpfUI|r Octo")
+    local tag = W.Font(nav:CreateFontString(nil, "OVERLAY"), 10, K.dim[1], K.dim[2], K.dim[3])
+    tag:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 1, -3)
+    tag:SetText("your whole interface")
+    -- the version sits at the sidebar's foot (8 Nov 2026)
     local ver = W.Font(nav:CreateFontString(nil, "OVERLAY"), 10, K.dim[1], K.dim[2], K.dim[3])
-    ver:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 1, -3)
+    ver:SetPoint("BOTTOMLEFT", nav, "BOTTOMLEFT", 10, 6)
     ver:SetText("v" .. ((pfUI.version and pfUI.version.octo) or "?"))
     self.logo = logo
     local function Rule(y)
@@ -1085,13 +1130,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- The page tabs (the open section's pages) and Find at their right.
   function O:BuildTabs(f)
     local row = CreateFrame("Frame", nil, f)
-    row:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 22, -TAB_TOP)
-    row:SetWidth(WIDTH - NAV_W - 22 - 12 - 200)
+    row:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 20, -TAB_TOP)
+    row:SetWidth(WIDTH - NAV_W - 20 - 12 - 204)
     row:SetHeight(24)
     self.tabRow = row
-    local line = W.Fill(f, K.line, 1, "ARTWORK")
+    local line = W.Fill(f, K.accent, .45, "ARTWORK")
     line:SetHeight(1)
-    line:SetPoint("TOPLEFT", row, "BOTTOMLEFT", -4, 0)
+    line:SetPoint("TOPLEFT", row, "BOTTOMLEFT", -6, 0)
     line:SetPoint("RIGHT", f, "RIGHT", -12, 0)
     self.tabLine = line
 
@@ -1131,13 +1176,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
     local x, line, width = 0, 0, row:GetWidth() or 600
     for _, b in ipairs(grp and grp.buttons or {}) do
-      local w = math.max(70, math.floor((b.text:GetStringWidth() or 60) + 30))
+      local w = math.max(60, math.floor((b.text:GetStringWidth() or 60) + 30))
       if x > 0 and x + w > width then x, line = 0, line + 1 end
       b:ClearAllPoints()
       b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -line * 34)
       b:SetWidth(w)
       b:Show()
-      x = x + w + 4
+      x = x + w + 6
     end
     local h = line * 34 + 30
     row:SetHeight(h)
@@ -1154,8 +1199,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.quick = bar
 
     -- Reload UI: gold while a change waits for a reload
-    local rl = W.Button(bar, "Reload UI", 96, 22)
-    rl:SetPoint("LEFT", bar, "LEFT", 6, 0)
+    local rl = W.Button(bar, "Reload UI", 120, 26)
+    rl:SetPoint("LEFT", bar, "LEFT", 0, 0)
     rl:SetScript("OnClick", function() ReloadUI() end)
     QuickTip(rl, "Reload UI", "Reloads the interface. Turns gold when a change you made only takes effect after a reload.")
     local watch = CreateFrame("Frame", nil, bar)
@@ -1179,7 +1224,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
 
     -- background opacity of this window
     local bl = W.Font(bar:CreateFontString(nil, "OVERLAY"), 12, K.dim[1], K.dim[2], K.dim[3])
-    bl:SetPoint("LEFT", rl, "RIGHT", 18, 0)
+    bl:SetPoint("LEFT", bar, "CENTER", -190, 0) -- (the middle group sits centred)
     bl:SetText("Background")
     local s = W.SliderBar(bar, 80, "pfOctoQuickAlpha")
     s:SetPoint("LEFT", bl, "RIGHT", 10, 0)
@@ -1225,8 +1270,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.langButton = lang
     O.PaintFlags()
 
-    local close = W.Button(bar, "Close", 90, 22)
-    close:SetPoint("RIGHT", bar, "RIGHT", -26, 0)
+    local close = W.Button(bar, "Close", 120, 26)
+    close:SetPoint("RIGHT", bar, "RIGHT", -28, 0)
     close:SetScript("OnClick", function() g:Hide() end)
     QuickTip(close, "Close", "Escape closes it too. If a change needs a reload, you are asked.")
   end
@@ -1239,17 +1284,30 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.quickAlpha.loading = nil
     W.SliderPaint(self.quickAlpha)
     self.quickAlphaText:SetText(math.floor(a * 100 + 0.5) .. "%")
+    if self.winScale then
+      local s = tonumber(B.Store().winscale) or (self.frame and self.frame:GetScale()) or 1
+      self.winScale.loading = true
+      self.winScale:SetValue(s)
+      self.winScale.loading = nil
+      W.SliderPaint(self.winScale)
+      self.winScaleText:SetText(math.floor(s * 100 + .5) .. "%")
+    end
   end
 
   -- The window's and its panels' backgrounds follow the Background slider.
   function O:ApplyAlpha()
     if not self.frame then return end
     local a = B.Store().alpha or 0.95
+    -- (8 Nov 2026) header, sidebar and footer = the window's one tone; the
+    -- page is a darker well
     local bd = self.frame.backdrop or self.frame
-    bd:SetBackdropColor(K.bg[1], K.bg[2], K.bg[3], a)
-    for _, p in ipairs({ self.quick, self.navFrame, self.content }) do
-      p:SetBackdropColor(K.panel[1], K.panel[2], K.panel[3], a)
-    end
+    bd:SetBackdropColor(K.panel[1], K.panel[2], K.panel[3], a)
+    self.navFrame:SetBackdropColor(0, 0, 0, 0)
+    self.navFrame:SetBackdropBorderColor(0, 0, 0, 0)
+    self.quick:SetBackdropColor(0, 0, 0, 0)
+    self.quick:SetBackdropBorderColor(0, 0, 0, 0)
+    self.content:SetBackdropColor(K.bg[1], K.bg[2], K.bg[3], a)
+    self.content:SetBackdropBorderColor(K.line[1], K.line[2], K.line[3], 1)
   end
 
   -- ---------------------------------------------------------------- topic list
@@ -1257,29 +1315,28 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- One topic = a text tab over the page (8 Nov 2026; they used to unfold
   -- under their section in the sidebar): grey words, the picked one white
   -- with an accent line under it. O:LayoutTabs places them.
-  -- (8 Nov 2026, user: the text tabs "don't stand out no where near enough
-  -- ... should be the first thing you see") Real buttons: a lit panel with
-  -- bright words; the open one filled with the accent, a bright edge and a
-  -- thick accent line under it.
+  -- (8 Nov 2026) Tabs, second go. User first: they "don't stand out", so they
+  -- became lit buttons; then, with EllesmereUI's window: "look how it shows
+  -- things are selected with an underline". Now big plain words (15 px) on
+  -- the header's tone: grey, the open one white with a thick accent line
+  -- under its words that sits on the header's accent line.
   local TAB_H = 30
   local function NavButton(label, indent)
     local b = CreateFrame("Button", nil, O.tabRow or O.navFrame)
     b:SetHeight(TAB_H)
-    W.Flat(b, K.btn, 1, K.lineHi)
     b.tab = true
     b.sel = W.Fill(b, K.accent, 0, "BACKGROUND")
     b.sel:SetAllPoints(b)
     b.sel:Hide()
     b.bar = W.Fill(b, K.accent, 1, "OVERLAY")
     b.bar:SetHeight(3)
-    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 1, 1)
-    b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 8, 0)
+    b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -8, 0)
     b.bar:Hide()
-    local hl = W.Fill(b, { 1, 1, 1 }, 0.08, "HIGHLIGHT")
-    hl:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
-    hl:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
-    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 14, .9, .91, .93)
-    b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
+    local hl = W.Fill(b, K.accent, 0.08, "HIGHLIGHT")
+    hl:SetAllPoints(b)
+    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 15, .68, .69, .73)
+    b.text:SetPoint("CENTER", b, "CENTER", 0, 2)
     b.text:SetText(label)
     b.indent = indent
     b:Hide()
@@ -1294,17 +1351,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     else
       b.sel:Hide()
       b.bar:Hide()
-      b.text:SetTextColor(b.tab and .9 or K.dim[1], b.tab and .91 or K.dim[2], b.tab and .93 or K.dim[3])
-    end
-    if b.tab then
-      local a = K.accent
-      if on then
-        b:SetBackdropColor(a[1] * .42, a[2] * .42, a[3] * .42, 1)
-        b:SetBackdropBorderColor(a[1], a[2], a[3], 1)
-      else
-        b:SetBackdropColor(K.btn[1], K.btn[2], K.btn[3], 1)
-        b:SetBackdropBorderColor(K.lineHi[1], K.lineHi[2], K.lineHi[3], 1)
-      end
+      b.text:SetTextColor(b.tab and .68 or K.dim[1], b.tab and .69 or K.dim[2], b.tab and .73 or K.dim[3])
     end
   end
 
@@ -1349,7 +1396,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     h.pic:SetTexCoord(.08, .92, .08, .92)
     h.pic:SetWidth(18)
     h.pic:SetHeight(18)
-    h.pic:SetPoint("LEFT", h, "LEFT", 4, 0)
+    h.pic:SetPoint("LEFT", h, "LEFT", 14, 0)
     h.sel = W.Fill(h, K.accent, 0.16, "BACKGROUND")
     h.sel:SetAllPoints(h)
     h.sel:Hide()
@@ -1512,8 +1559,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         seen[hname] = true
         local hf = CreateFrame("Frame", nil, self.navFrame)
         hf:SetHeight(20)
-        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 10, K.label and K.label[1] or .52, K.label and K.label[2] or .53, K.label and K.label[3] or .57)
-        hf.text:SetPoint("BOTTOMLEFT", hf, "BOTTOMLEFT", 6, 3)
+        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 11, K.accent[1], K.accent[2], K.accent[3])
+        hf.text:SetPoint("BOTTOMLEFT", hf, "BOTTOMLEFT", 8, 3)
         hf.text:SetText((W.Caps or string.upper)(hname))
         hf:EnableMouseWheel(true)
         hf:SetScript("OnMouseWheel", self.navFrame:GetScript("OnMouseWheel"))
@@ -1628,7 +1675,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- scrolled, half the column empty - the client reported the sidebar far
     -- shorter than it is.) The sidebar is the window minus 12 px top and
     -- bottom, and the window's height is set by us: measure from that.
-    local known = (self.frame and self.frame:GetHeight() or HEIGHT) - 24 - 10
+    local known = (self.frame and self.frame:GetHeight() or HEIGHT) - 24 - 26
     if known < 300 then known = HEIGHT - 34 end
     local fit = known
     local n, m = 0, 0
