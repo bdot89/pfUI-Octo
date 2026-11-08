@@ -499,6 +499,10 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    y in perfect pixels); dragging updates the preview (M.Reconfigure, .04 s) and the real frame on
    release; right-click puts back. Cast bars page: drag name / timer (CB.DRAG), right-click back.
    A two-line help strip under each preview lists every control.
+   Text sizes (8 Nov 2026, NOT seen in game; Bread on Discord: health text size also changed the power text):
+   pfUI.uf.TextSize(config, pos, base) = txt<pos>size, else txthpsize / txtpowersize, else the frame's font size
+   ("0" / "" = not set, defaults "0"). Frames > Text: "Text colours and font" has Health / Power text size, the Texts
+   card a Size per text; Shift + wheel on a text in the preview (UF.SIZE[pos], 4th field = its size now).
 12. Meters, Details!-style (22 Oct 2026; user's Details zip is All Rights Reserved - option and
    display names read only, no code or art). Rule from the user: use SuperWoW / ClassicAPI wherever
    they help, in every module. Phases: 1 windows + looks + options preview (DONE, not seen in

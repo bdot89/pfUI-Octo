@@ -47,6 +47,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   local function Px(v) return v .. " px" end
   local function Pct(v) return math.floor(v * 100 + .5) .. "%" end
   local function Sec(v) return v .. " s" end
+  -- a text size slider: 0 = not set (the size it would have anyway)
+  function UF.SizeText(v) if (tonumber(v) or 0) <= 0 then return "Same" end return v .. " px" end
   local function Reload() if pfUI.gui then pfUI.gui.settingChanged = true end end
 
   -- octo (5 Nov 2026, Barbeque: Blizzard's unit frame broke after a class colour change in these
@@ -135,6 +137,16 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     hp = { "height", 4, 80 }, power = { "pheight", 0, 40 }, buffs = { "buffsize", 8, 40 },
     debuffs = { "debuffsize", 8, 40 }, icons = { "raidiconsize", 8, 48 },
   }
+  -- a text's own font size (8 Nov 2026); 4th field = the size it has now
+  -- when not set, so the first notch goes from there
+  local function FontBase(cfg)
+    if cfg.customfont == "1" then return tonumber(cfg.customfont_size) or 12 end
+    return tonumber(C.global.font_unit_size) or 12
+  end
+  for _, t in ipairs(UF.TEXTS) do
+    local pos = t[1]
+    UF.SIZE[pos] = { "txt" .. pos .. "size", 6, 30, function(cfg) return pfUI.uf.TextSize(cfg, pos, FontBase(cfg)) end }
+  end
 
   -- ---------------------------------------------------------------- sections
   -- (user, 25 Oct 2026: "there is no raid layout options easily accessible
@@ -712,7 +724,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         local s = UF.SIZE[this.what]
         if IsShiftKeyDown() and s then
           local cfg = U()
-          local v = (tonumber(cfg[s[1]]) or 0) + (arg1 or 0)
+          local now = tonumber(cfg[s[1]]) or 0
+          if s[4] and now <= 0 then now = s[4](cfg) end
+          local v = now + (arg1 or 0)
           cfg[s[1]] = tostring(math.max(s[2], math.min(s[3], v)))
           Up()
         else
@@ -1363,13 +1377,17 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       function(v) U()[TK("offx")] = tostring(v) Up() end, Px)
     W.Slider(p, "Up / down", nil, -50, 50, 1, function() return tonumber(U()[TK("offy")]) or 0 end,
       function(v) U()[TK("offy")] = tostring(v) Up() end, Px)
+    -- (8 Nov 2026, Bread: health and power text could not have their own sizes)
+    W.Slider(p, "Size", "This text's own font size. 0 = the same as the rest of its bar (Text colours and font).",
+      0, 30, 1, function() return tonumber(U()[TK("size")]) or 0 end,
+      function(v) U()[TK("size")] = tostring(v) Up() end, UF.SizeText)
     W.Buttons(p, { { "Put it back", function()
-      U()[TK("offx")], U()[TK("offy")], U()["o_tc_" .. UF.text] = "0", "0", ""
+      U()[TK("offx")], U()[TK("offy")], U()["o_tc_" .. UF.text], U()[TK("size")] = "0", "0", "", "0"
       Up()
       O:Refresh()
-    end, 110, "Its place and its own colours again." } })
+    end, 110, "Its place, size and own colours again." } })
 
-    Card(p, "Text colours and font", { tip = "What \"its own colours\" means for this frame, and its font." })
+    Card(p, "Text colours and font", { tip = "What \"its own colours\" means for this frame, its font, and the text size on each bar." })
     Chk(p, "Health in its colour", nil, U, "healthcolor")
     Chk(p, "Power in its colour", nil, U, "powercolor")
     Chk(p, "Level in its colour", nil, U, "levelcolor")
@@ -1378,6 +1396,11 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Font", nil, DD("fonts", "font"), U, "customfont_name")
     Sld(p, "Font size", nil, 6, 30, 1, U, "customfont_size", Px)
     Drop(p, "Outline", nil, DD("fontstyle"), U, "customfont_style")
+    -- each bar's texts their own size (a text can still have its own on Texts)
+    W.Slider(p, "Health text size", "The three texts on the health bar. 0 = the frame's font size.", 0, 30, 1,
+      function() return tonumber(U().txthpsize) or 0 end, function(v) U().txthpsize = tostring(v) Up() end, UF.SizeText)
+    W.Slider(p, "Power text size", "The three texts on the power bar. 0 = the frame's font size.", 0, 30, 1,
+      function() return tonumber(U().txtpowersize) or 0 end, function(v) U().txtpowersize = tostring(v) Up() end, UF.SizeText)
 
     Card(p, "Power bar")
     Sld(p, "Height", "0 or less hides it.", -1, 40, 1, U, "pheight", Px)

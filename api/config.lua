@@ -930,7 +930,12 @@ function pfUI:LoadConfig()
     for _, pos in pairs({ "hpleft", "hpcenter", "hpright", "powerleft", "powercenter", "powerright" }) do
       pfUI:UpdateConfig("unitframes", unit,    "o_tc_" .. pos,     "")
       pfUI:UpdateConfig("unitframes", unit,    "o_tcc_" .. pos,    "1,1,1,1")
+      -- (8 Nov 2026) each text's own font size: "0" = its bar's size
+      pfUI:UpdateConfig("unitframes", unit,    "txt" .. pos .. "size", "0")
     end
+    -- each bar's text size: "0" = the frame's font size
+    pfUI:UpdateConfig("unitframes", unit,      "txthpsize",        "0")
+    pfUI:UpdateConfig("unitframes", unit,      "txtpowersize",     "0")
     pfUI:UpdateConfig("unitframes", unit,      "o_grad",           "none")
     pfUI:UpdateConfig("unitframes", unit,      "o_gradstart",      ".1,.1,.1,.8")
     pfUI:UpdateConfig("unitframes", unit,      "o_gradend",        ".3,.3,.3,.8")

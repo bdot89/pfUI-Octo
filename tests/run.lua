@@ -2617,6 +2617,37 @@ do
       ok(UF.text == "hpright", "clicking the right health text opens its own tab")
       UF.text = "hpleft"
     end
+    -- (8 Nov 2026, Bread) health and power texts their own sizes; "0" / "" = the shared size
+    do
+      local TS = pfUI.uf.TextSize
+      ok(TS({}, "hpleft", 12) == 12 and TS({ txthpsize = "0", txthpleftsize = "" }, "hpleft", 12) == 12, "text size: nothing set = the shared size")
+      ok(TS({ txthpsize = "16" }, "hpright", 12) == 16 and TS({ txthpsize = "16" }, "powerright", 12) == 12, "text size: the health bar's size leaves the power texts alone")
+      ok(TS({ txtpowersize = "9", txtpowercentersize = "14" }, "powercenter", 12) == 14 and TS({ txtpowersize = "9" }, "powerleft", 12) == 9,
+        "text size: a text's own size beats its bar's")
+      local pc = pfUI_config.unitframes.player
+      ok(pc.txthpsize == "0" and pc.txtpowersize == "0" and pc.txthpleftsize == "0" and pc.txtpowerrightsize == "0", "text size defaults are 0 (today's look)")
+      local real = pfUI.uf.player
+      if real and real.hpLeftText and real.UpdateConfig then
+        local base = tonumber(pfUI_config.global.font_unit_size)
+        pc.txthpsize, pc.txtpowersize, pc.txtpowerleftsize = "18", "8", "10"
+        UF.cur = "player"
+        UF.Apply("player")
+        local _, hs = real.hpLeftText:GetFont()
+        local _, ps = real.powerRightText:GetFont()
+        local _, pl = real.powerLeftText:GetFont()
+        ok(tonumber(hs) == 18 and tonumber(ps) == 8 and tonumber(pl) == 10, "player frame: health 18, power 8, power left 10 (" .. tostring(hs) .. " " .. tostring(ps) .. " " .. tostring(pl) .. ")")
+        local pv = M and M.sets.player and M.sets.player.frames[1]
+        if pv and pv.hpRightText then
+          local _, vs = pv.hpRightText:GetFont()
+          ok(tonumber(vs) == 18, "the preview follows the health text size (" .. tostring(vs) .. ")")
+        end
+        pc.txthpsize, pc.txtpowersize, pc.txtpowerleftsize = "0", "0", "0"
+        UF.Apply("player")
+        local _, back = real.hpLeftText:GetFont()
+        ok(tonumber(back) == base or pc.customfont == "1", "back to the shared size (" .. tostring(back) .. ")")
+      end
+      ok(UF.SIZE.hpleft and UF.SIZE.powerright and UF.SIZE.powerright[1] == "txtpowerrightsize", "Shift + wheel on a text changes its own size")
+    end
     if M and M.sets.player then
       local f = M.sets.player.frames[1]
       ok(f.octoPreview and f.label == "player" and f:GetParent() == M.sets.player, "a real pfUI frame, on your character, inside the box")

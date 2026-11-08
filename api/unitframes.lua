@@ -14,6 +14,19 @@ end)
 pfUI.uf.frames = {}
 pfUI.uf.delayed = {}
 
+-- octo (8 Nov 2026, Bread: health text size also changed the power text): the
+-- font size of one bar text. pos = "hpleft" ... "powerright". The text's own
+-- size (txt<pos>size), else its bar's (txthpsize / txtpowersize), else base;
+-- empty or "0" = not set.
+function pfUI.uf.TextSize(config, pos, base)
+  local function Set(v)
+    v = tonumber(v)
+    if v and v > 0 then return v end
+  end
+  local bar = string.find(pos, "^power") and "power" or "hp"
+  return Set(config["txt" .. pos .. "size"]) or Set(config["txt" .. bar .. "size"]) or base
+end
+
 -- slash command to toggle unitframe test mode
 _G.SLASH_PFTEST1, _G.SLASH_PFTEST2 = "/pftest", "/pfuftest"
 _G.SlashCmdList.PFTEST = function()
@@ -621,42 +634,42 @@ function pfUI.uf:UpdateConfig()
   end
 
   f.hpLeftText:SetFontObject(GameFontWhite)
-  f.hpLeftText:SetFont(fontname, fontsize, fontstyle)
+  f.hpLeftText:SetFont(fontname, pfUI.uf.TextSize(f.config, "hpleft", fontsize), fontstyle)
   f.hpLeftText:SetJustifyH("LEFT")
   f.hpLeftText:ClearAllPoints()
   f.hpLeftText:SetPoint("TOPLEFT",f.hp.bar, "TOPLEFT", 2*(default_border + f.config.txthpleftoffx), 1 + tonumber(f.config.txthpleftoffy))
   f.hpLeftText:SetPoint("BOTTOMRIGHT",f.hp.bar, "BOTTOMRIGHT", -2*(default_border + f.config.txthpleftoffx), f.config.txthpleftoffy)
 
   f.hpRightText:SetFontObject(GameFontWhite)
-  f.hpRightText:SetFont(fontname, fontsize, fontstyle)
+  f.hpRightText:SetFont(fontname, pfUI.uf.TextSize(f.config, "hpright", fontsize), fontstyle)
   f.hpRightText:SetJustifyH("RIGHT")
   f.hpRightText:ClearAllPoints()
   f.hpRightText:SetPoint("TOPLEFT",f.hp.bar, "TOPLEFT", 2*(default_border + f.config.txthprightoffx), 1 + tonumber(f.config.txthprightoffy))
   f.hpRightText:SetPoint("BOTTOMRIGHT",f.hp.bar, "BOTTOMRIGHT", -2*(default_border + f.config.txthprightoffx), f.config.txthprightoffy)
 
   f.hpCenterText:SetFontObject(GameFontWhite)
-  f.hpCenterText:SetFont(fontname, fontsize, fontstyle)
+  f.hpCenterText:SetFont(fontname, pfUI.uf.TextSize(f.config, "hpcenter", fontsize), fontstyle)
   f.hpCenterText:SetJustifyH("CENTER")
   f.hpCenterText:ClearAllPoints()
   f.hpCenterText:SetPoint("TOPLEFT",f.hp.bar, "TOPLEFT", f.config.txthpcenteroffx, 1 + tonumber(f.config.txthpcenteroffy))
   f.hpCenterText:SetPoint("BOTTOMRIGHT",f.hp.bar, "BOTTOMRIGHT", f.config.txthpcenteroffx, f.config.txthpcenteroffy)
 
   f.powerLeftText:SetFontObject(GameFontWhite)
-  f.powerLeftText:SetFont(fontname, fontsize, fontstyle)
+  f.powerLeftText:SetFont(fontname, pfUI.uf.TextSize(f.config, "powerleft", fontsize), fontstyle)
   f.powerLeftText:SetJustifyH("LEFT")
   f.powerLeftText:ClearAllPoints()
   f.powerLeftText:SetPoint("TOPLEFT",f.power.bar, "TOPLEFT", 2*(default_border + f.config.txtpowerleftoffx), 1 + tonumber(f.config.txtpowerleftoffy))
   f.powerLeftText:SetPoint("BOTTOMRIGHT",f.power.bar, "BOTTOMRIGHT", -2*(default_border + f.config.txtpowerleftoffx), f.config.txtpowerleftoffy)
 
   f.powerRightText:SetFontObject(GameFontWhite)
-  f.powerRightText:SetFont(fontname, fontsize, fontstyle)
+  f.powerRightText:SetFont(fontname, pfUI.uf.TextSize(f.config, "powerright", fontsize), fontstyle)
   f.powerRightText:SetJustifyH("RIGHT")
   f.powerRightText:ClearAllPoints()
   f.powerRightText:SetPoint("TOPLEFT",f.power.bar, "TOPLEFT", 2*(default_border + f.config.txtpowerrightoffx), 1 + tonumber(f.config.txtpowerrightoffy))
   f.powerRightText:SetPoint("BOTTOMRIGHT",f.power.bar, "BOTTOMRIGHT", -2*(default_border + f.config.txtpowerrightoffx), f.config.txtpowerrightoffy)
 
   f.powerCenterText:SetFontObject(GameFontWhite)
-  f.powerCenterText:SetFont(fontname, fontsize, fontstyle)
+  f.powerCenterText:SetFont(fontname, pfUI.uf.TextSize(f.config, "powercenter", fontsize), fontstyle)
   f.powerCenterText:SetJustifyH("CENTER")
   f.powerCenterText:ClearAllPoints()
   f.powerCenterText:SetPoint("TOPLEFT",f.power.bar, "TOPLEFT", f.config.txtpowercenteroffx, 1 + tonumber(f.config.txtpowercenteroffy))
