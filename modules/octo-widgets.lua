@@ -1250,11 +1250,67 @@ function W.LongMenu(anchor, options, width, onPick)
   local count = W.Font(menu:CreateFontString(nil, "OVERLAY"), 10, C.dim[1], C.dim[2], C.dim[3])
   count:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -8, 4)
   local rows = {}
-  local function Refresh()
+  -- (8 Nov 2026, user: "1 - 18 of 427 there is no way to scroll") a scroll bar to drag, arrows to click,
+  -- the wheel over the menu, and Up / Down / Page keys in the box
+  local bar = CreateFrame("Slider", nil, menu)
+  bar:SetOrientation("VERTICAL")
+  bar:SetWidth(12)
+  bar:SetPoint("TOPRIGHT", menu, "TOPRIGHT", -4, -32 - 14)
+  bar:SetPoint("BOTTOMRIGHT", menu, "BOTTOMRIGHT", -4, 18 + 14)
+  bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+  bar.bg:SetAllPoints(bar)
+  bar.bg:SetTexture(U.WHITE)
+  bar.bg:SetVertexColor(0, 0, 0, .5)
+  bar.thumb = bar:CreateTexture(nil, "OVERLAY")
+  bar.thumb:SetTexture(U.WHITE)
+  bar.thumb:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], .9)
+  bar.thumb:SetWidth(12)
+  bar.thumb:SetHeight(28)
+  bar:SetThumbTexture(bar.thumb)
+  bar:SetValueStep(1)
+  bar:SetMinMaxValues(0, 0)
+  bar:SetValue(0)
+  bar:EnableMouseWheel(true)
+  local function Arrow(up)
+    local a = CreateFrame("Button", nil, menu)
+    a:SetWidth(12)
+    a:SetHeight(12)
+    if up then a:SetPoint("BOTTOM", bar, "TOP", 0, 1) else a:SetPoint("TOP", bar, "BOTTOM", 0, -1) end
+    local t = W.Font(a:CreateFontString(nil, "OVERLAY"), 10, C.text[1], C.text[2], C.text[3])
+    t:SetPoint("CENTER", a, "CENTER", 0, 0)
+    t:SetText(up and "^" or "v")
+    a.hl = a:CreateTexture(nil, "ARTWORK")
+    a.hl:SetAllPoints(a)
+    a.hl:SetTexture(U.WHITE)
+    a.hl:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], .35)
+    a.hl:Hide()
+    a:SetScript("OnEnter", function() this.hl:Show() end)
+    a:SetScript("OnLeave", function() this.hl:Hide() end)
+    return a
+  end
+  local up, down = Arrow(true), Arrow(false)
+  local Refresh
+  local function Scroll(by)
+    offset = offset + by
+    Refresh()
+  end
+  up:SetScript("OnClick", function() Scroll(-3) end)
+  down:SetScript("OnClick", function() Scroll(3) end)
+  bar:SetScript("OnValueChanged", function()
+    if bar.setting then return end
+    local v = math.floor((this:GetValue() or 0) + .5)
+    if v ~= offset then offset = v Refresh() end
+  end)
+  function Refresh()
     local total = table.getn(view)
     local maxoff = math.max(0, total - LONG_ROWS)
     if offset > maxoff then offset = maxoff end
     if offset < 0 then offset = 0 end
+    bar.setting = true
+    bar:SetMinMaxValues(0, maxoff)
+    bar:SetValue(offset)
+    bar.setting = nil
+    if maxoff > 0 then bar:Show() up:Show() down:Show() else bar:Hide() up:Hide() down:Hide() end
     for i = 1, LONG_ROWS do
       local e, o = rows[i], view[offset + i]
       if o then
@@ -1263,7 +1319,6 @@ function W.LongMenu(anchor, options, width, onPick)
         e.t:SetText(o.label)
         if o.group then e.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) else e.t:SetTextColor(C.text[1], C.text[2], C.text[3]) end
         if o.texture then e.strip:SetTexture(o.texture) e.strip:Show() else e.strip:Hide() end
-        e.hl:SetAlpha(o.key ~= nil and 1 or 0)
         e:Show()
       else
         e.opt = nil
@@ -1282,11 +1337,12 @@ function W.LongMenu(anchor, options, width, onPick)
     if q == "" and not box.typing then hint:Show() else hint:Hide() end
     Refresh()
   end
-  local function Wheel() offset = offset - (_G.arg1 or 0) * 3 Refresh() end
+  local function Wheel() Scroll(-(tonumber(_G.arg1) or 0) * 3) end
   menu:SetScript("OnMouseWheel", Wheel)
+  bar:SetScript("OnMouseWheel", Wheel)
   for i = 1, LONG_ROWS do
     local e = CreateFrame("Button", nil, menu)
-    e:SetWidth(w - 8)
+    e:SetWidth(w - 8 - 16)
     e:SetHeight(17)
     e:SetPoint("TOPLEFT", menu, "TOPLEFT", 4, -32 - (i - 1) * 17)
     e:EnableMouseWheel(true)
@@ -1298,12 +1354,16 @@ function W.LongMenu(anchor, options, width, onPick)
     e.strip:Hide()
     e.t = W.Font(e:CreateFontString(nil, "OVERLAY"), 11, C.text[1], C.text[2], C.text[3])
     e.t:SetPoint("LEFT", e, "LEFT", 6, 0)
-    e.t:SetWidth(w - 20)
+    e.t:SetWidth(w - 36)
     e.t:SetJustifyH("LEFT")
-    e.hl = e:CreateTexture(nil, "HIGHLIGHT")
+    -- (hover: a see-through wash UNDER the words - a HIGHLIGHT layer drew solid over them)
+    e.hl = e:CreateTexture(nil, "ARTWORK")
     e.hl:SetAllPoints(e)
     e.hl:SetTexture(U.WHITE)
-    e.hl:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], 0.25)
+    e.hl:SetVertexColor(C.accent[1], C.accent[2], C.accent[3], 0.35)
+    e.hl:Hide()
+    e:SetScript("OnEnter", function() if this.key ~= nil then this.hl:Show() end end)
+    e:SetScript("OnLeave", function() this.hl:Hide() end)
     e:SetScript("OnClick", function()
       if this.key == nil then return end
       menu:Hide()
@@ -1313,6 +1373,16 @@ function W.LongMenu(anchor, options, width, onPick)
   end
   box:SetScript("OnTextChanged", function() Filter() end)
   box:SetScript("OnEscapePressed", function() menu:Hide() end)
+  -- (keys in the filter box: Up / Down a line, Page Up / Down a page)
+  box:SetScript("OnKeyDown", function()
+    local k = _G.arg1
+    if k == "UP" then Scroll(-1) elseif k == "DOWN" then Scroll(1)
+    elseif k == "PAGEUP" then Scroll(-LONG_ROWS) elseif k == "PAGEDOWN" then Scroll(LONG_ROWS) end
+  end)
+  -- (an edit box may hand the arrow keys over this way instead; a client without it refuses the script)
+  pcall(box.SetScript, box, "OnArrowPressed", function()
+    if _G.arg1 == "UP" then Scroll(-1) elseif _G.arg1 == "DOWN" then Scroll(1) end
+  end)
   box:SetScript("OnEnterPressed", function()
     local o = view[1]
     if o and o.key ~= nil then menu:Hide() onPick(o.key) end

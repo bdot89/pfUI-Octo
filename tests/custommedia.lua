@@ -112,3 +112,31 @@ do
     ok(pfUI_config.position.pfGryphonLeft == nil, "Put back on the bar clears their saved places")
   end
 end
+
+-- (8 Nov 2026, user: "1 - 18 of 427 there is no way to scroll") a long Octo menu scrolls by its bar and the wheel
+do
+  local opts = {}
+  for i = 1, 100 do table.insert(opts, { key = i, label = "Item " .. i }) end
+  local m = W.LongMenu(UIParent, opts, 250, function() end)
+  m:Show()
+  local slider, first
+  for _, k in ipairs({ m:GetChildren() }) do
+    if k.kind == "Slider" then slider = k end
+  end
+  local function FirstRow()
+    for _, k in ipairs({ m:GetChildren() }) do
+      if k.t and k:IsShown() and k.opt then return k.t:GetText() end
+    end
+  end
+  ok(slider and slider:IsShown(), "a long menu has a scroll bar")
+  if slider then
+    slider:SetValue(20)
+    Mock.Run(slider, "OnValueChanged")
+    first = FirstRow()
+    ok(first == "Item 21", "dragging the bar scrolls the list (" .. tostring(first) .. ")")
+  end
+  Mock.Run(m, "OnMouseWheel", -1)
+  first = FirstRow()
+  ok(first == "Item 24", "the wheel scrolls it too (" .. tostring(first) .. ")")
+  m:Hide()
+end

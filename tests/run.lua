@@ -3567,7 +3567,7 @@ do
     for _, m in ipairs(pfUI.octoui.W.menus) do
       for _, e in ipairs({ m:GetChildren() }) do
         for _, r in ipairs(e._kids or {}) do
-          if r.kind == "Texture" and r.texture and string.find(r.texture, "plates\\bar%-") then textured = textured + 1 end
+          if r.kind == "Texture" and type(r.texture) == "string" and string.find(r.texture, "plates\\bar%-") then textured = textured + 1 end
           if r.kind == "FontString" and r.font and string.find(string.lower(r.font[1] or ""), "%.ttf$") then fonted = fonted + 1 end
         end
       end
