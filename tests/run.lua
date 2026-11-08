@@ -3617,6 +3617,16 @@ do
         if k.pic and string.find(k.pic.texture or "", "octo\\icons\\", 1, true) then glyphs = glyphs + 1 end
       end
       ok(glyphs == 4, "the four big entries wear our white glyphs (" .. glyphs .. ")")
+      -- the faint Octo mark: the page panel's own BACKGROUND texture (under every card and preview), can be hidden
+      local mk = O.mark
+      -- (the mock keeps no draw layers: the texture belonging to the page panel is what it can check)
+      ok(mk and mk:GetParent() == O.content, "the Octo mark lies under the pages")
+      pfUI_cache.octoui.mark = false
+      O.PaintMark()
+      local hid = not mk:IsShown()
+      pfUI_cache.octoui.mark = nil
+      O.PaintMark()
+      ok(hid and mk:IsShown(), "the Octo mark hides and shows with its switch")
     end
     -- (8 Nov 2026, user screenshot: the header was empty on the Settings page) every way in names the page
     for _, how in ipairs({ "select", "open", "profiles" }) do

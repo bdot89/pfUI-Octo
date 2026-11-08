@@ -951,6 +951,22 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 12 + FOOT + 6)
     W.Flat(content, K.panel, 1, K.line)
     self.content = content
+    -- (8 Nov 2026, user: "even this logo in the background looks nice we could
+    -- add the octo label in the same way") our own octopus emblem, very faint,
+    -- centred behind the pages: a texture of the page panel itself, so every
+    -- card, control and preview draws over it (bright previews rule). Hidden
+    -- with Settings > Options window > "Octo mark behind the pages".
+    local mark = content:CreateTexture(nil, "BACKGROUND")
+    mark:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\octomark")
+    mark:SetWidth(380)
+    mark:SetHeight(380)
+    mark:SetPoint("CENTER", content, "CENTER", 0, 0)
+    mark:SetVertexColor(1, 1, 1, .07)
+    self.mark = mark
+    function O.PaintMark()
+      if B.Store().mark == false then mark:Hide() else mark:Show() end
+    end
+    O.PaintMark()
 
     self:BuildSideTop(nav)
     self:BuildTabs(f)
@@ -2561,6 +2577,10 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       { "Run setup again", "Profile, layout and chat in steps", "Interface\\Icons\\INV_Misc_Book_11",
         function() if pfUI.firstrun then g:Hide() pfUI.firstrun:Restart() end end, "go" },
     })
+    W.Card(p, "Options window", { tip = "How this window itself looks (kept for your whole account)." })
+    W.Check(p, "Octo mark behind the pages", "The faint octopus emblem behind every page.",
+      function() return B.Store().mark ~= false end,
+      function(v) B.Store().mark = v and true or false if O.PaintMark then O.PaintMark() end end)
     W.Card(p, "UI scale", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
       tip = "How big everything on the screen is. Kept per character, and applied at every login." })
     local wait = CreateFrame("Frame")

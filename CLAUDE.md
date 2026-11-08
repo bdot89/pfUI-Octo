@@ -1101,3 +1101,8 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    W.Color rows (two to a line, dimmed colours keep their tooltip note) instead of 4 columns of tick boxes;
    W.Toggles (Heading extras, Bags' bag ticks) = W.Check pill rows. Combat Text's event table keeps its columns.
    Tests: no section pictures, power glyphs, four glyph entries.
+   Octo mark (same day; user: "this logo in the background looks nice we could add the octo label in the same
+   way"): img\octo\icons\octomark.tga = our own octopus in a ring, 256x256 white line art from tools\mkmark.c.
+   O.mark = a BACKGROUND texture of O.content (under every card / control / preview), 380 px, centred, alpha .07;
+   B.Store().mark == false hides it (Settings > Scale, profiles and look > Options window, O.PaintMark). Card and
+   pin panels (W.Panel) went from .85 to .72 so it shows faintly through them.

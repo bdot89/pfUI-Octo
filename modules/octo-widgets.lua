@@ -821,7 +821,7 @@ local function Panel(f, top)
     table.insert(parts, t)
     return t
   end
-  local bg = Tex("BACKGROUND", C.card, 0.85)
+  local bg = Tex("BACKGROUND", C.card, 0.72) -- (.72: the faint Octo mark shows through, 8 Nov 2026)
   bg:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -top)
   bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
   local e = Tex("BORDER", C.cardLine, 1)
