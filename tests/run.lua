@@ -5814,10 +5814,33 @@ do
         local hp = zs[1].nameplate.health
         ok(table.getn(low) == 0 and hp.backdrop:GetFrameLevel() < hp:GetFrameLevel(),
           "sample plates above their box, backdrop still under the bar (low levels: " .. table.concat(low, " ") .. ")")
+        -- the client puts a re-levelled bar's children above it: the backdrop goes back under
+        hp.backdrop:SetFrameLevel(hp:GetFrameLevel() + 1)
+        P.Raise(zs[1])
+        ok(hp.backdrop:GetFrameLevel() < hp:GetFrameLevel(), "nameplate preview: a backdrop over its bar goes back under it")
         for _, s in ipairs(zs) do s:Hide() for i, v in ipairs(P.previews) do if v == s then table.remove(P.previews, i) break end end end
       else
         ok(false, "sample plates on a raised box build: " .. tostring(zs))
       end
+    end
+    local CBO = pfUI.castbarOcto
+    if CBO and CBO.Mini then
+      local cbox = CreateFrame("Frame", nil, UIParent)
+      cbox:SetWidth(600)
+      cbox:SetHeight(110)
+      local mgood, m = pcall(CBO.Mini, cbox)
+      local bar = mgood and m and m.cb and m.cb.bar
+      if bar and bar.backdrop and m.KeepUnder then
+        bar:SetFrameLevel(5)
+        bar.backdrop:SetFrameLevel(6)
+        m.cb.icon.backdrop:SetFrameLevel(m.cb.icon:GetFrameLevel() + 1)
+        m.KeepUnder()
+        ok(bar.backdrop:GetFrameLevel() < bar:GetFrameLevel() and m.cb.icon.backdrop:GetFrameLevel() < m.cb.icon:GetFrameLevel(),
+          "cast bar preview: backdrops back under the bar and icon")
+      else
+        ok(false, "cast bar preview builds with backdrops: " .. tostring(mgood and "no backdrop" or m))
+      end
+      if mgood and m and m.cb then m.cb:GetParent():Hide() end
     end
     -- (the mock does not hand frame levels down: read the zoom previews' code instead) no preview
     -- holder is pinned to a fixed low level - it would lie under its zoom box

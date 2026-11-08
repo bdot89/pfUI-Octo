@@ -259,8 +259,23 @@ pfUI:RegisterModule("castbar-options", "vanilla:tbc", function ()
       h:Show()
     end
 
+    -- (8 Nov 2026, user screenshots: the bar, its words and the icon dark)
+    -- pfUI's backdrop is a child frame one level UNDER its bar; when the
+    -- client re-levels a parent it puts every child above it again, so the
+    -- dark backdrop lay over the bar. Kept under it here.
+    function M.KeepUnder()
+      for _, f in ipairs({ cb.bar, cb.icon }) do
+        local b, l = f.backdrop, f:GetFrameLevel() or 0
+        if b then
+          if l < 1 then f:SetFrameLevel(1) l = 1 end
+          if (b:GetFrameLevel() or 0) >= l then b:SetFrameLevel(l - 1) end
+        end
+      end
+    end
+
     -- the look, from the settings of the chosen tab
     function M.Refresh()
+      M.KeepUnder()
       local unit = CB.cur
       local s = C.castbar[unit]
       local w, h = CB.Size(unit)
@@ -351,6 +366,7 @@ pfUI:RegisterModule("castbar-options", "vanilla:tbc", function ()
 
     holder:SetScript("OnUpdate", function()
       local now = GetTime()
+      M.KeepUnder()
       M.Animate(now)
       if (this.tick or 0) < now then
         this.tick = now + .5

@@ -1296,6 +1296,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
         local l = kid:GetFrameLevel() or 0
         if l < base - 1 then kid:SetFrameLevel(l + base - 1) end
         Walk(kid)
+        -- (8 Nov 2026) pfUI's dark backdrop is a child one level UNDER its bar;
+        -- the client puts children above a parent whose level changes, so it
+        -- lay over the bar (dark previews). Kept under it.
+        local b = kid.backdrop
+        local kl = kid:GetFrameLevel() or 0
+        if b and b.GetFrameLevel and kl >= 1 and (b:GetFrameLevel() or 0) >= kl then b:SetFrameLevel(kl - 1) end
       end
     end
     Walk(game)
