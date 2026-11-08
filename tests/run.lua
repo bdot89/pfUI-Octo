@@ -3552,6 +3552,22 @@ do
     ok(shown == table.getn(O.groups) and not nav.down:IsShown(), "every section shows in a short list too (" .. shown .. "/" .. table.getn(O.groups) .. ")")
     nav.GetHeight = gh
     O:LayoutNav()
+    -- (8 Nov 2026, user: a long menu "just picks any" after scrolling) the click takes focus from the
+    -- filter box first; that must not put the list back at the top under the mouse
+    do
+      local LW = pfUI.octoui.W
+      local opts, picked = {}, nil
+      for i = 1, 100 do table.insert(opts, { key = "k" .. i, label = "Item " .. i }) end
+      local lm = LW.LongMenu(UIParent, opts, 250, function(k) picked = k end)
+      lm:Show()
+      Mock.Run(lm, "OnShow")
+      for _ = 1, 10 do Mock.Run(lm, "OnMouseWheel", -1) end
+      local row = lm.rows[1]
+      local was = row.key
+      if lm.box:GetScript("OnEditFocusLost") then Mock.Run(lm.box, "OnEditFocusLost") end
+      Mock.Run(row, "OnClick")
+      ok(was ~= "k1" and picked == was, "a scrolled long menu picks the row clicked (" .. tostring(was) .. " -> " .. tostring(picked) .. ")")
+    end
     -- the corner grip scales the window, within limits, and remembers it
     ok(O.grip ~= nil, "the window has a resize grip")
     O:ApplyScale(3)

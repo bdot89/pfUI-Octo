@@ -1358,14 +1358,21 @@ function W.LongMenu(anchor, options, width, onPick)
     end
     count:SetText(total == 0 and "nothing matches" or ((offset + 1) .. " - " .. math.min(offset + LONG_ROWS, total) .. " of " .. total))
   end
-  local function Filter()
-    view = {}
+  -- (8 Nov 2026, user: clicking a row after scrolling "just picks any") the click takes focus from the box,
+  -- OnFocus ran Filter, which put the list back at the top before the click landed - so the row under the
+  -- mouse held another texture by then. Only a changed text filters (and scrolls) again; focus just repaints
+  -- the hint.
+  local lastQ
+  local function Filter(force)
     local q = string.lower(box:GetText() or "")
+    if q == "" and not box.typing then hint:Show() else hint:Hide() end
+    if q == lastQ and not force then return end
+    lastQ = q
+    view = {}
     for _, o in ipairs(options) do
       if q == "" or string.find(string.lower(o.label or ""), q, 1, true) then table.insert(view, o) end
     end
     offset = 0
-    if q == "" and not box.typing then hint:Show() else hint:Hide() end
     Refresh()
   end
   local function Wheel() Scroll(-(tonumber(_G.arg1) or 0) * 3) end
@@ -1421,11 +1428,12 @@ function W.LongMenu(anchor, options, width, onPick)
   box.OnFocus = function() Filter() end
   menu:SetScript("OnShow", function()
     box:SetText("")
-    Filter()
+    Filter(true)
     box:SetFocus()
   end)
   menu:SetScript("OnHide", function() box:ClearFocus() end)
-  Filter()
+  Filter(true)
+  menu.rows, menu.box = rows, box
   return menu
 end
 

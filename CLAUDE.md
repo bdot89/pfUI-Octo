@@ -1020,3 +1020,6 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    test at 560 px); tabs are 30 px buttons (lit panel, 14 px words; open = accent fill + edge + 3 px line); card
    and pin panels are textures on the card itself (W.Panel) - as a child frame the pin's panel lay over the
    preview at .85 and darkened it.
+   W.LongMenu (8 Nov; user: after scrolling a click "just picks any"): a row click took focus from the filter
+   box, box.OnFocus ran Filter, which reset the scroll to the top before OnClick - the row then held another
+   option. Filter now only rebuilds when the text changed (Filter(true) on show); test in run.lua.
