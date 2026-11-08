@@ -190,6 +190,82 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     return row
   end
 
+  -- Small text links in a centred row (8 Nov 2026, user picked "Small text
+  -- links" for the buttons under the nameplate preview): same list as
+  -- W.Buttons ({ label, fn, width, tip, on = fn, role = ... }); each word in
+  -- its role's colour, " - " between them, an accent line under a link while
+  -- its `on` says so, white on hover.
+  function W.Links(p, list)
+    local row = W.Row(p, 20, 0, 4)
+    local links, x = {}, 0
+    for i = 1, table.getn(list) do
+      local d = list[i]
+      local col = W.ROLE[d.role or W.RoleOf(d[1]) or "open"] or W.ROLE.open
+      local b = CreateFrame("Button", nil, row)
+      b:SetHeight(18)
+      b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 12, col[1], col[2], col[3])
+      b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
+      b.text:SetText(d[1])
+      local w = math.floor((b.text:GetStringWidth() or 60) + 8)
+      b:SetWidth(w)
+      b.col, b.fn, b.on = col, d[2], d.on or d[5]
+      b.line = W.Fill(b, K.accent, 1, "ARTWORK")
+      b.line:SetHeight(2)
+      b.line:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 4, 0)
+      b.line:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 0)
+      b.line:Hide()
+      local function Paint()
+        local on = b.on and b.on()
+        if on then b.line:Show() else b.line:Hide() end
+        local c = on and { math.min(1, b.col[1] + .25), math.min(1, b.col[2] + .25), math.min(1, b.col[3] + .25) } or b.col
+        b.text:SetTextColor(c[1], c[2], c[3])
+      end
+      b.Paint = Paint
+      b:SetScript("OnClick", function() this.fn() this.Paint() W.Changed() end)
+      local tipTitle, tipText = d[4] and d[1], d[4]
+      b:SetScript("OnEnter", function()
+        this.text:SetTextColor(1, 1, 1)
+        if tipText then
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:AddLine(W.T(tipTitle))
+          GameTooltip:AddLine(W.T(tipText), 1, 1, 1, 1)
+          GameTooltip:Show()
+        end
+      end)
+      b:SetScript("OnLeave", function() this.Paint() GameTooltip:Hide() end)
+      Paint()
+      if i > 1 then
+        local dot = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, .4, .41, .45)
+        dot:SetText("-")
+        dot:SetPoint("LEFT", row, "LEFT", x + 6, 0)
+        x = x + 20
+        dot.ox = x - 14
+        table.insert(links, dot)
+      end
+      b.ox = x
+      x = x + w
+      table.insert(links, b)
+    end
+    -- centred in the row
+    local shift = math.floor(((row:GetWidth() or W.CW) - x) / 2)
+    for _, it in ipairs(links) do
+      it:ClearAllPoints()
+      it:SetPoint("LEFT", row, "LEFT", shift + it.ox, 0)
+    end
+    local function PaintAll()
+      for _, it in ipairs(links) do if it.Paint and not MouseIsOver(it) then it.Paint() end end
+    end
+    if p.items then table.insert(p.items, { Refresh = PaintAll }) end
+    -- (a timed one - the nameplate test - goes out by itself)
+    row:SetScript("OnUpdate", function()
+      if (this.tick or 0) > GetTime() then return end
+      this.tick = GetTime() + .25
+      PaintAll()
+    end)
+    row.links = links
+    return row
+  end
+
   -- rows of buttons: each tinted by its role (d.role, else its words); lit
   -- buttons ("on" while something holds) light green, not blue
   local Buttons = W.Buttons

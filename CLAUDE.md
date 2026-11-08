@@ -1067,3 +1067,6 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    into the header under Window Scale (230 wide); the pfUI Octo / Blizzard strip has no box. Nameplates: the
    legend is centred; the status line only says what needs you (no plates, SuperWoW / UnitXP missing). Left as is:
    the four buttons under the preview and the preview grid (C.plates.previewgrid, default "1", user's own toggle).
+   Then (user: "Small text links"): W.Links(p, list) in octo-options = W.Buttons' list as a centred row of 12 px
+   words in their role colours, "-" between, accent underline while `on`, white on hover, repainted every .25 s.
+   The nameplate preview's Reset everything / Put parts back / Test on real nameplates / Grid use it.

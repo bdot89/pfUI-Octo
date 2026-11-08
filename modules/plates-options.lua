@@ -224,7 +224,9 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       if P.Testing() then status:SetText("|cff55ff55Test " .. math.ceil(P.testUntil - GetTime()) .. " s|r") else status:SetText("") end
     end)
     end
-    W.Buttons(p, {
+    -- (8 Nov 2026, user: "Small text links") quiet links, not a row of buttons
+    local Links = W.Links or W.Buttons
+    Links(p, {
       { "Reset everything", function()
         -- a second click within 4 s does it
         if (P.resetAsk or 0) < GetTime() then
