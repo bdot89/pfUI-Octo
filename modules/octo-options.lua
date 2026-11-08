@@ -101,6 +101,51 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
   end
 
+  -- Action tiles (8 Nov 2026, the EllesmereUI-like look): the big buttons of a
+  -- page as a row of tiles, each a picture, a title and a one-line hint on a
+  -- soft wash of its role's colour. list: { { title, hint, icon, fn, role } }
+  -- (role from the title's words when not given).
+  function W.Tiles(p, list)
+    local n = table.getn(list)
+    local row = W.Row(p, 46, 0, 8)
+    local gap = 10
+    local tw = math.floor((row:GetWidth() - gap * (n - 1)) / math.max(n, 1))
+    for i = 1, n do
+      local d = list[i]
+      local col = W.ROLE[d[5] or W.RoleOf(d[1]) or "open"] or W.ROLE.open
+      local b = CreateFrame("Button", nil, row)
+      b:SetWidth(tw)
+      b:SetHeight(46)
+      b:SetPoint("TOPLEFT", row, "TOPLEFT", (i - 1) * (tw + gap), 0)
+      W.Flat(b, K.field, .9, { col[1] * .45, col[2] * .45, col[3] * .45 })
+      local wash = W.Fill(b, col, .07, "BORDER")
+      wash:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
+      wash:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+      local hl = W.Fill(b, col, .10, "HIGHLIGHT")
+      hl:SetAllPoints(wash)
+      local ic = b:CreateTexture(nil, "ARTWORK")
+      ic:SetTexture(d[3] or W.CardArt(d[1]))
+      ic:SetTexCoord(.08, .92, .08, .92)
+      ic:SetWidth(26)
+      ic:SetHeight(26)
+      ic:SetPoint("LEFT", b, "LEFT", 10, 0)
+      local t = W.Font(b:CreateFontString(nil, "OVERLAY"), 12, 1, 1, 1)
+      t:SetPoint("TOPLEFT", ic, "TOPRIGHT", 10, 0)
+      t:SetPoint("RIGHT", b, "RIGHT", -8, 0)
+      t:SetJustifyH("LEFT")
+      t:SetText(d[1])
+      local h = W.Font(b:CreateFontString(nil, "OVERLAY"), 10, K.dim[1], K.dim[2], K.dim[3])
+      h:SetPoint("BOTTOMLEFT", ic, "BOTTOMRIGHT", 10, 0)
+      h:SetPoint("RIGHT", b, "RIGHT", -8, 0)
+      h:SetJustifyH("LEFT")
+      h:SetText(d[2] or "")
+      b.fn = d[4]
+      b:SetScript("OnClick", function() if this.fn then this.fn() end end)
+      b.tile = true
+    end
+    return row
+  end
+
   -- rows of buttons: each tinted by its role (d.role, else its words); lit
   -- buttons ("on" while something holds) light green, not blue
   local Buttons = W.Buttons
@@ -2047,6 +2092,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   local function BuildGeneral(p)
     local PP = pfUI.pixelperfect
     W.Heading(p, "Scale, profiles and look", { about = "UI scale, named profiles for every character, and the character window's look." })
+    W.Tiles(p, {
+      { "Move frames", "Drag, snap and size every frame", "Interface\\Icons\\INV_Misc_Map_01",
+        function() if pfUI.unlock then pfUI.unlock:Show() end end, "open" },
+      { "Key Map", "Drag spells onto your keyboard", "Interface\\Icons\\INV_Misc_Key_01",
+        function() if pfUI.keymap then pfUI.keymap:Toggle() end end, "open" },
+      { "Run setup again", "Profile, layout and chat in steps", "Interface\\Icons\\INV_Misc_Book_11",
+        function() if pfUI.firstrun then g:Hide() pfUI.firstrun:Restart() end end, "go" },
+    })
     W.Card(p, "UI scale", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
       tip = "How big everything on the screen is. Kept per character, and applied at every login." })
     local wait = CreateFrame("Frame")

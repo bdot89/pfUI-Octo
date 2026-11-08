@@ -60,8 +60,9 @@ W.CW = 768         -- width inside a card
 local HALF = 376   -- a cell of the two-column grid
 local COL2 = 390   -- where the right-hand column starts
 local CTRL = 196   -- whole-row controls start here, after their label
-local CARD_HEAD = 24
-local CARD_TOP = 32 -- card top to its first control
+local CARD_HEAD = 22 -- the card's capitals label line
+local CARD_TOP = 28 -- card top to its first control
+local ROW = 28      -- (8 Nov 2026) every setting row: label left, control right
 
 local MEDIA = "Interface\\AddOns\\pfUI\\img\\octo\\"
 local FONTS = "Interface\\AddOns\\pfUI\\fonts\\"
@@ -81,6 +82,9 @@ local C = {
   accent = { 0.2, 0.7, 1 },         -- OctoBG blue
   on = { 0.22, 0.72, 0.42 },
   off = { 0.3, 0.31, 0.35 },
+  label = { 0.52, 0.53, 0.57 },     -- the capitals card labels
+  cardLine = { 0.17, 0.175, 0.195 },-- card panels and the line beside a label
+  rowLine = { 0.16, 0.165, 0.185 }, -- the faint line under each setting row
 }
 W.C = C
 
@@ -498,25 +502,31 @@ function W.Pin(p, title, tip, build)
   pin:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
   pin:SetWidth(W.WIDTH)
   pin:SetHeight(CARD_HEAD)
-  W.Flat(pin, C.card, 1, C.line)
+  -- (8 Nov 2026) the same capitals label as a card, the preview on a soft panel under it
+  local back = CreateFrame("Frame", nil, pin)
+  back:SetPoint("TOPLEFT", pin, "TOPLEFT", 0, -CARD_HEAD)
+  back:SetPoint("BOTTOMRIGHT", pin, "BOTTOMRIGHT", 0, 0)
+  back:SetFrameLevel(pin:GetFrameLevel())
+  W.Flat(back, C.card, 0.85, C.cardLine)
   local head = CreateFrame("Button", nil, pin)
-  head:SetPoint("TOPLEFT", pin, "TOPLEFT", 1, -1)
-  head:SetPoint("TOPRIGHT", pin, "TOPRIGHT", -1, -1)
-  head:SetHeight(CARD_HEAD - 2)
-  local bg = W.Fill(head, C.head, 1, "BACKGROUND")
-  bg:SetAllPoints(head)
-  Hover(head, 0.05)
-  local arrow = W.Arrow(head, 10, "down")
-  arrow:SetPoint("LEFT", head, "LEFT", 8, 0)
-  local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  t:SetPoint("LEFT", arrow, "RIGHT", 7, 0)
-  t:SetText(title)
-  local note = W.Font(head:CreateFontString(nil, "OVERLAY"), 10, C.dim[1], C.dim[2], C.dim[3])
-  note:SetPoint("RIGHT", head, "RIGHT", -10, 0)
-  note:SetText("stays here while the page scrolls")
-  W.Tip(head, title, tip)
+  head:SetPoint("TOPLEFT", pin, "TOPLEFT", 0, 0)
+  head:SetPoint("TOPRIGHT", pin, "TOPRIGHT", 0, 0)
+  head:SetHeight(CARD_HEAD)
+  local arrow = W.Arrow(head, 8, "down")
+  arrow:SetPoint("LEFT", head, "LEFT", 2, 0)
+  local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 11, C.label[1], C.label[2], C.label[3])
+  t:SetPoint("LEFT", arrow, "RIGHT", 6, 0)
+  t:SetText(W.Caps(title))
+  local rule = W.Fill(head, C.cardLine, 1, "ARTWORK")
+  rule:SetHeight(1)
+  rule:SetPoint("LEFT", t, "RIGHT", 10, 0)
+  rule:SetPoint("RIGHT", head, "RIGHT", -2, 0)
+  W.Tip(head, title, (tip and (tip .. "\n\n") or "") .. "Stays here while the page scrolls. Click to fold it away.")
+  local tipEnter, tipLeave = head:GetScript("OnEnter"), head:GetScript("OnLeave")
+  head:SetScript("OnEnter", function() t:SetTextColor(C.text[1], C.text[2], C.text[3]) tipEnter() end)
+  head:SetScript("OnLeave", function() t:SetTextColor(C.label[1], C.label[2], C.label[3]) tipLeave() end)
   local inner = CreateFrame("Frame", nil, pin)
-  inner:SetPoint("TOPLEFT", pin, "TOPLEFT", 10, -CARD_HEAD - 4)
+  inner:SetPoint("TOPLEFT", pin, "TOPLEFT", 10, -CARD_HEAD - 6)
   inner:SetWidth(W.CW)
   inner:SetHeight(1)
   -- the widgets go into the strip while build runs
@@ -530,6 +540,7 @@ function W.Pin(p, title, tip, build)
   local function Layout()
     local open = not Store()[key]
     local h = CARD_HEAD
+    if open then back:Show() else back:Hide() end
     if open then
       inner:Show()
       local top, bottom = inner:GetTop(), c.last and c.last:GetBottom()
@@ -808,53 +819,86 @@ end
 --   tip    = hover text for the bar
 --   text   = one plain line at the top of the card: what it is for
 -- Everything added after it goes inside, until the next card or W.Done.
+-- Title text in capitals, colour codes kept working (|c / |r stay lower case).
+function W.Caps(text)
+  local s = string.upper(W.T(text or ""))
+  s = string.gsub(s, "|C(%x%x%x%x%x%x%x%x)", "|c%1")
+  s = string.gsub(s, "|R", "|r")
+  return s
+end
+
+-- (8 Nov 2026, user liked EllesmereUI's calm layout; a player called ours
+-- "overwhelming") A card is a small grey capitals label with a thin line to
+-- its right, floating on the page, and one soft panel under it that holds the
+-- rows. The label still folds the card (arrow left, the whole line clicks).
 function W.Card(p, title, o)
   o = o or {}
   p.cur = nil
   local card = CreateFrame("Frame", nil, p.body)
   card:SetWidth(W.WIDTH - 2 * X)
   card:SetHeight(CARD_HEAD)
-  W.Flat(card, C.card, 1, C.line)
-  Put(p, card, 0, (table.getn(p.cards) == 0) and 10 or 6)
+  Put(p, card, 0, (table.getn(p.cards) == 0) and 10 or 14)
+  local panel = CreateFrame("Frame", nil, card)
+  panel:SetPoint("TOPLEFT", card, "TOPLEFT", 0, -CARD_HEAD)
+  panel:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", 0, 0)
+  panel:SetFrameLevel(card:GetFrameLevel())
+  W.Flat(panel, C.card, 0.85, C.cardLine)
   local head = CreateFrame("Button", nil, card)
-  head:SetPoint("TOPLEFT", card, "TOPLEFT", 1, -1)
-  head:SetPoint("TOPRIGHT", card, "TOPRIGHT", -1, -1)
-  head:SetHeight(CARD_HEAD - 2)
-  local bg = W.Fill(head, C.head, 1, "BACKGROUND")
-  bg:SetAllPoints(head)
-  Hover(head, 0.05)
-  local icon = W.Arrow(head, 10, "down")
-  icon:SetPoint("LEFT", head, "LEFT", 8, 0)
-  local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  t:SetPoint("LEFT", icon, "RIGHT", 7, 0)
-  -- (25 Oct 2026) o.icon: a picture before the title, a game icon path
+  head:SetPoint("TOPLEFT", card, "TOPLEFT", 0, 0)
+  head:SetPoint("TOPRIGHT", card, "TOPRIGHT", 0, 0)
+  head:SetHeight(CARD_HEAD)
+  local icon = W.Arrow(head, 8, "down")
+  icon:SetPoint("LEFT", head, "LEFT", 2, 0)
+  local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 11, C.label[1], C.label[2], C.label[3])
+  t:SetPoint("LEFT", icon, "RIGHT", 6, 0)
+  -- (25 Oct 2026) o.icon: a picture before the title, a game icon path (small now)
   if o.icon then
     local pic = head:CreateTexture(nil, "ARTWORK")
     pic:SetTexture(o.icon)
     pic:SetTexCoord(.08, .92, .08, .92)
-    pic:SetWidth(16)
-    pic:SetHeight(16)
-    pic:SetPoint("LEFT", icon, "RIGHT", 7, 0)
+    pic:SetWidth(14)
+    pic:SetHeight(14)
+    pic:SetPoint("LEFT", icon, "RIGHT", 6, 0)
     t:ClearAllPoints()
     t:SetPoint("LEFT", pic, "RIGHT", 6, 0)
   end
-  t:SetText(title)
+  t:SetText(W.Caps(title))
+  -- the thin line from the label to the right edge (or to the switch)
+  local rule = W.Fill(head, C.cardLine, 1, "ARTWORK")
+  rule:SetHeight(1)
+  rule:SetPoint("LEFT", t, "RIGHT", 10, 0)
+  rule:SetPoint("RIGHT", head, "RIGHT", o.on and -76 or -2, 0)
+  -- hover: the label turns white
+  head:SetScript("OnEnter", function()
+    t:SetTextColor(C.text[1], C.text[2], C.text[3])
+    if this.tipTitle or this.tipText then
+      GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      if this.tipTitle then GameTooltip:AddLine(W.T(this.tipTitle)) end
+      if this.tipText then GameTooltip:AddLine(W.T(this.tipText), 1, 1, 1, 1) end
+      GameTooltip:Show()
+    end
+  end)
+  head:SetScript("OnLeave", function()
+    t:SetTextColor(C.label[1], C.label[2], C.label[3])
+    GameTooltip:Hide()
+  end)
   local inside = CreateFrame("Frame", nil, card)
   inside:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -CARD_TOP)
   inside:SetWidth(W.CW)
   inside:SetHeight(1)
   local c = { parent = inside, x0 = 0, y0 = 0, lastX = 0, width = W.CW, card = card, icon = icon,
-              title = title, page = p, key = (p.key or "?") .. ":" .. title, default = not o.folded }
+              title = title, page = p, key = (p.key or "?") .. ":" .. title, default = not o.folded,
+              panel = panel }
   if o.on then
     local sw = W.Switch(head, o.on[1], o.on[2], o.on[3])
-    sw:SetPoint("RIGHT", head, "RIGHT", -8, 0)
+    sw:SetPoint("RIGHT", head, "RIGHT", -2, 0)
     Track(p, { Refresh = sw.Refresh })
   end
   -- (octo, user 20 Oct: "get rid of so much text") the card's line of
-  -- explanation lives in its title bar's tooltip, not on the page
+  -- explanation lives in its label's tooltip, not on the page
   local tip = o.tip
   if o.text then tip = tip and (o.text .. "\n\n" .. tip) or o.text end
-  W.Tip(head, tip and title, tip)
+  head.tipTitle, head.tipText = tip and title, tip
   head.c = c
   head:SetScript("OnClick", function() W.SetOpen(this.c, not W.IsOpen(this.c)) end)
   table.insert(p.cards, c)
@@ -875,10 +919,12 @@ function W.ApplyCard(c)
   if W.IsOpen(c) then
     W.Turn(c.icon, "down")
     c.parent:Show()
+    if c.panel then c.panel:Show() end
     c.card:SetHeight(c.h and (CARD_TOP + c.h + 10) or CARD_HEAD)
   else
     W.Turn(c.icon, "right")
     c.parent:Hide()
+    if c.panel then c.panel:Hide() end
     c.card:SetHeight(CARD_HEAD)
   end
 end
@@ -933,17 +979,6 @@ local function Label(row, text)
   return fs
 end
 
--- The label of a grid cell: one line along its top.
-local function TopLabel(row, text, width)
-  local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  fs:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -1)
-  fs:SetWidth(width)
-  fs:SetHeight(14)
-  fs:SetJustifyH("LEFT")
-  fs:SetText(text)
-  return fs
-end
-
 -- A mouse area over a label, for its tooltip.
 local function HoverArea(row, fs, title, desc)
   if not desc then return end
@@ -954,32 +989,98 @@ local function HoverArea(row, fs, title, desc)
   W.Tip(h, title, desc)
 end
 
+-- (8 Nov 2026, the EllesmereUI-like rows) A setting row of the grid: the
+-- label on the left, vertically centred, a faint line along the bottom and a
+-- soft light while the mouse is on it. The caller puts its control on the
+-- right. Returns the row, its container and the label.
+local function SettingRow(p, label, full)
+  local row, c = Cell(p, ROW, full)
+  local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
+  fs:SetPoint("LEFT", row, "LEFT", 4, 0)
+  fs:SetJustifyH("LEFT")
+  fs:SetText(label)
+  local line = W.Fill(row, C.rowLine, 1, "BACKGROUND")
+  line:SetHeight(1)
+  line:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+  line:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
+  row.label = fs
+  return row, c, fs
+end
+-- how wide a label is, to give the control the rest of the row
+local function LabelWidth(fs) return math.floor((fs.GetStringWidth and fs:GetStringWidth()) or 100) end
+-- the label as a mouse area over the left of the row (tooltip; a click
+-- does onClick when given)
+local function RowHit(row, fs, label, desc, onClick)
+  local hit = CreateFrame("Button", nil, row)
+  hit:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
+  hit:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+  hit:SetWidth(math.max(40, LabelWidth(fs) + 12))
+  local hl = W.Fill(hit, { 1, 1, 1 }, 0.035, "HIGHLIGHT")
+  hl:SetAllPoints(row)
+  if onClick then hit:SetScript("OnClick", onClick) end
+  W.Tip(hit, label, desc)
+  return hit
+end
+
+-- An on / off pill that is a CheckButton (pages and tests use GetChecked /
+-- SetChecked on what W.Check returns): green, knob right = on; red-grey = off.
+function W.CheckPill(parent)
+  local cb = CreateFrame("CheckButton", nil, parent)
+  cb:SetWidth(32)
+  cb:SetHeight(16)
+  local function Disc(size, layer)
+    local t = cb:CreateTexture(nil, layer or "ARTWORK")
+    t:SetTexture(ART.disc)
+    t:SetWidth(size)
+    t:SetHeight(size)
+    return t
+  end
+  local l, r = Disc(18), Disc(18)
+  l:SetPoint("LEFT", cb, "LEFT", -1, 0)
+  r:SetPoint("RIGHT", cb, "RIGHT", 1, 0)
+  local m = cb:CreateTexture(nil, "ARTWORK")
+  m:SetTexture(U.WHITE)
+  m:SetPoint("TOPLEFT", cb, "TOPLEFT", 8, -1)
+  m:SetPoint("BOTTOMRIGHT", cb, "BOTTOMRIGHT", -8, 1)
+  local knob = Disc(14, "OVERLAY")
+  knob:SetVertexColor(0.95, 0.95, 0.96, 1)
+  local function Paint()
+    local on = cb:GetChecked() and true or false
+    local role = W.ROLE and W.ROLE[on and "on" or "off"]
+    local col = role and { role[1] * (on and 1 or .7), role[2] * (on and 1 or .7), role[3] * (on and 1 or .7) } or (on and C.on or C.off)
+    l:SetVertexColor(col[1], col[2], col[3], 1)
+    r:SetVertexColor(col[1], col[2], col[3], 1)
+    m:SetVertexColor(col[1], col[2], col[3], 1)
+    knob:ClearAllPoints()
+    if on then knob:SetPoint("RIGHT", cb, "RIGHT", -1, 0) else knob:SetPoint("LEFT", cb, "LEFT", 1, 0) end
+  end
+  local raw = cb.SetChecked
+  cb.SetChecked = function(self, v) raw(self, v) Paint() end
+  cb.Paint = Paint
+  Paint()
+  return cb
+end
+
 -- full: take the whole row (a label too long for half a row does by itself).
 function W.Check(p, label, desc, get, set, full)
-  local row, c = Cell(p, 22, full)
-  local cb = W.CheckBox(row, 16)
-  cb:SetPoint("LEFT", row, "LEFT", 2, 0)
-  local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  fs:SetPoint("LEFT", cb, "RIGHT", 8, 0)
-  fs:SetText(label)
-  if not full and (fs:GetStringWidth() or 0) > HALF - 30 then full = true end
+  local row, c, fs = SettingRow(p, label, full)
+  if not full and LabelWidth(fs) > HALF - 56 then full = true end
   row:SetWidth(full and c.width or HALF)
+  local cb = W.CheckPill(row)
+  cb:SetPoint("RIGHT", row, "RIGHT", -6, 0)
   local function Click()
+    cb.Paint()
     set(cb:GetChecked() and true or false)
     Changed()
   end
   cb:SetScript("OnClick", Click)
   -- the label toggles too
-  local hit = CreateFrame("Button", nil, row)
-  hit:SetPoint("TOPLEFT", fs, "TOPLEFT", -2, 2)
-  hit:SetPoint("BOTTOMRIGHT", fs, "BOTTOMRIGHT", 2, -2)
-  hit:SetScript("OnClick", function()
+  RowHit(row, fs, label, desc, function()
     cb:SetChecked(not cb:GetChecked() and 1 or nil)
     Click()
   end)
   W.Tip(cb, label, desc)
-  W.Tip(hit, label, desc)
-  if full then Put(c, row, 0, 6) else PutHalf(c, row, 6) end
+  if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = function() cb:SetChecked(get() and 1 or nil) end })
   return cb
@@ -1045,13 +1146,26 @@ end
 
 -- fmt: a function(value) -> text, or nil for a plain number
 function W.Slider(p, label, desc, min, max, step, get, set, fmt)
-  local row, c = Cell(p, 38)
-  local lab = TopLabel(row, label, HALF - 76)
-  local val = W.NumberBox(row, 64)
-  val:SetPoint("TOPRIGHT", row, "TOPRIGHT", -6, 1)
+  -- (8 Nov 2026) one line: label left, slider and its number box right
+  local row, c, lab = SettingRow(p, label)
+  local val = W.NumberBox(row, 52)
+  val:SetPoint("RIGHT", row, "RIGHT", -4, 0)
+  -- the number sits in a faint box so it reads as something to type in
+  val:SetBackdropColor(C.field[1], C.field[2], C.field[3], .8)
+  val:SetBackdropBorderColor(C.cardLine[1], C.cardLine[2], C.cardLine[3], 1)
+  local restoreLook = val:GetScript("OnEditFocusLost")
+  val:SetScript("OnEditFocusLost", function()
+    restoreLook()
+    this:SetBackdropColor(C.field[1], C.field[2], C.field[3], .8)
+    this:SetBackdropBorderColor(C.cardLine[1], C.cardLine[2], C.cardLine[3], 1)
+  end)
   W.Tip(val, label, "Click and type a number for an exact value, then press Enter.")
-  local s = W.SliderBar(row, HALF - 12, Name("Slider"))
-  s:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -19)
+  local sw = math.max(90, math.min(170, HALF - LabelWidth(lab) - 84))
+  -- a label too long for half a row takes the whole row
+  local full = LabelWidth(lab) > HALF - 84 - sw
+  if full then row:SetWidth(c.width) sw = 220 end
+  local s = W.SliderBar(row, sw, Name("Slider"))
+  s:SetPoint("RIGHT", val, "LEFT", -8, 0)
   s:SetMinMaxValues(min, max)
   s:SetValueStep(step)
   local dec = Decimals(step)
@@ -1089,8 +1203,8 @@ function W.Slider(p, label, desc, min, max, step, get, set, fmt)
     Show(v)
   end)
   W.Tip(s, label, desc)
-  HoverArea(row, lab, label, desc)
-  PutHalf(c, row, 6)
+  RowHit(row, lab, label, desc)
+  if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = function()
     local v = get() or min
@@ -1343,13 +1457,16 @@ end
 
 -- options: { { key = ..., label = ... }, ... }
 function W.Dropdown(p, label, desc, options, get, set)
-  local row, c = Cell(p, 40)
-  local lab = TopLabel(row, label, HALF - 8)
-  HoverArea(row, lab, label, desc)
-  local f, Refresh, hit = W.MiniDrop(row, HALF - 12, options, get, set, math.max(HALF - 12, 200))
-  f:SetPoint("TOPLEFT", row, "TOPLEFT", 2, -18)
+  -- (8 Nov 2026) one line: label left, the box right
+  local row, c, lab = SettingRow(p, label)
+  local dw = math.max(130, math.min(190, HALF - LabelWidth(lab) - 24))
+  local full = LabelWidth(lab) > HALF - 24 - dw
+  if full then row:SetWidth(c.width) dw = 220 end
+  RowHit(row, lab, label, desc)
+  local f, Refresh, hit = W.MiniDrop(row, dw, options, get, set, math.max(dw, 200))
+  f:SetPoint("RIGHT", row, "RIGHT", -4, 0)
   W.Tip(hit, label, desc)
-  PutHalf(c, row, 6)
+  if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = Refresh })
   return f
@@ -1371,13 +1488,12 @@ function W.Swatch(parent, size)
 end
 
 function W.Color(p, label, desc, get, set)
-  local row, c = Cell(p, 22)
-  local sw = W.Swatch(row, 16)
-  sw:SetPoint("LEFT", row, "LEFT", 2, 0)
-  local fs = W.Font(row:CreateFontString(nil, "OVERLAY"), 12, C.text[1], C.text[2], C.text[3])
-  fs:SetPoint("LEFT", sw, "RIGHT", 8, 0)
-  fs:SetText(label)
+  -- (8 Nov 2026) label left, the swatch right; the whole row picks
+  local row, c, fs = SettingRow(p, label)
+  local sw = W.Swatch(row, 18)
+  sw:SetPoint("RIGHT", row, "RIGHT", -6, 0)
   local function Apply() sw.fill:SetVertexColor(get()) end
+  RowHit(row, fs, label, desc or "Click to pick a colour.", function() sw:Click() end)
   sw:SetScript("OnClick", function()
     local r, g, b, a = get()
     ColorPickerFrame.func = function()
@@ -1397,7 +1513,7 @@ function W.Color(p, label, desc, get, set)
     ShowUIPanel(ColorPickerFrame)
   end)
   W.Tip(sw, label, desc or "Click to pick a colour.")
-  PutHalf(c, row, 6)
+  PutHalf(c, row, 1)
   Index(p, label, desc, row)
   Track(p, { Refresh = Apply })
   return sw

@@ -985,3 +985,19 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    that healer's last heal (combat log SPELL_HEAL / chat HEALED*OTHER* lines, crits / 1.5), anyone's, else the
    spell's "for X to Y" text (C_Spell.GetSpellDescription or the own spell book's tooltip, libpredict:Guess, also
    for the first own cast). Incoming bar sized from hp.bar's real width. Not seen in game.
+24. Calmer options pages, ideas from EllesmereUI (8 Nov 2026, NOT seen in game; user sent its options window: "I
+   really like the clean look ... make ours less overwhelming and organised better"; a Discord player called ours
+   "overwhelming" but likes the previews). EllesmereUI's licence reserves rights: ideas only, no code or art.
+   Plan in the shared notes (ellesmere-borrow-plan.md): B = shared widgets (done), A = shell (sidebar groups with
+   power icons, page tabs, footer Reload / Close, flags into one dropdown) - waits for the user's word.
+   octo-widgets.lua: W.Card = small grey capitals label (W.Caps keeps |c / |r codes), 8 px fold arrow, 14 px icon,
+   a thin line to the right (stops before the card's switch), the rows on one soft panel under it (c.panel, hidden
+   while folded); no head bar. W.Pin the same (its "stays here" note moved into the tooltip). Rows (SettingRow,
+   ROW = 28): label left, control right, a faint line under each, the label area lights and shows the tooltip
+   (RowHit). W.Check = W.CheckPill (a CheckButton drawn as a pill, green / red-grey; SetChecked repaints) on the
+   right, the whole label toggles; W.Slider = slider + boxed number on the label's line (one line, was two);
+   W.Dropdown box right (130-190 wide); W.Color swatch right, the label picks. A label too long for half a row
+   takes the whole row. octo-options.lua W.Tiles(p, { { title, hint, icon, fn, role } }) = action tiles (role
+   wash); Settings > Scale, profiles and look starts with Move frames / Key Map / Run setup again tiles.
+   Skipped: folding W.Note text into an "i" (only 14 notes in all the pages). pfUI's own CreateConfig pages
+   (O.SkinPage) are unchanged.
