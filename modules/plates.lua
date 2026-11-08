@@ -1439,21 +1439,9 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       cells[i] = { cx, cy, cw, ch }
     end
     box.grid = Grid(box, cells)
-    -- (8 Nov 2026, user screenshot: every bar in the preview came out dark)
-    -- A zoom box keeps its dark fill on the canvas, a frame of the FULLSCREEN
-    -- layer above the samples' low levels (bar 4, backdrop 3): the fill lay
-    -- over the bars. Here the fill is the box's own again (the window's
-    -- layer, under all of FULLSCREEN) and the grid goes under the plates.
-    if box.view and box.outer then
-      local canvas = box:GetParent()
-      for _, r in ipairs({ canvas:GetRegions() }) do
-        if r.IsObjectType and r:IsObjectType("Texture") then r:Hide() end
-      end
-      local K = pfUI.octoui and pfUI.octoui.W and pfUI.octoui.W.C
-      local f = K and K.field or { .08, .08, .1 }
-      box.outer:SetBackdropColor(f[1], f[2], f[3], .9)
-      box.grid:SetFrameLevel(1)
-    end
+    -- (8 Nov 2026) the grid under the plates (bar 4, backdrop 3), not over the
+    -- bars; the box's dark fill is in the window's layer (W.ZoomBox)
+    box.grid:SetFrameLevel(1)
     for i = 1, n do
       local game = SamplePlate(box, SAMPLES[i])
       local c = cells[i]

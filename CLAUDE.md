@@ -33,6 +33,11 @@ see "Roadmap" below.
   in pfUI's environment (`C` = config, `T` = translations, pfUI.api functions as globals).
   Defaults go in api/config.lua (`pfUI:UpdateConfig(group, sub, key, default)`), options in
   modules/gui.lua (`CreateConfig`, `CreateGUIEntry`).
+- Previews must be bright and sharp (user, 8 Nov 2026, angry after the third dark one). They draw in
+  FULLSCREEN, often on frame levels 1-4 (pfUI's plates / cast bars): NEVER put a fill, panel or texture
+  on a frame that lies above them (W.ZoomBox's clip / canvas, a pin's child frame). A box's dark fill is
+  its own backdrop in the window's layer (DIALOG). tests\run.lua checks every zoom box after building
+  every page.
 
 ## Testing
 - `powershell -ExecutionPolicy Bypass -File tests\run.ps1`: loads every file in the toc (following

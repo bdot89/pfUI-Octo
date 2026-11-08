@@ -3382,23 +3382,6 @@ do
       ok(fp.health.backdrop and fp.health.backdrop:GetFrameLevel() < fp.health:GetFrameLevel()
         and fp.health:GetFrameLevel() > box:GetFrameLevel(),
         "sample bar: above its box, its dark backdrop still under the fill")
-      -- (8 Nov 2026) in a zoom box the canvas's dark fill lay over the bars: it goes, the box keeps its own
-      do
-        local zb = CreateFrame("Frame", nil, UIParent)
-        local canvas = CreateFrame("Frame", nil, zb)
-        local under = canvas:CreateTexture(nil, "BACKGROUND")
-        canvas.GetRegions = function() return under end
-        local stage = CreateFrame("Frame", nil, canvas)
-        stage:SetWidth(640)
-        stage:SetHeight(118)
-        stage.view, stage.outer = {}, zb
-        local zgood, zs = pcall(P.AttachPreview, stage)
-        ok(zgood and not under:IsShown() and stage.grid:GetFrameLevel() < zs[1].nameplate.health:GetFrameLevel(),
-          "zoom box preview: no fill over the plates, grid under the bars (" .. tostring(zgood and "" or zs) .. ")")
-        if zgood then
-          for _, s in ipairs(zs) do s:Hide() for k, v in ipairs(P.previews) do if v == s then table.remove(P.previews, k) break end end end
-        end
-      end
       pfUI_config.nameplates.cpdisplay = "1"
       local seen = {}
       for i = 1, 12 do
@@ -5783,6 +5766,34 @@ do
     ok(exact and card and exact > card, "search: a setting named for the words comes first")
     ok(W.Score("enemy buffs", "Size", "Unit frames > Debuffs", "") == nil, "search: every word must match")
     ok(W.Score("buffs", "Buffs", "x") > W.Score("buffs", "Buff and dispel markers buffs", "x"), "search: exact name first")
+  end
+end
+
+-- (8 Nov 2026, user: "MAKE SURE EVERY SINGLE PREVIEW WINDOW ALWAYS IS CLEAN AND SHARP AND BRIGHT") Previews
+-- draw in FULLSCREEN, often on low frame levels (pfUI's plates and cast bars use 1-4): a texture on a zoom
+-- box's clip or canvas lies OVER them (cast bar and nameplate previews came out dark). Every page is built,
+-- then no zoom box may carry a texture of its own inside the clip; its dark fill is the box's backdrop.
+do
+  local OO = pfUI.octoui and pfUI.octoui.Options
+  if OO and OO.BUILD then
+    for k in pairs(OO.BUILD) do pcall(function() OO:Page(k) end) end
+    local boxes, bad = 0, {}
+    for _, f in ipairs(Mock.frames) do
+      if f.view and f.outer and f._parent and f._parent._parent then
+        boxes = boxes + 1
+        local canvas, sf = f._parent, f._parent._parent
+        for _, holder in ipairs({ canvas, sf }) do
+          for _, r in ipairs(holder._kids) do
+            if r.kind == "Texture" and r.shown then table.insert(bad, tostring(f.outer.cell and f.outer.cell.title or "a zoom box")) end
+          end
+        end
+      end
+    end
+    ok(boxes >= 10, "zoom box previews found on the pages: " .. boxes)
+    ok(table.getn(bad) == 0, "no zoom box draws a fill over its preview: " .. table.concat(bad, ", "))
+    local P = pfUI.plates
+    local g = P and P.previews and P.previews[1] and P.previews[1]:GetParent().grid
+    ok(not g or g:GetFrameLevel() < P.previews[1].nameplate.health:GetFrameLevel(), "nameplate preview grid lies under the bars")
   end
 end
 print(string.format("%d checks, %d failed", checks, fails))

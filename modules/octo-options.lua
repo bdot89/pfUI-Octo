@@ -338,14 +338,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     canvas:SetWidth(bw - 2)
     canvas:SetHeight(h - 2)
     sf:SetScrollChild(canvas)
-    -- (the box's dark fill went over the drawing - every preview came out dark,
-    -- user 26 Oct 2026: the fill is under it now, inside the clip; the box keeps
-    -- only its edge)
-    box:SetBackdropColor(0, 0, 0, 0)
-    local under = canvas:CreateTexture(nil, "BACKGROUND")
-    under:SetTexture("Interface\\Buttons\\WHITE8X8")
-    under:SetAllPoints(canvas)
-    under:SetVertexColor(W.C.field[1], W.C.field[2], W.C.field[3], .9)
+    -- The dark fill stays the box's own backdrop, in the window's layer: under
+    -- ALL of FULLSCREEN, whatever frame levels a preview uses. (26 Oct it moved
+    -- onto the canvas; 8 Nov the user found the cast bar and nameplate previews
+    -- dark: their parts sit on levels 1-4, under the canvas, so that fill lay
+    -- over them. Nothing in the clip may draw a fill.)
     local stage = CreateFrame("Frame", nil, canvas)
     stage:SetWidth(bw)
     stage:SetHeight(h)
