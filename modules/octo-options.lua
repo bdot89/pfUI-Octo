@@ -50,7 +50,41 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   }
 
   -- (wider and taller since 22 Oct 2026; it shrinks itself to fit the screen)
-  local WIDTH, HEIGHT, NAV_W, NAV_ROW = 1080, 740, 196, 20
+  local WIDTH, HEIGHT, NAV_W, NAV_ROW = 1080, 740, 210, 20
+  -- (8 Nov 2026, the EllesmereUI-like shell) where the section list starts in
+  -- the sidebar (under the name and the big entries), where the page tabs
+  -- sit, and the footer's height
+  local NAV_TOP, TAB_TOP, FOOT = 168, 62, 32
+  -- the sidebar's small headings: { heading, { section titles from O.NAV } };
+  -- sections not named here go under the last heading
+  -- (in O.NAV's order: a heading shows above the first section it holds)
+  O.NAVGROUPS = {
+    { "General", { "Settings", "Blizzard UI", "UI layouts" } },
+    { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "Chat & Panels", "Minimap & Buffs" } },
+    { "Combat & Items", { "Bags & Loot", "Combat", "Gear", "Tooltip" } },
+    { "More", { "Add-ons", "About" } },
+  }
+  -- the power dot beside a section: its parts pfUI Octo's (green) or the
+  -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
+  O.POWERMOD = { ["Gear"] = { "gear", "Gear" } }
+  -- one grey line under the big title for each section
+  O.SUBTITLE = {
+    ["Settings"] = "Scale, profiles, fonts and the look of everything.",
+    ["Blizzard UI"] = "Use the game's own frames for any part, switched at once.",
+    ["UI layouts"] = "Whole screens saved by name, switched by hand or by zone.",
+    ["Unit Frames"] = "Player, target, party and raid frames, and their cast bars.",
+    ["Action Bars"] = "Bars, buttons, key text, cooldowns and procs.",
+    ["Nameplates"] = "Plates over every unit: bars, auras, casts and colours.",
+    ["Art & Extras"] = "Gryphons, panels and small extras.",
+    ["Chat & Panels"] = "Chat windows, tabs, the info panels and the XP bar.",
+    ["Minimap & Buffs"] = "The minimap, its buttons, and your buffs and debuffs.",
+    ["Bags & Loot"] = "Bags, bank, loot rolls and auto loot.",
+    ["Combat"] = "Combat text, meters and the swing timer.",
+    ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
+    ["Tooltip"] = "What the tooltip shows and where.",
+    ["Add-ons"] = "Other add-ons pfUI skins or works with.",
+    ["About"] = "Version, updates and thanks.",
+  }
   local SEARCH = "[" .. T["Search"] .. "]"
 
   -- ---------------------------------------------------------------- one colour language
@@ -664,9 +698,16 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- ON / OFF for a "1" / "0" setting; after(v) runs when it changes
   -- the flag of the language in use is lit and underlined, the others dimmed
   function O.PaintFlags()
+    local cur = W.Lang()
+    local lb = O.langButton
+    if lb then
+      local code, name = "enUS", "English"
+      for _, l in ipairs(O.LANGS or {}) do if l[1] == cur then code, name = l[1], l[2] end end
+      lb.flag:SetTexture("Interface\\AddOns\\pfUI\\img\\flags\\" .. code)
+      lb:SetText(name)
+    end
     local fl = pfUI.gui and pfUI.gui.flags
     if not fl then return end
-    local cur = W.Lang()
     for _, b in ipairs(fl) do
       local on = b.lang == cur
       b.tex:SetAlpha(on and 1 or .55)
@@ -754,14 +795,16 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     for _, k in ipairs({ "share", "install", "hoverbind", "unlock", "search", "close" }) do
       if f[k] then f[k]:Hide() end
     end
+    -- (8 Nov 2026) the window's title and version line are now the open
+    -- section's big title and its one grey line; the name moved into the sidebar
     f.title:ClearAllPoints()
-    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", 14, -10)
-    W.Font(f.title, 15, K.text[1], K.text[2], K.text[3])
-    f.title:SetText("|cff33ccffpfUI|r Octo")
+    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 26, -14)
+    W.Font(f.title, 22, K.text[1], K.text[2], K.text[3])
+    f.title:SetText("")
     f.version:ClearAllPoints()
-    f.version:SetPoint("LEFT", f.title, "RIGHT", 10, -1)
+    f.version:SetPoint("TOPLEFT", f.title, "BOTTOMLEFT", 1, -5)
     W.Font(f.version, 11, K.dim[1], K.dim[2], K.dim[3])
-    f.version:SetText("v" .. (pfUI.version.octo or "?") .. "  -  your whole interface: frames, bars, meters, map and combat text")
+    f.version:SetText("")
     local close = W.Button(f, "X", 22, 22)
     close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -8, -6)
     close:SetScript("OnClick", function() g:Hide() end)
@@ -773,40 +816,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       { "enUS", "English" }, { "deDE", "German" }, { "frFR", "French" }, { "esES", "Spanish" },
       { "ruRU", "Russian" }, { "koKR", "Korean" }, { "zhCN", "Chinese (Simplified)" }, { "zhTW", "Chinese (Traditional)" },
     }
+    -- (8 Nov 2026) the eight flags along the top are one language button in
+    -- the footer now (O:BuildFooter); f.flags stays for O.PaintFlags
     f.flags = {}
-    local nflags = table.getn(O.LANGS)
-    for i, l in ipairs(O.LANGS) do
-      local b = CreateFrame("Button", nil, f)
-      b:SetWidth(26)
-      b:SetHeight(16)
-      b:SetPoint("TOPRIGHT", f, "TOPRIGHT", -40 - (nflags - i) * 31, -10)
-      b.tex = b:CreateTexture(nil, "ARTWORK")
-      b.tex:SetAllPoints(b)
-      b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\flags\\" .. l[1])
-      b.tex:SetTexCoord(0, 1, 0, .625)
-      b.mark = b:CreateTexture(nil, "OVERLAY")
-      b.mark:SetTexture(K.accent[1], K.accent[2], K.accent[3], 1)
-      b.mark:SetHeight(2)
-      b.mark:SetPoint("TOPLEFT", b, "BOTTOMLEFT", 0, -2)
-      b.mark:SetPoint("TOPRIGHT", b, "BOTTOMRIGHT", 0, -2)
-      b.lang, b.name = l[1], l[2]
-      b:SetScript("OnClick", function() O.SetLanguage(this.lang) end)
-      b:SetScript("OnEnter", function()
-        this.tex:SetAlpha(1)
-        GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
-        GameTooltip:AddLine(this.name)
-        GameTooltip:AddLine("Switch pfUI to this language (it reloads).", 1, 1, 1, 1)
-        GameTooltip:Show()
-      end)
-      b:SetScript("OnLeave", function() GameTooltip:Hide() O.PaintFlags() end)
-      f.flags[i] = b
-    end
-    O.PaintFlags()
-
-    self:BuildQuickBar(f)
 
     local nav = CreateFrame("Frame", nil, f)
-    nav:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -74)
+    nav:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -12)
     nav:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 12)
     nav:SetWidth(NAV_W)
     nav:EnableMouseWheel(true)
@@ -832,15 +847,19 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       end
     end)
     nav.up = W.Arrow(nav, 9, "up")
-    nav.up:SetPoint("TOP", nav, "TOP", 0, -2)
+    nav.up:SetPoint("TOP", nav, "TOP", 0, -NAV_TOP + 8)
     nav.down = W.Arrow(nav, 9, "down")
     nav.down:SetPoint("BOTTOM", nav, "BOTTOM", 0, 2)
 
     local content = CreateFrame("Frame", nil, f)
-    content:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 18, -74)
-    content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 12)
+    content:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 18, -(TAB_TOP + 32))
+    content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 12 + FOOT + 6)
     W.Flat(content, K.panel, 1, K.line)
     self.content = content
+
+    self:BuildSideTop(nav)
+    self:BuildTabs(f)
+    self:BuildFooter(f)
 
     -- pfUI Octo or Blizzard, per section, over the page (octo-blizzard.lua;
     -- user, 23 Oct 2026: "EVERY PAGE / ADDON Should be easily toggled on or
@@ -864,6 +883,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
           local BZ = pfUI.blizz
           if BZ and this.id then (BZ.Pick or BZ.Set)(this.id, this.which) end
           O:PaintSwap()
+          O:PaintPower()
         end)
       end
       swap.parts[i] = part
@@ -968,34 +988,57 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
   end
 
-  -- The strip under the title, on every page.
-  function O:BuildQuickBar(f)
-    local bar = CreateFrame("Frame", nil, f)
-    bar:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -36)
-    bar:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -36)
-    bar:SetHeight(32)
-    W.Flat(bar, K.panel, 1, K.line)
-    self.quick = bar
+  -- (8 Nov 2026, user liked EllesmereUI's options: "clean ... less
+  -- overwhelming and organised better") The quick bar is gone: its buttons
+  -- are big entries at the top of the sidebar, Find sits right of the page
+  -- tabs, Background and the language go into a footer with Reload and Close.
 
-    local x = 8
-    local function Btn(text, width, tip, fn)
-      local b = W.Button(bar, text, width, 22)
-      b:SetPoint("LEFT", bar, "LEFT", x, 0)
-      b:SetScript("OnClick", fn)
+  -- The sidebar's top: the name, the version, then the big entries.
+  function O:BuildSideTop(nav)
+    local logo = W.Font(nav:CreateFontString(nil, "OVERLAY"), 20, K.text[1], K.text[2], K.text[3])
+    logo:SetPoint("TOPLEFT", nav, "TOPLEFT", 14, -12)
+    logo:SetText("|cff33ccffpfUI|r Octo")
+    local ver = W.Font(nav:CreateFontString(nil, "OVERLAY"), 10, K.dim[1], K.dim[2], K.dim[3])
+    ver:SetPoint("TOPLEFT", logo, "BOTTOMLEFT", 1, -3)
+    ver:SetText("v" .. ((pfUI.version and pfUI.version.octo) or "?"))
+    self.logo = logo
+    local function Rule(y)
+      local l = W.Fill(nav, K.line, 1, "ARTWORK")
+      l:SetHeight(1)
+      l:SetPoint("TOPLEFT", nav, "TOPLEFT", 8, y)
+      l:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -8, y)
+    end
+    Rule(-54)
+    local y = -58
+    local function Entry(text, icon, tip, fn)
+      local b = CreateFrame("Button", nil, nav)
+      b:SetHeight(24)
+      b:SetPoint("TOPLEFT", nav, "TOPLEFT", 6, y)
+      b:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, y)
+      local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
+      hl:SetAllPoints(b)
+      b.pic = b:CreateTexture(nil, "ARTWORK")
+      b.pic:SetTexture("Interface\\Icons\\" .. icon)
+      b.pic:SetTexCoord(.08, .92, .08, .92)
+      b.pic:SetWidth(18)
+      b.pic:SetHeight(18)
+      b.pic:SetPoint("LEFT", b, "LEFT", 4, 0)
+      b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.text[1], K.text[2], K.text[3])
+      b.text:SetPoint("LEFT", b.pic, "RIGHT", 9, 0)
+      b.text:SetText(text)
+      b:SetScript("OnClick", function() GameTooltip:Hide() fn() end)
       QuickTip(b, text, tip)
-      x = x + width + 6
+      y = y - 26
       return b
     end
-    Btn(T["Move Frames"], 100, "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
+    Entry(T["Move Frames"], "INV_Misc_Map_01", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
       .. "Alt-click two boxes to give the second the first one's size; right-click a box for its options.", function()
-      if pfUI.unlock then
-        -- layout mode closes this window and opens it again when done
-        pfUI.unlock:Show()
-      end
+      -- layout mode closes this window and opens it again when done
+      if pfUI.unlock then pfUI.unlock:Show() end
     end)
     -- Keybinds: pfUI's hover binding or the Key Map keyboard (user, 20 Oct 2026)
     local kb
-    kb = Btn(T["Keybinds"], 80, "Pick how to bind keys: hover an action button and press a key, or a "
+    kb = Entry(T["Keybinds"], "INV_Misc_Key_01", "Pick how to bind keys: hover an action button and press a key, or a "
       .. "picture of your keyboard to drag spells onto (/keymap).", function()
       if not kb.menu then
         kb.menu = W.Menu(kb, {
@@ -1017,42 +1060,36 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       W.CloseMenus()
       if not open then kb.menu:Show() end
     end)
-    Btn(T["Install"], 70, "Run the setup again: profile, layout, chat (/pfui install).", function()
+    Entry(T["Profiles"], "INV_Misc_Book_11", "Named profiles for every character on this account, and profile strings to share.", function()
+      -- (31 Oct 2026, GratisNinja: this once pressed Export by itself and
+      -- froze the game; it only opens the Profiles card)
+      if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("stgeneral", "Profiles") else O:Open("stgeneral") end
+    end)
+    Entry(T["Install"], "INV_Misc_Note_01", "Run the setup again: profile, layout, chat (/pfui install).", function()
       if pfUI.firstrun then
         g:Hide()
         pfUI.firstrun:Restart()
       end
     end)
-    Btn(T["Profiles"], 80, "Named profiles for every character on this account, and profile strings to share (Settings > General).", function()
-      -- (31 Oct 2026, GratisNinja: opening this froze the game 5 - 10 s and
-      -- put this character's string on the clipboard over the one being
-      -- moved - it pressed Export by itself. Now it opens the Profiles card.)
-      if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("stgeneral", "Profiles") else O:Open("stgeneral") end
-    end)
+    Rule(y - 2)
+  end
 
-    -- background opacity of this window
-    local bl = W.Font(bar:CreateFontString(nil, "OVERLAY"), 12, K.text[1], K.text[2], K.text[3])
-    bl:SetPoint("LEFT", bar, "LEFT", x + 10, 0)
-    bl:SetText("Background")
-    local s = W.SliderBar(bar, 70, "pfOctoQuickAlpha")
-    s:SetPoint("LEFT", bl, "RIGHT", 10, 0)
-    s:SetMinMaxValues(0.3, 1)
-    s:SetValueStep(0.05)
-    local sv = W.Font(bar:CreateFontString(nil, "OVERLAY"), 11, K.accent[1], K.accent[2], K.accent[3])
-    sv:SetPoint("LEFT", s, "RIGHT", 8, 0)
-    s:SetScript("OnValueChanged", function()
-      if this.loading then return end
-      B.Store().alpha = math.floor(this:GetValue() * 20 + 0.5) / 20
-      sv:SetText(math.floor(B.Store().alpha * 100 + 0.5) .. "%")
-      W.SliderPaint(this)
-      O:ApplyAlpha()
-    end)
-    QuickTip(s, "Background", "How solid this window's background is: lower to see the game through it.")
-    self.quickAlpha, self.quickAlphaText = s, sv
+  -- The page tabs (the open section's pages) and Find at their right.
+  function O:BuildTabs(f)
+    local row = CreateFrame("Frame", nil, f)
+    row:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 22, -TAB_TOP)
+    row:SetWidth(WIDTH - NAV_W - 22 - 12 - 200)
+    row:SetHeight(24)
+    self.tabRow = row
+    local line = W.Fill(f, K.line, 1, "ARTWORK")
+    line:SetHeight(1)
+    line:SetPoint("TOPLEFT", row, "BOTTOMLEFT", -4, 0)
+    line:SetPoint("RIGHT", f, "RIGHT", -12, 0)
+    self.tabLine = line
 
     -- find a setting
-    local find = W.EditBox(bar, 190, "pfOctoQuickFind")
-    find:SetPoint("RIGHT", bar, "RIGHT", -8, 0)
+    local find = W.EditBox(f, 184, "pfOctoQuickFind")
+    find:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -TAB_TOP - 1)
     local hint = W.Font(find:CreateFontString(nil, "OVERLAY"), 11, K.dim[1], K.dim[2], K.dim[3])
     hint:SetPoint("LEFT", find, "LEFT", 7, 0)
     hint:SetText("Find a setting")
@@ -1074,6 +1111,116 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     QuickTip(find, "Find a setting", "Type a word (\"font\", \"crit\", \"castbar\"): every setting that mentions it is "
       .. "listed. Click one to go straight to it. Enter goes to the first.")
     self.quickFind = find
+  end
+
+  -- Lays out the open section's tabs, a new line when one runs out of room.
+  -- Returns the height they take.
+  function O:LayoutTabs(grp)
+    local row = self.tabRow
+    if not row then return 24 end
+    for _, other in ipairs(self.groups or {}) do
+      if other ~= grp then for _, b in ipairs(other.buttons) do b:Hide() end end
+    end
+    local x, line, width = 0, 0, row:GetWidth() or 600
+    for _, b in ipairs(grp and grp.buttons or {}) do
+      local w = math.floor((b.text:GetStringWidth() or 60) + 22)
+      if x > 0 and x + w > width then x, line = 0, line + 1 end
+      b:ClearAllPoints()
+      b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -line * 24)
+      b:SetWidth(w)
+      b:Show()
+      x = x + w + 2
+    end
+    local h = (line + 1) * 24
+    row:SetHeight(h)
+    return h
+  end
+
+  -- The footer: Reload UI, Background, language; Close on the right.
+  function O:BuildFooter(f)
+    local bar = CreateFrame("Frame", nil, f)
+    bar:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", NAV_W + 18, 12)
+    bar:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -12, 12)
+    bar:SetHeight(FOOT)
+    W.Flat(bar, K.panel, 1, K.line)
+    self.quick = bar
+
+    -- Reload UI: gold while a change waits for a reload
+    local rl = W.Button(bar, "Reload UI", 96, 22)
+    rl:SetPoint("LEFT", bar, "LEFT", 6, 0)
+    rl:SetScript("OnClick", function() ReloadUI() end)
+    QuickTip(rl, "Reload UI", "Reloads the interface. Turns gold when a change you made only takes effect after a reload.")
+    local watch = CreateFrame("Frame", nil, bar)
+    watch:SetScript("OnUpdate", function()
+      if (this.at or 0) > GetTime() then return end
+      this.at = GetTime() + .5
+      local need = g.settingChanged and true or false
+      if need ~= rl.need then
+        rl.need = need
+        if need then W.Tint(rl, "save") else
+          rl.PaintRole = nil
+          rl.role = nil
+          rl:SetScript("OnMouseUp", nil)
+          rl:SetBackdropColor(K.btn[1], K.btn[2], K.btn[3], 1)
+          rl:SetBackdropBorderColor(K.line[1], K.line[2], K.line[3], 1)
+          rl.label:SetTextColor(K.text[1], K.text[2], K.text[3])
+        end
+      end
+    end)
+    self.reload = rl
+
+    -- background opacity of this window
+    local bl = W.Font(bar:CreateFontString(nil, "OVERLAY"), 12, K.dim[1], K.dim[2], K.dim[3])
+    bl:SetPoint("LEFT", rl, "RIGHT", 18, 0)
+    bl:SetText("Background")
+    local s = W.SliderBar(bar, 80, "pfOctoQuickAlpha")
+    s:SetPoint("LEFT", bl, "RIGHT", 10, 0)
+    s:SetMinMaxValues(0.3, 1)
+    s:SetValueStep(0.05)
+    local sv = W.Font(bar:CreateFontString(nil, "OVERLAY"), 11, K.accent[1], K.accent[2], K.accent[3])
+    sv:SetPoint("LEFT", s, "RIGHT", 8, 0)
+    s:SetScript("OnValueChanged", function()
+      if this.loading then return end
+      B.Store().alpha = math.floor(this:GetValue() * 20 + 0.5) / 20
+      sv:SetText(math.floor(B.Store().alpha * 100 + 0.5) .. "%")
+      W.SliderPaint(this)
+      O:ApplyAlpha()
+    end)
+    QuickTip(s, "Background", "How solid this window's background is: lower to see the game through it.")
+    self.quickAlpha, self.quickAlphaText = s, sv
+
+    -- the language: its flag and name; a click lists the others (4 Nov 2026,
+    -- user: "flags ... linked to languages quick easy")
+    local lang = W.Button(bar, "", 150, 22)
+    lang:SetPoint("LEFT", sv, "RIGHT", 22, 0)
+    lang.flag = lang:CreateTexture(nil, "ARTWORK")
+    lang.flag:SetWidth(22)
+    lang.flag:SetHeight(14)
+    lang.flag:SetPoint("LEFT", lang, "LEFT", 6, 0)
+    lang.flag:SetTexCoord(0, 1, 0, .625)
+    lang.label:ClearAllPoints()
+    lang.label:SetPoint("LEFT", lang.flag, "RIGHT", 7, 0)
+    lang.label:SetPoint("RIGHT", lang, "RIGHT", -18, 0)
+    lang.label:SetJustifyH("LEFT")
+    local arrow = W.Arrow(lang, 8, "down", W.ROLE.pick)
+    arrow:SetPoint("RIGHT", lang, "RIGHT", -7, 0)
+    local opts = {}
+    for _, l in ipairs(O.LANGS) do table.insert(opts, { key = l[1], label = l[2] }) end
+    lang:SetScript("OnClick", function()
+      GameTooltip:Hide()
+      if not lang.menu then lang.menu = W.Menu(lang, opts, 170, function(k) O.SetLanguage(k) end) end
+      local open = lang.menu:IsShown()
+      W.CloseMenus()
+      if not open then lang.menu:Show() end
+    end)
+    QuickTip(lang, "Language", "pfUI's language. Picking another one reloads the interface.")
+    self.langButton = lang
+    O.PaintFlags()
+
+    local close = W.Button(bar, "Close", 90, 22)
+    close:SetPoint("RIGHT", bar, "RIGHT", -26, 0)
+    close:SetScript("OnClick", function() g:Hide() end)
+    QuickTip(close, "Close", "Escape closes it too. If a change needs a reload, you are asked.")
   end
 
   function O:RefreshQuick()
@@ -1099,28 +1246,27 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
 
   -- ---------------------------------------------------------------- topic list
 
-  -- One topic: a flat row; the picked one gets a blue wash and a blue edge.
+  -- One topic = a text tab over the page (8 Nov 2026; they used to unfold
+  -- under their section in the sidebar): grey words, the picked one white
+  -- with an accent line under it. O:LayoutTabs places them.
   local function NavButton(label, indent)
-    local b = CreateFrame("Button", nil, O.navFrame)
-    b:SetHeight(NAV_ROW)
-    b.sel = W.Fill(b, K.accent, 0.16, "BACKGROUND")
+    local b = CreateFrame("Button", nil, O.tabRow or O.navFrame)
+    b:SetHeight(24)
+    b.sel = W.Fill(b, K.accent, 0, "BACKGROUND")
     b.sel:SetAllPoints(b)
     b.sel:Hide()
     b.bar = W.Fill(b, K.accent, 1, "BORDER")
-    b.bar:SetWidth(2)
-    b.bar:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
-    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+    b.bar:SetHeight(2)
+    b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 6, 0)
+    b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 0)
     b.bar:Hide()
-    local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
+    local hl = W.Fill(b, { 1, 1, 1 }, 0.04, "HIGHLIGHT")
     hl:SetAllPoints(b)
-    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 12, K.dim[1], K.dim[2], K.dim[3])
-    b.text:SetPoint("LEFT", b, "LEFT", 10, 0)
-    b.text:SetPoint("RIGHT", b, "RIGHT", -4, 0)
-    b.text:SetJustifyH("LEFT")
+    b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.dim[1], K.dim[2], K.dim[3])
+    b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
     b.text:SetText(label)
     b.indent = indent
-    b:EnableMouseWheel(true)
-    b:SetScript("OnMouseWheel", O.navFrame:GetScript("OnMouseWheel"))
+    b:Hide()
     return b
   end
 
@@ -1159,12 +1305,19 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
 
   -- A section header that folds its topics open or shut (one open at a time).
   -- A section without topics (a pfUI category with one page) opens its page.
+  -- (8 Nov 2026) No folding any more: a click opens the section (its pages are
+  -- the tabs over the page); the open one has a wash and an accent edge.
   local function NavHeader(label, single)
     local h = CreateFrame("Button", nil, O.navFrame)
     h:SetHeight(24)
     h.icon = W.Arrow(h, 9, "right")
     h.icon:SetPoint("RIGHT", h, "RIGHT", -6, 0)
-    if single then h.icon:Hide() end
+    h.icon:Hide()
+    h.bar = W.Fill(h, K.accent, 1, "BORDER")
+    h.bar:SetWidth(2)
+    h.bar:SetPoint("TOPLEFT", h, "TOPLEFT", 0, 0)
+    h.bar:SetPoint("BOTTOMLEFT", h, "BOTTOMLEFT", 0, 0)
+    h.bar:Hide()
     h.pic = h:CreateTexture(nil, "ARTWORK")
     h.pic:SetTexture(O.IconFor(label))
     h.pic:SetTexCoord(.08, .92, .08, .92)
@@ -1176,17 +1329,17 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     h.sel:Hide()
     local hl = W.Fill(h, { 1, 1, 1 }, 0.04, "HIGHLIGHT")
     hl:SetAllPoints(h)
-    h.text = W.Font(h:CreateFontString(nil, "OVERLAY"), 13, K.text[1], K.text[2], K.text[3])
+    h.text = W.Font(h:CreateFontString(nil, "OVERLAY"), 13, .82, .83, .86)
     h.text:SetPoint("LEFT", h, "LEFT", 30, 0)
-    h.text:SetPoint("RIGHT", h, "RIGHT", -18, 0)
+    h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
     h.text:SetJustifyH("LEFT")
     h.text:SetText(label)
     h:EnableMouseWheel(true)
     h:SetScript("OnMouseWheel", O.navFrame:GetScript("OnMouseWheel"))
     -- (29 Oct 2026) About flashes NEW while a newer pfUI Octo was seen
     if label == "About" then
-      local new = W.Font(h:CreateFontString(nil, "OVERLAY"), 12, 1, .82, .25)
-      new:SetPoint("RIGHT", h, "RIGHT", -8, 0)
+      local new = W.Font(h:CreateFontString(nil, "OVERLAY"), 11, 1, .82, .25)
+      new:SetPoint("RIGHT", h, "RIGHT", -6, 0)
       new:SetText("NEW")
       new:Hide()
       h.newMark = new
@@ -1271,15 +1424,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if not used[name] then table.insert(plan, { name, { name } }) end
     end
 
+    -- a section opens on the page last seen in it, else its first
     local function Opener(grp)
       grp.header:SetScript("OnClick", function()
-        O.openGroup = (O.openGroup ~= this.group) and this.group or nil
-        -- opening a section shows its first page, as OctoBG's did once picked
-        if O.openGroup == this.group and this.group.buttons[1] then
-          O:Select(this.group.buttons[1].key)
-        else
-          O:LayoutNav()
-        end
+        local gr = this.group
+        local key = gr.lastKey and O.nav[gr.lastKey] and gr.lastKey or (gr.buttons[1] and gr.buttons[1].key)
+        if key then O:Select(key) end
       end)
     end
 
@@ -1322,8 +1472,114 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         Opener(grp)
       end
     end
+
+    -- the small headings: each above the first section it holds
+    local headOf, lastHead = {}, nil
+    for _, hg in ipairs(O.NAVGROUPS) do
+      for _, n in ipairs(hg[2]) do headOf[T[n] or n] = hg[1] end
+      lastHead = hg[1]
+    end
+    local seen = {}
+    for _, grp in ipairs(self.groups) do
+      local hname = headOf[grp.name] or lastHead
+      if hname and not seen[hname] then
+        seen[hname] = true
+        local hf = CreateFrame("Frame", nil, self.navFrame)
+        hf:SetHeight(20)
+        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 10, K.label and K.label[1] or .52, K.label and K.label[2] or .53, K.label and K.label[3] or .57)
+        hf.text:SetPoint("BOTTOMLEFT", hf, "BOTTOMLEFT", 6, 3)
+        hf.text:SetText((W.Caps or string.upper)(hname))
+        hf:EnableMouseWheel(true)
+        hf:SetScript("OnMouseWheel", self.navFrame:GetScript("OnMouseWheel"))
+        grp.headFrame = hf
+        table.insert(self.navItems, hf)
+      end
+    end
     self.navCount = self:CountLegacy()
     self:LayoutNav()
+  end
+
+  -- The power dot of a section (made the first time its section is laid out
+  -- with something to switch): green = pfUI Octo's, red = the game's / off.
+  function O:PowerParts(grp)
+    local BZ = pfUI.blizz
+    local ids = BZ and BZ.GROUPS and BZ.GROUPS[grp.name]
+    if ids and BZ.S then
+      local out = {}
+      for _, id in ipairs(ids) do if BZ.S[id] then table.insert(out, id) end end
+      if table.getn(out) > 0 then return out end
+    end
+  end
+  function O:PowerOn(grp)
+    local ids = self:PowerParts(grp)
+    if ids then
+      for _, id in ipairs(ids) do if not pfUI.blizz.IsBlizz(id) then return true end end
+      return false
+    end
+    local m = O.POWERMOD[grp.name]
+    if m then return O.ModuleSwitch(m[1], m[2])[1]() and true or false end
+  end
+  function O:PaintPower()
+    for _, grp in ipairs(self.groups or {}) do
+      local d = grp.power
+      if d then
+        local on = self:PowerOn(grp)
+        local col = W.ROLE[on and "on" or "off"]
+        d.dot:SetVertexColor(col[1], col[2], col[3], 1)
+        d.ring:SetVertexColor(col[1], col[2], col[3], .35)
+      end
+    end
+  end
+  function O:PowerFor(grp)
+    if grp.power or not (self:PowerParts(grp) or O.POWERMOD[grp.name]) then return end
+    local h = grp.header
+    local d = CreateFrame("Button", nil, h)
+    d:SetWidth(18)
+    d:SetHeight(18)
+    d:SetPoint("RIGHT", h, "RIGHT", -4, 0)
+    d:SetFrameLevel(h:GetFrameLevel() + 2)
+    d.ring = d:CreateTexture(nil, "ARTWORK")
+    d.ring:SetTexture(W.ART.disc)
+    d.ring:SetWidth(14)
+    d.ring:SetHeight(14)
+    d.ring:SetPoint("CENTER", d, "CENTER", 0, 0)
+    d.dot = d:CreateTexture(nil, "OVERLAY")
+    d.dot:SetTexture(W.ART.disc)
+    d.dot:SetWidth(8)
+    d.dot:SetHeight(8)
+    d.dot:SetPoint("CENTER", d, "CENTER", 0, 0)
+    d.grp = grp
+    d:SetScript("OnClick", function()
+      local gr = this.grp
+      local ids = O:PowerParts(gr)
+      local on = O:PowerOn(gr)
+      if ids then
+        local BZ = pfUI.blizz
+        for _, id in ipairs(ids) do (BZ.Pick or BZ.Set)(id, on and "blizz" or "octo") end
+        O:PaintSwap()
+      else
+        local m = O.POWERMOD[gr.name]
+        O.ModuleSwitch(m[1], m[2])[2](not on)
+      end
+      O:PaintPower()
+      if MouseIsOver(this) then this:GetScript("OnEnter")() end
+    end)
+    d:SetScript("OnEnter", function()
+      local gr = this.grp
+      local on = O:PowerOn(gr)
+      GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      GameTooltip:AddLine(gr.name .. ": " .. (on and "|cff40d966on|r" or "|cfff24d4doff|r"))
+      if O:PowerParts(gr) then
+        GameTooltip:AddLine(on and "Click: the game's own frames for this whole section, at once (click again for pfUI Octo's)."
+          or "Click: pfUI Octo's frames again for this whole section, at once.", 1, 1, 1, 1)
+      else
+        GameTooltip:AddLine("Click to switch it " .. (on and "off" or "on") .. " (takes a reload: the options window offers it when you close it).", 1, 1, 1, 1)
+      end
+      GameTooltip:Show()
+    end)
+    d:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    grp.power = d
+    self:PaintPower()
   end
 
   -- pfUI's categories and pages (the list is rebuilt when this changes)
@@ -1335,25 +1591,22 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     return n
   end
 
-  -- Stacks the topic list (each header with its topics when open), scrolled
-  -- by the mouse wheel when it is taller than the column.
+  -- Stacks the section list under the sidebar's top (a small heading above
+  -- each group of sections), scrolled by the mouse wheel when it is taller
+  -- than the column. The pages are tabs over the page, not rows here.
   function O:LayoutNav()
     local nav = self.navFrame
-    local rows, y = {}, 6
+    local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
-      y = y + 2
+      if grp.headFrame then
+        y = y + ((y > NAV_TOP) and 6 or 0)
+        table.insert(rows, { grp.headFrame, 0, y, 20 })
+        y = y + 20
+      end
+      y = y + 1
       table.insert(rows, { grp.header, 0, y, 24 })
       y = y + 25
-      local open = (self.openGroup == grp)
-      if not grp.single then W.Turn(grp.header.icon, open and "down" or "right") end
-      for _, b in ipairs(grp.buttons) do
-        if open then
-          table.insert(rows, { b, b.indent, y, NAV_ROW })
-          y = y + NAV_ROW + 1
-        else
-          b:Hide()
-        end
-      end
+      self:PowerFor(grp)
     end
     local room = (nav:GetHeight() or 0) - 10
     if room >= 100 then nav.laidH = room + 10 end
@@ -1362,7 +1615,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       -- a guess now, the real layout on the next frame. (A fixed 540 used to
       -- stay, and in the taller window the last sections vanished instead of
       -- moving down when a section opened - user, 22 Oct 2026.)
-      room = 540
+      room = 700
       nav:SetScript("OnUpdate", function()
         this:SetScript("OnUpdate", nil)
         if (this:GetHeight() or 0) > 110 then O:LayoutNav() end
@@ -1373,7 +1626,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     if self.reveal then
       for _, r in ipairs(rows) do
         if r[1] == self.reveal then
-          if r[3] - (self.navOffset or 0) < 6 then self.navOffset = r[3] - 6 end
+          if r[3] - (self.navOffset or 0) < NAV_TOP then self.navOffset = r[3] - NAV_TOP end
           if r[3] + r[4] - (self.navOffset or 0) > room then self.navOffset = r[3] + r[4] - room end
         end
       end
@@ -1383,7 +1636,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.navOffset = off
     for _, r in ipairs(rows) do
       local b, top = r[1], r[3] - off
-      if top < 2 or top + r[4] > room + 6 then
+      if top < NAV_TOP - 2 or top + r[4] > room + 6 then
         b:Hide()
       else
         b:ClearAllPoints()
@@ -1484,14 +1737,19 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     if not swap then return end
     local grp = key and self.groupOf and self.groupOf[key]
     local ids = BZ and grp and BZ.GROUPS and BZ.GROUPS[grp.name]
+    -- (8 Nov 2026) under the page tabs, above the footer
+    local top = TAB_TOP + (self.tabsH or 24) + 8
     self.content:ClearAllPoints()
-    self.content:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -12, 12)
+    self.content:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -12, 12 + FOOT + 6)
     if not ids then
       swap:Hide()
-      self.content:SetPoint("TOPLEFT", self.frame, "TOPLEFT", NAV_W + 18, -74)
+      self.content:SetPoint("TOPLEFT", self.frame, "TOPLEFT", NAV_W + 18, -top)
       return
     end
-    self.content:SetPoint("TOPLEFT", self.frame, "TOPLEFT", NAV_W + 18, -110)
+    swap:ClearAllPoints()
+    swap:SetPoint("TOPLEFT", self.frame, "TOPLEFT", NAV_W + 18, -top)
+    swap:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -12, -top)
+    self.content:SetPoint("TOPLEFT", self.frame, "TOPLEFT", NAV_W + 18, -(top + 36))
     local x = 10
     for i, part in ipairs(swap.parts) do
       local id = ids[i]
@@ -1534,15 +1792,30 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     if not key then return end
     self.current = key
     self.searching = nil
+    local grp = self.groupOf[key]
+    -- the section's pages as tabs, its name and line as the big title
+    self.tabsH = self:LayoutTabs((grp and not grp.single) and grp or nil)
+    if grp then
+      grp.lastKey = key
+      self.frame.title:SetText(grp.name)
+      self.frame.version:SetText(O.SUBTITLE[grp.name] or "")
+    end
     self:LayoutSwap(key)
     for k, b in pairs(self.nav) do
-      if b.sel and b.bar then NavMark(b, k == key) elseif b.sel then
-        if k == key then b.sel:Show() else b.sel:Hide() end
+      if not b.group and b.sel and b.bar then NavMark(b, k == key) end
+    end
+    -- the open section in the sidebar: a wash, an accent edge, white words
+    for _, gr in ipairs(self.groups or {}) do
+      local h = gr.header
+      if gr == grp then
+        h.sel:Show() h.bar:Show() h.text:SetTextColor(1, 1, 1)
+      else
+        h.sel:Hide() h.bar:Hide() h.text:SetTextColor(.82, .83, .86)
       end
     end
-    if self.groupOf[key] then
-      self.openGroup = self.groupOf[key]
-      self.reveal = self.groupOf[key].header
+    if grp then
+      self.openGroup = grp
+      self.reveal = grp.header
     end
     self:LayoutNav()
     if string.sub(key, 1, 2) == "o:" then
@@ -1738,7 +2011,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         row:Hide()
       end
     end
-    for _, b in pairs(self.nav) do if b.bar then NavMark(b, false) elseif b.sel then b.sel:Hide() end end
+    for _, b in pairs(self.nav) do if b.bar and not b.group then NavMark(b, false) elseif b.sel then b.sel:Hide() end end
+    self.frame.title:SetText("Find a setting")
+    self.frame.version:SetText("")
     self.searching = true
     self:Show(p)
   end
@@ -2272,6 +2547,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     O.first = O.first or (O.octo[1] and O.octo[1][2][1] and ("o:" .. O.octo[1][2][1][1]))
     O:RefreshQuick()
     O:LayoutNav()
+    O:PaintPower()
     if not O.opening then O:Select(O.current) end
   end)
   local onHide = g:GetScript("OnHide")

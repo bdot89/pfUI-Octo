@@ -1001,3 +1001,15 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    wash); Settings > Scale, profiles and look starts with Move frames / Key Map / Run setup again tiles.
    Skipped: folding W.Note text into an "i" (only 14 notes in all the pages). pfUI's own CreateConfig pages
    (O.SkinPage) are unchanged.
+   Shell (A, same day, NOT seen in game; user: "Yes, build A now"). octo-options.lua: NAV_W 210; the quick bar and
+   the eight top flags are gone. Sidebar (full height): "pfUI Octo" + version (O:BuildSideTop), big entries Move
+   Frames / Keybinds (menu) / Profiles / Install, then from NAV_TOP the sections under small capitals headings
+   (O.NAVGROUPS, in O.NAV's order: General, Interface, Combat & Items, More; grp.headFrame). Sections no longer
+   unfold: a click opens the page last seen there (grp.lastKey) or the first; the open one = wash + accent edge.
+   Power dot right of a section (O:PowerFor, made lazily in LayoutNav): BZ.GROUPS sections = green while any part
+   is pfUI Octo's, click flips the whole section to the game's frames and back (no reload); Gear = its module via
+   O.ModuleSwitch (reload). The topic buttons (grp.buttons, O.nav[key]) are now text tabs in O.tabRow
+   (O:LayoutTabs wraps to more lines; picked = white + accent underline), Find (O.quickFind) right of them. The
+   window's f.title / f.version = the section's name (22 px) and its line (O.SUBTITLE). Footer (O:BuildFooter,
+   O.quick): Reload UI (gold while g.settingChanged), Background slider, language button (flag + name, menu ->
+   O.SetLanguage), Close. Content sits between tabs (+ the Octo / Blizzard strip) and footer (LayoutSwap).
