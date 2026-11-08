@@ -1060,3 +1060,10 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    by the cast bar preview (bar, icon), plate samples (P.Raise walk), action bar samples (4), the minimap's bar
    samples and the unit frame page's cast bar sample. NOT the minimap's outer border frame (its fill would cover
    the map). Test: cast bar preview backdrops alpha 0 with 5 underlay textures.
+   Tidy-up after EllesmereUI's Nameplates page (8 Nov, NOT seen in game; user: "how messey the options look ...
+   overhaul it and make it more prof"). Shared: W.HowTo = one centred grey line (first three hints) + an accent "?"
+   with all of them in a tooltip, no box / accent edge (band BACKGROUND + BORDER textures hidden); tabs step down
+   15 -> 12 px with less padding to stay on one row (LayoutTabs), the tab row has the full width and Find moved
+   into the header under Window Scale (230 wide); the pfUI Octo / Blizzard strip has no box. Nameplates: the
+   legend is centred; the status line only says what needs you (no plates, SuperWoW / UnitXP missing). Left as is:
+   the four buttons under the preview and the preview grid (C.plates.previewgrid, default "1", user's own toggle).

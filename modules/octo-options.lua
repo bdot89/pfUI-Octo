@@ -523,76 +523,46 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         -- (only the old help lines: a status text beside them stays)
         local t = r:GetText()
         if t and table.getn(W.HowToPairs(t)) > 0 then r:Hide() end
-      elseif r.GetDrawLayer and r:GetDrawLayer() == "BACKGROUND" then r:Hide() end
+      elseif r.GetDrawLayer and (r:GetDrawLayer() == "BACKGROUND" or r:GetDrawLayer() == "BORDER") then r:Hide() end
     end
+    -- (8 Nov 2026, user with EllesmereUI's Nameplates page: ours "messy",
+    -- theirs has one grey line under the preview - "Click elements to scroll
+    -- to and highlight their options") One centred line of the first three
+    -- hints, "  -  " between them, no box; "?" at its end lists them all.
     if band.howto then for _, c in ipairs(band.howto) do c:Hide() end end
     band.howto = {}
-    W.Flat(band, W.C.card, 1, W.C.line)
-    local ar, ag, ab = W.C.accent[1], W.C.accent[2], W.C.accent[3]
-    if GetAccentColor then ar, ag, ab = GetAccentColor() end
-    if not band.howEdge then
-      band.howEdge = band:CreateTexture(nil, "ARTWORK")
-      band.howEdge:SetTexture("Interface\\Buttons\\WHITE8X8")
-      band.howEdge:SetPoint("TOPLEFT", band, "TOPLEFT", 1, -1)
-      band.howEdge:SetPoint("BOTTOMLEFT", band, "BOTTOMLEFT", 1, 1)
-      band.howEdge:SetWidth(3)
+    if band.SetBackdrop then band:SetBackdrop(nil) end
+    if band.howEdge then band.howEdge:Hide() end
+    local words = {}
+    for i = 1, math.min(3, table.getn(pairs_)) do
+      local e = pairs_[i]
+      local act = e[2] or ""
+      act = string.gsub(act, "^:%s*", "")
+      table.insert(words, e[1] .. ((act ~= "") and (": " .. act) or ""))
     end
-    band.howEdge:SetVertexColor(ar, ag, ab, 1)
-    local width = (band:GetWidth() or 700) - 20 - (reserve or 0)
-    local cols = width >= 640 and 4 or (width >= 420 and 3 or 2)
-    local colw = math.floor(width / cols)
-    local ROW = 22
-    -- (31 Oct 2026, user: the menus are "overwhelming"; two rows of hints with
-    -- cut-off words. One row now: the first ones, and "?" with all of them.)
+    local line = CreateFrame("Frame", nil, band)
+    line:SetAllPoints(band)
+    local fs = W.Font(line:CreateFontString(nil, "OVERLAY"), 12, .66, .67, .71)
+    fs:SetPoint("CENTER", band, "CENTER", -((reserve or 0) / 2) - 10, 0)
+    fs:SetText(table.concat(words, "     "))
+    table.insert(band.howto, line)
     local all = pairs_
-    if table.getn(pairs_) > cols then
-      pairs_ = {}
-      for i = 1, cols - 1 do pairs_[i] = all[i] end
-      table.insert(pairs_, { "?", "All mouse controls", more = true })
-    end
-    for i, e in ipairs(pairs_) do
-      local col = math.mod(i - 1, cols)
-      local row = math.floor((i - 1) / cols)
-      local cell = CreateFrame("Frame", nil, band)
-      cell:SetWidth(colw)
-      cell:SetHeight(ROW)
-      cell:SetPoint("TOPLEFT", band, "TOPLEFT", 12 + col * colw, -5 - row * ROW)
-      -- a small picture of the mouse action before the key
-      local pic = cell:CreateTexture(nil, "ARTWORK")
-      pic:SetWidth(16)
-      pic:SetHeight(16)
-      pic:SetPoint("LEFT", cell, "LEFT", 0, 0)
-      pic:SetTexture(W.HowIcon(e[1], e[2]))
-      local cap = CreateFrame("Frame", nil, cell)
-      cap:SetHeight(17)
-      cap:SetPoint("LEFT", pic, "RIGHT", 4, 0)
-      W.Flat(cap, W.C.btn, 1, W.C.line)
-      cap:SetBackdropBorderColor(ar * .8, ag * .8, ab * .8, 1)
-      local kt = W.Font(cap:CreateFontString(nil, "OVERLAY"), 10, 1, 1, 1)
-      kt:SetPoint("CENTER", cap, "CENTER", 0, 0)
-      kt:SetText(e[1])
-      cap:SetWidth(math.max(28, math.floor((kt:GetStringWidth() or 30) + 12)))
-      local at = W.Font(cell:CreateFontString(nil, "OVERLAY"), 11, .82, .83, .87)
-      at:SetPoint("LEFT", cap, "RIGHT", 6, 0)
-      at:SetPoint("RIGHT", cell, "RIGHT", -6, 0)
-      at:SetJustifyH("LEFT")
-      at:SetText(e[2])
-      if e.more then
-        pic:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-        pic:SetTexCoord(.08, .92, .08, .92)
-        cell:EnableMouse(true)
-        cell:SetScript("OnEnter", function()
-          GameTooltip:SetOwner(this, "ANCHOR_TOP")
-          GameTooltip:SetText("Mouse controls", 1, .82, 0)
-          for _, a in ipairs(all) do GameTooltip:AddDoubleLine(a[1], a[2], ar, ag, ab, 1, 1, 1) end
-          GameTooltip:Show()
-        end)
-        cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
-      end
-      table.insert(band.howto, cell)
-    end
-    local rows = math.ceil(table.getn(pairs_) / cols)
-    band:SetHeight(rows * ROW + 10)
+    local q = CreateFrame("Button", nil, band)
+    q:SetWidth(18)
+    q:SetHeight(18)
+    q:SetPoint("LEFT", fs, "RIGHT", 10, 0)
+    local qt = W.Font(q:CreateFontString(nil, "OVERLAY"), 12, W.C.accent[1], W.C.accent[2], W.C.accent[3])
+    qt:SetPoint("CENTER", q, "CENTER", 0, 0)
+    qt:SetText("?")
+    q:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_TOP")
+      GameTooltip:SetText("Mouse controls", 1, .82, 0)
+      for _, a in ipairs(all) do GameTooltip:AddDoubleLine(a[1], a[2], W.C.accent[1], W.C.accent[2], W.C.accent[3], 1, 1, 1) end
+      GameTooltip:Show()
+    end)
+    q:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    table.insert(band.howto, q)
+    band:SetHeight(22)
     if p and W.Measure then pcall(W.Measure, p) end
   end
 
@@ -916,7 +886,10 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     swap:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 18, -74)
     swap:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -74)
     swap:SetHeight(32)
+    -- (8 Nov 2026) no box: the switches sit on the header's tone, like the tabs
     W.Flat(swap, K.panel, 1, K.line)
+    swap:SetBackdropColor(0, 0, 0, 0)
+    swap:SetBackdropBorderColor(0, 0, 0, 0)
     swap:Hide()
     swap.parts = {}
     for i = 1, 3 do
@@ -1137,7 +1110,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   function O:BuildTabs(f)
     local row = CreateFrame("Frame", nil, f)
     row:SetPoint("TOPLEFT", f, "TOPLEFT", NAV_W + 20, -TAB_TOP)
-    row:SetWidth(WIDTH - NAV_W - 20 - 12 - 204)
+    -- (8 Nov 2026) the whole width: Find moved up into the header
+    row:SetWidth(WIDTH - NAV_W - 20 - 12 - 4)
     row:SetHeight(24)
     self.tabRow = row
     local line = W.Fill(f, K.accent, .45, "ARTWORK")
@@ -1147,8 +1121,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.tabLine = line
 
     -- find a setting
-    local find = W.EditBox(f, 184, "pfOctoQuickFind")
-    find:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -TAB_TOP - 1)
+    local find = W.EditBox(f, 230, "pfOctoQuickFind")
+    find:SetPoint("TOPRIGHT", f, "TOPRIGHT", -12, -50) -- (in the header, under Window Scale)
     local hint = W.Font(find:CreateFontString(nil, "OVERLAY"), 11, K.dim[1], K.dim[2], K.dim[3])
     hint:SetPoint("LEFT", find, "LEFT", 7, 0)
     hint:SetText("Find a setting")
@@ -1181,8 +1155,21 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if other ~= grp then for _, b in ipairs(other.buttons) do b:Hide() end end
     end
     local x, line, width = 0, 0, row:GetWidth() or 600
-    for _, b in ipairs(grp and grp.buttons or {}) do
-      local w = math.max(60, math.floor((b.text:GetStringWidth() or 60) + 30))
+    -- (8 Nov 2026) one row: the words step down (15 -> 12 px, less padding)
+    -- until every tab fits; only past that does a second row start
+    local list = grp and grp.buttons or {}
+    local size, pad = 15, 30
+    for _, try in ipairs({ { 15, 30 }, { 14, 24 }, { 13, 20 }, { 12, 16 } }) do
+      size, pad = try[1], try[2]
+      local total = 0
+      for _, b in ipairs(list) do
+        W.Font(b.text, size)
+        total = total + math.max(48, math.floor((b.text:GetStringWidth() or 60) + pad)) + 6
+      end
+      if total - 6 <= width then break end
+    end
+    for _, b in ipairs(list) do
+      local w = math.max(48, math.floor((b.text:GetStringWidth() or 60) + pad))
       if x > 0 and x + w > width then x, line = 0, line + 1 end
       b:ClearAllPoints()
       b:SetPoint("TOPLEFT", row, "TOPLEFT", x, -line * 34)

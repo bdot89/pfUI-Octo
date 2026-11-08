@@ -140,6 +140,18 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       x = x + 12 + 3 + (fs:GetStringWidth() or 40) + 14
       items[i] = ic
     end
+    -- (8 Nov 2026) the line centred under the preview, not hanging left
+    -- (on one line; a wrapped legend keeps the left edge)
+    if row == items[1]:GetParent() and x < W.CW then
+      local shift = math.floor((W.CW - x + 14) / 2)
+      for _, ic in ipairs(items) do
+        local pt, rel, rp, ox, oy = ic:GetPoint(1)
+        if pt then
+          ic:ClearAllPoints()
+          ic:SetPoint(pt, rel, rp, (ox or 0) + shift, oy or 0)
+        end
+      end
+    end
     local function Paint()
       for i, l in ipairs(LEGEND) do
         local ic = items[i]
@@ -292,13 +304,13 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       about = "Plater's ideas on pfUI's nameplates: aggro colours that flip for tanks, sizes per kind of unit, "
         .. "target arrows, a Plater cast bar that says who interrupted, execute range, plates that fade out of "
         .. "range. The art is pfUI Octo's own." })
+    -- (8 Nov 2026, the tidy-up after EllesmereUI's page) only what needs you:
+    -- something missing, or no plates on screen; nothing when all is well
     W.Live(p, function()
       local s = {}
-      local n = Count()
-      table.insert(s, n .. " nameplate" .. ((n == 1) and "" or "s") .. " on screen" .. ((n == 0) and " - V shows enemy plates, Shift-V friendly" or ""))
-      table.insert(s, "role: " .. (P.Role() == "tank" and "tank" or "damage / healer"))
-      table.insert(s, P.SuperWoW() and "SuperWoW |cff55ff55found|r" or "SuperWoW |cffff5555missing|r (no threat colours on other plates)")
-      table.insert(s, UnitXP and "UnitXP |cff55ff55found|r" or "UnitXP |cffff5555missing|r (no range fade)")
+      if Count() == 0 then table.insert(s, "|cff999999No nameplates on screen - V shows enemy plates, Shift-V friendly|r") end
+      if not P.SuperWoW() then table.insert(s, "SuperWoW |cffff5555missing|r (no threat colours on other plates)") end
+      if not UnitXP then table.insert(s, "UnitXP |cffff5555missing|r (no range fade)") end
       return table.concat(s, "    ")
     end)
     Preview(p)
