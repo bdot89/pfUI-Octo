@@ -1957,14 +1957,29 @@ do
       f.GetLeft, f.GetTop, f.GetRight, f.GetBottom = function() return l end, function() return t end,
         function() return r end, function() return b end
     end
-    Box(w2, 100, 500, 360, 340)
-    Box(w, 368, 496, 628, 336)
+    -- (the border is drawn 1 px outside each frame: the backdrops are the outer edges)
+    local function Win(f, l, t, r, b) Box(f, l, t, r, b) if f.backdrop then Box(f.backdrop, l - 1, t + 1, r + 1, b - 1) end end
+    Win(w2, 100, 500, 360, 340)
+    Win(w, 368, 496, 628, 336)
     local snapped = ME.Snap(w)
     local p = w.points and w.points[1]
-    ok(snapped and p and p[4] == 361 and p[5] == 500, "dropped near another window: flush, tops lined up (" ..
+    ok(snapped and p and p[4] == 362 and p[5] == 500, "dropped near another window: borders touch, tops lined up (" ..
       tostring(p and p[4]) .. ", " .. tostring(p and p[5]) .. ")")
-    w2.GetLeft, w2.GetTop, w2.GetRight, w2.GetBottom = nil, nil, nil, nil
-    w.GetLeft, w.GetTop, w.GetRight, w.GetBottom = nil, nil, nil, nil
+    -- the user's screenshot: one dropped on top of another, 14 px to the left and its
+    -- border over the other's title -> in line and touching (9 Nov 2026)
+    Win(w2, 114, 300, 374, 100)
+    Win(w, 100, 500, 360, 298)
+    w.points = nil
+    snapped = ME.Snap(w)
+    p = w.points and w.points[1]
+    ok(snapped and p and p[4] == 114 and p[5] == 504, "stacked: left edges in line, borders touching, no overlap (" ..
+      tostring(p and p[4]) .. ", " .. tostring(p and p[5]) .. ")")
+    -- far away: left alone
+    Win(w, 700, 900, 960, 700)
+    ok(not ME.Snap(w), "a window far from the others does not snap")
+    for _, f in ipairs({ w2, w, w2.backdrop, w.backdrop }) do
+      f.GetLeft, f.GetTop, f.GetRight, f.GetBottom = nil, nil, nil, nil
+    end
     -- layout mode closed (every mover set unmovable): the title still drags it
     -- (user, 23 Oct 2026: "Frame pfMeter3 is not movable")
     w:SetMovable(false)

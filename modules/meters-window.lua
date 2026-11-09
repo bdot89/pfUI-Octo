@@ -1032,36 +1032,68 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return M.testOn or (M.testUntil or 0) > GetTime()
   end
 
-  -- a free window dropped near another one sits flush against it (side by
-  -- side with the tops lined up, or one under the other)
-  function M.Snap(win)
-    local L, T, R, B = win:GetLeft(), win:GetTop(), win:GetRight(), win:GetBottom()
-    if not (L and T) then return end
-    local x, y = L, T
-    local near = 12
-    for _, o in ipairs(M.windows) do
+  -- a free window dropped near another one sits flush against it, in line
+  -- (9 Nov 2026, user: windows snapped "slightly overlayed ... it should be
+  -- smart and snap in line"). Edges are the OUTER ones (the frame's border
+  -- is drawn outside it), so borders touch instead of overlapping; then the
+  -- nearest edge pair is lined up (left / right when stacked, top / bottom
+  -- side by side) from up to M.SNAPALIGN px away. The closest window wins.
+  M.SNAPNEAR, M.SNAPALIGN = 20, 48
+  local function Outer(f)
+    local b = f.backdrop
+    if b and b.GetLeft and b:GetLeft() then return b:GetLeft(), b:GetTop(), b:GetRight(), b:GetBottom() end
+    return f:GetLeft(), f:GetTop(), f:GetRight(), f:GetBottom()
+  end
+  M.Outer = Outer
+  -- the smaller of two moves that line edges up, when within reach
+  local function Align(a, b)
+    local best
+    for _, d in ipairs({ a, b }) do
+      if math.abs(d) <= M.SNAPALIGN and (not best or math.abs(d) < math.abs(best)) then best = d end
+    end
+    return best or 0
+  end
+  function M.SnapMove(win)
+    local L, T, R, B = Outer(win)
+    if not (L and T and R and B) then return 0, 0 end
+    local near = M.SNAPNEAR
+    local best, bdx, bdy
+    for _, o in ipairs(M.windows or {}) do
       if o ~= win and o:IsShown() and o:GetLeft() then
-        local ol, ot, orr, ob = o:GetLeft(), o:GetTop(), o:GetRight(), o:GetBottom()
-        local overlapY = B < ot and T > ob
-        local overlapX = L < orr and R > ol
-        -- side by side: flush, and the tops lined up when close
-        local side
-        if overlapY and math.abs(L - orr) < near then x, side = orr + 1, true end
-        if overlapY and math.abs(R - ol) < near then x, side = ol - (R - L) - 1, true end
-        if side and math.abs(T - ot) < near then y = ot end
-        -- one under the other: flush, and the left edges lined up when close
-        local stack
-        if overlapX and math.abs(B - ot) < near then y, stack = ot + (T - B) + 1, true end
-        if overlapX and math.abs(T - ob) < near then y, stack = ob - 1, true end
-        if stack and math.abs(L - ol) < near then x = ol end
+        local ol, ot, orr, ob = Outer(o)
+        local overlapY = B < ot + near and T > ob - near
+        local overlapX = L < orr + near and R > ol - near
+        local cands = {}
+        if overlapX then
+          -- under it / on top of it, the left or right edges lined up
+          table.insert(cands, { ob - T, Align(ol - L, orr - R), true })
+          table.insert(cands, { ot - B, Align(ol - L, orr - R), true })
+        end
+        if overlapY then
+          -- right of it / left of it, the tops or bottoms lined up
+          table.insert(cands, { orr - L, Align(ot - T, ob - B), false })
+          table.insert(cands, { ol - R, Align(ot - T, ob - B), false })
+        end
+        for _, c in ipairs(cands) do
+          local d = math.abs(c[1])
+          if d <= near and (not best or d < best) then
+            best = d
+            if c[3] then bdx, bdy = c[2], c[1] else bdx, bdy = c[1], c[2] end
+          end
+        end
       end
     end
-    if x ~= L or y ~= T then
-      win:ClearAllPoints()
-      win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x, y)
-      SaveMovable(win)
-    end
-    return x ~= L or y ~= T
+    return bdx or 0, bdy or 0
+  end
+  function M.Snap(win)
+    local L, T = win:GetLeft(), win:GetTop()
+    if not (L and T) then return end
+    local dx, dy = M.SnapMove(win)
+    if dx == 0 and dy == 0 then return false end
+    win:ClearAllPoints()
+    win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", L + dx, T + dy)
+    SaveMovable(win)
+    return true
   end
 
   -- what a status bar slot shows
