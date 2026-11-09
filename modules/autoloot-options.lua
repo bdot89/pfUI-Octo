@@ -31,9 +31,19 @@ pfUI:RegisterModule("autoloot-options", "vanilla", function ()
         local why = AL.Blocked()
         line = why == "off" and "|cffff5555Off|r" or (why and ("|cffffcc00Waiting:|r " .. why) or "|cff55ff55Ready|r")
         line = line .. "   passes this session: " .. (s.runs or 0) .. "   items: " .. s.count .. "   " .. AL.Money(s.money)
+        -- (9 Nov 2026) how it loots now: whole corpses, or item by item for
+        -- the loot threshold in a group / the loot filter
+        local th = AL.Threshold and AL.Threshold()
+        if AL.ItemMode and AL.ItemMode() then
+          line = line .. "\nItem by item" .. (th and ("; leaves " .. (pfUI.rules and pfUI.rules.QUALITY_NAMES[th] or th) .. " and better for the group") or "")
+            .. (pfUI.lootfilter and pfUI.lootfilter.Active() and "; loot filter on" or "")
+        end
       end
       return line
-    end)
+    end, 2)
+    W.Buttons(p, {
+      { "Loot filter", function() O:Open("lootfilter") end, 110, "Rules for what is taken and what is left on the corpse." },
+    })
 
     W.Card(p, "When to loot", { icon = "Interface\\Icons\\INV_Misc_Bag_08", tip = "Each reason is its own switch. A request that has to wait (moving, casting) is kept and done as soon as it can." })
     Chk(p, "A mob dies near you", "Loots right after a kill. Only mobs inside loot range count.", "death")

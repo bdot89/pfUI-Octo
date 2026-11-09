@@ -5790,6 +5790,9 @@ dofile(DIR .. "/tests/pfquest.lua")
 -- item rules for the loot filter and bag categories (9 Nov 2026)
 dofile(DIR .. "/tests/rules.lua")
 
+-- the loot filter and master-loot-safe Auto Loot (9 Nov 2026)
+dofile(DIR .. "/tests/lootfilter.lua")
+
 -- the language of Octo's own pages (4 Nov 2026)
 dofile(DIR .. "/tests/translate.lua")
 

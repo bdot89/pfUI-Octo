@@ -167,19 +167,169 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     if Combat() and not On("combat") then return "combat" end
   end
 
+  -- ------------------------------------------------- item by item (9 Nov 2026)
+  -- Upsilon: "when masterlooting it is struggling a little and confuses itself
+  -- with item quality". In a group with master loot, group loot or need
+  -- before greed, items at or over the loot threshold are not yours to take:
+  -- the master looter hands them out or they are rolled for. LootAllCorpses
+  -- goes for everything. So in a group (and whenever the loot filter has
+  -- rules) a pass scans first (C_Loot.ScanNearbyLoot), then takes each item
+  -- that may and should be taken (C_Loot.LootUnitItem); a corpse whose every
+  -- item is taken is looted whole (C_Loot.LootUnit, coins too).
+  local function Grouped()
+    local raid = _G.GetNumRaidMembers and _G.GetNumRaidMembers() or 0
+    local party = _G.GetNumPartyMembers and _G.GetNumPartyMembers() or 0
+    return raid > 0 or party > 0
+  end
+  -- the loot threshold in force, nil when every item is yours to take
+  function AL.Threshold()
+    if not Grouped() or type(_G.GetLootMethod) ~= "function" then return nil end
+    local method = _G.GetLootMethod()
+    if not method or method == "freeforall" then return nil end
+    return tonumber(_G.GetLootThreshold and _G.GetLootThreshold()) or 2
+  end
+  function AL.ItemMode()
+    if AL.Threshold() then return true end
+    local LF = pfUI.lootfilter
+    return LF and LF.Active and LF.Active() and true or false
+  end
+  local QCOL = { ["9d9d9d"] = 0, ["ffffff"] = 1, ["1eff00"] = 2, ["0070dd"] = 3, ["a335ee"] = 4, ["ff8000"] = 5, ["e6cc80"] = 6 }
+  local function QualityOf(e)
+    local q = tonumber(e.quality or e.rarity or e.itemQuality)
+    if q then return q end
+    if type(e.link) == "string" then
+      local _, _, hex = string.find(e.link, "|c%x%x(%x%x%x%x%x%x)")
+      if hex and QCOL[string.lower(hex)] then return QCOL[string.lower(hex)] end
+    end
+    if e.id and type(_G.GetItemInfo) == "function" then
+      local _, _, q2 = _G.GetItemInfo(e.id)
+      return tonumber(q2)
+    end
+  end
+  -- whatever shape the scan answers in, as { { guid, id, link, count, quality } }
+  -- plus the corpses: { [guid] = { n = items, money = copper } }
+  function AL.Normalize(res)
+    local items, units = {}, {}
+    local function Unit(g)
+      units[g] = units[g] or { n = 0 }
+      return units[g]
+    end
+    local function Item(g, e)
+      if type(e) ~= "table" then return end
+      local link = e.link or e.itemLink or e.hyperlink
+      local id = tonumber(e.itemID or e.itemId or e.id or e.item)
+      if not id and type(link) == "string" then
+        local _, _, x = string.find(link, "item:(%d+)")
+        id = tonumber(x)
+      end
+      g = g or e.guid or e.unit or e.unitGUID or e.corpse or e.source
+      if not g then return end
+      local u = Unit(g)
+      if (tonumber(e.money or e.copper) or 0) > 0 and not id then u.money = (u.money or 0) + tonumber(e.money or e.copper) return end
+      if not id then return end
+      local it = { guid = g, id = id, link = link, count = tonumber(e.count or e.quantity or e.stackCount) or 1 }
+      it.quality = QualityOf({ quality = e.quality or e.rarity or e.itemQuality, link = link, id = id })
+      u.n = u.n + 1
+      table.insert(items, it)
+    end
+    if type(res) ~= "table" then return items, units end
+    for k, v in pairs(res) do
+      if type(v) == "table" then
+        local list = v.items or v.loot
+        if type(list) == "table" then
+          local g = v.guid or v.unit or v.unitGUID or (type(k) == "string" and k) or nil
+          if g then
+            local u = Unit(g)
+            if (tonumber(v.money or v.copper) or 0) > 0 then u.money = (u.money or 0) + tonumber(v.money or v.copper) end
+          end
+          for _, e in pairs(list) do Item(g, e) end
+        elseif type(k) == "string" and v[1] then
+          for _, e in ipairs(v) do Item(k, e) end
+        else
+          Item(nil, v)
+        end
+      end
+    end
+    return items, units
+  end
+  -- may this item be taken, and should it? -> keep, why
+  function AL.Decide(it, threshold)
+    if threshold and it.quality and it.quality >= threshold then return false, "group" end
+    local LF = pfUI.lootfilter
+    if LF and LF.Active and LF.Active() then
+      local keep, name = LF.Keep(it)
+      if not keep then return false, name or "filter" end
+    end
+    return true
+  end
+  function AL.TakeItems(res)
+    local C_Loot = _G.C_Loot
+    local items, units = AL.Normalize(res)
+    local threshold = AL.Threshold()
+    local take, left = {}, {}
+    for i = 1, table.getn(items) do
+      local it = items[i]
+      local keep, why = AL.Decide(it, threshold)
+      if keep then
+        take[it.guid] = take[it.guid] or {}
+        table.insert(take[it.guid], it)
+      else
+        left[it.guid] = true
+        st.skipped = (st.skipped or 0) + 1
+        st.lastSkip = { name = it.link or ("item " .. it.id), why = why }
+      end
+    end
+    local calls = 0
+    for g, u in pairs(units) do
+      local mine = take[g]
+      if not left[g] and type(C_Loot.LootUnit) == "function" and (mine or (u.money or 0) > 0) then
+        -- nothing to leave behind: the whole corpse, coins included
+        if pcall(C_Loot.LootUnit, g) then calls = calls + 1 end
+      elseif mine and type(C_Loot.LootUnitItem) == "function" then
+        for j = 1, table.getn(mine) do
+          if pcall(C_Loot.LootUnitItem, g, mine[j].id) then calls = calls + 1 end
+        end
+      end
+    end
+    st.itemCalls = (st.itemCalls or 0) + calls
+    return calls
+  end
+
   function AL.Run(now)
     now = now or GetTime()
     st.want, st.due = nil, nil
     st.walking, st.walkAt = true, now
     st.walkItems, st.walkMoney = 0, 0
-    local ok, started = pcall(_G.C_Loot.LootAllCorpses)
-    if not (ok and started) then st.walking = false end
+    local C_Loot = _G.C_Loot
+    local ok, started
+    if AL.ItemMode() and type(C_Loot.ScanNearbyLoot) == "function" and type(C_Loot.LootUnitItem) == "function" then
+      st.itemScan = true
+      ok, started = pcall(C_Loot.ScanNearbyLoot)
+      if ok and started == nil then started = true end
+    else
+      st.itemScan = nil
+      ok, started = pcall(C_Loot.LootAllCorpses)
+    end
+    if not (ok and started) then st.walking, st.itemScan = false, nil end
     st.runs = (st.runs or 0) + 1
     return ok and started and true or false
   end
 
-  local function Done(now)
+  local function Done(now, res)
     now = now or GetTime()
+    if st.itemScan then
+      -- the scan is in: take what may and should be taken, then wait for it
+      st.itemScan = nil
+      if res == nil and type(_G.C_Loot.GetLastScanResults) == "function" then
+        local ok, r = pcall(_G.C_Loot.GetLastScanResults)
+        if ok then res = r end
+      end
+      st.lastScan = res
+      if AL.TakeItems(res) > 0 then
+        st.walkAt = now
+        return
+      end
+    end
     st.walking = false
     st.settleUntil = now + SettleTime()
     st.recordUntil = now + 3
@@ -264,7 +414,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
         st.manual = true
       end
     elseif e == "LOOT_CLOSED" then st.manual = false
-    elseif e == "LOOT_SCAN_COMPLETED" then if st.walking then Done() end
+    elseif e == "LOOT_SCAN_COMPLETED" then if st.walking then Done(nil, type(_G.arg1) == "table" and _G.arg1 or nil) end
     elseif e == "CHAT_MSG_LOOT" then
       if On("log") and (st.walking or GetTime() < st.recordUntil) then AL.OnLootMessage(_G.arg1) end
     elseif e == "PLAYER_MONEY" then
@@ -321,6 +471,35 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccAuto loot:|r " .. msg)
     elseif msg == "log" then
       if AL.ShowLog then AL.ShowLog() end
+    elseif msg == "scan" then
+      -- the raw shape of the last scan (ClassicAPI does not document it)
+      local out = DEFAULT_CHAT_FRAME
+      local res = st.lastScan
+      if res == nil and _G.C_Loot and type(_G.C_Loot.GetLastScanResults) == "function" then
+        local ok, r = pcall(_G.C_Loot.GetLastScanResults)
+        if ok then res = r end
+      end
+      local lines = 0
+      local function Dump(v, pre, depth)
+        if lines > 25 then return end
+        if type(v) ~= "table" or depth > 3 then
+          out:AddMessage(pre .. tostring(v)) lines = lines + 1 return
+        end
+        for k, x in pairs(v) do
+          if type(x) == "table" then
+            out:AddMessage(pre .. tostring(k) .. " =") lines = lines + 1
+            Dump(x, pre .. "  ", depth + 1)
+          else
+            out:AddMessage(pre .. tostring(k) .. " = " .. tostring(x)) lines = lines + 1
+          end
+          if lines > 25 then return end
+        end
+      end
+      out:AddMessage("|cff33ffccAuto loot:|r last scan (" .. (AL.ItemMode() and "item by item" or "whole corpses")
+        .. ", threshold " .. tostring(AL.Threshold()) .. "):")
+      Dump(res, "  ", 0)
+      local items = AL.Normalize(res)
+      out:AddMessage("  read as " .. table.getn(items) .. " items; skipped this session: " .. (st.skipped or 0))
     elseif msg == "status" then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccAuto loot:|r " .. (On("enable") and "on" or "off") .. ", "
         .. (AL.Available() and "ClassicAPI loot found" or "ClassicAPI loot MISSING") .. ", "

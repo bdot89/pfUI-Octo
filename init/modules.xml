@@ -89,6 +89,8 @@
   <Include file="..\modules\autoloot.lua"/>
   <Include file="..\modules\autoloot-log.lua"/>
   <Include file="..\modules\autoloot-options.lua"/>
+  <Include file="..\modules\lootfilter.lua"/>
+  <Include file="..\modules\lootfilter-options.lua"/>
   <Include file="..\modules\gather.lua"/>
   <Include file="..\modules\gather-options.lua"/>
   <Include file="..\modules\qol-options.lua"/>
