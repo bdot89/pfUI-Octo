@@ -1,11 +1,19 @@
--- pfUI Octo: when the standalone pfQuest add-on is loaded (it loads before pfUI)
--- it already made pfDB, and every file of this copy returns at its first line
-pfQuestOctoSkip = pfDB ~= nil
--- The standalone pfQuest loads BEFORE pfUI, sees no pfUI and draws its windows
--- with its own stand-in (compat\pfUI.lua); pfUI then takes the name over. This
--- copy loads after pfUI's files but before pfUI has its settings, so pfUI is
--- hidden while pfQuest's files run and put back after (restore.lua): pfQuest
--- starts exactly as it does next to the standalone pfUI.
+-- pfUI Octo: when the standalone pfQuest add-on is on, every file of this copy
+-- returns at its first line. pfQuest's toc says "OptionalDeps: pfUI", so the
+-- standalone one loads AFTER pfUI and has not made pfDB yet: whether it is
+-- switched on decides (9 Nov 2026: both ran, two of everything, and its chat
+-- hook went straight to the game's, past pfUI's chat - no times, class colours
+-- or links for anyone who still had pfQuest on).
+local function pfQuestOctoStandalone()
+  if pfDB ~= nil then return true end
+  if type(GetAddOnInfo) ~= "function" then return false end
+  local ok, name, _, _, enabled, loadable = pcall(GetAddOnInfo, "pfQuest")
+  return (ok and name and enabled and loadable) and true or false
+end
+pfQuestOctoSkip = pfQuestOctoStandalone()
+-- This copy loads after pfUI's files but before pfUI has its settings, so pfUI
+-- is hidden while pfQuest's files run and put back after (restore.lua):
+-- pfQuest starts exactly as it does next to the standalone pfUI.
 if not pfQuestOctoSkip then
   pfQuestOctoHidden = { pfUI = pfUI, pfUI_config = pfUI_config }
   pfUI = nil

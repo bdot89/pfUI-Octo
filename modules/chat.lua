@@ -324,7 +324,7 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
       local tab = _G["ChatFrame"..i.."Tab"]
 
       local combat = 0
-      for _, msg in pairs(_G["ChatFrame"..i].messageTypeList) do
+      for _, msg in pairs(_G["ChatFrame"..i].messageTypeList or {}) do
         if strfind(msg, "SPELL", 1) or strfind(msg, "COMBAT", 1) then
           combat = combat + 1
         end

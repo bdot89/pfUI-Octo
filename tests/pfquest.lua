@@ -136,4 +136,22 @@ local good = run("compat/client.lua")
 ok(good and _G.pfQuestCompat == before, "...and a guarded file does nothing")
 run("restore.lua")
 ok(pfUI == realPfUI, "...and restore.lua changes nothing")
+
+-- (9 Nov 2026) pfQuest's toc has "OptionalDeps: pfUI": the standalone one loads AFTER pfUI, so
+-- there is no pfDB yet - it being switched on must be enough (both ran, and its chat hook went
+-- past pfUI's chat: no times, class colours or links)
+local realInfo = rawget(_G, "GetAddOnInfo")
+_G.pfDB = nil
+_G.GetAddOnInfo = function(n) if n == "pfQuest" then return "pfQuest", "pfQuest", "", 1, 1 end end
+run("guard.lua")
+ok(pfQuestOctoSkip == true and pfUI == realPfUI, "standalone pfQuest on but not loaded yet: the copy steps aside")
+run("restore.lua")
+_G.GetAddOnInfo = function(n) if n == "pfQuest" then return "pfQuest", "pfQuest", "", nil, 1 end end
+run("guard.lua")
+ok(pfQuestOctoSkip == false, "standalone pfQuest switched off: the copy runs")
+pfUI = realPfUI
+pfUI_config = pfQuestOctoHidden and pfQuestOctoHidden.pfUI_config or pfUI_config
+if pfQuestOcto and pfQuestOcto.make then CreateFrame = pfQuestOcto.make end
+pfQuestOctoHidden, pfQuestOcto = nil, nil
+_G.GetAddOnInfo = realInfo
 _G.pfDB, pfQuestOctoSkip = realDB, nil

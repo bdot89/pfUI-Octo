@@ -59,7 +59,7 @@ pfUI:RegisterModule("chatcopy", "vanilla:tbc", function ()
       local name = frame:GetName()
 
       local combat = 0
-      for i, msg in pairs(frame.messageTypeList) do
+      for i, msg in pairs(frame.messageTypeList or {}) do
         if strfind(msg, "SPELL", 1) or strfind(msg, "COMBAT", 1) then
           combat = combat + 1
         end

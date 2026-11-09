@@ -108,6 +108,25 @@ ITEM_QUALITY_COLORS = {}
 for i = 0, 6 do ITEM_QUALITY_COLORS[i] = { r = 1, g = 1, b = 1, hex = "|cffffffff" } end
 table.setn(ITEM_QUALITY_COLORS, 7)
 FONT_COLOR_CODE_CLOSE = "|r"
+-- (9 Nov 2026) what the chat module reads at start, so it starts here and its AddMessage is tested
+UnitPopupMenus = { FRIEND = { "WHISPER", "GUILD_LEAVE", "CANCEL" }, PLAYER = {}, PARTY = {}, RAID = {} }
+UnitPopupButtons = {}
+for i = 1, 7 do
+  local cf = _G["ChatFrame" .. i]
+  if cf then cf.messageTypeList = i == 2 and { "COMBAT_A", "COMBAT_B", "SPELL_A", "SPELL_B", "SPELL_C", "SPELL_D" } or { "SAY", "GUILD" } cf.HookAddMessage = false local id = i cf.GetID = function() return id end end
+-- (the mock answers any "Hook..." key with a stub method, so pfUI's chat thought it had hooked already)
+end
+for _, n in ipairs({ "FCF_Close", "FCF_DockFrame", "FCF_DockUpdate", "FCF_SaveDock", "FCF_SelectDockFrame",
+  "FCF_SetChatWindowFontSize", "FCF_SetLocked", "FCF_SetTabPosition", "FCF_SetWindowAlpha", "FCF_SetWindowColor",
+  "FCF_SetWindowName", "FCF_UnDockFrame", "FCF_UpdateButtonSide", "FloatingChatFrame_Update",
+  "UIFrameFadeRemoveFrame", "UIFrameFlashRemoveFrame", "UIFrameFadeIn", "UIFrameFadeOut", "UIFrameFlash" }) do
+  if not rawget(_G, n) then _G[n] = function() end end
+end
+SELECTED_CHAT_FRAME = ChatFrame1
+DOCKED_CHAT_FRAMES = { ChatFrame1 }
+CHAT_FRAME_TEXTURES = { "Background", "TopLeftTexture", "BottomLeftTexture", "TopRightTexture", "BottomRightTexture",
+  "LeftTexture", "RightTexture", "BottomTexture", "TopTexture" }
+ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g = 1, b = 1, id = 0 } rawset(t, k, v) return v end })
 
 -- modules that must start cleanly (the octo ones, as they are added)
 local MUST_LOAD = { "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
@@ -5904,6 +5923,30 @@ dofile(DIR .. "/tests/gather.lua")
 
 -- pfQuest built in (9 Nov 2026)
 dofile(DIR .. "/tests/pfquest.lua")
+
+-- chat lines really pass pfUI's chat (9 Nov 2026: in game a World line came out with no time, no short
+-- channel and no class colour while all three were on)
+do
+  local cf = ChatFrame1
+  ok(cf and cf.HookAddMessage, "chat: pfUI's AddMessage sits on ChatFrame1")
+  if cf and cf.HookAddMessage then
+    local got
+    local hook = cf.HookAddMessage
+    cf.HookAddMessage = function(self, text) got = text end
+    local tx = pfUI_config.chat.text
+    local was = { tx.time, tx.channelnumonly, tx.classcolor }
+    tx.time, tx.channelnumonly, tx.classcolor = "1", "1", "1"
+    local cache = rawget(_G, "C_PlayerCache")
+    _G.C_PlayerCache = { GetPlayerInfoByName = function(n) if n == "Ulfsar" then return n, "WARRIOR" end end }
+    local okc, err = pcall(cf.AddMessage, cf, "[6. World] |Hplayer:Ulfsar|h[Ulfsar]|h: wts runecloth", 1, 1, 1)
+
+    ok(okc and got and string.find(got, "Ulfsar", 1, true) and string.find(got, "[6]", 1, true), "chat: a World line gets the short channel (" .. tostring(got or err) .. ")")
+    ok(got and string.find(got, "|h|cff%x%x%x%x%x%xUlfsar|h") and not string.find(got, "b2b2b2", 1, true), "chat: a known warrior's name is in class colour (" .. tostring(got) .. ")")
+    _G.C_PlayerCache = cache
+    tx.time, tx.channelnumonly, tx.classcolor = was[1], was[2], was[3]
+    cf.HookAddMessage = hook
+  end
+end
 
 -- /pfprof (9 Nov 2026): off = the game's CreateFrame back; on = scripts timed, GetScript unchanged
 do
