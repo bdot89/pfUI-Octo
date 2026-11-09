@@ -75,6 +75,20 @@ if W and W.ItemBox and O and O.pages then
   _G.CursorHasItem = function() return false end
   ok(W.CursorItem() == nil and W.cursorItem == nil, "...and forgotten when the cursor is empty")
   _G.CursorHasItem = savedHas
+
+  -- icons (9 Nov 2026: the picker showed only question marks): GetItemInfo
+  -- answering a texture number, the bag slot knows the path
+  local sv = { rawget(_G, "GetContainerNumSlots"), rawget(_G, "GetContainerItemLink"), rawget(_G, "GetContainerItemInfo"), rawget(_G, "GetItemInfo") }
+  _G.GetItemInfo = function(id) if id == 7001 then return "Thing", "item:7001:0:0:0", 1, 5, 5, "Junk", "Junk", 1, "", 132345, 10 end end
+  _G.GetContainerNumSlots = function(bag) return bag == 0 and 2 or 0 end
+  _G.GetContainerItemLink = function(bag, slot) if bag == 0 and slot == 2 then return "|cffffffff|Hitem:7001:0:0:0|h[Thing]|h|r" end end
+  _G.GetContainerItemInfo = function(bag, slot) if bag == 0 and slot == 2 then return "Interface\\Icons\\INV_Misc_Thing", 1 end end
+  W.texCache[7001] = nil
+  ok(W.ItemTexture(7001) == "Interface\\Icons\\INV_Misc_Thing", "an item's icon is found from its bag slot when GetItemInfo has no path")
+  _G.GetItemInfo = function(id) if id == 7002 then return "Other", "item:7002:0:0:0", 1, 5, "Junk", "Junk", 1, "", "INTERFACE\\ICONS\\INV_Other" end end
+  local got = W.ItemTexture(7002)
+  ok(got == "INTERFACE\\ICONS\\INV_Other", "a path in capitals is still a path (" .. tostring(got) .. ")")
+  _G.GetContainerNumSlots, _G.GetContainerItemLink, _G.GetContainerItemInfo, _G.GetItemInfo = sv[1], sv[2], sv[3], sv[4]
 end
 
 -- the scan's shapes

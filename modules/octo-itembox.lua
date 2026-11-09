@@ -44,10 +44,34 @@ function W.CursorItem()
   return W.cursorItem
 end
 
+-- (9 Nov 2026, every picker icon was a question mark) the icon an item had in
+-- a bag slot is kept and used first; GetItemInfo's answer is taken from any
+-- place that holds a texture path, in any case
+W.texCache = W.texCache or {}
 local function Texture(id)
-  local a = { _G.GetItemInfo and _G.GetItemInfo(id) }
-  for i = 9, 10 do
-    if type(a[i]) == "string" and string.find(a[i], "Interface") then return a[i] end
+  id = tonumber(id)
+  if id and W.texCache[id] then return W.texCache[id] end
+  -- (not "{ f and f(id) }": "and" keeps only the first answer - the bug that
+  -- showed every icon as a question mark)
+  local a = {}
+  if type(_G.GetItemInfo) == "function" then a = { _G.GetItemInfo(id) } end
+  for i = 12, 3, -1 do
+    local v = a[i]
+    -- "interface" then a backslash (byte 92), checked without a pattern
+    if type(v) == "string" and string.sub(string.lower(v), 1, 9) == "interface" and string.byte(v, 10) == 92 then
+      W.texCache[id] = v
+      return v
+    end
+  end
+  -- the bags may hold one: their slot knows the icon
+  for bag = 0, 4 do
+    local n = _G.GetContainerNumSlots and _G.GetContainerNumSlots(bag) or 0
+    for slot = 1, n do
+      if IdOfLink(_G.GetContainerItemLink(bag, slot)) == id then
+        local tex = _G.GetContainerItemInfo(bag, slot)
+        if type(tex) == "string" then W.texCache[id] = tex return tex end
+      end
+    end
   end
   return "Interface\\Icons\\INV_Misc_QuestionMark"
 end
@@ -98,7 +122,12 @@ local function Picker(anchor, add)
     local n = _G.GetContainerNumSlots and _G.GetContainerNumSlots(bag) or 0
     for slot = 1, n do
       local id = IdOfLink(_G.GetContainerItemLink(bag, slot))
-      if id and not seen[id] then seen[id] = true table.insert(list, id) end
+      if id and not seen[id] then
+        seen[id] = true
+        table.insert(list, id)
+        local tex = _G.GetContainerItemInfo(bag, slot)
+        if type(tex) == "string" then W.texCache[id] = tex end
+      end
     end
   end
   local cols = 10
