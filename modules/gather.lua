@@ -525,7 +525,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         local col = p and p.color or { .8, .8, .8 }
         r.name:SetText(e.name)
         if e.prio then r.name:SetTextColor(1, .82, 0) else r.name:SetTextColor(col[1], col[2], col[3]) end
-        r.dist:SetText(math.floor(e.dist + .5) .. " yd")
+        r.yd = math.floor(e.dist + .5)
+        r.dist:SetText(r.yd .. " yd")
         if e.turn then Rotate(r.arrow, e.turn) r.arrow:Show() else r.arrow:Hide() end
         r:Show()
       else
@@ -552,7 +553,9 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         local dx, dy = e.x - px, e.y - py
         e.dist = math.sqrt(dx * dx + dy * dy)
         e.turn = GF.Turn(dx, dy, facing)
-        r.dist:SetText(math.floor(e.dist + .5) .. " yd")
+        -- (new text only when the yards change: a string a frame per row was garbage)
+        local yd = math.floor(e.dist + .5)
+        if r.yd ~= yd then r.yd = yd r.dist:SetText(yd .. " yd") end
         if e.turn then Rotate(r.arrow, e.turn) r.arrow:Show() else r.arrow:Hide() end
       end
     end

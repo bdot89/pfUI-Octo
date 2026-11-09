@@ -10,6 +10,7 @@
 ## SavedVariablesPerCharacter: pfUI_config, pfUI_init, pfUI_playerDB, BCSConfig, pfQuest_config, pfBrowser_fav, pfQuest_history, pfQuest_colors, pfQuest_server, pfQuest_track
 
 pfUI.lua
+profiler.lua
 charstats\charstats.xml
 
 init\env.xml

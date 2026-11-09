@@ -5905,6 +5905,37 @@ dofile(DIR .. "/tests/gather.lua")
 -- pfQuest built in (9 Nov 2026)
 dofile(DIR .. "/tests/pfquest.lua")
 
+-- /pfprof (9 Nov 2026): off = the game's CreateFrame back; on = scripts timed, GetScript unchanged
+do
+  local P = pfUI.prof
+  ok(P and P.load == nil and CreateFrame == P.make and not P.on, "profiler off: CreateFrame is the game's again after load")
+  local realClock, realGc, realCF = rawget(_G, "debugprofilestop"), rawget(_G, "gcinfo"), CreateFrame
+  local now, mem = 0, 100
+  _G.debugprofilestop = function() return now end
+  _G.gcinfo = function() return mem end
+  pfUI_cache.profile = true
+  P.load = {}
+  P.Init()
+  ok(P.on and CreateFrame ~= P.make, "profiler on: pfUI's frames are timed")
+  local f = P.make("Frame")
+  P.Instrument(f, "modules/test.lua:1")
+  local fn = function() now = now + 2 mem = mem + 3 end
+  f:SetScript("OnUpdate", fn)
+  ok(f:GetScript("OnUpdate") == fn, "profiler: GetScript gives back the function that was set")
+  f.scripts.OnUpdate()
+  f.scripts.OnUpdate()
+  local r = P.rows["modules/test.lua:1 OnUpdate"]
+  ok(r and r.n == 2 and r.ms == 4 and r.kb == 6 and r.max == 2, "profiler: calls, time, worst and memory counted")
+  f:SetScript("OnUpdate", nil)
+  ok(f:GetScript("OnUpdate") == nil, "profiler: a cleared script reads nil")
+  now = 1000
+  local lines = P.Lines(5)
+  ok(lines[1] and string.find(lines[1], "pfUI profile", 1, true) and string.find(table.concat(lines, "\n"), "modules/test.lua:1 OnUpdate", 1, true), "profiler: the report names the line")
+  pfUI_cache.profile, P.on, P.rows = nil, nil, {}
+  CreateFrame = realCF
+  _G.debugprofilestop, _G.gcinfo = realClock, realGc
+end
+
 -- item rules for the loot filter and bag categories (9 Nov 2026)
 dofile(DIR .. "/tests/rules.lua")
 

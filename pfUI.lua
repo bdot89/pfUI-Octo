@@ -337,6 +337,9 @@ pfUI:SetScript("OnEvent", function()
     pfUI_playerDB = pfUI_playerDB or {}
     pfUI_addon_profiles = pfUI_addon_profiles or {}
 
+    -- octo: /pfprof (profiler.lua) times pfUI's scripts while it is on
+    if pfUI.prof then pfUI.prof.Init() end
+
     -- use the "Octo" profile (env/octo.lua) on a fresh install
     if pfUI.api.isempty(pfUI_init) and pfUI.api.isempty(pfUI_config) then
       pfUI_config = pfUI.octo.Profile()
