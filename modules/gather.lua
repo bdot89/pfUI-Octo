@@ -32,13 +32,15 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   }
   -- { name, profession, skill, { game object IDs } }
   GF.NODES = {
-    { "Peacebloom", HERB, 1, { 1618 } },
-    { "Silverleaf", HERB, 1, { 1617 } },
-    { "Earthroot", HERB, 15, { 1619 } },
-    { "Mageroyal", HERB, 50, { 1620 } },
-    { "Briarthorn", HERB, 70, { 1621 } },
+    -- (9 Nov 2026) Kalimdor's starting zones use a second ID for the first
+    -- herbs (user: Earthroot "20 yd when its next to me" in Durotar)
+    { "Peacebloom", HERB, 1, { 1618, 3724 } },
+    { "Silverleaf", HERB, 1, { 1617, 3725 } },
+    { "Earthroot", HERB, 15, { 1619, 3726 } },
+    { "Mageroyal", HERB, 50, { 1620, 3727 } },
+    { "Briarthorn", HERB, 70, { 1621, 3729 } },
     { "Stranglekelp", HERB, 85, { 2045 } },
-    { "Bruiseweed", HERB, 100, { 1622 } },
+    { "Bruiseweed", HERB, 100, { 1622, 3730 } },
     { "Wild Steelbloom", HERB, 115, { 1623 } },
     { "Grave Moss", HERB, 120, { 1628 } },
     { "Kingsblood", HERB, 125, { 1624 } },
@@ -129,6 +131,66 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     return extra
   end
 
+  -- IDs learned from your mouse: hovering a node whose ID the list does not
+  -- have saves it (C.gather.learned "id=Name;"), so a zone's own copies of a
+  -- node are found after you have pointed at one once
+  local learnedFrom, learned
+  function GF.Learned()
+    local s = G().learned or ""
+    if s ~= learnedFrom then
+      learned = {}
+      for id, name in string.gfind(s, "(%d+)=([^;]+);") do
+        learned[name] = learned[name] or {}
+        table.insert(learned[name], tonumber(id))
+      end
+      learnedFrom = s
+    end
+    return learned
+  end
+  function GF.Known(id)
+    for i = 1, table.getn(GF.NODES) do
+      local ids = GF.NODES[i][4]
+      for j = 1, table.getn(ids) do if ids[j] == id then return true end end
+    end
+    for _, ids in pairs(GF.Learned()) do
+      for j = 1, table.getn(ids) do if ids[j] == id then return true end end
+    end
+    return false
+  end
+  -- an object's ID from what GameTooltip:GetGameObject() gives: a number,
+  -- or a GUID string (0x + 4 high + 6 entry + 6 counter hex digits)
+  function GF.IdFrom(v)
+    if type(v) == "number" then
+      if v > 0 and v < 16777216 and math.floor(v) == v then return v end
+    elseif type(v) == "string" then
+      local h = string.gsub(v, "^0[xX]", "")
+      if string.len(h) == 16 and string.find(h, "^%x+$") then
+        local e = tonumber(string.sub(h, 5, 10), 16)
+        if e and e > 0 then return e end
+      elseif string.find(h, "^%d+$") then
+        return GF.IdFrom(tonumber(h))
+      end
+    end
+  end
+  function GF.Teach(name, a, b, c)
+    if not GF.BYNAME[name] then return nil end
+    local id = GF.IdFrom(a) or GF.IdFrom(b) or GF.IdFrom(c)
+    if not id or GF.Known(id) then return nil end
+    G().learned = (G().learned or "") .. id .. "=" .. name .. ";"
+    return id
+  end
+  local lastTip
+  local function WatchTooltip()
+    local tt = _G.GameTooltip
+    if not tt or not tt:IsShown() or type(tt.GetGameObject) ~= "function" then lastTip = nil return end
+    local line = _G.GameTooltipTextLeft1 and _G.GameTooltipTextLeft1:GetText()
+    if not line or line == lastTip then return end
+    lastTip = line
+    if not GF.BYNAME[line] then return end
+    local ok, a, b, c = pcall(tt.GetGameObject, tt)
+    if ok then GF.Teach(line, a, b, c) end
+  end
+
   -- your skill in a profession, nil when you don't have it
   local skillAt, skills = -10, {}
   function GF.Skill(prof, now)
@@ -159,6 +221,10 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       end
       if ok then
         for j = 1, table.getn(n[4]) do table.insert(list, { id = n[4][j], name = n[1], prof = prof, prio = state == "prio" }) end
+        local more = GF.Learned()[n[1]]
+        if more then
+          for j = 1, table.getn(more) do table.insert(list, { id = more[j], name = n[1], prof = prof, prio = state == "prio" }) end
+        end
       end
     end
     local ex = GF.Extra()
@@ -214,7 +280,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local dx, dy, dz = a - px, b - py, c - pz
     local d = math.sqrt(dx * dx + dy * dy + dz * dz)
     if d > RANGE then return nil end
-    return d, dx, dy
+    return d, dx, dy, a, b, c
   end
 
   -- which way is north: the four ways a client can lay out x / y; your own
@@ -267,11 +333,12 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local list = GF.Wanted(now)
     for i = 1, table.getn(list) do
       local w = list[i]
-      local d, dx, dy = GF.Locate(w.id, px, py, pz)
+      local d, dx, dy, nx, ny, nz = GF.Locate(w.id, px, py, pz)
       if d then
         local cur = best[w.name]
         if not cur or d < cur.dist then
-          best[w.name] = { name = w.name, prof = w.prof, prio = w.prio, extra = w.extra, dist = d, turn = GF.Turn(dx, dy, facing) }
+          best[w.name] = { name = w.name, prof = w.prof, prio = w.prio, extra = w.extra, dist = d, turn = GF.Turn(dx, dy, facing),
+            x = nx, y = ny, z = nz }
         end
       end
     end
@@ -381,6 +448,27 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     f:Show()
   end
 
+  -- (9 Nov 2026, user: "the arrows should move smoothly not in jumps") the
+  -- nodes are looked for a few times a second, but their distance and arrow
+  -- follow your position and facing every frame
+  function GF.Follow()
+    local f = GF.frame
+    if not f or not f:IsShown() or GF.preview then return end
+    local px, py, pz = Pos()
+    if not px then return end
+    local facing = GF.Facing()
+    for i = 1, 5 do
+      local r, e = f.rows[i], GF.found[i]
+      if r:IsShown() and e and e.x then
+        local dx, dy, dz = e.x - px, e.y - py, (e.z or pz) - pz
+        e.dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+        e.turn = GF.Turn(dx, dy, facing)
+        r.dist:SetText(math.floor(e.dist + .5) .. " yd")
+        if e.turn then Rotate(r.arrow, e.turn) r.arrow:Show() else r.arrow:Hide() end
+      end
+    end
+  end
+
   -- a made-up list for the options page
   function GF.Preview(on)
     GF.preview = on
@@ -411,7 +499,15 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     end
     GF.Draw()
   end
-  driver:SetScript("OnUpdate", function() GF.Tick(GetTime()) end)
+  driver:SetScript("OnUpdate", function()
+    if not On("enable") and not GF.preview then
+      if GF.frame and GF.frame:IsShown() then GF.frame:Hide() end
+      return
+    end
+    GF.Tick(GetTime())
+    GF.Follow()
+    WatchTooltip()
+  end)
   driver:RegisterEvent("SKILL_LINES_CHANGED")
   driver:RegisterEvent("PLAYER_ENTERING_WORLD")
   driver:SetScript("OnEvent", function()

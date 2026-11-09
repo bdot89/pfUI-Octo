@@ -108,6 +108,32 @@ for i = 1, 6 do y = y + 3 GF.Learn(x, y, facing) end
 ok(GF.axis == 2, "walking north along y teaches the axis order")
 GF.votes, GF.axis = { 0, 0, 0, 0 }, 1
 
+-- learning a zone's own copy of a node from the tooltip
+S.learned = ""
+ok(GF.IdFrom(3726) == 3726 and GF.IdFrom("0xF1100E8C0000A1B2") == 0x0E8C00 and GF.IdFrom("abc") == nil, "IDs read from a number or a GUID")
+ok(GF.Teach("Earthroot", 1619) == nil and S.learned == "", "a known ID is not saved again")
+ok(GF.Teach("Not A Herb", 555555) == nil, "only node names are learned")
+ok(GF.Teach("Earthroot", nil, 555555) == 555555 and S.learned == "555555=Earthroot;", "a new ID for a node is saved")
+S.skill = "0" GF.ResetSkills()
+ok(asked("Earthroot") and (function()
+  local l = GF.Wanted(1000)
+  for i = 1, table.getn(l) do if l[i].id == 555555 then return true end end
+end)(), "a learned ID is looked for")
+S.skill, S.learned = "1", ""
+
+-- following: the distance and arrow move every frame between looks
+fresh()
+S.enable = "1"
+objects = { [1618] = { 130, 200, 0 } }
+px, py, facing = 100, 200, 0
+GF.Scan(1400) GF.Draw()
+ok(GF.frame.rows[1]:IsShown() and math.abs(GF.found[1].dist - 30) < .01, "drawn at 30 yd")
+px = 120 GF.Follow()
+ok(math.abs(GF.found[1].dist - 10) < .01 and GF.frame.rows[1].dist:GetText() == "10 yd", "walking closer updates the yards at once")
+facing = math.pi / 2 GF.Follow()
+ok(math.abs(GF.found[1].turn + math.pi / 2) < .01, "turning updates the arrow at once")
+S.enable = "0"
+
 -- without ClassicAPI: nothing, no error
 _G.ClosestGameObjectPosition = nil
 ok(not GF.Available() and table.getn(GF.Scan(1300)) == 0, "no ClassicAPI: finds nothing, no error")
