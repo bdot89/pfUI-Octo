@@ -5787,6 +5787,9 @@ dofile(DIR .. "/tests/gather.lua")
 -- pfQuest built in (9 Nov 2026)
 dofile(DIR .. "/tests/pfquest.lua")
 
+-- item rules for the loot filter and bag categories (9 Nov 2026)
+dofile(DIR .. "/tests/rules.lua")
+
 -- the language of Octo's own pages (4 Nov 2026)
 dofile(DIR .. "/tests/translate.lua")
 

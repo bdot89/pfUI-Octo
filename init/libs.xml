@@ -11,4 +11,5 @@
   <Include file="..\libs\libtotem.lua"/>
   <Include file="..\libs\libpredict.lua"/>
   <Include file="..\libs\libbagsort.lua"/>
+  <Include file="..\libs\librules.lua"/>
 </Ui>
