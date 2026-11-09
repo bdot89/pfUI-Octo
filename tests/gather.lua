@@ -1,0 +1,125 @@
+-- pfUI Octo: gathering finder (modules/gather.lua, gather-options.lua), run by tests\run.lua.
+-- A made-up ClassicAPI object finder: which nodes are asked for, the rules,
+-- distances, swapped axes, the arrow's turn and the priority ping.
+local ok = octo_ok
+local GF = pfUI.gather
+ok(GF and GF.Scan and GF.Wanted and GF.State, "gather loaded (pfUI.gather)")
+if not GF then return end
+local S = pfUI_config.gather
+ok(S and S.enable == "0" and S.rows == "3" and S.skill == "1", "gather defaults (off, 3 rows, skill filter on)")
+local O = pfUI.octoui and pfUI.octoui.Options
+ok(O and O.BUILD and O.BUILD.gather, "options page Gathering registered")
+
+local saved = { ClosestGameObjectPosition = rawget(_G, "ClosestGameObjectPosition"), UnitPosition = rawget(_G, "UnitPosition"),
+  GetPlayerFacing = rawget(_G, "GetPlayerFacing"), GetNumSkillLines = rawget(_G, "GetNumSkillLines"),
+  GetSkillLineInfo = rawget(_G, "GetSkillLineInfo"), PlaySoundFile = rawget(_G, "PlaySoundFile") }
+local objects = {}      -- id -> { x, y, z }
+local px, py, facing = 100, 200, 0
+local skills = { { "Herbalism", 150 } }
+local sounds = 0
+_G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[1], o[2], o[3] end end
+_G.UnitPosition = function() return px, py, 0 end
+_G.GetPlayerFacing = function() return facing end
+_G.GetNumSkillLines = function() return table.getn(skills) end
+_G.GetSkillLineInfo = function(i) return skills[i][1], nil, nil, skills[i][2] end
+_G.PlaySoundFile = function() sounds = sounds + 1 end
+local function fresh() GF.ResetSkills() GF.seen = {} GF.swap = nil end
+
+S.nodes, S.extra, S.herbs, S.ore, S.skill = "", "", "1", "1", "1"
+fresh()
+ok(GF.Available(), "the object finder is found")
+
+-- what is asked for
+local function asked(name)
+  local l = GF.Wanted(1000)
+  for i = 1, table.getn(l) do if l[i].name == name then return true end end
+  return false
+end
+ok(asked("Peacebloom") and asked("Liferoot"), "herbs within your skill are asked for")
+ok(not asked("Fadeleaf") and not asked("Black Lotus"), "herbs above your skill are not")
+ok(not asked("Copper Vein"), "no Mining skill: no ore")
+S.skill = "0" GF.ResetSkills()
+ok(asked("Black Lotus") and asked("Copper Vein"), "skill filter off: everything")
+S.ore = "0"
+ok(not asked("Copper Vein"), "ore switched off")
+S.ore, S.skill = "1", "1"
+
+-- the rules string
+ok(GF.State("Black Lotus") == "prio" and GF.State("Peacebloom") == "show", "default states")
+GF.SetState("Peacebloom", "off")
+ok(GF.State("Peacebloom") == "off" and S.nodes == "Peacebloom=off;", "a change is saved as Name=state;")
+GF.SetState("Silverleaf", "prio")
+ok(GF.State("Silverleaf") == "prio" and GF.State("Peacebloom") == "off", "two changes kept")
+GF.SetState("Peacebloom", "show")
+ok(S.nodes == "Silverleaf=prio;", "back to the default drops it")
+GF.ResetSkills()
+ok(not asked("Peacebloom") or GF.State("Peacebloom") == "show", "Off nodes are not asked for")
+GF.SetState("Silverleaf", "show")
+
+-- extra IDs
+S.extra = "999001=Odd Chest, 999002"
+local ex = GF.Extra()
+ok(table.getn(ex) == 2 and ex[1].id == 999001 and ex[1].name == "Odd Chest" and ex[2].name == nil, "extra IDs read with optional names")
+S.extra = ""
+
+-- distances and the sort: Peacebloom 30 yd north, Liferoot (priority) 60 yd, a node far out of view
+fresh()
+GF.SetState("Liferoot", "prio")
+objects = { [1618] = { 130, 200, 0 }, [2041] = { 100, 260, 0 }, [1619] = { 900, 900, 0 } }
+sounds = 0
+S.alert, S.sound = "1", "1"
+local f = GF.Scan(1000)
+ok(table.getn(f) == 2, "two nodes in sight, the far one left out")
+ok(f[1].name == "Liferoot" and f[2].name == "Peacebloom", "priority first, then nearest")
+ok(math.abs(f[2].dist - 30) < .01, "distance in yards")
+ok(sounds == 1 and GF.lastAlert == "Liferoot", "a priority node coming into sight pings once")
+GF.Scan(1001)
+ok(sounds == 1, "...and not again while it stays")
+objects[2041] = nil GF.Scan(1002) objects[2041] = { 100, 260, 0 } GF.Scan(1003)
+ok(sounds == 2, "gone and back: it pings again")
+GF.SetState("Liferoot", "show")
+
+-- the arrow: facing north (0), a node straight north turns 0; facing west (pi/2) it turns -pi/2
+GF.axis = 1
+fresh()
+objects = { [1618] = { 130, 200, 0 } }
+facing = 0
+f = GF.Scan(1100)
+ok(f[1] and math.abs(f[1].turn) < .01, "node ahead: no turn")
+facing = math.pi / 2
+f = GF.Scan(1101)
+ok(f[1] and math.abs(f[1].turn + math.pi / 2) < .01, "facing west, node north: turn right a quarter")
+
+-- swapped axes: the finder answers y, x
+fresh()
+_G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[2], o[1], o[3] end end
+objects = { [1618] = { 4130, 200, 0 } }
+px, py = 4100, 200
+f = GF.Scan(1200)
+ok(GF.swap == true and f[1] and math.abs(f[1].dist - 30) < .01, "x / y given the other way round are swapped")
+_G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[1], o[2], o[3] end end
+
+-- learning north from walking: positions laid out (y, x) -> axis 2
+GF.votes, GF.axis = { 0, 0, 0, 0 }, 1
+facing = 0
+local x, y = 0, 0
+GF.Learn(x, y, facing)
+for i = 1, 6 do y = y + 3 GF.Learn(x, y, facing) end
+ok(GF.axis == 2, "walking north along y teaches the axis order")
+GF.votes, GF.axis = { 0, 0, 0, 0 }, 1
+
+-- without ClassicAPI: nothing, no error
+_G.ClosestGameObjectPosition = nil
+ok(not GF.Available() and table.getn(GF.Scan(1300)) == 0, "no ClassicAPI: finds nothing, no error")
+
+-- the box draws a sample
+S.enable = "1"
+GF.Preview(true)
+ok(GF.frame and GF.frame:IsShown() and GF.frame.rows[1]:IsShown() and not GF.frame.rows[4]:IsShown(), "sample: three rows shown")
+GF.Preview(false)
+S.enable = "0"
+GF.Tick(5000)
+ok(not GF.frame:IsShown(), "switched off: the box hides")
+
+for k, v in pairs(saved) do _G[k] = v end
+S.nodes, S.extra = "", ""

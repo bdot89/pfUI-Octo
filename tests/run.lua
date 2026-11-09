@@ -5779,6 +5779,9 @@ dofile(DIR .. "/tests/bags.lua")
 -- automatic area looting (4 Nov 2026)
 dofile(DIR .. "/tests/autoloot.lua")
 
+-- nearest herb and ore nodes (9 Nov 2026)
+dofile(DIR .. "/tests/gather.lua")
+
 -- the language of Octo's own pages (4 Nov 2026)
 dofile(DIR .. "/tests/translate.lua")
 
