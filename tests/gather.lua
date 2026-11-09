@@ -147,5 +147,36 @@ S.enable = "0"
 GF.Tick(5000)
 ok(not GF.frame:IsShown(), "switched off: the box hides")
 
+-- pfQuest's lists (with the Turtle / OctoWoW add-on merged in)
+_G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[1], o[2], o[3] end end
+local savedDB = rawget(_G, "pfDB")
+_G.pfDB = { meta = { herbs = { [-3726] = 15, [-990001] = 40 }, mines = { [-3000500] = 90 }, fish = { [-180750] = "AH" }, chests = { [-3000248] = 0 } },
+  objects = { loc = { [3726] = "Earthroot", [990001] = "Odd Herb", [180750] = "Oily School" }, ["enUS-turtle"] = { [3000500] = "Octo Vein", [3000248] = "Octo Chest" } } }
+GF.dbLoaded = nil
+local before = table.getn(GF.BYNAME["Earthroot"][4])
+GF.LoadDB()
+ok(GF.BYNAME["Odd Herb"] and GF.BYNAME["Odd Herb"][2] == GF.HERB and GF.BYNAME["Odd Herb"][3] == 40, "a pfQuest herb is added with its skill")
+ok(table.getn(GF.BYNAME["Earthroot"][4]) == before, "an ID already in the list is not added twice")
+ok(GF.BYNAME["Octo Vein"] and GF.BYNAME["Octo Vein"][2] == GF.ORE, "OctoWoW's own veins come from the Turtle add-on's names")
+ok(GF.BYNAME["Oily School"] and GF.BYNAME["Oily School"][2] == GF.FISH and GF.BYNAME["Octo Chest"][2] == GF.CHEST, "fishing pools and chests too")
+_G.pfDB = savedDB
+
+-- batches: 3 nodes, 2 calls a look
+fresh()
+S.skill, S.chests = "0", "0"
+GF.BATCH = 2
+GF.wantKey = nil
+objects = { [1618] = { 110, 200, 0 }, [1617] = { 120, 200, 0 }, [1619] = { 130, 200, 0 } }
+px, py = 100, 200
+local list = GF.WantedCached(2000)
+local calls = 0
+_G.ClosestGameObjectPosition = function(id) calls = calls + 1 local o = objects[id] if o then return o[1], o[2], o[3] end end
+GF.Scan(2000)
+ok(calls == 2, "one look asks only a batch")
+for i = 1, math.ceil(table.getn(list) / 2) do GF.Scan(2000 + i) end
+ok(table.getn(GF.found) == 3, "after a full round every node is found")
+GF.BATCH = 80
+S.skill = "1"
+
 for k, v in pairs(saved) do _G[k] = v end
 S.nodes, S.extra = "", ""

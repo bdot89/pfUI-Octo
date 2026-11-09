@@ -87,6 +87,60 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   }
   GF.BYNAME = {}
   for i = 1, table.getn(GF.NODES) do GF.BYNAME[GF.NODES[i][1]] = GF.NODES[i] end
+
+  -- (9 Nov 2026, user: "look at the pf database addon ... this should show
+  -- all new nodes in octowow for all profs") pfQuest's database, with its
+  -- Turtle / OctoWoW add-on merged in, lists every herb, mine, fishing pool
+  -- and chest object by ID with the skill it needs. When it is loaded its
+  -- lists are added to the ones above (names from its own object names).
+  local FISH, CHEST = "Fishing", "Chests"
+  GF.FISH, GF.CHEST, GF.HERB, GF.ORE = FISH, CHEST, HERB, ORE
+  GF.PROF[FISH] = { icon = "Interface\\Icons\\Trade_Fishing", color = { .45, .75, 1 } }
+  GF.PROF[CHEST] = { icon = "Interface\\Icons\\INV_Box_01", color = { 1, .82, .4 } }
+  GF.SWITCH = { [HERB] = "herbs", [ORE] = "ore", [FISH] = "fish", [CHEST] = "chests" }
+  GF.DBLISTS = { herbs = HERB, mines = ORE, fish = FISH, chests = CHEST }
+  function GF.LoadDB()
+    if GF.dbLoaded then return GF.dbLoaded end
+    local db = _G.pfDB
+    local meta = type(db) == "table" and db.meta
+    local objs = type(db) == "table" and db.objects
+    if type(meta) ~= "table" or type(objs) ~= "table" then return false end
+    local names = objs.loc or objs.enUS or {}
+    local more = objs["enUS-turtle"]
+    local added = 0
+    for list, prof in pairs(GF.DBLISTS) do
+      local t = meta[list]
+      if type(t) == "table" then
+        for key, skill in pairs(t) do
+          local id = tonumber(key)
+          if id then id = math.abs(id) end
+          local name = id and (names[id] or (more and more[id]))
+          if type(name) == "table" then name = name[1] end
+          if type(name) == "string" and name ~= "" then
+            skill = tonumber(skill) or 0
+            local n = GF.BYNAME[name]
+            if not n then
+              n = { name, prof, skill, {} }
+              table.insert(GF.NODES, n)
+              GF.BYNAME[name] = n
+            end
+            if skill < n[3] then n[3] = skill end
+            local have
+            for j = 1, table.getn(n[4]) do if n[4][j] == id then have = true end end
+            if not have then table.insert(n[4], id) added = added + 1 end
+          end
+        end
+      end
+    end
+    table.sort(GF.NODES, function(a, b)
+      if a[2] ~= b[2] then return a[2] < b[2] end
+      if a[3] ~= b[3] then return a[3] < b[3] end
+      return a[1] < b[1]
+    end)
+    GF.dbLoaded = added > 0 and added or true
+    GF.wantKey = nil
+    return GF.dbLoaded
+  end
   GF.DEFAULTS = { ["Black Lotus"] = "prio" }
   GF.STATES = { { key = "off", label = "Off" }, { key = "show", label = "Show" }, { key = "prio", label = "Priority" } }
 
@@ -204,7 +258,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     end
     return skills[prof]
   end
-  function GF.ResetSkills() skillAt = -10 end
+  function GF.ResetSkills() skillAt = -10 GF.wantKey = nil end
+  GF.BATCH = 80
 
   -- the list asked for: { node, id, name } entries passing the rules
   function GF.Wanted(now)
@@ -214,8 +269,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       local n = GF.NODES[i]
       local state = GF.State(n[1])
       local prof = n[2]
-      local ok = state ~= "off" and ((prof == HERB and On("herbs")) or (prof == ORE and On("ore")))
-      if ok and mine then
+      local ok = state ~= "off" and GF.SWITCH[prof] and On(GF.SWITCH[prof])
+      if ok and mine and prof ~= CHEST then
         local s = GF.Skill(prof, now)
         ok = s and s >= n[3]
       end
@@ -232,6 +287,22 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       table.insert(list, { id = ex[i].id, name = ex[i].name or GF.ObjectName(ex[i].id) or ("Object " .. ex[i].id), extra = true })
     end
     return list
+  end
+  -- the same list, made again only when a setting or your skills change
+  -- (or every 10 s): with pfQuest's lists it is hundreds of entries
+  function GF.WantedCached(now)
+    local g = G()
+    local key = (g.nodes or "") .. "|" .. (g.extra or "") .. "|" .. (g.learned or "") .. "|" .. (g.skill or "")
+      .. (g.herbs or "") .. (g.ore or "") .. (g.fish or "") .. (g.chests or "")
+    if key ~= GF.wantKey or not GF.wantList or now - (GF.wantAt or 0) > 10 then
+      local changed = key ~= GF.wantKey
+      GF.wantKey, GF.wantAt = key, now
+      local old = GF.wantList
+      GF.wantList = GF.Wanted(now)
+      -- a different list starts the batches over
+      if changed or not old or table.getn(old) ~= table.getn(GF.wantList) then GF.cursor, GF.cache = 1, {} end
+    end
+    return GF.wantList
   end
 
   -- ---------------------------------------------------------- the client
@@ -330,15 +401,30 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local facing = GF.Facing()
     GF.Learn(px, py, facing)
     local best = {}
-    local list = GF.Wanted(now)
-    for i = 1, table.getn(list) do
-      local w = list[i]
-      local d, dx, dy, nx, ny, nz = GF.Locate(w.id, px, py, pz)
-      if d then
+    local list = GF.WantedCached(now)
+    local n = table.getn(list)
+    -- a batch of the list each look (GF.BATCH calls), the rest remembered
+    -- from earlier looks: pfQuest's lists hold hundreds of IDs
+    GF.cache = GF.cache or {}
+    local cache = GF.cache
+    local cursor = GF.cursor or 1
+    for _ = 1, math.min(n, GF.BATCH) do
+      if cursor > n then cursor = 1 end
+      local _, _, _, nx, ny, nz = GF.Locate(list[cursor].id, px, py, pz)
+      cache[cursor] = nx and { nx, ny, nz } or false
+      cursor = cursor + 1
+    end
+    GF.cursor = cursor
+    for i = 1, n do
+      local c = cache[i]
+      if c then
+        local w = list[i]
+        local dx, dy, dz = c[1] - px, c[2] - py, c[3] - pz
+        local d = math.sqrt(dx * dx + dy * dy + dz * dz)
         local cur = best[w.name]
-        if not cur or d < cur.dist then
+        if d <= RANGE and (not cur or d < cur.dist) then
           best[w.name] = { name = w.name, prof = w.prof, prio = w.prio, extra = w.extra, dist = d, turn = GF.Turn(dx, dy, facing),
-            x = nx, y = ny, z = nz }
+            x = c[1], y = c[2], z = c[3] }
         end
       end
     end
@@ -512,7 +598,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   driver:RegisterEvent("PLAYER_ENTERING_WORLD")
   driver:SetScript("OnEvent", function()
     GF.ResetSkills()
-    if event == "PLAYER_ENTERING_WORLD" then GF.swap = nil end
+    if event == "PLAYER_ENTERING_WORLD" then GF.swap = nil GF.cache = {} GF.LoadDB() end
   end)
 
   -- /gather probe: the raw answers, to check this client's call

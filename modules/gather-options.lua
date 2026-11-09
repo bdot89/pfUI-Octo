@@ -24,6 +24,7 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
   end
 
   local function Build(p)
+    GF.LoadDB()
     W.Heading(p, "Gathering", { on = O.KeySwitch(G, "enable", "Shows the nearest herbs and ore around you, on or off."),
       about = "Lists the herb and ore nodes near you with how far away they are and an arrow pointing at them, "
         .. "so you don't have to keep watching the minimap on a route. It only sees what the game has loaded around you "
@@ -39,13 +40,20 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
       local line = "|cff55ff55On|r   in sight: " .. n
       if n > 0 then line = line .. "   nearest: " .. GF.found[1].name .. " " .. math.floor(GF.found[1].dist + .5) .. " yd" end
       if not GF.Facing() then line = line .. "   |cffffcc00(no facing from the client: no arrows)|r" end
+      if type(GF.dbLoaded) == "number" then
+        line = line .. "   node list: pfQuest's (" .. table.getn(GF.NODES) .. " kinds)"
+      else
+        line = line .. "   node list: built in |cffffcc00(turn pfQuest on for every OctoWoW node)|r"
+      end
       return line
     end)
 
     W.Card(p, "What to look for", { icon = "Interface\\Icons\\INV_Misc_Flower_02", tip = "Which kinds of node the box looks for." })
     Chk(p, "Herbs", nil, "herbs")
     Chk(p, "Ore and stone", nil, "ore")
-    Chk(p, "Only what I can gather", "Hides nodes your Herbalism or Mining skill is too low for, and a whole profession you don't have.", "skill")
+    Chk(p, "Fishing pools", "Schools and wreckage you can fish from.", "fish")
+    Chk(p, "Treasure chests", "Every chest pfQuest knows of (needs pfQuest).", "chests")
+    Chk(p, "Only what I can gather", "Hides nodes your Herbalism, Mining or Fishing skill is too low for, and a whole profession you don't have.", "skill")
     W.Edit(p, "Extra object IDs", "More objects to look for by their game object ID, for example a custom node or a chest: "
       .. "12345=Name, 67890 (the name is optional).", function() return G().extra end, function(v) G().extra = v end, 260)
 
@@ -68,6 +76,8 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
     Nodes(p, "Herbalism")
     W.Card(p, "Ore and stone", { icon = "Interface\\Icons\\Trade_Mining", tip = "Off, Show or Priority for each vein and deposit." })
     Nodes(p, "Mining")
+    W.Card(p, "Fishing pools", { icon = "Interface\\Icons\\Trade_Fishing", tip = "Off, Show or Priority for each kind of pool." })
+    Nodes(p, "Fishing")
     W.Note(p, "Commands: /gather (this page), /gather on, /gather off, /gather probe")
   end
 
