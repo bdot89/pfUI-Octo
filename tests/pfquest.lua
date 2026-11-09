@@ -82,6 +82,51 @@ pfUI = { stand = "in" }
 run("restore.lua")
 ok(pfUI == realPfUI and pfUI_config == realConfig and pfQuestOctoHidden == nil, "restore.lua puts pfUI and its settings back")
 
+-- the off switch (9 Nov 2026): guard / restore note what pfQuest's files change,
+-- modules\questing.lua puts it back
+do
+  local realCF, realAbandon, realAdd = CreateFrame, _G.AbandonQuest, ChatFrame1 and rawget(ChatFrame1, "AddMessage")
+  local gameAbandon = function() end
+  _G.AbandonQuest = gameAbandon
+  _G.pfDB = nil
+  run("guard.lua")
+  ok(pfQuestOcto and CreateFrame ~= realCF, "guard.lua notes the frames pfQuest's files make")
+  -- what pfQuest's files do: replace a game function, make frames, add /db, hook chat
+  _G.AbandonQuest = function() end
+  local f = CreateFrame("Frame", "pfQuestOctoTestFrame", UIParent)
+  local f2 = CreateFrame("Frame")
+  f:SetScript("OnEvent", function() end)
+  f:Show()
+  SlashCmdList.PFQUESTOCTOTEST = function() end
+  ChatFrame1.pfQuestHookAddMessage = ChatFrame1.AddMessage
+  local pq = function() end
+  ChatFrame1.AddMessage = pq
+  _G.pfMap = { tooltips = {} }
+  pfUI = nil
+  run("restore.lua")
+  ok(CreateFrame == realCF, "restore.lua gives CreateFrame back")
+  ok(pfQuestOcto.changed.AbandonQuest == gameAbandon, "a replaced game function is noted with the game's own")
+  ok(table.getn(pfQuestOcto.frames) == 2 and pfQuestOcto.frames[1] == f and pfQuestOcto.frames[2] == f2, "both frames noted")
+  ok(pfQuestOcto.slash.PFQUESTOCTOTEST, "the new slash command noted")
+  ok(pfQuestOcto.changed.CreateFrame == nil and pfQuestOcto.before == nil, "nothing else noted, the snapshot freed")
+
+  local Q = pfUI.questing
+  ok(Q and Q.State() == "builtin", "Questing: the built-in pfQuest is on (" .. tostring(Q and Q.State()) .. ")")
+  Q.TurnOff()
+  ok(_G.AbandonQuest == gameAbandon, "off: the game's function is back")
+  ok(SlashCmdList.PFQUESTOCTOTEST == nil, "off: pfQuest's slash command is gone")
+  ok(not f:IsShown() and f:GetScript("OnEvent") == nil, "off: pfQuest's frames are silent and hidden")
+  ok(ChatFrame1.AddMessage ~= pq and ChatFrame1.pfQuestHookAddMessage == nil, "off: chat's AddMessage is no longer pfQuest's")
+  ok(_G.pfMap == nil and Q.State() == "off", "off: no pfMap for the nameplates, state off")
+
+  -- pages build in every state
+  local OUo = pfUI.octoui and pfUI.octoui.Options
+  ok(OUo and OUo.BUILD and OUo.BUILD.qstpfquest and OUo.BUILD.qsthelpers, "Questing pages registered")
+  Q.off, pfQuestOcto = nil, nil
+  _G.AbandonQuest = realAbandon
+  if ChatFrame1 then rawset(ChatFrame1, "AddMessage", realAdd) end
+end
+
 -- the standalone pfQuest is on: everything steps aside
 _G.pfDB = { standalone = true }
 run("guard.lua")

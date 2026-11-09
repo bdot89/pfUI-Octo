@@ -40,6 +40,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
     -- in here") qol-options.lua's pages, then Auto Loot's
     { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering" } },
+    -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
+    -- there with an option to turn it off") questing-options.lua
+    { "Questing", { "Questing" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Nameplates", { "Nameplates" } },
@@ -68,7 +71,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
-    { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life" } },
+    { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "Chat & Panels", "Minimap & Buffs" } },
     { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
@@ -89,6 +92,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Minimap & Buffs"] = "The minimap, its buttons, and your buffs and debuffs.",
     ["Bags & Loot"] = "Bags, bank and loot rolls.",
     ["Quality of Life"] = "Small helpers in one place: vendor, loot, raid tools, screenshots and auto loot.",
+    ["Questing"] = "pfQuest's map pins, tracker and database, and the quest helpers.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
@@ -1457,7 +1461,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     thirdparty = "INV_Gizmo_01", components = "Trade_Engineering", about = "INV_Misc_QuestionMark",
     skins = "INV_Misc_Orb_01", threat = "Ability_Warrior_DefensiveStance", uilayouts = "INV_Misc_Map_01",
     actionbars = "Ability_DualWield", chatpanels = "INV_Scroll_03", minimapbuffs = "INV_Misc_Map_01",
-    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", qualityoflife = "INV_Misc_PocketWatch_01", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
+    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", qualityoflife = "INV_Misc_PocketWatch_01", questing = "INV_Misc_Book_08", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
   }
   function O.IconFor(name)
     local k = string.gsub(string.lower(name or ""), "[^%a]", "")

@@ -130,6 +130,24 @@ if not pfQuestOctoSkip then
   pfQuestOctoHidden = { pfUI = pfUI, pfUI_config = pfUI_config }
   pfUI = nil
   pfUI_config = nil
+
+  -- the off switch (Questing page, modules\questing.lua): what pfQuest's files
+  -- change is noted here and in restore.lua - the game's functions they replace,
+  -- the frames they make, their slash commands - so it can all be put back at
+  -- login before anything else starts
+  local env = getfenv(0)
+  local before, slash, frames = {}, {}, {}
+  for k, v in pairs(env) do if type(v) == "function" then before[k] = v end end
+  for k in pairs(SlashCmdList or {}) do slash[k] = true end
+  local make = CreateFrame
+  pfQuestOcto = { before = before, slash = slash, frames = frames, make = make }
+  CreateFrame = function(a1, a2, a3, a4)
+    local f
+    if a4 then f = make(a1, a2, a3, a4) elseif a3 then f = make(a1, a2, a3)
+    elseif a2 then f = make(a1, a2) else f = make(a1) end
+    table.insert(frames, f)
+    return f
+  end
 end
 "@
 $restore = @"
@@ -138,6 +156,21 @@ if pfQuestOctoHidden then
   pfUI = pfQuestOctoHidden.pfUI
   pfUI_config = pfQuestOctoHidden.pfUI_config
   pfQuestOctoHidden = nil
+end
+
+-- what pfQuest's files changed, for the off switch (modules\questing.lua)
+if pfQuestOcto and pfQuestOcto.make then
+  local env = getfenv(0)
+  CreateFrame = pfQuestOcto.make
+  pfQuestOcto.make = nil
+  local changed, newslash = {}, {}
+  for k, v in pairs(pfQuestOcto.before) do
+    if env[k] ~= v then changed[k] = v end
+  end
+  for k in pairs(SlashCmdList or {}) do
+    if not pfQuestOcto.slash[k] then newslash[k] = true end
+  end
+  pfQuestOcto.changed, pfQuestOcto.slash, pfQuestOcto.before = changed, newslash, nil
 end
 "@
 [IO.File]::WriteAllText((Join-Path $dst "guard.lua"), ($skip -replace "`r?`n", "`r`n"), $utf8)

@@ -3647,8 +3647,9 @@ do
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
-    -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Unit Frames" and heads[7] == "Nameplates" and heads[10] == "Art & Extras" and heads[11] == "Gear" and heads[12] == "Meters" and heads[13] == "Combat Text" and heads[table.getn(heads)] == "About",
+    -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it;
+    -- (9 Nov 2026) Questing after it
+    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "Gear" and heads[13] == "Meters" and heads[14] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do

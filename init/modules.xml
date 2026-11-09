@@ -1,5 +1,7 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-  <!-- first: notes Blizzard's frames before any module changes them -->
+  <!-- first: the built-in pfQuest's off switch puts the game's functions back -->
+  <Include file="..\modules\questing.lua"/>
+  <!-- then: notes Blizzard's frames before any module changes them -->
   <Include file="..\modules\octo-blizzard.lua"/>
   <Include file="..\modules\art.lua"/>
   <Include file="..\modules\gui.lua"/>
@@ -98,6 +100,7 @@
   <Include file="..\modules\gather.lua"/>
   <Include file="..\modules\gather-options.lua"/>
   <Include file="..\modules\qol-options.lua"/>
+  <Include file="..\modules\questing-options.lua"/>
   <Include file="..\modules\art-options.lua"/>
   <Include file="..\modules\range.lua"/>
   <Include file="..\modules\range-options.lua"/>
