@@ -110,7 +110,7 @@ table.setn(ITEM_QUALITY_COLORS, 7)
 FONT_COLOR_CODE_CLOSE = "|r"
 
 -- modules that must start cleanly (the octo ones, as they are added)
-local MUST_LOAD = { "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
+local MUST_LOAD = { "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
   "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools" }
@@ -2522,6 +2522,72 @@ do
       pfUI.addonbuttons:SetPlace("OctoTestMinimapButton", "panel")
     end
     pfUI.gui:Hide()
+  end
+end
+
+-- ---------------------------------------------------------------- Blizzard look + stance icon (9 Nov 2026)
+
+do
+  local BZ = pfUI.ufBlizz
+  local f = pfUI.uf and pfUI.uf.player
+  ok(BZ and f, "unitframes-blizz loaded")
+  if BZ and f then
+    -- the ring piece: right of the portrait as on the target frame, mirrored on the left
+    local x, y, w, h, l, r = BZ.Place(BZ.PIECES[1], 1, false)
+    ok(x == -33 and y == 44 and w == 107 and h == 100 and l == 149 / 256 and r == 1, "ring piece placed from the portrait's centre")
+    x, y, w, h, l, r = BZ.Place(BZ.PIECES[1], 2, true)
+    ok(x == -148 and y == 88 and w == 214 and l == 1 and r == 149 / 256, "mirrored and scaled for a portrait on the left")
+    local c = pfUI_config.unitframes.player
+    local was = { c.portrait, c.o_bz, c.o_stance, c.bartexture, c.o_skin }
+    c.portrait, c.o_bz = "left", "1"
+    f:UpdateConfig()
+    ok(f.bz and f.bz:IsShown() and not f.portrait:IsShown() and f.bz.mirror, "Blizzard portrait on, pfUI's square one hidden, art mirrored")
+    ok(f.bz.art[1]:IsShown() and not f.bz.art[2]:IsShown(), "the player has the plain ring, no dragon")
+    -- an elite target gets the dragon (head and tail pieces too)
+    local label = f.label
+    f.label, f.octoForceElite = "target", "elite"
+    BZ.Update(f)
+    ok(f.bz.art[2]:IsShown() and f.bz.art[3]:IsShown() and string.find(f.bz.art[1].texture or "", "Elite", 1, true),
+      "elite: the gold dragon")
+    f.octoForceElite = "rare"
+    BZ.Update(f)
+    ok(string.find(f.bz.art[1].texture or "", "Rare", 1, true), "rare: the silver one")
+    f.label, f.octoForceElite = label, nil
+    -- portrait on the bar: nothing to put a ring round
+    c.portrait = "bar"
+    f:UpdateConfig()
+    ok(not f.bz:IsShown(), "no ring without a side portrait")
+    c.o_bz = "0"
+    f:UpdateConfig()
+    ok(not f.bz:IsShown(), "and off again")
+    -- one button for the whole look
+    BZ.MakeBlizzard("player")
+    ok(c.o_bz == "1" and c.portrait == "left" and string.find(c.bartexture, "UI-StatusBar", 1, true), "Make it look like Blizzard's")
+    -- stance icon
+    c.o_stance = "1"
+    f.octoForceStance = "Interface\\Icons\\Ability_Warrior_DefensiveStance"
+    f:UpdateConfig()
+    local s = f.octoStance
+    ok(s and s:IsShown() and s.icon.texture == f.octoForceStance, "stance icon shows")
+    local p = s and s.points and s.points[1]
+    ok(p and p[1] == "LEFT" and p[3] == "RIGHT", "at the bar's end away from the portrait")
+    f.octoForceStance = nil
+    -- from a buff: a druid in bear form
+    Mock.units.player = { faction = Mock.faction, buffs = { { "Interface\\Icons\\Ability_Racial_BearForm" } } }
+    ok(BZ.StanceBuff("player") == "Interface\\Icons\\Ability_Racial_BearForm", "a form read from the buffs")
+    Mock.units.player = { faction = Mock.faction, buffs = { { "Interface\\Icons\\Spell_Holy_DevotionAura" } } }
+    local UC = _G.UnitClass
+    _G.UnitClass = function() return "Warrior", "WARRIOR" end
+    ok(BZ.StanceBuff("player") == nil, "a paladin's aura on someone else is not their stance")
+    _G.UnitClass = UC
+    Mock.units.player = nil
+    -- a warrior's stance from SuperWoW's cast event
+    _G.arg1, _G.arg2, _G.arg3, _G.arg4 = "0xF100", "", "CAST", 71
+    Mock.Run(BZ.events, "OnEvent", "0xF100")
+    ok(BZ.seen["0xF100"] ~= nil, "a stance cast is remembered by GUID")
+    _G.arg1, _G.arg2, _G.arg3, _G.arg4 = nil, nil, nil, nil
+    c.portrait, c.o_bz, c.o_stance, c.bartexture, c.o_skin = was[1], was[2], was[3], was[4], was[5]
+    f:UpdateConfig()
   end
 end
 

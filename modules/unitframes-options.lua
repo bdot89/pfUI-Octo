@@ -160,10 +160,10 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     { "size", "Size", "Spell_Holy_Heal", { "Frame", "Health bar", "Power bar", "Portrait" } },
     { "text", "Text", "INV_Misc_Note_01", { "All frames: text", "Texts", "Text colours and font" } },
     { "auras", "Buffs", "Spell_Holy_WordFortitude", { "Enemy buffs", "Buffs", "Debuffs", "Buff and dispel markers" } },
-    { "icons", "Icons", "INV_Banner_01", { "Icons", "Class and status", "Glow and indicators" } },
-    { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Border and background", "Colours", "All frames: colours" } },
+    { "icons", "Icons", "INV_Banner_01", { "Icons", "Stance and form", "Class and status", "Glow and indicators" } },
+    { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Blizzard look", "Border and background", "Colours" } },
     { "raid", "Raid layout", "Spell_Holy_PrayerOfHealing", { "Raid layout", "All frames: party and raid" } },
-    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: class extras" } },
+    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: colours", "All frames: class extras" } },
   }
   UF.sec = "size"
   UF.SECTION_OF = {}
@@ -178,6 +178,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     ["Text colours and font"] = "INV_Fabric_Silk_02", ["Buffs"] = "Spell_Holy_WordFortitude", ["Enemy buffs"] = "Spell_Holy_PowerWordShield",
     ["Debuffs"] = "Spell_Shadow_ShadowWordPain", ["Buff and dispel markers"] = "Spell_Holy_DispelMagic",
     ["Icons"] = "INV_Banner_01", ["Class and status"] = "INV_Misc_Bone_HumanSkull_01",
+    ["Stance and form"] = "Ability_Warrior_DefensiveStance", ["Blizzard look"] = "INV_Misc_Head_Dragon_01",
     ["Glow and indicators"] = "Spell_Nature_WispSplode", ["Border and background"] = "INV_Misc_StoneTablet_05",
     ["Colours"] = "INV_Misc_Gem_Variety_01", ["All frames: colours"] = "INV_Misc_Gem_Ruby_02",
     ["Raid layout"] = "Spell_Holy_PrayerOfHealing", ["All frames: party and raid"] = "Spell_Nature_Rejuvenation",
@@ -783,8 +784,15 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       -- the extras (unitframes-octo.lua): an elite badge to look at
       local X = pfUI.ufExtras
       if X and f.octoElite then
-        f.octoForceElite = (cfg.o_elite and cfg.o_elite ~= "none") and "elite" or nil
+        f.octoForceElite = ((cfg.o_elite and cfg.o_elite ~= "none") or (cfg.o_bz == "1" and UF.cur ~= "player")) and "elite" or nil
         X.Update(f)
+      end
+      -- (unitframes-blizz.lua) the Blizzard ring / dragon and a stance to look at
+      local BZ = pfUI.ufBlizz
+      if BZ then
+        f.octoForceStance = cfg.o_stance == "1" and "Interface\\Icons\\Ability_Warrior_DefensiveStance" or nil
+        if f.bz and f.bz.on then BZ.Update(f) end
+        BZ.StanceUpdate(f)
       end
       if cfg.leadericon == "1" and f.leaderIcon then f.leaderIcon:Show() end
       if cfg.looticon == "1" and f.lootIcon then f.lootIcon:Show() end
@@ -1481,6 +1489,31 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Elite, rare and boss", nil, L(X and X.ELITE), U, "o_elite")
     Drop(p, "Badge at", nil, L(X and X.CORNERS), U, "o_elitepos")
     Chk(p, "AFK, offline and dead marks", nil, U, "o_status")
+
+    -- (9 Nov 2026, Bread on Discord: the stance icon at the end of the health bar)
+    local BZ = pfUI.ufBlizz
+    Card(p, "Stance and form", { tip = "The unit's stance, form or aura at the end of its health bar: warrior stances, "
+      .. "druid forms, stealth, shadowform, ghost wolf, a paladin's aura. Yours come from your stance bar; other "
+      .. "players' from their buffs, and a warrior's stance from SuperWoW when they change it near you." })
+    Chk(p, "Show the stance icon", nil, U, "o_stance")
+    Drop(p, "Icon at", nil, BZ and BZ.STANCEPOS or {}, U, "o_stancepos")
+    Sld(p, "Icon size", "0 = as tall as the health bar.", 0, 64, 1, U, "o_stancesize", function(v)
+      return (tonumber(v) or 0) == 0 and "Bar" or (v .. " px")
+    end)
+
+    -- (9 Nov 2026, Bread: "use the Blizzard unit frame but have the same customisation as pfUI")
+    Card(p, "Blizzard look", { tip = "The game's round portrait in the game's own ring - the gold dragon on elites "
+      .. "and bosses, silver on rares - with the level in the small ring. Everything else on this page still works. "
+      .. "Needs the portrait on the left or right (Size > Portrait)." })
+    Chk(p, "Blizzard portrait and ring", nil, U, "o_bz")
+    Chk(p, "Level in the small ring", nil, U, "o_bzlevel")
+    Sld(p, "Portrait size", nil, 32, 128, 1, U, "o_bzsize", Px)
+    W.Buttons(p, { { "Make this frame look like Blizzard's", function()
+      if BZ then BZ.MakeBlizzard(UF.cur) end
+      Up()
+      O:Refresh()
+    end, 250, "Turns the Blizzard portrait on, puts the portrait on the game's side and uses the game's bar picture "
+      .. "and a silver line. Change any of it afterwards." } })
 
     Card(p, "Glow and indicators", { tip = "A glow round the frame and a small square for aggro and combat; combat text on the frame." })
     Chk(p, "Glow with aggro", nil, U, "glowaggro")

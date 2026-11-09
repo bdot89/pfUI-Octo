@@ -983,6 +983,13 @@ function pfUI:LoadConfig()
     pfUI:UpdateConfig("unitframes", unit,      "o_purge",          (unit == "target" or unit == "focus") and "1" or "0")
     -- (1 Nov 2026, user: "cast bars show on raid frames of our members")
     pfUI:UpdateConfig("unitframes", unit,      "o_cast",           (unit == "group" or unit == "raid") and "1" or "0")
+    -- (9 Nov 2026, unitframes-blizz.lua) Blizzard's round portrait + ring, and the stance icon
+    pfUI:UpdateConfig("unitframes", unit,      "o_bz",             "0")
+    pfUI:UpdateConfig("unitframes", unit,      "o_bzsize",         "64")
+    pfUI:UpdateConfig("unitframes", unit,      "o_bzlevel",        "1")
+    pfUI:UpdateConfig("unitframes", unit,      "o_stance",         (unit == "target" or unit == "focus") and "1" or "0")
+    pfUI:UpdateConfig("unitframes", unit,      "o_stancesize",     "0")
+    pfUI:UpdateConfig("unitframes", unit,      "o_stancepos",      "auto")
   end
   pfUI:UpdateConfig("unitframes", "player",      "o_flashexpire",    "0")
   pfUI:UpdateConfig("unitframes", "pet",         "o_happysad",       "0")

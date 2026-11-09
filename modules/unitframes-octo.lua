@@ -328,7 +328,8 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     local kind = exists and UnitClassification and UnitClassification(unit) or "normal"
     if f.octoForceElite then kind = f.octoForceElite end
     local mode = c.o_elite or "none"
-    local special = kind == "elite" or kind == "rareelite" or kind == "rare" or kind == "worldboss"
+    -- (the Blizzard look's dragon shows it already: unitframes-blizz.lua)
+    local special = not (f.bz and f.bz.on) and (kind == "elite" or kind == "rareelite" or kind == "rare" or kind == "worldboss")
     if special and mode == "graphic" then
       local rare = kind == "rare" or kind == "rareelite"
       -- (5 Nov 2026, Art page: a drawn crest in its own gold / silver / red, bigger)

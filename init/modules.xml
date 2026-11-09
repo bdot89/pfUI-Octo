@@ -35,6 +35,7 @@
   <Include file="..\modules\group.lua"/>
   <Include file="..\modules\raid.lua"/>
   <Include file="..\modules\unitframes-octo.lua"/>
+  <Include file="..\modules\unitframes-blizz.lua"/>
   <Include file="..\modules\mouseover.lua"/>
   <Include file="..\modules\castbar.lua"/>
   <Include file="..\modules\skin.lua"/>
