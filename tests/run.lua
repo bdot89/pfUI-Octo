@@ -113,7 +113,7 @@ FONT_COLOR_CODE_CLOSE = "|r"
 local MUST_LOAD = { "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "raidtools" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools" }
 
 -- ---------------------------------------------------------------- load
 
@@ -5777,6 +5777,9 @@ dofile(DIR .. "/tests/clientapi.lua")
 
 -- the Bagnon-style bag windows (modules/bags-octo.lua)
 dofile(DIR .. "/tests/bags.lua")
+
+-- bag categories in the bag windows (9 Nov 2026)
+dofile(DIR .. "/tests/bagcats.lua")
 
 -- automatic area looting (4 Nov 2026)
 dofile(DIR .. "/tests/autoloot.lua")

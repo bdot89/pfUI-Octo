@@ -96,13 +96,17 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
 
   -- the whole window's measures (the real windows and the options preview
   -- use the same numbers). which = "bags" | "bank"
-  function BO.Metrics(which, sizes)
+  -- grouped = the real window: the bag categories module (BO.grouper, set by
+  -- modules/bagcategories.lua) may then place the slots in labelled groups
+  function BO.Metrics(which, sizes, grouped)
     local s = S()
     local bank = which == "bank"
     local size, gap = N(s.size, 32), N(s.spacing, 3)
     local cols = N(bank and s.bankcolumns or s.columns, 10)
     local places, rows = BO.Places(BO.ORDER[which], sizes, cols, BO.Hidden, s.bagbreak == "1", s.reverse == "1")
     local m = { size = size, gap = gap, cols = cols, places = places, rows = rows, pad = BO.PAD }
+    -- (grouper: sets each place's x / y in pixels, returns the grid's w, h and the group labels)
+    local g = grouped and BO.grouper and BO.grouper(which, places, m)
     local y = BO.PAD
     m.headY = y
     y = y + BO.HEAD + 4
@@ -113,6 +117,7 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
     if rows > 1 then used = cols end
     m.gridW = math.max(0, used * (size + gap) - gap)
     m.gridH = math.max(0, rows * (size + gap) - gap)
+    if g then m.gridW, m.gridH, m.labels = g.w, g.h, g.labels end
     y = y + m.gridH
     if s.free == "1" or (not bank and s.money == "1") then
       y = y + 4
@@ -516,7 +521,7 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
     local s = S()
     local o = BO.Build(f, which)
     f:SetScale(N(s.scale, 1))
-    local m = BO.Metrics(which, BO.Sizes(which))
+    local m = BO.Metrics(which, BO.Sizes(which), true)
     f:SetWidth(m.w)
     f:SetHeight(m.h)
     BO.Place(f, which)
@@ -581,7 +586,7 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
       local sl = holder and holder.slots and holder.slots[e.slot]
       if sl and sl.frame then
         sl.frame:ClearAllPoints()
-        sl.frame:SetPoint("TOPLEFT", f, "TOPLEFT", m.pad + e.col * step, -(m.gridY + e.row * step))
+        sl.frame:SetPoint("TOPLEFT", f, "TOPLEFT", m.pad + (e.x or e.col * step), -(m.gridY + (e.y or e.row * step)))
         sl.frame:SetWidth(m.size)
         sl.frame:SetHeight(m.size)
         BO.Mark(e.bag, e.slot)
@@ -597,6 +602,8 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
       o.foot:Hide()
     end
     BO.Footer(f)
+    -- the group names over the slots (none: hides the old ones)
+    if BO.drawLabels then BO.drawLabels(f, m) end
     if BO.onLayout then BO.onLayout(which) end
   end
 

@@ -44,6 +44,8 @@
   <Include file="..\modules\bags.lua"/>
   <Include file="..\modules\bags-octo.lua"/>
   <Include file="..\modules\bags-options.lua"/>
+  <Include file="..\modules\bagcategories.lua"/>
+  <Include file="..\modules\bagcategories-options.lua"/>
   <Include file="..\modules\itemclick.lua"/>
   <Include file="..\modules\cooldown.lua"/>
   <Include file="..\modules\tooltip.lua"/>

@@ -969,6 +969,23 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    BAG_NEW_ITEMS_UPDATED; without ClassicAPI BO.ScanNew: an item id owned now (bags 0-4 + worn + bank as last seen
    open) that was not owned at the last look, ignored for 4 s after login. Starts-quest = libtipscan Find
    ITEM_STARTS_QUEST, cached per item string. Card "Item marks"; the preview's samples show each mark.
+   Bag categories (9 Nov 2026, NOT seen in game; Bread on Discord, Bagshui-style; user: "enabled and disabled just
+   like the rest of our modules"): pfUI module "bagcategories" (C.disabled, Heading O.ModuleSwitch; off = plain
+   grid). modules/bagcategories.lua (`pfUI.bagCats` = BC) sets BO.grouper / BO.drawLabels: BO.Metrics(which, sizes,
+   grouped=true) (only the real windows; the options preview stays plain) lets BC.Group give each place x / y in
+   px, the grid w / h and labels; BO.Layout uses e.x / e.y and calls BO.drawLabels(f, m). Rules = libs/librules.lua
+   (shared with the loot filter). C.bagcategories.list = { { name, rule, items = "id,id", on } } in order (made
+   from BC.DEFAULTS: Quest Items, BoE, Gear, Food, Drink, Potions, Scrolls, Stones & Oils, Herbs, Metal & Stone,
+   Gems, Leather, Cloth, Enchanting, Reagents, Trade Goods, Junk); assigned IDs first, then first rule match,
+   else Other; empty slots = Empty last. BC.Slot caches per "bag:slot" until its link changes (tooltip read
+   from the bag slot for bags >= 0, from the link for bank -1 / keyring). BC.Pack: groups side by side while
+   their slots fit in the columns (+BC.GAP px between), name row BC.LABEL. BO.UpdateShown wrapped: BC.Check
+   lays a shown window out again when its what-goes-where string changes. UI layouts: L.LIVE.bagcategories
+   joined at PLAYER_ENTERING_WORLD. Page "Categories" (bagcats, beside "Bags"; modules/bagcategories-options.lua,
+   its own module so the switch stays when off): list with Up / Down / on-off, New, Back to the defaults; the
+   picked one's Name, multi-line Rule (live compile check), Save / Undo, Try it (ID or part of a name in your
+   bags: match + where it goes), Assigned items (IDs) + assign the Try it item, Remove; card Look (group
+   names), How rules work. Tests: tests\bagcats.lua. New files: full client restart.
 21. UI layouts keep EVERY setting (25 Oct 2026, NOT seen in game; user: "every setting you have chosen should be saved
    inside that UI layout ... ANY MENU SELECTION ANYTHING", after meters did not follow a layout). octo-layouts.lua:
    saved[name].cfg = L.CfgCopy() (pfUI_config minus L.SHARED: layouts, position (kept as .pos), gear, version);
