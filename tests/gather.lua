@@ -103,6 +103,17 @@ f = GF.Scan(1200)
 ok(GF.swap == true and f[1] and math.abs(f[1].dist - 30) < .01, "x / y given the other way round are swapped")
 _G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[1], o[2], o[3] end end
 
+-- the real client (/gather probe, 9 Nov 2026): you at -4204.57, 1080.39, z 10.22;
+-- Peacebloom answered 1080.12, -4207.17, 16.17 - y, x and a DISTANCE, not a height
+fresh()
+local realUP = _G.UnitPosition
+_G.UnitPosition = function() return -4204.57, 1080.39, 10.22 end
+_G.ClosestGameObjectPosition = function(id) if id == 1618 then return 1080.12, -4207.17, 16.17 end end
+f = GF.Scan(1250)
+ok(GF.swap == true and f[1] and math.abs(f[1].dist - 2.61) < .05, "probe numbers: the Peacebloom at your feet is 3 yd, not 13+")
+_G.UnitPosition = realUP
+_G.ClosestGameObjectPosition = function(id) local o = objects[id] if o then return o[1], o[2], o[3] end end
+
 -- learning north from walking: positions laid out (y, x) -> axis 2
 GF.votes, GF.axis = { 0, 0, 0, 0 }, 1
 facing = 0

@@ -340,7 +340,10 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local ok, a, b, c = pcall(Finder(), id)
     a, b = tonumber(a), tonumber(b)
     if not ok or not a or not b then return nil end
-    c = tonumber(c) or pz
+    -- (9 Nov 2026, /gather probe in game) the answer is y, x, distance - the
+    -- third number is NOT the node's height (used as one, a node at your feet
+    -- showed 13 yd). Distances are on the map, flat: nodes sit on the ground.
+    GF.lastDistance = tonumber(c)
     if GF.swap == nil then
       local d1 = (a - px) * (a - px) + (b - py) * (b - py)
       local d2 = (b - px) * (b - px) + (a - py) * (a - py)
@@ -348,10 +351,10 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       elseif d2 <= RANGE * RANGE then GF.swap = true end
     end
     if GF.swap then a, b = b, a end
-    local dx, dy, dz = a - px, b - py, c - pz
-    local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+    local dx, dy = a - px, b - py
+    local d = math.sqrt(dx * dx + dy * dy)
     if d > RANGE then return nil end
-    return d, dx, dy, a, b, c
+    return d, dx, dy, a, b
   end
 
   -- which way is north: the four ways a client can lay out x / y; your own
@@ -410,8 +413,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local cursor = GF.cursor or 1
     for _ = 1, math.min(n, GF.BATCH) do
       if cursor > n then cursor = 1 end
-      local _, _, _, nx, ny, nz = GF.Locate(list[cursor].id, px, py, pz)
-      cache[cursor] = nx and { nx, ny, nz } or false
+      local _, _, _, nx, ny = GF.Locate(list[cursor].id, px, py, pz)
+      cache[cursor] = nx and { nx, ny } or false
       cursor = cursor + 1
     end
     GF.cursor = cursor
@@ -419,12 +422,12 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       local c = cache[i]
       if c then
         local w = list[i]
-        local dx, dy, dz = c[1] - px, c[2] - py, c[3] - pz
-        local d = math.sqrt(dx * dx + dy * dy + dz * dz)
+        local dx, dy = c[1] - px, c[2] - py
+        local d = math.sqrt(dx * dx + dy * dy)
         local cur = best[w.name]
         if d <= RANGE and (not cur or d < cur.dist) then
           best[w.name] = { name = w.name, prof = w.prof, prio = w.prio, extra = w.extra, dist = d, turn = GF.Turn(dx, dy, facing),
-            x = c[1], y = c[2], z = c[3] }
+            x = c[1], y = c[2] }
         end
       end
     end
@@ -546,8 +549,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     for i = 1, 5 do
       local r, e = f.rows[i], GF.found[i]
       if r:IsShown() and e and e.x then
-        local dx, dy, dz = e.x - px, e.y - py, (e.z or pz) - pz
-        e.dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+        local dx, dy = e.x - px, e.y - py
+        e.dist = math.sqrt(dx * dx + dy * dy)
         e.turn = GF.Turn(dx, dy, facing)
         r.dist:SetText(math.floor(e.dist + .5) .. " yd")
         if e.turn then Rotate(r.arrow, e.turn) r.arrow:Show() else r.arrow:Hide() end
