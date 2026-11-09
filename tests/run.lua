@@ -4150,14 +4150,43 @@ do
       _G.ClearCursor = function() cursor = nil end
       if pfUI.keymap then pfUI.keymap.ActionSpell = function(s) if bar[s] then return bar[s].name, bar[s].rank end end end
       local cur = s.current
-      L.Switch(cur == "Normal" and "PvP" or "Normal")          -- the layout left keeps Smite on slot 1
+      local otherName = cur == "Normal" and "PvP" or "Normal"
+      -- (9 Nov 2026, players' keys "dropping or resetting") not ticked = the bars are never touched
+      local was1, was2 = s.saved[cur] and s.saved[cur].ownbars, s.saved[otherName] and s.saved[otherName].ownbars
+      if s.saved[cur] then s.saved[cur].ownbars = nil end
+      if s.saved[otherName] then s.saved[otherName].ownbars = nil end
+      L.Switch(otherName)
+      bar[1] = { t = "spell", name = "Psychic Scream", rank = "Rank 1" }
+      bar[2] = { t = "spell", name = "Smite", rank = "Rank 1" }
+      L.Switch(cur)
+      ok(bar[1].name == "Psychic Scream" and bar[2] and bar[2].name == "Smite", "Its own spells not ticked: switching layouts leaves the bars alone")
+      L.Switch(otherName)
+      ok(bar[1].name == "Psychic Scream" and bar[2], "...both ways")
+      L.Switch(cur)
+      -- ticked: each layout's own spells
+      s.saved[cur].ownbars, s.saved[otherName].ownbars = "1", "1"
+      bar[1], bar[2] = { t = "spell", name = "Smite", rank = "Rank 2" }, nil
+      L.Switch(otherName)                                     -- the layout left keeps Smite on slot 1
       local other = s.current
       bar[1] = { t = "spell", name = "Psychic Scream", rank = "Rank 1" }
+      bar[3] = { t = "spell", name = "Smite", rank = "Rank 1" }
       L.Switch(cur)
       ok(bar[1] and bar[1].name == "Smite" and bar[1].rank == "Rank 2", "switching back puts that layout's spell back, rank too")
+      ok(bar[3] and bar[3].name == "Smite", "a slot the layout has nothing saved for is never emptied")
       L.Switch(other)
       ok(bar[1] and bar[1].name == "Psychic Scream", "and the other layout's spell on the other layout")
+      -- the same spell at another rank (learned since) stays; a slot that cannot be read stays
       L.Switch(cur)
+      bar[1] = { t = "spell", name = "Psychic Scream", rank = "Rank 2" }
+      L.Switch(other)                                         -- (saved there: Psychic Scream Rank 1)
+      ok(bar[1].rank == "Rank 2", "a rank learned since is never put back to the old one")
+      local tipWas = pfUI.keymap and pfUI.keymap.ActionSpell
+      if pfUI.keymap then pfUI.keymap.ActionSpell = function() return nil end end
+      bar[4] = { t = "item", name = "Unknown" }
+      ok(L.PutSlot(4, { t = "spell", name = "Smite", rank = "Rank 1" }) and bar[4].name == "Unknown", "a slot whose action cannot be read now is left alone")
+      if pfUI.keymap then pfUI.keymap.ActionSpell = tipWas end
+      L.Switch(cur)
+      s.saved[cur].ownbars, s.saved[otherName].ownbars = was1, was2
       _G.HasAction, _G.GetActionText, _G.GetSpellName, _G.PickupSpell, _G.PlaceAction, _G.PickupAction, _G.ClearCursor, _G.GetActionInfo =
         saved[1], saved[2], saved[3], saved[4], saved[5], saved[6], saved[7], saved[8]
       if pfUI.keymap then pfUI.keymap.ActionSpell = km end

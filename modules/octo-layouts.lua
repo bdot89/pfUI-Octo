@@ -224,15 +224,17 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
     end
   end
 
-  -- puts e on the slot (nil = empties it); false when it could not
+  -- puts e on the slot; false when it could not. Never takes anything away
+  -- (9 Nov 2026, players' buttons "dropping"): nothing saved for a slot, a slot
+  -- whose action cannot be read now, or the same spell at another rank (one
+  -- learned since) are all left exactly as they are.
   function L.PutSlot(slot, e)
-    if Same(L.ReadSlot(slot), e) then return true end
+    if not e then return true end
+    local now = L.ReadSlot(slot)
+    if Same(now, e) then return true end
+    if not now and HasAction(slot) then return true end
+    if now and now.t == "spell" and e.t == "spell" and now.name == e.name then return true end
     ClearCursor()
-    if not e then
-      PickupAction(slot)
-      ClearCursor()
-      return true
-    end
     if e.t == "spell" then
       local i
       if e.sid and _G.FindSpellBookSlotByID then
@@ -453,12 +455,16 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
     -- (the arrow's window as this layout had it: meters docked in it or not)
     if pfUI.panel and pfUI.panel.ArrowRefresh then pcall(pfUI.panel.ArrowRefresh) end
     if pfUI.meters and pfUI.meters.ShowAll then pfUI.meters.ShowAll(target.meters ~= "0") end
-    -- its own spells on the action bars (unless switched off for it)
-    local spec = L.BarSpec()
-    if spec then
-      if spec.bars[name] and not L.holdBars then L.WriteBars(spec.bars[name]) end
-    elseif target.bars and target.ownbars ~= "0" then
-      L.WriteBars(target.bars)
+    -- its own spells on the action bars - ONLY when ticked for this layout (9 Nov 2026,
+    -- players: "keybinds just dropping or resetting". It was on unless unticked, and one click
+    -- on the layout button put another layout's old copy of all 120 slots back on the bars)
+    if target.ownbars == "1" then
+      local spec = L.BarSpec()
+      if spec then
+        if spec.bars[name] and not L.holdBars then L.WriteBars(spec.bars[name]) end
+      elseif target.bars then
+        L.WriteBars(target.bars)
+      end
     end
     if target.gear and target.gear ~= "" and pfUI.gear and C.gear.sets[target.gear] then pfUI.gear.Equip(target.gear) end
     L.Paint()
@@ -762,7 +768,7 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
         local sv = s.saved[nm]
         local bits = {}
         if sv and sv.gear and sv.gear ~= "" then table.insert(bits, sv.gear) end
-        if not sv or sv.ownbars ~= "0" then table.insert(bits, "own spells") end
+        if sv and sv.ownbars == "1" then table.insert(bits, "own spells") end
         if sv and sv.meters == "0" then table.insert(bits, "no meters") end
         t.sub:SetText(table.concat(bits, " - "))
         if nm == s.current then
@@ -795,7 +801,8 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
       on = { function() return Store().button ~= "0" end, function(v) Store().button = v and "1" or "0" L.Paint() end,
         "The layout button on your screen." },
       about = "Layouts - Normal, Raid, PvP and any you make - each remember where every frame is (everything you move "
-        .. "in Move frames), the spells on your action bars, whether the meters show, and a gear set. Switch with the "
+        .. "in Move frames), whether the meters show, a gear set and, only if you tick Its own spells, the spells "
+        .. "on your action bars. Switch with the "
         .. "button on your screen (click = next, right-click = pick), /layout, or a tile here. Whatever you arrange "
         .. "while in a layout is kept for it. A talent spec can pick a layout too (Gear > Talent specs): changing spec "
         .. "at the Brainwashing Device switches to it, with that spec's own spells in it." })
@@ -838,9 +845,10 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
       end)
       W.Check(p, "Its own spells", "This layout keeps its own spells, items and macros on the action bars: "
         .. "what you put there while in it comes back when you switch to it. (A talent spec with its own "
-        .. "spells keeps them per layout instead.)", function()
+        .. "spells keeps them per layout instead.) Off unless you tick it: switching layouts never touches "
+        .. "your action bars otherwise.", function()
         local t = Store().saved[nm]
-        return not t or t.ownbars ~= "0"
+        return t and t.ownbars == "1"
       end, function(v)
         local t = Store().saved[nm] or Snapshot()
         t.ownbars = v and "1" or "0"

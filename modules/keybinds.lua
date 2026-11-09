@@ -323,8 +323,14 @@ pfUI:RegisterModule("keybinds", "vanilla", function ()
       if this:GetChecked() then
         SaveBindings(2)
       else
-        LoadBindings(1)
-        SaveBindings(1)
+        -- (9 Nov 2026: never drop keys without asking) this character's own keys are
+        -- replaced by the shared ones, so it asks first; No keeps everything
+        this:SetChecked(1)
+        CreateQuestionDialog("Use the keys every character on the account shares?\nThis character's own keys are replaced by them.", function()
+          LoadBindings(1)
+          SaveBindings(1)
+          KB:Refresh()
+        end)
       end
       KB:Refresh()
     end)
