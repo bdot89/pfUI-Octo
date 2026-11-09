@@ -490,7 +490,7 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
   if _G.FCF_SelectDockFrame then hooksecurefunc("FCF_SelectDockFrame", pfUI.chat.FixDock) end
   -- (6 Nov 2026, Barbeque: two chat windows on top of each other after login) /pfchat lists each window
   -- and puts the docked ones in order, so a report says what is where
-  SLASH_PFCHATFIX1 = "/pfchat"
+  _G.SLASH_PFCHATFIX1 = "/pfchat"
   _G.SlashCmdList["PFCHATFIX"] = function()
     local sel = _G.SELECTED_CHAT_FRAME
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r chat windows (selected: " .. (sel and sel:GetName() or "none") .. "):")

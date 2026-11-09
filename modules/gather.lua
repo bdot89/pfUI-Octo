@@ -621,7 +621,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     if shown == 0 then out:AddMessage("  nothing you gather is in sight") end
   end
 
-  SLASH_PFGATHER1 = "/gather"
+  _G.SLASH_PFGATHER1 = "/gather"
   _G.SlashCmdList["PFGATHER"] = function(msg)
     msg = string.lower(msg or "")
     if msg == "probe" then GF.Probe()

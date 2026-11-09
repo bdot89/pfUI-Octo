@@ -9,6 +9,10 @@ local S = pfUI_config.gather
 ok(S and S.enable == "0" and S.rows == "3" and S.skill == "1", "gather defaults (off, 3 rows, skill filter on)")
 local O = pfUI.octoui and pfUI.octoui.Options
 ok(O and O.BUILD and O.BUILD.gather, "options page Gathering registered")
+-- modules run in pfUI.env: a bare SLASH_X = "/x" stays there and the game never sees it
+local genv = pfUI.env and rawget(pfUI.env, "_G") or _G
+ok(rawget(genv, "SLASH_PFGATHER1") == "/gather" and rawget(genv, "SLASH_PFAUTOLOOT1") == "/autoloot",
+  "module slash commands are real globals (/gather, /autoloot)")
 
 local saved = { ClosestGameObjectPosition = rawget(_G, "ClosestGameObjectPosition"), UnitPosition = rawget(_G, "UnitPosition"),
   GetPlayerFacing = rawget(_G, "GetPlayerFacing"), GetNumSkillLines = rawget(_G, "GetNumSkillLines"),

@@ -312,8 +312,8 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
   end
 
   -- /autoloot
-  SLASH_PFAUTOLOOT1 = "/autoloot"
-  SLASH_PFAUTOLOOT2 = "/pfal"
+  _G.SLASH_PFAUTOLOOT1 = "/autoloot"
+  _G.SLASH_PFAUTOLOOT2 = "/pfal"
   _G.SlashCmdList["PFAUTOLOOT"] = function(msg)
     msg = string.lower(msg or "")
     if msg == "on" or msg == "off" then
