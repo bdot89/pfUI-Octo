@@ -825,6 +825,50 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
     SendWho("n-"..name)
   end
 
+  -- class of a name: pfUI's player list, then ClassicAPI's player cache (octo, 1 Nov 2026,
+  -- GratisNinja: it knows anyone the game has seen this session - no /who needed)
+  local function ClassOf(name)
+    if not name or name == "" then return end
+    local class = GetUnitData(name)
+    if not class and _G.C_PlayerCache and _G.C_PlayerCache.GetPlayerInfoByName then
+      local ok, _, token = pcall(_G.C_PlayerCache.GetPlayerInfoByName, name)
+      if ok and token and RAID_CLASS_COLORS[token] then class = token end
+    end
+    return class
+  end
+
+  -- octo (9 Nov 2026, Barbeque: class colours gone from chat): every player link is
+  -- rewritten in one pass. pfUI built a search pattern from the name, so a name with a
+  -- realm tag ("Compart-NZ": "-" is a pattern character) or colour codes inside the
+  -- brackets never matched and stayed plain.
+  function pfUI.chat.ClassColorNames(text)
+    -- (Lua 5.0: a gsub function that returns nil removes the match, so every branch
+    -- gives text back)
+    return (string.gsub(text, "|Hplayer:([^|]*)|h%[(.-)%]|h", function(link, shown)
+      local real = strsplit(":", link) or link
+      local plain = string.gsub(string.gsub(shown, "|c%x%x%x%x%x%x%x%x", ""), "|r", "")
+      local class = ClassOf(real) or ClassOf(plain)
+      if not class then
+        -- the name without a realm tag
+        local _, _, base = string.find(real, "^(.-)%-")
+        class = ClassOf(base)
+      end
+      local color, match = unknowncolorhex, false
+      if class then
+        if class ~= UNKNOWN and RAID_CLASS_COLORS[class] then
+          color = rgbhex(RAID_CLASS_COLORS[class])
+          match = true
+        end
+      elseif C.chat.text.whosearchunknown == "1" then
+        ScanWhoName(real)
+      end
+      if C.chat.text.tintunknown == "1" or match then
+        return left .. color .. "|Hplayer:" .. link .. "|h" .. color .. plain .. "|h|r" .. right
+      end
+      return "|Hplayer:" .. link .. "|h[" .. shown .. "]|h"
+    end))
+  end
+
   local function AddMessage(frame, text, a1, a2, a3, a4, a5)
     if not text then return end
 
@@ -850,33 +894,7 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
 
     -- display class colors if already indexed
     if C.chat.text.classcolor == "1" then
-      for name in gfind(text, "|Hplayer:(.-)|h") do
-        local real, _ = strsplit(":", name)
-        local color = unknowncolorhex
-        local match = false
-        local class = GetUnitData(real)
-        -- octo (1 Nov 2026, GratisNinja): ClassicAPI's player cache knows the class of
-        -- anyone the game has seen this session (group, near you, friends, anyone who
-        -- spoke) - no /who needed
-        if not class and _G.C_PlayerCache and _G.C_PlayerCache.GetPlayerInfoByName then
-          local ok, _, token = pcall(_G.C_PlayerCache.GetPlayerInfoByName, real)
-          if ok and token and RAID_CLASS_COLORS[token] then class = token end
-        end
-
-        if class then
-          if class ~= UNKNOWN then
-            color = rgbhex(RAID_CLASS_COLORS[class])
-            match = true
-          end
-        elseif C.chat.text.whosearchunknown == "1" then
-          ScanWhoName(name)
-        end
-
-        if C.chat.text.tintunknown == "1" or match then
-          text = string.gsub(text, "|Hplayer:"..name.."|h%["..real.."%]|h(.-:-)",
-            left..color.."|Hplayer:"..name.."|h" .. color .. real .. "|h|r"..right.."%1")
-        end
-      end
+      text = pfUI.chat.ClassColorNames(text)
     end
 
     -- reduce channel name to number
