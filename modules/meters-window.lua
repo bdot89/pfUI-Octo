@@ -1038,11 +1038,43 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   -- is drawn outside it), so borders touch instead of overlapping; then the
   -- nearest edge pair is lined up (left / right when stacked, top / bottom
   -- side by side) from up to M.SNAPALIGN px away. The closest window wins.
+  -- (9 Nov 2026, seen in game: still overlapping. The window is dragged by hand
+  -- (pfUI.api.DragStart sets BOTTOMLEFT x, y each frame) and the client reports a
+  -- moved frame's edges late, so GetLeft at the drop was where it had been BEFORE
+  -- the drag. Edges now come from the window's own point when it has one on
+  -- UIParent, the size and the backdrop's offset - never from edges read back -
+  -- all in UIParent units (a window may have its own scale).)
   M.SNAPNEAR, M.SNAPALIGN = 20, 48
-  local function Outer(f)
+  local function Border(f)
     local b = f.backdrop
-    if b and b.GetLeft and b:GetLeft() then return b:GetLeft(), b:GetTop(), b:GetRight(), b:GetBottom() end
-    return f:GetLeft(), f:GetTop(), f:GetRight(), f:GetBottom()
+    if not b or not b.GetPoint then return 0 end
+    local _, _, _, x = b:GetPoint(1)
+    x = tonumber(x) or 0
+    return x < 0 and -x or 0
+  end
+  local function Scale(f)
+    local us = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1
+    local s = f.GetEffectiveScale and f:GetEffectiveScale() or us
+    if not s or not us or us == 0 then return 1 end
+    return s / us
+  end
+  -- the frame's own left / bottom in its own units
+  local function Corner(f)
+    local w, h = f:GetWidth() or 0, f:GetHeight() or 0
+    if (f.GetNumPoints and f:GetNumPoints() or 1) == 1 then
+      local p, rel, rp, x, y = f:GetPoint(1)
+      if (rel == nil or rel == UIParent) and rp == "BOTTOMLEFT" and x and y then
+        if p == "BOTTOMLEFT" then return x, y, w, h end
+        if p == "TOPLEFT" then return x, y - h, w, h end
+      end
+    end
+    return f:GetLeft(), f:GetBottom(), w, h
+  end
+  local function Outer(f)
+    local l, b, w, h = Corner(f)
+    if not l or not b then return end
+    local k, e = Scale(f), Border(f)
+    return (l - e) * k, (b + h + e) * k, (l + w + e) * k, (b - e) * k
   end
   M.Outer = Outer
   -- the smaller of two moves that line edges up, when within reach
@@ -1059,7 +1091,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local near = M.SNAPNEAR
     local best, bdx, bdy
     for _, o in ipairs(M.windows or {}) do
-      if o ~= win and o:IsShown() and o:GetLeft() then
+      if o ~= win and o:IsShown() and Outer(o) then
         local ol, ot, orr, ob = Outer(o)
         local overlapY = B < ot + near and T > ob - near
         local overlapX = L < orr + near and R > ol - near
@@ -1086,12 +1118,13 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return bdx or 0, bdy or 0
   end
   function M.Snap(win)
-    local L, T = win:GetLeft(), win:GetTop()
-    if not (L and T) then return end
+    local L, B, _, H = Corner(win)
+    if not (L and B) then return end
     local dx, dy = M.SnapMove(win)
     if dx == 0 and dy == 0 then return false end
+    local k = Scale(win)
     win:ClearAllPoints()
-    win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", L + dx, T + dy)
+    win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", L + dx / k, B + H + dy / k)
     SaveMovable(win)
     return true
   end

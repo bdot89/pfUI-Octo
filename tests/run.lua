@@ -1957,8 +1957,24 @@ do
       f.GetLeft, f.GetTop, f.GetRight, f.GetBottom = function() return l end, function() return t end,
         function() return r end, function() return b end
     end
-    -- (the border is drawn 1 px outside each frame: the backdrops are the outer edges)
-    local function Win(f, l, t, r, b) Box(f, l, t, r, b) if f.backdrop then Box(f.backdrop, l - 1, t + 1, r + 1, b - 1) end end
+    -- A window as the drag leaves it: one BOTTOMLEFT point on UIParent and its size. The
+    -- client reports a dragged frame's edges late (seen in game 9 Nov 2026: the snap read
+    -- where the window had been before the drag), so its GetLeft & co. are stale here on
+    -- purpose: the snap must go by the point. Backdrops sit 1 px outside their frames.
+    local saved = {}
+    local function Win(f, l, t, r, b)
+      f:ClearAllPoints()
+      f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", l, b)
+      f:SetWidth(r - l)
+      f:SetHeight(t - b)
+      Box(f, 2000, 2000, 2100, 1900)
+      if f.backdrop then
+        saved[f] = saved[f] or { f.backdrop:GetPoint(1) }
+        f.backdrop:ClearAllPoints()
+        f.backdrop:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 1)
+        f.backdrop:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
+      end
+    end
     Win(w2, 100, 500, 360, 340)
     Win(w, 368, 496, 628, 336)
     local snapped = ME.Snap(w)
@@ -1969,7 +1985,6 @@ do
     -- border over the other's title -> in line and touching (9 Nov 2026)
     Win(w2, 114, 300, 374, 100)
     Win(w, 100, 500, 360, 298)
-    w.points = nil
     snapped = ME.Snap(w)
     p = w.points and w.points[1]
     ok(snapped and p and p[4] == 114 and p[5] == 504, "stacked: left edges in line, borders touching, no overlap (" ..
@@ -1977,7 +1992,7 @@ do
     -- far away: left alone
     Win(w, 700, 900, 960, 700)
     ok(not ME.Snap(w), "a window far from the others does not snap")
-    for _, f in ipairs({ w2, w, w2.backdrop, w.backdrop }) do
+    for _, f in ipairs({ w2, w }) do
       f.GetLeft, f.GetTop, f.GetRight, f.GetBottom = nil, nil, nil, nil
     end
     -- layout mode closed (every mover set unmovable): the title still drags it
