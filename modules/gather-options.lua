@@ -43,7 +43,7 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
       if type(GF.dbLoaded) == "number" then
         line = line .. "   node list: pfQuest's (" .. table.getn(GF.NODES) .. " kinds)"
       else
-        line = line .. "   node list: built in |cffffcc00(turn pfQuest on for every OctoWoW node)|r"
+        line = line .. "   node list: the short built-in one |cffffcc00(pfQuest's database did not load)|r"
       end
       return line
     end)
@@ -52,7 +52,7 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
     Chk(p, "Herbs", nil, "herbs")
     Chk(p, "Ore and stone", nil, "ore")
     Chk(p, "Fishing pools", "Schools and wreckage you can fish from.", "fish")
-    Chk(p, "Treasure chests", "Every chest pfQuest knows of (needs pfQuest).", "chests")
+    Chk(p, "Treasure chests", "Every chest in the quest database.", "chests")
     Chk(p, "Only what I can gather", "Hides nodes your Herbalism, Mining or Fishing skill is too low for, and a whole profession you don't have.", "skill")
     W.Edit(p, "Extra object IDs", "More objects to look for by their game object ID, for example a custom node or a chest: "
       .. "12345=Name, 67890 (the name is optional).", function() return G().extra end, function(v) G().extra = v end, 260)

@@ -117,7 +117,9 @@ local MUST_LOAD = { "unlock", "gui", "qol-options", "firstrun", "share", "meters
 
 -- ---------------------------------------------------------------- load
 
-local files = Mock.Files(DIR, "pfUI.toc")
+-- pfquest\ (pfQuest built in, 9 Nov 2026): its biggest data files pass the
+-- game's Lua 5.0 but not this Lua's constant limit; tests\pfquest.lua checks it
+local files = Mock.Files(DIR, "pfUI.toc", function(p) return string.find(p, "^pfquest/") end)
 ok(table.getn(files) > 100, "toc lists pfUI's files (got " .. table.getn(files) .. ")")
 -- Lua 5.0 reads an unknown escape like "\+" as "+"; LuaJIT refuses it
 local function load50(path)
@@ -5781,6 +5783,9 @@ dofile(DIR .. "/tests/autoloot.lua")
 
 -- nearest herb and ore nodes (9 Nov 2026)
 dofile(DIR .. "/tests/gather.lua")
+
+-- pfQuest built in (9 Nov 2026)
+dofile(DIR .. "/tests/pfquest.lua")
 
 -- the language of Octo's own pages (4 Nov 2026)
 dofile(DIR .. "/tests/translate.lua")
