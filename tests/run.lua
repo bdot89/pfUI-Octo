@@ -2601,6 +2601,24 @@ do
     Mock.Run(BZ.events, "OnEvent", "0xF100")
     ok(BZ.seen["0xF100"] ~= nil, "a stance cast is remembered by GUID")
     _G.arg1, _G.arg2, _G.arg3, _G.arg4 = nil, nil, nil, nil
+    -- classic mode (Blizzard's own frames): the icon goes on the game's player frame, a
+    -- priest's Shadowform from the buffs
+    local oldPF, oldBar, oldBlizz = _G.PlayerFrame, _G.PlayerFrameHealthBar, pfUI_config.blizz.unitframes
+    _G.PlayerFrame = CreateFrame("Frame", "OctoTestPlayerFrame", UIParent)
+    _G.PlayerFrameHealthBar = CreateFrame("Frame", nil, _G.PlayerFrame)
+    _G.PlayerFrameHealthBar:SetHeight(12)
+    pfUI_config.blizz.unitframes = "1"
+    Mock.units.player = { faction = Mock.faction, buffs = { { "Interface\\Icons\\Spell_Shadow_Shadowform" } } }
+    BZ.GameStance()
+    local gi = BZ.gameIcons.PlayerFrame
+    ok(gi and gi:IsShown() and gi.icon.texture == "Interface\\Icons\\Spell_Shadow_Shadowform",
+      "classic mode: Shadowform on Blizzard's player frame")
+    pfUI_config.blizz.unitframes = "0"
+    BZ.GameStance()
+    ok(gi and not gi:IsShown(), "and gone when pfUI's frames are back")
+    Mock.units.player = nil
+    _G.PlayerFrame, _G.PlayerFrameHealthBar, pfUI_config.blizz.unitframes = oldPF, oldBar, oldBlizz
+    BZ.gameIcons.PlayerFrame = nil
     c.portrait, c.o_bz, c.o_stance, c.bartexture, c.o_skin = was[1], was[2], was[3], was[4], was[5]
     f:UpdateConfig()
   end

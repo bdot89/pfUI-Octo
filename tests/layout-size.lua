@@ -392,7 +392,7 @@ if UF and O and UF.SECTIONS then
   ok(table.getn(pics) == 0, "every Unit Frames card has a picture (" .. table.concat(pics, ", ") .. ")")
   local most = 0
   for _, s in ipairs(UF.SECTIONS) do most = math.max(most, table.getn(s[4])) end
-  ok(table.getn(UF.SECTIONS) == 7 and most <= 4, "seven sections of at most four cards (was one list of " .. table.getn(p.cards) .. ")")
+  ok(table.getn(UF.SECTIONS) == 8 and most <= 4, "eight sections of at most four cards (was one list of " .. table.getn(p.cards) .. ")")
   local function Shown(title)
     for _, c in ipairs(p.cards) do if c.title == title then return c.card:IsShown() end end
   end
@@ -401,7 +401,7 @@ if UF and O and UF.SECTIONS then
   ok(p.last and p.last:IsShown(), "the page ends at the last card shown (its height)")
   UF.SetSection("raid")
   ok(Shown("Raid layout") and not Shown("Health bar") and UF.cur == "raid", "Raid layout: its own section, on the raid frames' preview")
-  ok(UF.secTabs and UF.secTabs[6].picked and not UF.secTabs[1].picked, "the section tab is lit (purple)")
+  ok(UF.secTabs and UF.secTabs[7].picked and not UF.secTabs[1].picked, "the section tab is lit (purple)")
   -- a click on the preview's health bar goes to its section
   pfUI.plates.OpenSection("ufframes", "Health bar")
   ok(UF.sec == "size" and Shown("Health bar"), "a card of another section opens that section")

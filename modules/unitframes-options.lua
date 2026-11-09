@@ -54,9 +54,14 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   -- octo (5 Nov 2026, Barbeque: Blizzard's unit frame broke after a class colour change in these
   -- options): a pfUI frame redone while the Blizzard frames are on is put away again and Blizzard's
   -- own frames are set up once more
+  -- (9 Nov 2026, user: "clicking anything here resets the position of the unitframe in
+  -- classic mode": the set-up puts Blizzard's frames back on their load-time points, so
+  -- the places saved in layout mode go back on after it - BZ.Movers -> UpdateMovable)
   local function KeepBlizz()
     local BZ = pfUI.blizz
-    if BZ and BZ.IsBlizz and BZ.IsBlizz("unitframes") and BZ.S and BZ.S.unitframes then pcall(BZ.S.unitframes.blizz) end
+    if not (BZ and BZ.IsBlizz and BZ.IsBlizz("unitframes") and BZ.S and BZ.S.unitframes) then return end
+    pcall(BZ.S.unitframes.blizz)
+    if BZ.Movers then pcall(BZ.Movers, "unitframes", true) end
   end
   -- after a change: the real frame, then the preview
   function UF.Apply(key)
@@ -116,6 +121,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     frame = "Frame", hp = "Health bar", power = "Power bar", portrait = "Portrait",
     buffs = "Buffs", debuffs = "Debuffs",
     icons = "Icons", glow = "Glow and indicators", class = "Class and status", border = "Border and background",
+    blizz = "Blizzard look", stance = "Stance and form",
   }
   -- each of the six texts opens the Texts card on its own tab (user, 23 Oct
   -- 2026: "Both called health text when clicked take to same menu")
@@ -126,7 +132,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     class = "Class icon, badge or status", border = "Border and background", castbar = "Cast bar (opens Cast bars)",
     frame = "The frame", hp = "Health bar", power = "Power bar", portrait = "Portrait",
     hptext = "Health text", powertext = "Power text", buffs = "Buffs", debuffs = "Debuffs",
-    icons = "Icon", glow = "Glow and indicators",
+    icons = "Icon", glow = "Glow and indicators", blizz = "Blizzard portrait", stance = "Stance icon",
   }
   for _, t in ipairs(UF.TEXTS) do
     UF.GO[t[1]] = "Texts"
@@ -160,10 +166,13 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     { "size", "Size", "Spell_Holy_Heal", { "Frame", "Health bar", "Power bar", "Portrait" } },
     { "text", "Text", "INV_Misc_Note_01", { "All frames: text", "Texts", "Text colours and font" } },
     { "auras", "Buffs", "Spell_Holy_WordFortitude", { "Enemy buffs", "Buffs", "Debuffs", "Buff and dispel markers" } },
-    { "icons", "Icons", "INV_Banner_01", { "Icons", "Stance and form", "Class and status", "Glow and indicators" } },
-    { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Blizzard look", "Border and background", "Colours" } },
+    { "icons", "Icons", "INV_Banner_01", { "Icons", "Class and status", "Glow and indicators" } },
+    { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Border and background", "Colours", "All frames: colours" } },
+    -- (9 Nov 2026, user: "make all the blizzard menu together"): the game's own frames, the
+    -- Blizzard look on ours and the stance icon in one place
+    { "blizz", "Blizzard", "INV_Misc_Head_Dragon_01", { "Blizzard's own frames", "Blizzard look", "Stance and form" } },
     { "raid", "Raid layout", "Spell_Holy_PrayerOfHealing", { "Raid layout", "All frames: party and raid" } },
-    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: colours", "All frames: class extras" } },
+    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: class extras" } },
   }
   UF.sec = "size"
   UF.SECTION_OF = {}
@@ -179,6 +188,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     ["Debuffs"] = "Spell_Shadow_ShadowWordPain", ["Buff and dispel markers"] = "Spell_Holy_DispelMagic",
     ["Icons"] = "INV_Banner_01", ["Class and status"] = "INV_Misc_Bone_HumanSkull_01",
     ["Stance and form"] = "Ability_Warrior_DefensiveStance", ["Blizzard look"] = "INV_Misc_Head_Dragon_01",
+    ["Blizzard's own frames"] = "INV_Misc_Head_Human_02",
     ["Glow and indicators"] = "Spell_Nature_WispSplode", ["Border and background"] = "INV_Misc_StoneTablet_05",
     ["Colours"] = "INV_Misc_Gem_Variety_01", ["All frames: colours"] = "INV_Misc_Gem_Ruby_02",
     ["Raid layout"] = "Spell_Holy_PrayerOfHealing", ["All frames: party and raid"] = "Spell_Nature_Rejuvenation",
@@ -853,6 +863,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         Hot(set, f.octoEliteText, "class", 29, f, UF.PLACES.elite)
         for _, r in ipairs({ f.octoStatus, f.octoStatusText }) do Hot(set, r, "class", 29, f) end
         if f.octoSkin then f.octoSkin.octoHot = Hot(set, f.octoSkin, "border", 19, f) end
+        -- (9 Nov 2026) the Blizzard ring and the stance icon (unitframes-blizz.lua)
+        if f.bz then f.bz.octoHot = Hot(set, f.bz, "blizz", 24, f) end
+        if f.octoStance then f.octoStance.octoHot = Hot(set, f.octoStance, "stance", 29, f) end
         for _, t in ipairs({ { f.hpLeftText, "hpleft", "LEFT", "hpLeftText" }, { f.hpCenterText, "hpcenter", "CENTER", "hpCenterText" },
             { f.hpRightText, "hpright", "RIGHT", "hpRightText" }, { f.powerLeftText, "powerleft", "LEFT", "powerLeftText" },
             { f.powerCenterText, "powercenter", "CENTER", "powerCenterText" }, { f.powerRightText, "powerright", "RIGHT", "powerRightText" } }) do
@@ -947,6 +960,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
               end
             end
             if f.octoSkin and not f.octoSkin.octoHot then f.octoSkin.octoHot = Hot(set, f.octoSkin, "border", 19, f) end
+            if f.bz and not f.bz.octoHot then f.bz.octoHot = Hot(set, f.bz, "blizz", 24, f) end
+            if f.octoStance and not f.octoStance.octoHot then f.octoStance.octoHot = Hot(set, f.octoStance, "stance", 29, f) end
           end
         end
       end
@@ -1490,22 +1505,33 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Badge at", nil, L(X and X.CORNERS), U, "o_elitepos")
     Chk(p, "AFK, offline and dead marks", nil, U, "o_status")
 
-    -- (9 Nov 2026, Bread on Discord: the stance icon at the end of the health bar)
+    -- the "Blizzard" section (9 Nov 2026, user: "make all the blizzard menu together"):
+    -- Blizzard's own frames or ours, the Blizzard look on ours, the stance icon (on both)
     local BZ = pfUI.ufBlizz
-    Card(p, "Stance and form", { tip = "The unit's stance, form or aura at the end of its health bar: warrior stances, "
-      .. "druid forms, stealth, shadowform, ghost wolf, a paladin's aura. Yours come from your stance bar; other "
-      .. "players' from their buffs, and a warrior's stance from SuperWoW when they change it near you." })
-    Chk(p, "Show the stance icon", nil, U, "o_stance")
-    Drop(p, "Icon at", nil, BZ and BZ.STANCEPOS or {}, U, "o_stancepos")
-    Sld(p, "Icon size", "0 = as tall as the health bar.", 0, 64, 1, U, "o_stancesize", function(v)
-      return (tonumber(v) or 0) == 0 and "Bar" or (v .. " px")
-    end)
+    local GB = pfUI.blizz
+    Card(p, "Blizzard's own frames", { tip = "Use the game's own player, target and party frames instead of pfUI's "
+      .. "(no reload; the same as the pfUI Octo / Blizzard switch at the top). Layout mode still moves them, and the "
+      .. "stance icon below goes on them too. The other cards on this page only change pfUI's frames." })
+    local function IsGame() return GB and GB.IsBlizz and GB.IsBlizz("unitframes") end
+    W.Buttons(p, {
+      { "pfUI Octo frames", function() if GB then GB.Set("unitframes", "octo") end end, 160,
+        "pfUI's frames, with everything on this page.", function() return not IsGame() end, role = "pick" },
+      { "Blizzard's own frames", function() if GB then GB.Set("unitframes", "blizz") end end, 160,
+        "The game's own frames.", function() return IsGame() end, role = "pick" },
+    })
 
     -- (9 Nov 2026, Bread: "use the Blizzard unit frame but have the same customisation as pfUI")
-    Card(p, "Blizzard look", { tip = "The game's round portrait in the game's own ring - the gold dragon on elites "
-      .. "and bosses, silver on rares - with the level in the small ring. Everything else on this page still works. "
-      .. "Needs the portrait on the left or right (Size > Portrait)." })
-    Chk(p, "Blizzard portrait and ring", nil, U, "o_bz")
+    Card(p, "Blizzard look", { tip = "pfUI's frames with the game's round portrait in the game's own ring - the gold "
+      .. "dragon on elites and bosses, silver on rares - and the level in the small ring. Everything else on this page "
+      .. "still works." })
+    Chk(p, "Blizzard portrait and ring", nil, U, "o_bz", function()
+      -- the ring sits on a portrait at the side: give it one on the game's side
+      local c = U()
+      if c.o_bz == "1" and c.portrait ~= "left" and c.portrait ~= "right" then
+        c.portrait = UF.cur == "player" and "left" or "right"
+      end
+      Up()
+    end)
     Chk(p, "Level in the small ring", nil, U, "o_bzlevel")
     Sld(p, "Portrait size", nil, 32, 128, 1, U, "o_bzsize", Px)
     W.Buttons(p, { { "Make this frame look like Blizzard's", function()
@@ -1514,6 +1540,15 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       O:Refresh()
     end, 250, "Turns the Blizzard portrait on, puts the portrait on the game's side and uses the game's bar picture "
       .. "and a silver line. Change any of it afterwards." } })
+
+    -- (9 Nov 2026, Bread on Discord: the stance icon at the end of the health bar)
+    Card(p, "Stance and form", { tip = "The unit's stance, form or aura at the end of its health bar: warrior stances, "
+      .. "druid forms, stealth, shadowform, ghost wolf, a paladin's aura. Yours come from your stance bar or buffs; "
+      .. "other players' from their buffs, and a warrior's stance from SuperWoW when they change it near you. "
+      .. "Shows on pfUI's frames and on Blizzard's own." })
+    Chk(p, "Show the stance icon", nil, U, "o_stance")
+    Drop(p, "Icon at", nil, BZ and BZ.STANCEPOS or {}, U, "o_stancepos")
+    Sld(p, "Icon size", "0 = as tall as the health bar.", 0, 64, 1, U, "o_stancesize", Px)
 
     Card(p, "Glow and indicators", { tip = "A glow round the frame and a small square for aggro and combat; combat text on the frame." })
     Chk(p, "Glow with aggro", nil, U, "glowaggro")

@@ -61,13 +61,8 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
   function BZ.Configure(f)
     local c = f and f.config
     if not c or not f.hp then return end
-    local side = c.o_bz == "1" and Side(c)
-    if not side or not f.portrait then
-      if f.bz then f.bz:Hide() f.bz.on = nil end
-      return
-    end
-    -- pfUI's square portrait makes room; ours draws over that room
-    f.portrait:Hide()
+    -- (made on every frame, hidden while off: the options preview gives each
+    -- part a click spot when the frame is made)
     local bz = f.bz
     if not bz then
       bz = CreateFrame("Frame", nil, f)
@@ -75,8 +70,17 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
       bz.art = {}
       for i = 1, 3 do bz.art[i] = bz:CreateTexture(nil, "ARTWORK") end
       bz.level = bz:CreateFontString(nil, "OVERLAY")
+      bz:Hide()
       f.bz = bz
     end
+    local side = c.o_bz == "1" and Side(c)
+    if not side or not f.portrait then
+      bz:Hide()
+      bz.on = nil
+      return
+    end
+    -- pfUI's square portrait makes room; ours draws over that room
+    f.portrait:Hide()
     bz:SetFrameLevel((f.hp:GetFrameLevel() or 1) + 4)
     bz:ClearAllPoints()
     bz:SetPoint("CENTER", f.portrait, "CENTER", 0, 0)
@@ -223,10 +227,6 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
   function BZ.StanceConfigure(f)
     local c = f and f.config
     if not c or not f.hp then return end
-    if c.o_stance ~= "1" then
-      if f.octoStance then f.octoStance:Hide() end
-      return
-    end
     local s = f.octoStance
     if not s then
       s = CreateFrame("Frame", nil, f)
@@ -234,7 +234,12 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
       s.icon:SetAllPoints(s)
       s.icon:SetTexCoord(.08, .92, .08, .92)
       pfUI.api.CreateBackdrop(s, nil, true)
+      s:Hide()
       f.octoStance = s
+    end
+    if c.o_stance ~= "1" then
+      s:Hide()
+      return
     end
     s:SetFrameLevel((f.hp:GetFrameLevel() or 1) + 5)
     local size = tonumber(c.o_stancesize) or 0
@@ -281,6 +286,63 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
     BZ.seen[arg1] = own or tex
   end)
 
+  -- ---------------------------------------------------------------- on Blizzard's own frames
+
+  -- (9 Nov 2026, user in "classic mode" - unit frames switched to Blizzard's own in
+  -- octo-blizzard.lua): the same icon on the game's frames, from the same settings.
+  -- { frame, its health bar, unit, settings key, side of its portrait }
+  BZ.GAME = {
+    { "PlayerFrame", "PlayerFrameHealthBar", "player", "player", "left" },
+    { "TargetFrame", "TargetFrameHealthBar", "target", "target", "right" },
+  }
+  for i = 1, 4 do
+    table.insert(BZ.GAME, { "PartyMemberFrame" .. i, "PartyMemberFrame" .. i .. "HealthBar", "party" .. i, "group", "left" })
+  end
+  BZ.gameIcons = {}
+  local function GameOn()
+    local GB = pfUI.blizz
+    return GB and GB.IsBlizz and GB.IsBlizz("unitframes")
+  end
+  function BZ.GameStance()
+    local on = GameOn()
+    for _, g in ipairs(BZ.GAME) do
+      local frame, bar = _G[g[1]], _G[g[2]]
+      local c = C.unitframes[g[4]]
+      local s = BZ.gameIcons[g[1]]
+      local want = on and frame and bar and c and c.o_stance == "1" and frame:IsVisible()
+      local tex = want and BZ.Stance(g[3])
+      if tex then
+        if not s then
+          s = CreateFrame("Frame", nil, frame)
+          s.icon = s:CreateTexture(nil, "ARTWORK")
+          s.icon:SetAllPoints(s)
+          s.icon:SetTexCoord(.08, .92, .08, .92)
+          pfUI.api.CreateBackdrop(s, nil, true)
+          BZ.gameIcons[g[1]] = s
+        end
+        local size = tonumber(c.o_stancesize) or 0
+        if size <= 0 then size = math.floor((bar:GetHeight() or 12) + 6.5) end
+        local pos = c.o_stancepos or "auto"
+        if pos == "auto" then pos = g[5] == "right" and "left" or "right" end
+        if s.size ~= size or s.pos ~= pos then
+          s.size, s.pos = size, pos
+          s:SetWidth(size)
+          s:SetHeight(size)
+          s:ClearAllPoints()
+          if pos == "left" then s:SetPoint("RIGHT", bar, "LEFT", -5, 0)
+          elseif pos == "inright" then s:SetPoint("RIGHT", bar, "RIGHT", -1, 0)
+          elseif pos == "inleft" then s:SetPoint("LEFT", bar, "LEFT", 1, 0)
+          else s:SetPoint("LEFT", bar, "RIGHT", 5, 0) end
+        end
+        s:SetFrameLevel((frame:GetFrameLevel() or 1) + 6)
+        s.icon:SetTexture(tex)
+        s:Show()
+      elseif s then
+        s:Hide()
+      end
+    end
+  end
+
   -- ---------------------------------------------------------------- hooks
 
   local ticker = CreateFrame("Frame")
@@ -294,6 +356,7 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
         if f.octoStance and c.o_stance == "1" then BZ.StanceUpdate(f) end
       end
     end
+    BZ.GameStance()
   end)
 
   local function Configure(f)
