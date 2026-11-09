@@ -31,7 +31,7 @@ versioncheck:SetScript("OnEvent", function()
     local remoteversion = tonumber(remoteversion)
     if v == "VERSION" and remoteversion then
       remote = remote and max(remote, remoteversion) or remoteversion
-      if remote > version then pfQuest_config.latest = remote end
+      if version and remote > version then pfQuest_config.latest = remote end
     end
     return
   elseif event == "CHAT_MSG_ADDON" then

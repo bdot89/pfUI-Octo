@@ -74,7 +74,12 @@ Copy-Lua (Join-Path $src "config.lua") "config.lua" { param($t)
 }
 foreach ($f in "slashcmd", "database", "icons", "map") { Copy-Lua (Join-Path $src "$f.lua") "$f.lua" $null }
 Copy-Lua (Join-Path $src "quest.lua") "quest.lua" $started
-foreach ($f in "route", "tracker", "browser", "journal", "menu", "updatenotify") { Copy-Lua (Join-Path $src "$f.lua") "$f.lua" $null }
+foreach ($f in "route", "tracker", "browser", "journal", "menu") { Copy-Lua (Join-Path $src "$f.lua") "$f.lua" $null }
+# built in, pfQuest's ADDON_LOADED never fires, so its version stays nil and another
+# player's VERSION message compared against it (9 Nov 2026: endless chat errors)
+Copy-Lua (Join-Path $src "updatenotify.lua") "updatenotify.lua" { param($t)
+  Must $t 'if remote > version then' 'if version and remote > version then'
+}
 
 foreach ($f in "items", "units", "objects", "refloot", "quests-itemreq", "quests", "zones", "minimap", "areatrigger", "meta") {
   Copy-Lua (Join-Path $turtle "db\$f-turtle.lua") "db\$f-turtle.lua" $null
