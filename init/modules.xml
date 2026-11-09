@@ -4,6 +4,7 @@
   <Include file="..\modules\art.lua"/>
   <Include file="..\modules\gui.lua"/>
   <Include file="..\modules\octo-widgets.lua"/>
+  <Include file="..\modules\octo-itembox.lua"/>
   <Include file="..\modules\octo-options.lua"/>
   <Include file="..\modules\keymap.lua"/>
   <Include file="..\modules\keybinds.lua"/>

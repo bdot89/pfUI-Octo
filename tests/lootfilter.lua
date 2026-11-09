@@ -39,6 +39,44 @@ ok(LF.Keep({ id = 2589 }) == false, "an added rule works")
 LF.Remove(5)
 ok(table.getn(LF.List()) == 4, "a rule is removed")
 
+-- a rule's own items (the item box), with or without text
+LF.Add()
+local nr = LF.List()[5]
+ok(nr.rule == "" and type(nr.items) == "table", "a new rule starts as an empty item box")
+ok(LF.Keep({ id = 2589 }), "an empty new rule matches nothing")
+nr.items = { 2589 }
+ok(LF.Keep({ id = 2589 }) == false and LF.Keep({ id = 5000 }), "an item in the box matches, others don't")
+LF.Remove(5)
+LF.List()[2].items = { 4865 } LF.List()[2].rule = ""
+ok(not LF.Keep({ id = 4865 }) and LF.Keep({ id = 99998, quality = 0 }), "box only: the listed grey is left, other greys taken")
+LF.Reset()
+
+-- the item box widget: add (drop or pick) and take out
+local W = pfUI.octoui and pfUI.octoui.W
+ok(W and W.ItemBox and W.ItemPicker and W.CursorItem, "the item box widget is there")
+if W and W.ItemBox and O and O.pages then
+  O:Open("lootfilter")
+  local pg = O.pages.lootfilter
+  if pg then
+    local store = { 2589 }
+    local changed = 0
+    local row = W.ItemBox(pg, "Test box", nil, function() return store end, function(v) store = v end, function() changed = changed + 1 end)
+    row.Add(5000)
+    ok(table.getn(store) == 2 and store[2] == 5000 and changed == 1, "an item is added")
+    row.Add(5000)
+    ok(table.getn(store) == 2, "...not twice")
+    row.Remove(2589)
+    ok(table.getn(store) == 1 and store[1] == 5000, "right-click takes one out")
+  end
+  local savedHas = rawget(_G, "CursorHasItem")
+  _G.CursorHasItem = function() return true end
+  W.cursorItem = 2589
+  ok(W.CursorItem() == 2589, "the cursor's item is known while it is held")
+  _G.CursorHasItem = function() return false end
+  ok(W.CursorItem() == nil and W.cursorItem == nil, "...and forgotten when the cursor is empty")
+  _G.CursorHasItem = savedHas
+end
+
 -- the scan's shapes
 local a = AL.Normalize({ { guid = "0xA", items = { { link = "item:4865", count = 2 }, { itemID = 2589 } }, money = 120 } })
 ok(table.getn(a) == 2 and a[1].guid == "0xA" and a[1].id == 4865 and a[1].count == 2, "per corpse with items")

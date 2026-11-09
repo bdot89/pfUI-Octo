@@ -170,12 +170,23 @@ pfUI:RegisterModule("bagcategories-options", "vanilla:tbc", function ()
       end, 260)
       tryOut = W.Note(p, BP.TryText(c.rule), 0, true)
 
-      W.Edit(p, "Assigned items", "Item IDs, comma between them: these always go to this category, whatever "
-        .. "the rules say.", function() return c.items or "" end, function(v)
-        c.items = v or ""
-        cats.Changed() Again()
-      end, 260)
-      W.Note(p, BP.ItemsText(c))
+      -- (9 Nov 2026, user: "a box and icons ... add things by dragging and
+      -- dropping or selecting from a list") the assigned items as icons;
+      -- still saved as "id,id" in c.items
+      if W.ItemBox then
+        W.ItemBox(p, "Items always in this category", "These always go to this category, whatever the rules say.", function()
+          local out = {}
+          for id in string.gfind(c.items or "", "(%d+)") do table.insert(out, tonumber(id)) end
+          return out
+        end, function(v)
+          local s = {}
+          for i = 1, table.getn(v) do s[i] = tostring(v[i]) end
+          c.items = table.concat(s, ",")
+          cats.Changed()
+        end, Again)
+      else
+        W.Note(p, BP.ItemsText(c))
+      end
       W.Buttons(p, {
         { "Assign the Try it item", function()
           local id = R.IdOf(cats.Find(BP.try))

@@ -5,7 +5,7 @@ pfUI:RegisterModule("lootfilter", "vanilla", function ()
   -- decides: Take or Leave. Nothing matches: taken. Auto Loot asks it for
   -- every item of a scan (modules/autoloot.lua, AL.Decide), so what is left
   -- stays on the corpse - nothing is looted and thrown away.
-  -- Settings: C.lootfilter.list = { { on, act = "keep" | "skip", name, rule } };
+  -- Settings: C.lootfilter.list = { { on, act = "keep" | "skip", name, rule, items = { itemID } } };
   -- a module of its own (switched off: Auto Loot takes everything).
   local R = pfUI.rules
   if not R then return end
@@ -22,7 +22,7 @@ pfUI:RegisterModule("lootfilter", "vanilla", function ()
     local out = {}
     for i = 1, table.getn(t) do
       local r = t[i]
-      out[i] = { on = r.on, act = r.act, name = r.name, rule = r.rule }
+      out[i] = { on = r.on, act = r.act, name = r.name, rule = r.rule, items = {} }
     end
     return out
   end
@@ -48,8 +48,17 @@ pfUI:RegisterModule("lootfilter", "vanilla", function ()
     for i = 1, table.getn(list) do
       local r = list[i]
       if r.on == "1" then
-        local fn = R.Compile(r.rule)
-        if fn and R.Match(fn, info) then
+        -- (9 Nov 2026) the rule's own items first (the item box), then its
+        -- text, when it has one
+        local hit = false
+        if type(r.items) == "table" and info.id then
+          for j = 1, table.getn(r.items) do if tonumber(r.items[j]) == info.id then hit = true break end end
+        end
+        if not hit and r.rule and r.rule ~= "" then
+          local fn = R.Compile(r.rule)
+          hit = fn and R.Match(fn, info) or false
+        end
+        if hit then
           local keep = r.act ~= "skip"
           if not keep and not dry then
             LF.skipped = LF.skipped + 1
@@ -64,7 +73,7 @@ pfUI:RegisterModule("lootfilter", "vanilla", function ()
   end
 
   function LF.Add()
-    table.insert(LF.List(), { on = "1", act = "skip", name = "New rule", rule = 'Quality("poor")' })
+    table.insert(LF.List(), { on = "1", act = "skip", name = "New rule", rule = "", items = {} })
   end
   function LF.Remove(i) table.remove(LF.List(), i) end
   function LF.Move(i, by)

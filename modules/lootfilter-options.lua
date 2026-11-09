@@ -31,6 +31,17 @@ pfUI:RegisterModule("lootfilter-options", "vanilla", function ()
       return line
     end)
 
+    -- (9 Nov 2026, user: "this seems a messy way ... a box and icons of the
+    -- things you have saved") each rule is first a box of items; the rule
+    -- text is the advanced way, shown when this is on
+    local function Adv() return C.lootfilter and C.lootfilter.advanced == "1" end
+    W.Card(p, "How rules work", { tip = "Each rule is a box of items, plus (advanced) a text rule that matches whole kinds of items." })
+    W.Check(p, "Show the text rules (advanced)", "Text rules match whole kinds of items, like every grey item or every piece of ore, "
+      .. "without listing them one by one.", function() return Adv() end, function(v)
+      C.lootfilter.advanced = v and "1" or "0"
+      O:Rebuild("lootfilter")
+    end)
+
     local list = LF.List()
     for i = 1, table.getn(list) do
       local idx = i
@@ -39,14 +50,24 @@ pfUI:RegisterModule("lootfilter-options", "vanilla", function ()
       W.Check(p, "Use this rule", nil, function() return r() and r().on == "1" end, function(v) if r() then r().on = v and "1" or "0" end end)
       W.Dropdown(p, "When it matches", nil, ACTS, function() return r() and r().act end, function(v) if r() then r().act = v end end)
       W.Edit(p, "Name", nil, function() return r() and r().name end, function(v) if r() then r().name = v O:Rebuild("lootfilter") end end, 260)
-      W.Edit(p, "Rule", "For example: Quality(\"poor\") and not Name(\"Hide\")", function() return r() and r().rule end,
-        function(v) if r() then r().rule = v end end, 460)
-      W.Live(p, function()
-        local rule = r() and r().rule
-        local fn, err = R.Compile(rule)
-        if not fn then return "|cffff5555This rule has a mistake:|r " .. tostring(err) end
-        return "|cff55ff55Rule reads fine|r"
-      end)
+      W.ItemBox(p, "Items in this rule", "These items always match this rule.", function()
+        local t = r() and r().items
+        return type(t) == "table" and t or {}
+      end, function(v) if r() then r().items = v end end, function() O:Rebuild("lootfilter") end)
+      local rule = list[idx].rule
+      if Adv() then
+        W.Edit(p, "Text rule", "Matches whole kinds of items, for example: Quality(\"poor\") and not Name(\"Hide\"). Empty: only the items above.",
+          function() return r() and r().rule end, function(v) if r() then r().rule = v end end, 460)
+        W.Live(p, function()
+          local text = r() and r().rule
+          if not text or text == "" then return "No text rule: only the items above match." end
+          local fn, err = R.Compile(text)
+          if not fn then return "|cffff5555This rule has a mistake:|r " .. tostring(err) end
+          return "|cff55ff55Rule reads fine|r"
+        end)
+      elseif rule and rule ~= "" then
+        W.Note(p, "Also matches by its text rule: |cffcccccc" .. rule .. "|r  (switch on the text rules above to change it)")
+      end
       W.Buttons(p, {
         { "Move up", function() LF.Move(idx, -1) O:Rebuild("lootfilter") end, 90, "Checked one place earlier." },
         { "Move down", function() LF.Move(idx, 1) O:Rebuild("lootfilter") end, 90, "Checked one place later." },
@@ -59,9 +80,9 @@ pfUI:RegisterModule("lootfilter-options", "vanilla", function ()
       { "Add a rule", function() LF.Add() O:Rebuild("lootfilter") end, 110, "A new rule at the bottom." },
       { "Back to the defaults", function() LF.Reset() O:Rebuild("lootfilter") end, 150, "Throws your rules away and puts the starting four back." },
     })
-    W.Note(p, "Checks: Name, NameIs, ID, Type, Subtype, Equip, Quality(\"poor\"...\"legendary\" or 0-6), MinQuality, MaxQuality, "
+    if Adv() then W.Note(p, "Checks: Name, NameIs, ID, Type, Subtype, Equip, Quality(\"poor\"...\"legendary\" or 0-6), MinQuality, MaxQuality, "
       .. "Level(min, max), Tooltip, BoE(), BoP(), Soulbound(), Quest(), Stackable(), Count(n), Value(min, max). "
-      .. "Join them with and / or / not and brackets. Text matches anywhere in any case; several words = any of them.")
+      .. "Join them with and / or / not and brackets. Text matches anywhere in any case; several words = any of them.") end
 
     W.Card(p, "Try it", { tip = "See what the filter would do with an item." })
     W.Edit(p, "Item", "An item ID (2589) or a link (Shift-click an item while typing here). The game must have seen the item.",
