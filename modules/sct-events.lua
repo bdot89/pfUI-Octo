@@ -309,6 +309,62 @@ local function Listed(list, name)
 end
 EV.Listed = Listed
 
+-- ---------------------------------------------------------------- spells left out
+-- (9 Nov 2026, user: a friend's texts spam weapon / item procs - "options to be
+-- able to ignore spells we choose or damage procs ? easily")
+--   db.hideSpells  names never shown as damage, heals or misses
+--   db.hideProcs   your spell damage from spells not in your spellbook (Fire
+--                  Strike, Lightning Strike, Engulfing Shadows: weapon and item
+--                  procs) left out; db.keepProcs = ones still shown
+-- EV.recent: the spells that showed lately, newest first, for one-click hiding.
+EV.SPELLTEXT = { ["in"] = true, out = true, heal = true, outheal = true }
+EV.NOTSPELL = { buffGain = true, buffFade = true, combatIn = true, combatOut = true, outInterrupt = true, killBlow = true, dispel = true }
+EV.PROCKEYS = { outSpell = true, outDot = true }
+EV.recent, EV.book = {}, {}
+
+function EV.Ignored(key, spell)
+  local e = CT.EVENT[key]
+  if not e or not EV.SPELLTEXT[e.group] or EV.NOTSPELL[key] then return false end
+  local db = B.db.sct
+  if Listed(db.hideSpells, spell) then return true end
+  -- (the spellbook not read yet: nothing counts as a proc)
+  if db.hideProcs and EV.PROCKEYS[key] and (EV.bookSize or 0) > 0 and not EV.book[spell]
+      and not Listed(db.keepProcs, spell) then
+    return true
+  end
+  EV.Saw(spell, key)
+  return false
+end
+
+function EV.Saw(spell, key)
+  local r = EV.recent
+  for i = 1, table.getn(r) do
+    if r[i].name == spell then
+      if i == 1 then return end
+      table.remove(r, i)
+      break
+    end
+  end
+  table.insert(r, 1, { name = spell, key = key, proc = EV.PROCKEYS[key] and (EV.bookSize or 0) > 0 and not EV.book[spell] })
+  if table.getn(r) > 16 then table.remove(r) end
+end
+
+-- adds a name to a comma list setting ("hideSpells" / "keepProcs"), or takes it off
+function EV.ListSet(field, name, on)
+  local db = B.db.sct
+  local out, had = {}, false
+  for item in string.gfind(db[field] or "", "[^,]+") do
+    item = string.gsub(item, "^%s*(.-)%s*$", "%1")
+    if item ~= "" then
+      if string.lower(item) == string.lower(name) then had = true
+        if on then table.insert(out, item) end
+      else table.insert(out, item) end
+    end
+  end
+  if on and not had then table.insert(out, name) end
+  db[field] = table.concat(out, ", ")
+end
+
 -- ---------------------------------------------------------------- one message
 
 -- info: amount, spell (name), spellId, icon, name (other unit), guid (other
@@ -319,6 +375,7 @@ function EV:Fire(key, info)
   if not db.enabled then return end
   local ev = db.events[key]
   if not ev or not ev.on then return end
+  if info.spell and EV.Ignored(key, info.spell) then return end
   local where = ev.area
   local amount = info.amount
   -- filters and the small-hit size
@@ -899,13 +956,14 @@ B:On("PLAYER_TARGET_CHANGED", function() executeShown = nil Execute() end)
 local REACTIVES = { "Overpower", "Revenge", "Execute", "Riposte", "Counterattack", "Mongoose Bite" }
 EV.knownIcon = {}
 local function ScanBook()
-  EV.known, EV.knownIcon = {}, {}
+  EV.known, EV.knownIcon, EV.book = {}, {}, {}
   local want = {}
   for i = 1, table.getn(REACTIVES) do want[REACTIVES[i]] = true end
   local i = 1
   while true do
     local name = GetSpellName(i, BOOKTYPE_SPELL or "spell")
     if not name then break end
+    EV.book[name] = true
     if want[name] then
       EV.known[name] = i
       EV.knownIcon[name] = GetSpellTexture(i, BOOKTYPE_SPELL or "spell")

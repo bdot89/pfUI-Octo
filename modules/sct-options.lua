@@ -835,9 +835,80 @@ BUILD.ctfilters = function(p)
   local formats = {}
   for g = 1, table.getn(GROUPS()) do table.insert(formats, "Formats: " .. string.lower(GROUPS()[g][2])) end
   O.CardTabs(p, {
-    { "text", "Texts and filters", "INV_Scroll_03", { "What the texts say", "Less clutter", "Buffs, procs and cooldowns" } },
+    { "text", "Texts and filters", "INV_Scroll_03", { "Spells left out", "What the texts say", "Less clutter", "Buffs, procs and cooldowns" } },
     { "fmt", "Wording of each message", "INV_Feather_05", formats },
   })
+  -- (9 Nov 2026, user: a friend's texts spam weapon procs - "ignore spells we
+  -- choose or damage procs ? easily")
+  W.Card(p, "Spells left out", { icon = "Interface\\Icons\\Spell_Fire_FlameShock",
+    text = "Spells whose numbers you never want to see. Click one you saw lately, or type names." })
+  Chk(p, "Hide damage procs", "Your spell damage from spells that are not in your spellbook - weapon enchants and item "
+    .. "procs like Fire Strike, Lightning Strike, Engulfing Shadows - is not shown. Your melee and your own spells still are.",
+    DB, "hideProcs")
+  local EV = CT.EV
+  W.Note(p, "Seen lately - click to hide or show again (gold = a proc, red edge = hidden):")
+  BUILD.recent = {}
+  local per, bw = 4, math.floor((W.CW - 3 * 6 - 40) / 4)
+  for r = 1, 4 do
+    local row = W.Row(p, 22, 0, 4)
+    for c = 1, per do
+      local b = W.Button(row, "", bw, 20)
+      b:SetPoint("LEFT", row, "LEFT", (c - 1) * (bw + 6), 0)
+      b:SetScript("OnClick", function()
+        if not this.spell then return end
+        EV.ListSet("hideSpells", this.spell, not EV.Listed(DB().hideSpells, this.spell))
+        BUILD.PaintRecent()
+      end)
+      b:SetScript("OnEnter", function()
+        if not this.spell then return end
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText(this.spell)
+        GameTooltip:AddLine(EV.Listed(DB().hideSpells, this.spell) and "Hidden: click to show it again."
+          or "Click: never show this spell's numbers.", 1, 1, 1, 1)
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      table.insert(BUILD.recent, b)
+    end
+    if r == 1 then
+      row:SetScript("OnUpdate", function()
+        if (this.tick or 0) > GetTime() then return end
+        this.tick = GetTime() + 1
+        BUILD.PaintRecent()
+      end)
+    end
+  end
+  function BUILD.PaintRecent()
+    local list = EV.recent or {}
+    for i, b in ipairs(BUILD.recent) do
+      local e = list[i]
+      if e then
+        local hidden = EV.Listed(DB().hideSpells, e.name)
+        b.spell = e.name
+        b:SetText(e.name)
+        b:Show()
+        local l = hidden and { .9, .25, .25 } or { .25, .26, .3 }
+        b:SetBackdropBorderColor(l[1], l[2], l[3], 1)
+        if b.label then
+          if hidden then b.label:SetTextColor(.55, .55, .6)
+          elseif e.proc then b.label:SetTextColor(1, .82, .3)
+          else b.label:SetTextColor(1, 1, 1) end
+        end
+      else
+        b.spell = nil
+        b:Hide()
+      end
+    end
+  end
+  BUILD.PaintRecent()
+  W.Edit(p, "Hidden spells", "Never shown as damage, heals or misses - yours or done to you. Names separated by commas, "
+    .. "as the game spells them. Also: /sct hide Fire Strike, /sct show Fire Strike.",
+    function() return DB().hideSpells end, function(v) DB().hideSpells = v BUILD.PaintRecent() end, 280)
+  W.Edit(p, "Procs still shown", "With \"Hide damage procs\" on, these procs still show (e.g. Seal of Command's "
+    .. "Judgement, a proc you want to watch).", function() return DB().keepProcs end, function(v) DB().keepProcs = v end, 280)
+  W.Buttons(p, { { "Show every spell again", function() DB().hideSpells = "" BUILD.PaintRecent() end, nil,
+    "Empties the hidden spells list." } })
+
   W.Card(p, "What the texts say", { text = "What is written next to the numbers." })
   Chk(p, "Spell names", "\"2468 (Shadow Bolt)\" (SCT's skill names).", DB, "spellNames")
   Chk(p, "Damage school", "\"<Fire>\" after spell damage.", DB, "schoolNames")
@@ -909,6 +980,14 @@ if not (IsAddOnLoaded("sct") or IsAddOnLoaded("SCT")) then
   _G.SLASH_PFUISCT1 = "/sct"
   _G.SlashCmdList.PFUISCT = function(msg)
     local rest = string.lower(msg or "")
+    -- /sct hide <spell>, /sct show <spell>: the hidden spells list
+    local _, _, verb, spell = string.find(msg or "", "^%s*(%a+)%s+(.-)%s*$")
+    verb = verb and string.lower(verb)
+    if (verb == "hide" or verb == "show") and spell and spell ~= "" then
+      CT.EV.ListSet("hideSpells", spell, verb == "hide")
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r combat text: " .. spell .. (verb == "hide" and " hidden." or " shown again."))
+      return
+    end
     if rest == "on" or rest == "off" then
       CT:SetEnabled(rest == "on")
     elseif rest == "test" then

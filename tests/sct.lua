@@ -489,3 +489,39 @@ ok(not LiveText("999"), "teammates switch off")
 B.db.sct.team.on, B.db.sct.team.names = true, ""
 CT:Clear()
 
+
+-- spells left out (9 Nov 2026): a hidden spells list, damage procs (not in
+-- the spellbook) hidden, the spells seen lately
+do
+  local EV, db = CT.EV, B.db.sct
+  local keepArea, keepMerge = db.events.outSpell.area, db.merge
+  db.events.outSpell.area, db.merge = "out", false
+  EV.book, EV.bookSize = { ["Shadow Bolt"] = true }, 1
+  EV.recent = {}
+  CT:Clear()
+  EV:Fire("outSpell", { amount = 4101, spell = "Fire Strike" })
+  ok(LiveText("4101") and EV.recent[1] and EV.recent[1].name == "Fire Strike" and EV.recent[1].proc,
+    "a proc shows by default and is listed as seen lately (a proc)")
+  EV.ListSet("hideSpells", "fire strike", true)
+  ok(db.hideSpells == "fire strike", "/sct hide adds to the list")
+  EV:Fire("outSpell", { amount = 4102, spell = "Fire Strike" })
+  ok(not LiveText("4102"), "a hidden spell's numbers are left out (any case)")
+  EV:Fire("inSpell", { amount = 4103, spell = "Fire Strike" })
+  ok(not LiveText("4103"), "...done to you too")
+  EV.ListSet("hideSpells", "Fire Strike", false)
+  ok(db.hideSpells == "", "/sct show takes it off")
+  db.hideProcs = true
+  EV:Fire("outSpell", { amount = 4104, spell = "Lightning Strike" })
+  EV:Fire("outSpell", { amount = 4105, spell = "Shadow Bolt" })
+  ok(not LiveText("4104") and LiveText("4105"), "procs hidden: a spell not in your spellbook is left out, your own spell is not")
+  db.keepProcs = "Lightning Strike"
+  EV:Fire("outSpell", { amount = 4106, spell = "Lightning Strike" })
+  ok(LiveText("4106"), "a proc kept on purpose still shows")
+  EV.bookSize = 0
+  db.keepProcs = ""
+  EV:Fire("outSpell", { amount = 4107, spell = "Lightning Strike" })
+  ok(LiveText("4107"), "spellbook not read yet: nothing counts as a proc")
+  ok(not EV.Ignored("buffGain", "Fire Strike") and not EV.Ignored("outMelee", "Lightning Strike"), "buffs and melee are never hidden as procs")
+  db.hideProcs, db.events.outSpell.area, db.merge = false, keepArea, keepMerge
+  CT:Clear()
+end

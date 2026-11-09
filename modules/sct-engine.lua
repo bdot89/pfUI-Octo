@@ -76,6 +76,7 @@ B.DEFAULTS.sct = {
   lowHp = 40, lowMana = 40,
   merge = true, mergeTime = 0.4, throttlePower = 0, regen = false, fullPower = false,
   cdReadyMin = 8, cdExclude = "", hideAuras = "",
+  hideSpells = "", hideProcs = false, keepProcs = "",   -- (9 Nov 2026) spells left out of the texts
   procs = "Clearcasting, Shadow Trance, Enrage, Flurry, Nightfall, Elemental Focus, Stormstrike, Vengeance, Blood Craze",
   critSound = 0, hugeCrit = 0, killSound = "none", critSoundKey = "TellMessage", hugeCritKey = "RaidWarning",
   plates = { yOffset = 20, xVariance = 0, width = 130, height = 80, size = 18, critScale = 1.6, time = 1.5,
