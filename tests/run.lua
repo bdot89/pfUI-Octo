@@ -3881,6 +3881,52 @@ do
     Fx.Play(o, "pop", now)
     ok(Fx.Scale(plate, o, now + .09) > 1.2, "pop: the plate grows (" .. Fx.Scale(plate, o, now + .09) .. ")")
     ok(Fx.Scale(plate, o, now + 1) == 1 and not o.anim, "and settles")
+    -- (10 Nov 2026, user, arenas: the health "would show for a split second that the health was full") the fill
+    -- shown is drawn from the value, never the game's own fill: through a pop and a resize it stays 40%
+    do
+      local hb = plate.health
+      local keepW, keepV, keepEn = hb:GetWidth(), hb:GetValue(), pfUI_config.plates.enable
+      local _, keepMax = hb:GetMinMaxValues()
+      pfUI_config.plates.enable = "1"
+      if not hb:GetStatusBarTexture() then hb:SetStatusBarTexture("Interface\\AddOns\\pfUI\\img\\bar") end
+      hb:SetWidth(120)
+      hb:SetMinMaxValues(0, 100)
+      hb:SetValue(40)
+      local ob = plate.original and plate.original.healthbar
+      local obV, obMin, obMax
+      if ob then
+        obV = ob:GetValue()
+        obMin, obMax = ob:GetMinMaxValues()
+        ob:SetMinMaxValues(0, 100)
+        ob:SetValue(40)
+      end
+      P.Fill(plate)
+      local f, own = o.fill, hb:GetStatusBarTexture()
+      ok(f and f:IsShown() and math.abs(f:GetWidth() - 48) < .01, "health 40%: the fill is 40% of the bar (" .. tostring(f and f:GetWidth()) .. ")")
+      ok(own:GetAlpha() == 0 and f:GetTexture() == own:GetTexture(), "the game's own fill is hidden, its texture used")
+      Fx.Play(o, "pop", GetTime())
+      P.Tick(plate)
+      hb:SetWidth(150)
+      P.Tick(plate)
+      ok(math.abs(f:GetWidth() - 60) < .01, "a pop / bigger target plate: still 40% (" .. tostring(f:GetWidth()) .. ")")
+      hb:SetStatusBarColor(.9, .1, .1, 1)
+      hb:SetValue(0)
+      P.Fill(plate)
+      ok(not f:IsShown(), "no health: no fill")
+      hb:SetValue(100)
+      P.Fill(plate)
+      ok(math.abs(f:GetWidth() - 150) < .01, "full health: the whole bar")
+      pfUI_config.plates.enable = "0"
+      P.Fill(plate)
+      ok(not f:IsShown() and own:GetAlpha() == 1, "Octo plates off: the game's fill is back")
+      o.anim = nil
+      pfUI_config.plates.enable = keepEn
+      if ob then ob:SetMinMaxValues(obMin or 0, obMax or 100) ob:SetValue(obV or 100) end
+      hb:SetWidth(keepW)
+      hb:SetMinMaxValues(0, keepMax or 100)
+      hb:SetValue(keepV or 100)
+      P.Fill(plate)
+    end
     -- your crit on it animates its plate
     local pname = plate.original.name:GetText()
     Fx.seen[plate] = GetTime()

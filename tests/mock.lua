@@ -151,7 +151,7 @@ function methods:GetEffectiveScale() return 1 end
 function methods:GetScale() return self._scale or 1 end
 function methods:SetScale(s) self._scale = tonumber(s) or 1 end
 function methods:SetAlpha(a) self.alpha = a end
-function methods:GetAlpha() return self.alpha end
+function methods:GetAlpha() return self.alpha or 1 end
 function methods:CreateTexture(name, layer) return New("Texture", name, self) end
 function methods:CreateFontString(name, layer, inherits) return New("FontString", name, self) end
 function methods:SetText(t)
@@ -199,6 +199,12 @@ end
 function methods:GetValue() return self.value or 0 end
 function methods:SetStatusBarColor(r, g, b, a) self.barColor = { r, g, b, a } end
 function methods:GetStatusBarColor() local c = self.barColor or { 1, 1, 1, 1 } return c[1], c[2], c[3], c[4] end
+-- (10 Nov 2026) a status bar keeps one fill texture, as in the client
+function methods:SetStatusBarTexture(t)
+  if not self.barTex then self.barTex = New("Texture", nil, self) end
+  self.barTex:SetTexture(t)
+end
+function methods:GetStatusBarTexture() return self.barTex end
 -- (the client refuses to move a frame set unmovable: "Frame X is not movable")
 function methods:SetMovable(v) self._movable = v and true or false end
 function methods:IsMovable() return self._movable end

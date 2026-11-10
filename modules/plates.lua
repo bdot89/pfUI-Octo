@@ -765,14 +765,65 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if mn == nil then mn, mx = hb:GetMinMaxValues() end
     if not (v and mn and mx and mx > mn) then return end
     local r, g, b, a = hb:GetStatusBarColor()
-    local tex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
-    local path = tex and tex.GetTexture and tex:GetTexture()
-    if type(path) == "string" and hb.SetStatusBarTexture then hb:SetStatusBarTexture(path) end
+    -- (10 Nov 2026: no longer sets the bar's texture again - a fresh texture can draw full for a
+    -- frame; the fill shown is P.Fill's own anyway)
     hb:SetMinMaxValues(mn, mx)
     local nudge = (mx - mn) * .002
     hb:SetValue(v + nudge > mx and v - nudge or v + nudge)
     hb:SetValue(v)
     if r then hb:SetStatusBarColor(r, g, b, a) end
+  end
+
+  -- (10 Nov 2026, user, arenas: "their health was kind of flashing between damage and it would show for a split
+  -- second that the health was full when it wasn't this should never happen") The game lays a status bar's fill
+  -- out only when its value changes, so after a resize (pop / bounce on a crit, the target's size, target zoom)
+  -- it could draw the old or the full width for a frame - two earlier fixes (P.Refill) only made that rarer.
+  -- Now the bar's own fill is invisible and o.fill is drawn from the value itself: width = the health share of
+  -- the bar's width at this moment, its colour = the bar's colour. Run on every health change, at the end of
+  -- every P.Tick and after P.Refill. Octo plates off: the game's fill comes back.
+  function P.Fill(plate)
+    local o = plate and plate.octo
+    local hb = plate and plate.health
+    if not o or not hb or not hb.GetStatusBarTexture then return end
+    local tex = hb:GetStatusBarTexture()
+    if S.enable ~= "1" then
+      if o.fill and o.fill:IsShown() then o.fill:Hide() end
+      if tex and o.fill and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
+      return
+    end
+    if not tex then return end
+    if not o.fill then o.fill = hb:CreateTexture(nil, "ARTWORK") end
+    local f = o.fill
+    local path = tex:GetTexture()
+    if path ~= o.fillPath then
+      f:SetTexture(path)
+      o.fillPath = path
+    end
+    if tex:GetAlpha() > 0 then tex:SetAlpha(0) end
+    local v = hb:GetValue() or 0
+    local mn, mx = hb:GetMinMaxValues()
+    local share = 0
+    if mn and mx and mx > mn then share = (v - mn) / (mx - mn) end
+    if share > 1 then share = 1 end
+    local r, g, b, a = hb:GetStatusBarColor()
+    f:SetVertexColor(r or 1, g or 1, b or 1, a or 1)
+    if share <= 0 then
+      f:Hide()
+      return
+    end
+    f:ClearAllPoints()
+    if C.nameplates.verticalhealth == "1" then
+      f:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
+      f:SetPoint("BOTTOMRIGHT", hb, "BOTTOMRIGHT", 0, 0)
+      f:SetHeight(math.max(.01, (hb:GetHeight() or 0) * share))
+      f:SetTexCoord(0, 1, 1 - share, 1)
+    else
+      f:SetPoint("TOPLEFT", hb, "TOPLEFT", 0, 0)
+      f:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
+      f:SetWidth(math.max(.01, (hb:GetWidth() or 0) * share))
+      f:SetTexCoord(0, share, 0, 1)
+    end
+    f:Show()
   end
 
   function P.CastEnd(plate, o, done, now)
@@ -930,6 +981,8 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if P.Auras then P.Auras.Tick(plate, o, now) end
     P.ComboTick(o, now)
     if P.Fx then P.Fx.Tick(plate, o, now) end
+    -- (last: after every resize, refill and animation of this frame)
+    P.Fill(plate)
     -- something on it moves: keep it on every frame (P.Calm)
     o.busy = o.scale ~= want or o.anim or o.casting or o.cend:IsShown() or o.cpglowing
       or plate.health.zoomed or plate.health.zoomTransition or nil
@@ -1588,6 +1641,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
     if plate and not plate.octo then return end
     P.Update(plate)
+    P.Fill(plate)
     if plate.parent and plate.parent.preview then P.Raise(plate.parent) end
   end
 
