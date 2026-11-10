@@ -118,6 +118,24 @@ local res = {
 AL.TakeItems(res)
 ok(table.getn(whole) == 1 and whole[1] == "0x1", "a corpse with only wanted items is looted whole (coins too)")
 ok(table.getn(single) == 1 and single[1] == "0x2:2589", "a corpse with trash: only the wanted item is taken")
+-- (10 Nov 2026, Bread: "it doesn't pick up currency") ClassicAPI's scan lists no coins: a coins-only corpse
+-- comes back with no items and is looted whole
+whole, single = {}, {}
+AL.TakeItems({ { guid = "0x4", items = {} }, { guid = "0x5", items = { { itemID = 4865 } } } })
+ok(table.getn(whole) == 1 and whole[1] == "0x4" and table.getn(single) == 0, "a corpse with only coins is looted (whole)")
+-- coins in a loot window you open yourself are taken
+do
+  local keep = { GetNumLootItems = rawget(_G, "GetNumLootItems"), LootSlotIsCoin = rawget(_G, "LootSlotIsCoin"), LootSlot = rawget(_G, "LootSlot") }
+  local taken = {}
+  _G.GetNumLootItems = function() return 3 end
+  _G.LootSlotIsCoin = function(i) return i == 1 end
+  _G.LootSlot = function(i) table.insert(taken, i) end
+  ok(AL.TakeCoins() == 1 and taken[1] == 1 and table.getn(taken) == 1, "an opened loot window: the coins taken, the items left")
+  for k, v in pairs(keep) do _G[k] = v end
+  if not keep.GetNumLootItems then _G.GetNumLootItems = nil end
+  if not keep.LootSlotIsCoin then _G.LootSlotIsCoin = nil end
+  if not keep.LootSlot then _G.LootSlot = nil end
+end
 
 -- master loot: the threshold and better is left for the master looter
 whole, single = {}, {}

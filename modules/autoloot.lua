@@ -282,7 +282,11 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     local calls = 0
     for g, u in pairs(units) do
       local mine = take[g]
-      if not left[g] and type(C_Loot.LootUnit) == "function" and (mine or (u.money or 0) > 0) then
+      -- (10 Nov 2026, Bread: "it doesn't pick up currency") ClassicAPI's scan lists items only, no coins: a
+      -- corpse with just coins came back with an empty item list and was never looted. A corpse with nothing
+      -- to leave behind - no items at all included - is looted whole. (Coins on a corpse that keeps an item
+      -- for the master looter / a filter rule cannot be taken alone: AL.TakeCoins when you open it.)
+      if not left[g] and type(C_Loot.LootUnit) == "function" and (mine or (u.money or 0) > 0 or u.n == 0) then
         -- nothing to leave behind: the whole corpse, coins included
         if pcall(C_Loot.LootUnit, g) then calls = calls + 1 end
       elseif mine and type(C_Loot.LootUnitItem) == "function" then
@@ -293,6 +297,22 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     end
     st.itemCalls = (st.itemCalls or 0) + calls
     return calls
+  end
+
+  -- a loot window you opened yourself: its coins are taken at once (the area loot cannot take coins alone
+  -- from a corpse that keeps an item; coins are always yours - in a group the game shares them)
+  function AL.TakeCoins()
+    if type(_G.GetNumLootItems) ~= "function" or type(_G.LootSlotIsCoin) ~= "function" or type(_G.LootSlot) ~= "function" then
+      return 0
+    end
+    local n = 0
+    for i = (_G.GetNumLootItems() or 0), 1, -1 do
+      if _G.LootSlotIsCoin(i) then
+        _G.LootSlot(i)
+        n = n + 1
+      end
+    end
+    return n
   end
 
   function AL.Run(now)
@@ -412,6 +432,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
         if On("closewin") and type(_G.CloseLoot) == "function" then _G.CloseLoot() else st.manual = true end
       else
         st.manual = true
+        if On("enable") then AL.TakeCoins() end
       end
     elseif e == "LOOT_CLOSED" then st.manual = false
     elseif e == "LOOT_SCAN_COMPLETED" then if st.walking then Done(nil, type(_G.arg1) == "table" and _G.arg1 or nil) end
