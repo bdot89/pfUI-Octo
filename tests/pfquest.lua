@@ -149,6 +149,28 @@ run("restore.lua")
 _G.GetAddOnInfo = function(n) if n == "pfQuest" then return "pfQuest", "pfQuest", "", nil, 1 end end
 run("guard.lua")
 ok(pfQuestOctoSkip == false, "standalone pfQuest switched off: the copy runs")
+run("restore.lua")
+-- (11 Nov 2026) a pfQuest in another folder name counts, pfQuest's own add-ons do not
+local realNum, realDeps = rawget(_G, "GetNumAddOns"), rawget(_G, "GetAddOnDependencies")
+local list = {}
+_G.GetNumAddOns = function() return table.getn(list) end
+_G.GetAddOnInfo = function(n)
+  local e = type(n) == "number" and list[n]
+  if e then return e[1], e[1], "", e[2], 1 end
+end
+_G.GetAddOnDependencies = function(i) local e = list[i] if e then return e[3] end end
+list = { { "pfUI", 1 }, { "pfQuest-master", 1 } }
+run("guard.lua")
+ok(pfQuestOctoSkip == true, "pfQuest unpacked as pfQuest-master and on: the copy steps aside")
+run("restore.lua")
+list = { { "pfUI", 1 }, { "pfQuest-turtle", 1, "pfQuest" }, { "pfQuest-icons", 1, "pfQuest" } }
+run("guard.lua")
+ok(pfQuestOctoSkip == false, "only pfQuest's add-ons (turtle data, icons): the copy runs")
+run("restore.lua")
+list = { { "pfQuest-master", nil } }
+run("guard.lua")
+ok(pfQuestOctoSkip == false, "pfQuest-master switched off: the copy runs")
+_G.GetNumAddOns, _G.GetAddOnDependencies = realNum, realDeps
 pfUI = realPfUI
 pfUI_config = pfQuestOctoHidden and pfQuestOctoHidden.pfUI_config or pfUI_config
 if pfQuestOcto and pfQuestOcto.make then CreateFrame = pfQuestOcto.make end

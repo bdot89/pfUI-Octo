@@ -124,11 +124,34 @@ $skip = @"
 -- switched on decides (9 Nov 2026: both ran, two of everything, and its chat
 -- hook went straight to the game's, past pfUI's chat - no times, class colours
 -- or links for anyone who still had pfQuest on).
+-- (11 Nov 2026, dennis on Discord: two quest menus on the world map.) Any folder
+-- name counts - a download unpacks as "pfQuest-master" - but not pfQuest's
+-- add-ons (pfQuest-turtle, pfQuest-icons...), which need pfQuest to load.
+local function pfQuestOctoMain(name, enabled, loadable, d1, d2, d3, d4)
+  if not (name and enabled and loadable) then return false end
+  local n = string.lower(name)
+  if n == "pfui" or not string.find(n, "^pfquest") then return false end
+  local d = { d1, d2, d3, d4 }
+  for i = 1, 4 do
+    if d[i] and string.find(string.lower(d[i]), "^pfquest") then return false end
+  end
+  return true
+end
 local function pfQuestOctoStandalone()
   if pfDB ~= nil then return true end
   if type(GetAddOnInfo) ~= "function" then return false end
   local ok, name, _, _, enabled, loadable = pcall(GetAddOnInfo, "pfQuest")
-  return (ok and name and enabled and loadable) and true or false
+  if ok and name and enabled and loadable then return true end
+  if type(GetNumAddOns) ~= "function" then return false end
+  local count = GetNumAddOns()
+  if type(count) ~= "number" then return false end
+  for i = 1, count do
+    local n, _, _, en, lo = GetAddOnInfo(i)
+    local d1, d2, d3, d4
+    if GetAddOnDependencies then d1, d2, d3, d4 = GetAddOnDependencies(i) end
+    if pfQuestOctoMain(n, en, lo, d1, d2, d3, d4) then return true end
+  end
+  return false
 end
 pfQuestOctoSkip = pfQuestOctoStandalone()
 -- This copy loads after pfUI's files but before pfUI has its settings, so pfUI
