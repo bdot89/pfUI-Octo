@@ -1800,4 +1800,64 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     S.firstlook = "1"
     P.ApplyPreset("plater")
   end
+
+  -- (11 Nov 2026) /pfplateprobe: the health bar still flashes full for a moment when you target
+  -- someone, after two fixes that guessed at the cause. This records, every frame for 0.8 s after
+  -- the next target change, what each shown plate's bar holds (value, min, max), what the game's
+  -- own plate bar holds, the bar's width, the fill picture's drawn width and the plate's scale.
+  -- A line is printed only when something changed, and the whole record is kept in
+  -- pfUI_cache.plateprobe (WTF ... SavedVariables\pfUI.lua after a /reload).
+  local probe = CreateFrame("Frame")
+  probe:Hide()
+  local function R(v) return v and (math.floor(v * 10 + .5) / 10) or "-" end
+  local function Line(plate)
+    local hb = plate.health
+    if not hb then return end
+    local v, mn, mx = hb:GetValue(), hb:GetMinMaxValues()
+    local ob = plate.original and plate.original.healthbar
+    local ov, omn, omx
+    if ob then ov = ob:GetValue() omn, omx = ob:GetMinMaxValues() end
+    local tex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
+    local tw = tex and tex.GetWidth and tex:GetWidth()
+    local tl, tr = tex and tex.GetLeft and tex:GetLeft(), tex and tex.GetRight and tex:GetRight()
+    local fill = plate.octo and plate.octo.fill
+    return string.format("%s%s v%s/%s-%s orig%s/%s-%s w%s fillW%s fillLR%s sc%s a%s%s",
+      plate.istarget and "*" or " ", tostring(plate.name and plate.name:GetText() or "?"),
+      R(v), R(mn), R(mx), R(ov), R(omn), R(omx), R(hb:GetWidth()), R(tw),
+      (tl and tr) and R(tr - tl) or "-", R(plate:GetScale()), R(tex and tex:GetAlpha()),
+      (fill and fill:IsShown()) and " ownfill" or "")
+  end
+  probe:SetScript("OnEvent", function()
+    -- (clearing the target fires it too: wait for a real one)
+    if not UnitExists("target") then return end
+    this.start, this.last, this.log = GetTime(), {}, {}
+    _G.pfUI_cache = _G.pfUI_cache or {}
+    _G.pfUI_cache.plateprobe = this.log
+    this:Show()
+    this:UnregisterEvent("PLAYER_TARGET_CHANGED")
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r plate probe: recording...")
+  end)
+  probe:SetScript("OnUpdate", function()
+    local t = GetTime() - this.start
+    local plates = P.Fx and P.Fx.Plates and P.Fx.Plates() or {}
+    for _, plate in ipairs(plates) do
+      local ok, l = pcall(Line, plate)
+      if ok and l and this.last[plate] ~= l then
+        this.last[plate] = l
+        local s = string.format("%4dms %s", t * 1000, l)
+        table.insert(this.log, s)
+        if table.getn(this.log) <= 40 then DEFAULT_CHAT_FRAME:AddMessage(s) end
+      end
+    end
+    if t > .8 then
+      this:Hide()
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r plate probe: done, " .. table.getn(this.log)
+        .. " lines (all kept in pfUI_cache.plateprobe; /reload writes them to the saved file).")
+    end
+  end)
+  _G.SLASH_PFPLATEPROBE1 = "/pfplateprobe"
+  _G.SlashCmdList.PFPLATEPROBE = function()
+    probe:RegisterEvent("PLAYER_TARGET_CHANGED")
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r plate probe: clear your target, then target your friend (his plate on screen).")
+  end
 end)
