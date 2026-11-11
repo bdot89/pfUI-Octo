@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options" }
 
 -- ---------------------------------------------------------------- load
 
@@ -3668,7 +3668,8 @@ do
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
     -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it;
     -- (9 Nov 2026) Questing after it
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "Gear" and heads[13] == "Meters" and heads[14] == "Combat Text" and heads[table.getn(heads)] == "About",
+    -- (11 Nov 2026) Consumables after Gear
+    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "Gear" and heads[13] == "Consumables" and heads[14] == "Meters" and heads[15] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -6071,6 +6072,9 @@ dofile(DIR .. "/tests/bags.lua")
 
 -- bag categories in the bag windows (9 Nov 2026)
 dofile(DIR .. "/tests/bagcats.lua")
+
+-- the consumables tracker (11 Nov 2026)
+dofile(DIR .. "/tests/consumes.lua")
 
 -- automatic area looting (4 Nov 2026)
 dofile(DIR .. "/tests/autoloot.lua")

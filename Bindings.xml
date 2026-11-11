@@ -101,4 +101,5 @@
   <Binding name="PFGEARSLOT18">if pfUI and pfUI.gear then pfUI.gear.UseSlot(18) end</Binding>
   <Binding name="PFGEARSLOT19">if pfUI and pfUI.gear then pfUI.gear.UseSlot(19) end</Binding>
   <Binding name="PFGEARNAKED">if pfUI and pfUI.gear then pfUI.gear.ToggleNaked() end</Binding>
+  <Binding name="PFCONSUMENEXT" header="PFCONSUMES">if pfUI and pfUI.consumes then pfUI.consumes.UseNext() end</Binding>
 </Bindings>

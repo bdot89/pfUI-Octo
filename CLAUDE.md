@@ -1123,3 +1123,33 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    O.mark = a BACKGROUND texture of O.content (under every card / control / preview), 380 px, centred, alpha .07;
    B.Store().mark == false hides it (Settings > Scale, profiles and look > Options window, O.PaintMark). Card and
    pin panels (W.Panel) went from .85 to .72 so it shows faintly through them.
+27. Consumables tracker (11 Nov 2026, NOT seen in game; NEW FILES = full client restart; Wolfahrt on Discord: "track
+   consumes ... pick from the existing OctoWoW consumes, by character like ... gear ... alert when one is missing or
+   expiring soon and maybe an option to reapply it"). modules/consumes.lua (`pfUI.consumes` = CS, module "consumes",
+   O.ModuleSwitch / power dot): C.consumes.lists = { { name, raid / dungeon / bg / arena / world "1"|"0", spec
+   (C.gear.specs slot), layout (L.NAMES), items = { { item, name, buff, kind buff|weapon, hand "16"|"17", cat, on,
+   learned } } } }, per character; CS.Active() = first list that fits pfUI.context.Zone() + spec + layout. CS.CATALOG
+   (92 items: flasks, elixirs incl. the server's own, Zanza, Blasted Lands, juju, food, drinks, scrolls, protection
+   potions, oils / stones / poisons): item ids from pfQuest's item names (items.lua + items-turtle.lua), buff names
+   checked against patch-O Spell.dbc (aura spells of that name; Greater Nature Protection's buff is "Nature
+   Protection " with a trailing space in the DBC - names are compared trimmed and lower case; Elixir of Greater Frost /
+   Arcane Power have no aura of their own name, so their buff is a guess the learner fixes). Food = "Well Fed".
+   Buffs: C_UnitAuras.UnitAura first (name + expiry), else GetPlayerBuff / GetPlayerBuffTimeLeft + libtipscan name
+   (cached per bid:texture until PLAYER_AURAS_CHANGED); weapons: GetWeaponEnchantInfo, any temp enchant on the hand
+   counts, off hand left out with no off-hand item. States missing / low (< C.consumes.warn / warnweapon minutes) / ok.
+   Learning: after an item of the list is used (our click / key, or the game's UseContainerItem, wrapped) the first new
+   buff within 40 s that is not Food / Drink becomes its buff (chat line, "learned" on the page). Alerts once per change
+   (centre text, chat, RaidWarning / MapPing sound; quiet in combat = said when it ends; again every N min); CS.last
+   forgets items whose list stops applying, so entering a raid says them again. Bar pfConsumes (layout mode box,
+   samples while it is open): red edge + red icon (pulse) = missing, gold + timer = low, red 0 = none in bags;
+   click = CS.Use (UseContainerItem; oils then PickupInventoryItem(hand)), right-click = options. Never used while a
+   vendor / bank / trade / mail / auction frame is open (the click would sell or move it) or dead; food not in combat.
+   Bindings.xml PFCONSUMENEXT = CS.UseNext (first missing, then soonest running out). NO automatic reapply on purpose
+   (items used without a key press = botting; also UseContainerItem from an OnUpdate is not something to rely on).
+   Drop box: ClassicAPI GetCursorInfo, else the last PickupContainerItem (wrapped). /consumes [check|next|add <name>].
+   modules/consumes-options.lua: section "Consumables" (O.NAV after Gear, Combat & Items): Tracker (preview pin with
+   the live state line, Lists, When this list is on, Items on <list> rows with Up / switch / X / hand / Buff..., Add
+   items: catalogue LongMenu, bag menu (items with a Use: line), drop box, name or ID) and Bar and alerts (Warnings,
+   The bar, Putting them on again = W.KeyBind PFCONSUMENEXT). Tests: tests\consumes.lua. Unverified in game: the
+   ClassicAPI aura returns, GetWeaponEnchantInfo times, SetHyperlink on items the client has not seen, the
+   UseContainerItem / PickupContainerItem wraps next to other bag add-ons, every catalogue buff name on this server.
