@@ -58,4 +58,52 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
   end
 
   if C.questing.pfquest == "0" then Q.TurnOff() end
+
+  -- (11 Nov 2026, user) lightblade's pfQuest-turtle puts its own quest icons on nameplates
+  -- ("nameplatesEnabled"); pfUI Octo's nameplates already mark quest mobs (C.plates.questmark),
+  -- so the same mob would get two. Once per character, while ours are in use, theirs go off -
+  -- before pfQuest's ADDON_LOADED fills its defaults (this module runs first), so it sticks.
+  -- The first character it happens on says so once, with a button to have them back.
+  function Q.OursMarkPlates()
+    local dis, blizz, plates = C.disabled or {}, C.blizz or {}, C.plates or {}
+    return dis.nameplates ~= "1" and blizz.nameplates ~= "1" and plates.questmark == "1"
+  end
+  function Q.PlateIconsOnce()
+    if Q.State() ~= "builtin" or C.questing.turtleplates == "1" then return end
+    C.questing.turtleplates = "1"
+    if not Q.OursMarkPlates() then return end
+    _G.pfQuest_config = _G.pfQuest_config or {}
+    if _G.pfQuest_config.nameplatesEnabled == "0" then return end
+    _G.pfQuest_config.nameplatesEnabled = "0"
+    _G.pfUI_cache = _G.pfUI_cache or {}
+    if not _G.pfUI_cache.questplatesnotice then Q.noticeDue = true end
+  end
+  function Q.Notice()
+    _G.pfUI_cache.questplatesnotice = true
+    CreateQuestionDialog(T["pfQuest has been updated to the version the OctoWoW launcher installs."] .. "\n\n"
+      .. T["It can put its own quest icons on nameplates, but pfUI Octo's nameplates already mark quest mobs, so "
+      .. "pfQuest's icons have been switched off to stop two marks showing on the same mob."] .. "\n\n"
+      .. "|cffaaaaaa" .. T["You can change this at any time: Questing > pfQuest > Show Quest Icons on Nameplates."] .. "|r",
+      { T["OK"], function() end },
+      { T["Use pfQuest's icons"], function()
+        if _G.pfQuest_config then _G.pfQuest_config.nameplatesEnabled = "1" end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r: " .. T["pfQuest's nameplate icons are on again."])
+      end })
+  end
+  Q.PlateIconsOnce()
+  if Q.noticeDue then
+    -- after login, once no other question box is up (the add-on questions use the same box)
+    local wait = CreateFrame("Frame")
+    wait:RegisterEvent("PLAYER_ENTERING_WORLD")
+    wait:SetScript("OnEvent", function() this.at = GetTime() + 6 end)
+    wait:SetScript("OnUpdate", function()
+      if not this.at or GetTime() < this.at then return end
+      local box = _G.pfQuestionDialog
+      if box and box:IsShown() then this.at = GetTime() + 2 return end
+      this:SetScript("OnUpdate", nil)
+      this:UnregisterAllEvents()
+      Q.noticeDue = nil
+      Q.Notice()
+    end)
+  end
 end)

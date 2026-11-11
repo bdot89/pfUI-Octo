@@ -1586,6 +1586,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("questlog",   nil,           "showQuestLevels",  "0")
   -- the pfQuest built into pfUI (modules\questing.lua): "0" = put away at login
   pfUI:UpdateConfig("questing",   nil,           "pfquest",          "1")
+  pfUI:UpdateConfig("questing",   nil,           "turtleplates",     "0") -- "1" = pfQuest's own nameplate icons were dealt with once (questing.lua)
   pfUI:UpdateConfig("thirdparty", nil,           "chatbg",           "1")
   pfUI:UpdateConfig("thirdparty", nil,           "showmeter",        "0")
   pfUI:UpdateConfig("thirdparty", "pfmeter",     "dock",             "1")

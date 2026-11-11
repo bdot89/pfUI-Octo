@@ -142,6 +142,39 @@ do
 
   local Q = pfUI.questing
   ok(Q and Q.State() == "builtin", "Questing: the built-in pfQuest is on (" .. tostring(Q and Q.State()) .. ")")
+
+  -- (11 Nov 2026) pfQuest-turtle's nameplate icons off once while our nameplates mark quests, with a notice
+  if Q and Q.PlateIconsOnce then
+    local cfg = pfUI_config
+    local keep = { _G.pfQuest_config, _G.pfUI_cache, cfg.questing.turtleplates, cfg.plates.questmark, (cfg.disabled or {}).nameplates }
+    cfg.disabled = cfg.disabled or {}
+    _G.pfUI_cache = {}
+    _G.pfQuest_config = nil
+    cfg.questing.turtleplates, cfg.plates.questmark, cfg.disabled.nameplates = "0", "1", "0"
+    Q.noticeDue = nil
+    Q.PlateIconsOnce()
+    ok(_G.pfQuest_config and _G.pfQuest_config.nameplatesEnabled == "0" and cfg.questing.turtleplates == "1" and Q.noticeDue,
+      "pfQuest's nameplate icons off once, notice due")
+    _G.pfQuest_config.nameplatesEnabled = "1"
+    Q.noticeDue = nil
+    Q.PlateIconsOnce()
+    ok(_G.pfQuest_config.nameplatesEnabled == "1" and not Q.noticeDue, "...only once: turned back on, it stays on")
+    local shown, buttons
+    local realQ = pfUI.env.CreateQuestionDialog
+    pfUI.env.CreateQuestionDialog = function(text, a, b) shown, buttons = text, { a, b } end
+    Q.Notice()
+    pfUI.env.CreateQuestionDialog = realQ
+    ok(shown and string.find(shown, "pfQuest", 1, true) and _G.pfUI_cache.questplatesnotice, "the notice is shown and remembered")
+    _G.pfQuest_config.nameplatesEnabled = "0"
+    if buttons and buttons[2] then buttons[2][2]() end
+    ok(_G.pfQuest_config.nameplatesEnabled == "1", "the notice's second button puts pfQuest's icons back")
+    _G.pfQuest_config = nil
+    cfg.questing.turtleplates, cfg.plates.questmark = "0", "0"
+    Q.PlateIconsOnce()
+    ok(_G.pfQuest_config == nil and cfg.questing.turtleplates == "1", "our quest marks off: pfQuest's icons left alone")
+    _G.pfQuest_config, _G.pfUI_cache = keep[1], keep[2]
+    cfg.questing.turtleplates, cfg.plates.questmark, cfg.disabled.nameplates = keep[3], keep[4], keep[5]
+  end
   Q.TurnOff()
   ok(_G.AbandonQuest == gameAbandon, "off: the game's function is back")
   ok(SlashCmdList.PFQUESTOCTOTEST == nil, "off: pfQuest's slash command is gone")
