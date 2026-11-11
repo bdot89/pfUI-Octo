@@ -6212,6 +6212,25 @@ do
   end
 end
 
+-- (11 Nov 2026, Keeyn: #132 at 0x007A2452 logging in = the game's GetPoint on a freed UIParent) the login
+-- snapshot of the game's frames never asks GetPoint of a frame on UIParent
+do
+  local BZ = pfUI.blizz
+  if BZ and BZ.Snap then
+    local f = CreateFrame("Frame", nil, UIParent)
+    local asked = false
+    f.GetPoint = function() asked = true end
+    f.GetNumPoints = function() return 1 end
+    f.GetLeft = function() return 10 end
+    f.GetTop = function() return 20 end
+    local store = {}
+    BZ.Snap(f, store)
+    local p = store[f] and store[f].points[1]
+    ok(not asked and p and p[1] == "TOPLEFT" and p[2] == UIParent and p[4] == 10 and p[5] == 20,
+      "login snapshot: a frame on UIParent is noted by its place on screen, GetPoint never asked")
+  end
+end
+
 -- auto attack (11 Nov 2026, Origummy / user): starts in reach, never twice, never through CC or stealth
 do
   local AA = pfUI.autoattack

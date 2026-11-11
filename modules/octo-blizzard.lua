@@ -30,7 +30,18 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     -- stopped this module before BZ.GROUPS, and every options page errored)
     local s = { parent = f.GetParent and f:GetParent(), scale = f.GetScale and f:GetScale(), alpha = f:GetAlpha(),
                 shown = f:IsShown(), w = f:GetWidth(), h = f:GetHeight(), points = {} }
-    for i = 1, (f.GetNumPoints and f:GetNumPoints() or 0) do s.points[i] = { f:GetPoint(i) } end
+    -- (11 Nov 2026, Keeyn: #132 at 0x007A2452 when logging in, any character. That is the game's GetPoint
+    -- reading the frame a point hangs on after the game freed it - the UIParent of a login race, see
+    -- WeirdUtils-Octo framecrash RESEARCH.md. This snapshot was the one place asking ~40 of the game's
+    -- frames at login.) A frame on UIParent is noted by where it is on screen (GetLeft / GetTop never
+    -- touch the freed part) and put back there on UIParent; only frames on other frames ask GetPoint.
+    local par = s.parent
+    if par == nil or par == UIParent then
+      local l, t = f.GetLeft and f:GetLeft(), f.GetTop and f:GetTop()
+      if l and t then s.points[1] = { "TOPLEFT", UIParent, "BOTTOMLEFT", l, t } end
+    else
+      for i = 1, (f.GetNumPoints and f:GetNumPoints() or 0) do s.points[i] = { f:GetPoint(i) } end
+    end
     if f.GetScript then
       for _, sc in ipairs({ "OnShow", "OnEvent", "OnMouseWheel" }) do
         local ok, fn = pcall(f.GetScript, f, sc)

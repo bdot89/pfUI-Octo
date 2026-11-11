@@ -369,6 +369,7 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
         frame:ClearAllPoints()
         frame:SetPoint("TOPLEFT", pfUI.chat.right ,"TOPLEFT", default_border, -panelheight)
         frame:SetPoint("BOTTOMRIGHT", pfUI.chat.right ,"BOTTOMRIGHT", -default_border, bottompadding)
+        frame.pfOnPanel = true
         frame:Show()
       elseif frame.isDocked then
         -- Left Chat
@@ -383,17 +384,20 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
           frame:SetPoint("TOPLEFT", pfUI.chat.left ,"TOPLEFT", default_border, -panelheight)
         end
         frame:SetPoint("BOTTOMRIGHT", pfUI.chat.left ,"BOTTOMRIGHT", -default_border, bottompadding)
+        frame.pfOnPanel = true
       else
         FCF_UnDockFrame(frame)
         frame:SetParent(UIParent)
         tab:SetParent(UIParent)
         -- octo (5 Nov 2026, Barbeque: an undocked Misc tab piled on the other chat): a window with
         -- no place of its own, or still hung on a chat panel, gets its own spot above the panels
-        local _, rel = frame:GetPoint()
-        if frame:GetNumPoints() == 0 or (rel and (rel == pfUI.chat.left or rel == pfUI.chat.right)) then
+        -- (11 Nov 2026: no GetPoint here - at login it can read a freed frame and crash the client,
+        -- #132 at 0x007A2452; pfUI notes itself when it hangs a window on a panel: pfOnPanel)
+        if frame:GetNumPoints() == 0 or frame.pfOnPanel then
           frame:ClearAllPoints()
           frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 60 + (i - 1) * 24, 300 + (i - 1) * 24)
         end
+        frame.pfOnPanel = nil
       end
 
       -- Combat Log
