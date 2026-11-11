@@ -3900,10 +3900,17 @@ do
         hb:SetWidth(135)
         hb:SetMinMaxValues(0, 5941)
         hb:SetValue(4100)
+        local gl = hb.GetLeft
+        hb.GetLeft = function() return nil end -- the client has no layout for it this frame
         P.Fill(plate)
-        local tw = tex and tex:GetWidth()
-        ok(tex and tw and math.abs(tw - 135 * 4100 / 5941) < .01 and tex:GetNumPoints() == 2,
-          "own fill off: the game's fill is placed at the health share (" .. tostring(tw) .. " of 135)")
+        local br = o.bridge
+        local bw = br and br.tex:GetWidth()
+        ok(br and br:IsShown() and bw and math.abs(bw - 135 * 4100 / 5941) < .01 and tex and tex:GetAlpha() == 0,
+          "no layout (scale changing): the game's fill hidden, the stand-in drawn at the health share (" .. tostring(bw) .. " of 135)")
+        hb.GetLeft = function() return 10 end
+        P.Fill(plate)
+        ok(not o.bridge:IsShown() and tex:GetAlpha() == 1, "laid out again: the game's fill back, the stand-in hidden")
+        hb.GetLeft = gl
         hb:SetWidth(w0) hb:SetMinMaxValues(mn0, mx0) hb:SetValue(v0)
       end
       P.OWNFILL = true

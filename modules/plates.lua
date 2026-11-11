@@ -782,32 +782,50 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   -- Now the bar's own fill is invisible and o.fill is drawn from the value itself: width = the health share of
   -- the bar's width at this moment, its colour = the bar's colour. Run on every health change, at the end of
   -- every P.Tick and after P.Refill. Octo plates off: the game's fill comes back.
-  -- (11 Nov 2026, /pfplateprobe on the user's friend, targeted: while the plate's scale eased and
-  -- bounced (size_target, pop) the bar's own fill texture had NO layout at all - width 0, no left or
-  -- right - for 300 ms, and the game drew it across the whole bar; setting the value again did not
-  -- lay it out while the scale kept changing. The game's own fill texture is placed by hand instead:
-  -- on the bar's left (bottom when vertical), as wide as the health share of the bar's width.)
-  function P.PlaceFill(hb, tex)
-    if not tex or not tex.SetPoint then return end
+  -- the stand-in fill for the frames the bar has no layout (see P.Fill): a plain texture with the
+  -- bar's picture and colour, as wide as the health share, on its own frame just under the bar
+  -- (above the bar's backdrop, below its text). false = it cannot be drawn (no picture / size).
+  function P.BridgeFill(plate, o, hb, tex)
+    local path = tex:GetTexture() or o.barPath
+    local vertical = C.nameplates.verticalhealth == "1"
+    local size = vertical and hb:GetHeight() or hb:GetWidth()
+    if not path or path == "" or not size or size <= 0 then return false end
     local v = hb:GetValue() or 0
     local mn, mx = hb:GetMinMaxValues()
-    if not (mn and mx and mx > mn) then return end
+    if not (mn and mx and mx > mn) then return false end
     local share = (v - mn) / (mx - mn)
     if share > 1 then share = 1 elseif share < 0 then share = 0 end
-    tex:ClearAllPoints()
-    if C.nameplates.verticalhealth == "1" then
-      local h = hb:GetHeight() or 0
-      if h <= 0 then return end
-      tex:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
-      tex:SetPoint("BOTTOMRIGHT", hb, "BOTTOMRIGHT", 0, 0)
-      tex:SetHeight(math.max(.01, h * share))
-    else
-      local w = hb:GetWidth() or 0
-      if w <= 0 then return end
-      tex:SetPoint("TOPLEFT", hb, "TOPLEFT", 0, 0)
-      tex:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
-      tex:SetWidth(math.max(.01, w * share))
+    local b = o.bridge
+    if not b then
+      b = CreateFrame("Frame", nil, hb.backdrop or plate)
+      b.tex = b:CreateTexture(nil, "ARTWORK")
+      o.bridge = b
     end
+    b:SetFrameLevel(math.max(0, hb:GetFrameLevel() - 1))
+    b:ClearAllPoints()
+    b:SetAllPoints(hb)
+    local t = b.tex
+    if path ~= b.path then t:SetTexture(path) b.path = path end
+    local r, g, bl, a = hb:GetStatusBarColor()
+    t:SetVertexColor(r or 1, g or 1, bl or 1, a or 1)
+    t:ClearAllPoints()
+    if share <= 0 then
+      t:Hide()
+    elseif vertical then
+      t:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      t:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+      t:SetHeight(math.max(.01, size * share))
+      t:SetTexCoord(0, 1, 1 - share, 1)
+      t:Show()
+    else
+      t:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+      t:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      t:SetWidth(math.max(.01, size * share))
+      t:SetTexCoord(0, share, 0, 1)
+      t:Show()
+    end
+    b:Show()
+    return true
   end
 
   function P.Fill(plate)
@@ -820,8 +838,19 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     -- own fill is shown, as before 10 Nov. P.OWNFILL = true turns it back on for testing.)
     if S.enable ~= "1" or not P.OWNFILL then
       if o.fill and o.fill:IsShown() then o.fill:Hide() end
-      if tex and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
-      if S.enable == "1" then P.PlaceFill(hb, tex) o.placedAt = GetTime() end
+      -- (11 Nov 2026, second /pfplateprobe, friend at 54%: while the plate's scale changes every frame
+      -- the bar has no screen rect (GetLeft nil) and the client re-anchors its fill to all 4 corners
+      -- before drawing = full width. Placing the fill from our scripts is undone by the client, so only
+      -- for those frames the game's fill is hidden and a plain texture on a frame the client leaves
+      -- alone - between the bar's backdrop and its text - shows the health share instead.)
+      local moving = S.enable == "1" and tex and hb:GetLeft() == nil
+      if moving and P.BridgeFill(plate, o, hb, tex) then
+        if tex:GetAlpha() > 0 then tex:SetAlpha(0) end
+        o.placedAt = GetTime()
+      else
+        if o.bridge and o.bridge:IsShown() then o.bridge:Hide() end
+        if tex and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
+      end
       return
     end
     if not tex then return end
@@ -1849,7 +1878,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     local tex = hb.GetStatusBarTexture and hb:GetStatusBarTexture()
     local tw = tex and tex.GetWidth and tex:GetWidth()
     local tl, tr = tex and tex.GetLeft and tex:GetLeft(), tex and tex.GetRight and tex:GetRight()
-    local fill = plate.octo and plate.octo.fill
+    local fill = plate.octo and plate.octo.bridge
     local placed = plate.octo and plate.octo.placedAt == GetTime() and " placed" or ""
     local hl, hr = hb:GetLeft(), hb:GetRight()
     return string.format("%s%s v%s/%s-%s orig%s/%s-%s w%s barLR%s fillW%s fillLR%s sc%s a%s pts%s%s%s",
@@ -1857,7 +1886,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       R(v), R(mn), R(mx), R(ov), R(omn), R(omx), R(hb:GetWidth()), (hl and hr) and R(hr - hl) or "-", R(tw),
       (tl and tr) and R(tr - tl) or "-", R(plate:GetScale()), R(tex and tex:GetAlpha()),
       tostring(tex and tex.GetNumPoints and tex:GetNumPoints() or "-"), placed,
-      (fill and fill:IsShown()) and " ownfill" or "")
+      (fill and fill:IsShown()) and (" bridge" .. R(fill.tex:GetWidth())) or "")
   end
   probe:SetScript("OnEvent", function()
     -- (clearing the target fires it too: wait for a real one)
