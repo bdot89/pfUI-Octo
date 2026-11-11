@@ -46,7 +46,7 @@ pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
   local function BuildPfQuest(p)
     W.Heading(p, "pfQuest", { about = "Quest objectives, quest givers and hand-ins on the world map and minimap, the "
       .. "quest tracker, routes and the /db database of every mob, object, item and quest. Built into pfUI; "
-      .. "pfQuest is by Shagu (MIT)." })
+      .. "pfQuest and pfQuest-turtle as the OctoWoW launcher installs them, by Shagu, Rivi and contributors (MIT)." })
     W.Card(p, "pfQuest", { icon = "INV_Misc_Book_08" })
     W.Note(p, STATUS[State()] or STATUS.none, 0, true)
     if State() ~= "standalone" then

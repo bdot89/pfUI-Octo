@@ -34,6 +34,19 @@ local function pfQuestOctoStandalone()
   return false
 end
 pfQuestOctoSkip = pfQuestOctoStandalone()
+-- Built in, pfQuest's own add-on names are not loaded (or are an old copy left
+-- in AddOns): their versions come from pfUI's toc. Every GetAddOnMetadata in the
+-- copied code calls this instead.
+function pfQuestOctoMeta(addon, field)
+  if field == "Version" then
+    if addon == "pfQuest" or addon == "pfQuest-tbc" or addon == "pfQuest-wotlk" then
+      return GetAddOnMetadata("pfUI", "X-pfQuest-Version")
+    elseif addon == "pfQuest-turtle" then
+      return GetAddOnMetadata("pfUI", "X-pfQuest-Turtle-Version")
+    end
+  end
+  return GetAddOnMetadata(addon, field)
+end
 -- This copy loads after pfUI's files but before pfUI has its settings, so pfUI
 -- is hidden while pfQuest's files run and put back after (restore.lua):
 -- pfQuest starts exactly as it does next to the standalone pfUI.

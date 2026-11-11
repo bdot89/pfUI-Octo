@@ -8,17 +8,1306 @@ do -- area trigger
 end
 
 do -- items
+  -- Sara's Comb is obtained by interacting with Sara Flenning.
+  pfDB["items"]["data-turtle"][41695]["U"] = { [62490] = 100 }
+
+  -- Bundle of Apples is obtained by interacting with Marisa Arello.
+  pfDB["items"]["data-turtle"][41737]["U"] = { [62146] = 100 }
+
+  -- Windtorn Crest Stone is guaranteed from Razorgust.
+  pfDB["items"]["data-turtle"][42206]["U"] = { [62195] = 100 }
+
+  -- Reports of Dustwallow: each report is obtained by speaking with its
+  -- corresponding tower captain.
+  pfDB["items"]["data-turtle"][60602]["U"] = { [60729] = 100 }
+  pfDB["items"]["data-turtle"][60603]["U"] = { [60730] = 100 }
+end
+
+do -- item use requirements
+  -- The Mallet of Zeth is used on the Gong of Corthan for The Land of Kings.
+  pfDB["quests-itemreq"]["data-turtle"][60944] = { [-2010946] = 0 }
 end
 
 do -- units/npcs
+  -- "Stinky" Ignatz and both faction variants of his escort quest were
+  -- removed from Turtle WoW.
+  pfDB["units"]["data-turtle"][4880] = "_"
+
+  -- Kex Blowmaster was removed from the Southern Barrens.
+  pfDB["units"]["data-turtle"][60443] = "_"
+
+  -- Interacting with the Mysterious Glittering Object summons Kheyna
+  -- Spinpistol, who completes A Letter From a Friend and offers the follow-up.
+  pfDB["units"]["data-turtle"][81041]["coords"] = { { 48.2, 23.4, 440, 300 } }
+
+  -- Correct Farseer Greka's Stonetalon position.
+  pfDB["units"]["data-turtle"][62197]["coords"] = { { 48.4, 68.9, 406, 120 } }
+
+  -- Correct Razorgust's spawn at Windtorn Crest.
+  pfDB["units"]["data-turtle"][62195]["coords"] = { { 29.5, 18.5, 406, 120 } }
+
+  -- Replace the obsolete Renegade Air Elemental cluster with the current
+  -- player-surveyed Windtorn Crest pass spawns.
+  pfDB["units"]["data-turtle"][62194]["coords"] = {
+    { 34.4, 18.4, 406, 120 },
+    { 34.8, 17.0, 406, 120 },
+    { 33.8, 18.6, 406, 120 },
+    { 32.7, 17.9, 406, 120 },
+    { 31.9, 17.5, 406, 120 },
+    { 31.8, 16.5, 406, 120 },
+    { 31.1, 16.4, 406, 120 },
+    { 30.8, 17.7, 406, 120 },
+    { 31.5, 18.5, 406, 120 },
+    { 30.4, 18.2, 406, 120 },
+    { 30.3, 16.7, 406, 120 },
+    { 29.6, 16.1, 406, 120 },
+    { 28.9, 15.6, 406, 120 },
+    { 28.9, 17.0, 406, 120 },
+  }
+
+  -- Sorrowguard Keep overlaps the Deadwind Pass and Swamp of Sorrows map
+  -- rectangles. The client opens Swamp of Sorrows inside the keep, while the
+  -- extracted NPC records only contain Deadwind Pass coordinates.
+  local sorrowguardSwampCoords = {
+    [92012] = { 1.98, 52.81 },
+    [92013] = { 2.85, 48.34 },
+    [92014] = { 1.54, 50.74 },
+    [92015] = { 3.51, 50.84 },
+    [92016] = { 2.96, 48.99 },
+    [92017] = { 2.42, 50.63 },
+    [92018] = { 1.54, 50.30 },
+    [92019] = { 0.89, 49.43 },
+    [92020] = { 1.54, 49.97 },
+    [92021] = { 1.98, 52.04 },
+    [92022] = { 3.61, 49.65 },
+    [92023] = { 3.51, 50.63 },
+  }
+
+  for unitID, position in pairs(sorrowguardSwampCoords) do
+    local unit = pfDB["units"]["data-turtle"][unitID]
+    if unit then
+      unit["coords"] = unit["coords"] or {}
+      local exists = false
+      for _, coord in pairs(unit["coords"]) do
+        if coord[3] == 8 then exists = true break end
+      end
+      if not exists then
+        table.insert(unit["coords"], { position[1], position[2], 8, 300 })
+      end
+    end
+  end
 end
 
 do -- quests
+  -- Removed Alliance/Horde variants of Stinky's Escape.
+  pfDB["quests"]["data-turtle"][1222] = "_"
+  pfDB["quests"]["data-turtle"][1270] = "_"
+
+  -- The Missing Diplomat (1265) completes its search step at Sentry Point.
+  -- The extracted row omitted the exploration trigger, leaving only the
+  -- later Archmage Tervosh hand-in visible to routing.
+  pfDB["quests"]["data-turtle"][1265]["obj"] = { ["A"] = { 1667 } }
+  pfDB["quests"]["data-turtle"][1265]["end"] = { ["A"] = { 1667 } }
+
+  -- Turtle's extracted overrides replace complete vanilla quest rows. Restore
+  -- vanilla prerequisite chains that the overrides omitted, while retaining
+  -- Turtle-specific faction, objective, and endpoint changes.
+  local inheritedPrerequisites = {
+    [95] = { 164 }, [138] = { 136 }, [139] = { 138 }, [140] = { 139 },
+    [364] = { 363 }, [597] = { 595 }, [625] = { 624 }, [626] = { 625 },
+    [902] = { 901 }, [960] = { 944 }, [1130] = { 882 }, [1194] = { 1190 },
+    [1801] = { 2996, 3001 }, [2701] = { 2702 }, [3454] = { 3453 },
+    [3525] = { 3523 }, [3792] = { 3791 }, [3913] = { 3912 },
+    [3914] = { 3913 }, [4122] = { 4082 }, [5050] = { 5048, 5049 },
+    [5084] = { 5083 }, [5085] = { 5084 }, [5143] = { 2853 },
+    [5148] = { 2860 }, [5164] = { 5162 }, [5265] = { 5264 },
+    [5463] = { 5462 }, [5464] = { 5463 }, [5942] = { 5721 },
+    [6383] = { 235, 742, 6382 }, [7508] = { 7507 }, [7668] = { 7667 },
+    [7795] = { 7791, 7793, 7794 }, [7800] = { 7792, 7798, 7799 },
+    [7805] = { 7802, 7803, 7804 }, [7811] = { 7807, 7808, 7809 },
+    [7818] = { 7813, 7814, 7817 }, [7823] = { 7820, 7821, 7822 },
+    [7824] = { 7826, 7827, 7831 }, [7836] = { 7833, 7834, 7835 },
+    [8115] = { 8114 }, [8122] = { 8121 }, [8271] = { 7141 },
+    [8272] = { 7142 }, [8484] = { 8481 }, [8485] = { 8481 },
+    [8811] = { 8795 }, [8812] = { 8795 }, [8813] = { 8795 },
+    [8814] = { 8795 }, [8815] = { 8792 }, [8816] = { 8792 },
+    [8817] = { 8792 }, [8818] = { 8792 }, [8819] = { 8795 },
+    [8820] = { 8795 }, [8821] = { 8795 }, [8822] = { 8795 },
+    [8823] = { 8792 }, [8824] = { 8792 }, [8825] = { 8792 },
+    [8826] = { 8792 },
+  }
+  for questID, prerequisites in pairs(inheritedPrerequisites) do
+    if pfDB["quests"]["data-turtle"][questID] then
+      pfDB["quests"]["data-turtle"][questID]["pre"] = prerequisites
+    end
+  end
+
+  -- Vimes's Report follows the second step of The Deserters. The missing
+  -- prerequisite made both its NPC and item starter appear immediately.
+  pfDB["quests"]["data-turtle"][1288]["pre"] = { 1287 }
+
+  -- Preserve the invisible completion trigger and add the real item-use
+  -- objective so the map and route arrow lead to the Gong of Corthan.
+  pfDB["quests"]["data-turtle"][40713]["obj"]["IR"] = { 60944 }
+
+  -- The Black Waltz begins by interacting with Aliattan's Campfire, which
+  -- then spawns the Widow event represented by the existing unit objective.
+  pfDB["quests"]["data-turtle"][40908]["obj"]["O"] = { 2020026 }
+
+  -- The extracted level for Spitecrest Decursions is stale. Turtle's live
+  -- quest log reports this step as level 47.
+  pfDB["quests"]["data-turtle"][40947]["lvl"] = 47
+
+  -- A Letter From a Friend is completed by interacting with the Mysterious
+  -- Glittering Object, not by finding its invisible script trigger.
+  pfDB["quests"]["data-turtle"][80407]["obj"] = { ["O"] = { 3000246 } }
+
+  -- Restore class restrictions and objective links omitted by extraction.
+  pfDB["quests"]["data-turtle"][41938]["class"] = 64
+  pfDB["quests"]["data-turtle"][41939]["class"] = 64
+  pfDB["quests"]["data-turtle"][41939]["obj"] = pfDB["quests"]["data-turtle"][41939]["obj"] or {}
+  pfDB["quests"]["data-turtle"][41939]["obj"]["U"] = { 62783 }
+
+  -- Scripted objectives below have no useful NPC/object/item map target, but
+  -- they are not complete immediately on acceptance. An empty objective table
+  -- keeps the ender grey until the client reports actual completion.
+  local scriptedObjectiveQuests = {
+    40581,             -- emote/pat Krog
+    40737,             -- wait for Tazzo's experiment
+    40777,             -- confront Zoki through dialogue
+    41110,             -- win a Blood Ring battle
+    41222, 41225,      -- dialogue/presentation actions
+    41320,             -- listen to Akh Z'ador's story
+    41569, 41570, 41571, -- Brewfest dancing
+    41861,             -- complete Rethevus's scripted challenge
+    42085,             -- witness the Moonhoof celebration
+    42098, 42099,      -- win a Thorn Gorge battle
+    50310, 50311, 50312, 50313, 50316, -- Mirage Raceway scripts
+    80704,             -- choose Vladeus's outcome
+  }
+  for _, questID in pairs(scriptedObjectiveQuests) do
+    local quest = pfDB["quests"]["data-turtle"][questID]
+    if quest then quest["obj"] = quest["obj"] or {} end
+  end
+
+  -- Both Windhorn Canyon relic quests use the Windhorn Relic object.
+  for _, questID in pairs({ 41976, 41977 }) do
+    pfDB["quests"]["data-turtle"][questID]["obj"] = pfDB["quests"]["data-turtle"][questID]["obj"] or {}
+    pfDB["quests"]["data-turtle"][questID]["obj"]["O"] = { 2020320 }
+  end
+
+  -- The Tauren priest introduction, Light of An'she, and Spiritwalk
+  -- all require the Priest class.
+  for _, questID in pairs({ 42054, 42055, 42056, 42057, 42058, 42059, 42060 }) do
+    pfDB["quests"]["data-turtle"][questID]["class"] = 16
+  end
+
+  -- Tainted Rune is the Dwarf Warlock introduction.
+  pfDB["quests"]["data-turtle"][42045]["class"] = 256
+
+  -- Kex Blowmaster and his Horde quest chain were removed from the game.
+  -- The underscore sentinel tells patchtable to delete extracted overlay rows.
+  for _, questID in pairs({ 40130, 40131, 40133, 41102, 41104 }) do
+    pfDB["quests"]["data-turtle"][questID] = "_"
+  end
+
+  -- Replace School Assistance script triggers with the four children.
+  pfDB["quests"]["data-turtle"][41637]["obj"]["U"] = { 62300, 62301, 62302, 62303 }
+
+  -- Replace Empty Houses script triggers with its three residents.
+  pfDB["quests"]["data-turtle"][41643]["obj"]["U"] = { 62154, 62489, 62153 }
+
+  -- Add "Dark Iron Gunpowder Keg" to objectives of "Darker than Iron".
+  pfDB["quests"]["data-turtle"][41677]["obj"]["O"] = { 2020173 }
+
   -- Add "Dark Iron Gunpowder Keg" to objectives of "Vile Dwarven Pigs"
   -- The extractor scripts did not catch those, as the objetive is filled via a Gossip on use.
   pfDB["quests"]["data-turtle"][41682]["obj"]["O"] = { 2020173 }
 
-  -- Add "Head of Geshgan" to the loot table of "Geshgan"
-  -- This can be removed by the next database export
-  pfDB["items"]["data-turtle"][41783]["U"] = { [62217] = 1.0 }
+end
+
+-- Explicit profession ranks from the Turtle server quest templates.
+-- Keep these separate from autogenerated quest records for both Lua and HDB.
+pfDB.questProfessionRequirements = {
+  [42041] = { 142, 225 }, -- To Survive in the Jungle: player-confirmed Survival rank.
+  [41985] = { 142, 225 }, -- User-chosen Survival display gate; server rank unverified.
+  [384] = { 185, 1 }, -- Beer Basted Boar Ribs
+  [715] = { 171, 1 }, -- Liquid Stone
+  [768] = { 393, 1 }, -- Gathering Leather
+  [862] = { 185, 1 }, -- Dig Rat Stew
+  [866] = { 182, 1 }, -- Root Samples
+  [1559] = { 202, 1 }, -- Flash Bomb Recipe
+  [1578] = { 164, 35 }, -- Supplying the Front
+  [1579] = { 356, 30 }, -- Gaffer Jacks
+  [1580] = { 356, 1 }, -- Electropellers
+  [1581] = { 171, 20 }, -- Elixirs for the Bladeleafs
+  [1582] = { 165, 70 }, -- Moonglow Vest
+  [1618] = { 164, 70 }, -- Gearing Redridge
+  [2178] = { 185, 10 }, -- Easy Strider Living
+  [2203] = { 171, 210 }, -- Badlands Reagent Run II
+  [2501] = { 171, 210 }, -- Badlands Reagent Run II
+  [2751] = { 164, 140 }, -- Barbaric Battlements
+  [2752] = { 164, 1 }, -- On Iron Pauldrons
+  [2753] = { 164, 1 }, -- Trampled Under Foot
+  [2754] = { 164, 1 }, -- Horns of Frenzy
+  [2755] = { 164, 1 }, -- Joys of Omosh
+  [2756] = { 164, 210 }, -- The Old Ways
+  [2757] = { 164, 210 }, -- Booty Bay or Bust!
+  [2758] = { 164, 210 }, -- The Origins of Smithing
+  [2759] = { 164, 210 }, -- In Search of Galvan
+  [2760] = { 164, 210 }, -- The Mithril Order
+  [2761] = { 164, 210 }, -- Smelt On, Smelt Off
+  [2762] = { 164, 210 }, -- The Great Silver Deceiver
+  [2763] = { 164, 210 }, -- The Art of the Imbue
+  [2764] = { 164, 210 }, -- Galvan's Finest Pupil
+  [2765] = { 164, 210 }, -- Expert Blacksmith!
+  [2771] = { 164, 210 }, -- A Good Head On Your Shoulders
+  [2772] = { 164, 210 }, -- The World At Your Feet
+  [2773] = { 164, 210 }, -- The Mithril Kid
+  [2847] = { 165, 225 }, -- Wild Leather Armor
+  [2848] = { 165, 225 }, -- Wild Leather Shoulders
+  [2849] = { 165, 225 }, -- Wild Leather Vest
+  [2850] = { 165, 225 }, -- Wild Leather Helmet
+  [2851] = { 165, 225 }, -- Wild Leather Boots
+  [2852] = { 165, 225 }, -- Wild Leather Leggings
+  [2853] = { 165, 225 }, -- Master of the Wild Leather
+  [2854] = { 165, 225 }, -- Wild Leather Armor
+  [2855] = { 165, 225 }, -- Wild Leather Shoulders
+  [2856] = { 165, 225 }, -- Wild Leather Vest
+  [2857] = { 165, 225 }, -- Wild Leather Helmet
+  [2858] = { 165, 225 }, -- Wild Leather Boots
+  [2859] = { 165, 225 }, -- Wild Leather Leggings
+  [2860] = { 165, 225 }, -- Master of the Wild Leather
+  [3321] = { 164, 210 }, -- Did You Lose This?
+  [3379] = { 197, 230 }, -- Shadoweaver
+  [3385] = { 197, 250 }, -- The Undermarket
+  [3402] = { 197, 1 }, -- The Undermarket
+  [3526] = { 202, 200 }, -- Goblin Engineering
+  [3629] = { 202, 200 }, -- Goblin Engineering
+  [3630] = { 202, 200 }, -- Gnome Engineering
+  [3632] = { 202, 200 }, -- Gnome Engineering
+  [3633] = { 202, 200 }, -- Goblin Engineering
+  [3634] = { 202, 200 }, -- Gnome Engineering
+  [3635] = { 202, 200 }, -- Gnome Engineering
+  [3637] = { 202, 200 }, -- Gnome Engineering
+  [3638] = { 202, 200 }, -- The Pledge of Secrecy
+  [3639] = { 202, 200 }, -- Show Your Work
+  [3640] = { 202, 200 }, -- The Pledge of Secrecy
+  [3641] = { 202, 200 }, -- Show Your Work
+  [3642] = { 202, 200 }, -- The Pledge of Secrecy
+  [3643] = { 202, 200 }, -- Show Your Work
+  [3644] = { 202, 200 }, -- Membership Card Renewal
+  [3645] = { 202, 200 }, -- Membership Card Renewal
+  [3646] = { 202, 200 }, -- Membership Card Renewal
+  [3647] = { 202, 200 }, -- Membership Card Renewal
+  [4104] = { 186, 1 }, -- Salve via Mining
+  [4105] = { 182, 1 }, -- Salve via Gathering
+  [4106] = { 393, 1 }, -- Salve via Skinning
+  [4107] = { 333, 1 }, -- Salve via Disenchanting
+  [4109] = { 186, 1 }, -- Salve via Mining
+  [4110] = { 182, 1 }, -- Salve via Gathering
+  [4111] = { 393, 1 }, -- Salve via Skinning
+  [4112] = { 333, 1 }, -- Salve via Disenchanting
+  [4161] = { 185, 1 }, -- Recipe of the Kaldorei
+  [4181] = { 202, 200 }, -- Goblin Engineering
+  [5103] = { 164, 275 }, -- Hot Fiery Death
+  [5126] = { 164, 285 }, -- Lorax's Tale
+  [5127] = { 164, 285 }, -- The Demon Forge
+  [5141] = { 165, 225 }, -- Dragonscale Leatherworking
+  [5143] = { 165, 225 }, -- Tribal Leatherworking
+  [5144] = { 165, 225 }, -- Elemental Leatherworking
+  [5145] = { 165, 225 }, -- Dragonscale Leatherworking
+  [5146] = { 165, 225 }, -- Elemental Leatherworking
+  [5148] = { 165, 225 }, -- Tribal Leatherworking
+  [5283] = { 164, 200 }, -- The Art of the Armorsmith
+  [5284] = { 164, 200 }, -- The Way of the Weaponsmith
+  [5301] = { 164, 200 }, -- The Art of the Armorsmith
+  [5302] = { 164, 200 }, -- The Way of the Weaponsmith
+  [5305] = { 164, 250 }, -- Sweet Serenity
+  [5306] = { 164, 250 }, -- Snakestone of the Shadow Huntress
+  [5307] = { 164, 250 }, -- Corruption
+  [5883] = { 186, 1 }, -- Salve via Mining
+  [5884] = { 182, 1 }, -- Salve via Gathering
+  [5885] = { 393, 1 }, -- Salve via Skinning
+  [5886] = { 333, 1 }, -- Salve via Disenchanting
+  [5888] = { 186, 1 }, -- Salve via Mining
+  [5889] = { 182, 1 }, -- Salve via Gathering
+  [5890] = { 393, 1 }, -- Salve via Skinning
+  [5891] = { 333, 1 }, -- Salve via Disenchanting
+  [6032] = { 197, 290 }, -- Sacred Cloth
+  [6607] = { 356, 225 }, -- Nat Pagle, Angler Extreme
+  [6608] = { 356, 225 }, -- You Too Good.
+  [6609] = { 356, 225 }, -- I Got Nothin' Left!
+  [6610] = { 185, 225 }, -- Clamlette Surprise
+  [6611] = { 185, 225 }, -- To Gadgetzan You Go!
+  [6612] = { 185, 225 }, -- I Know A Guy...
+  [6622] = { 129, 225 }, -- Triage
+  [6623] = { 129, 225 }, -- Horde Trauma
+  [6624] = { 129, 225 }, -- Triage
+  [6625] = { 129, 225 }, -- Alliance Trauma
+  [7321] = { 185, 1 }, -- Soothing Turtle Bisque
+  [7493] = { 165, 300 }, -- The Journey Has Just Begun
+  [7497] = { 165, 300 }, -- The Journey Has Just Begun
+  [7649] = { 164, 300 }, -- Enchanted Thorium Platemail: Volume I
+  [7650] = { 164, 300 }, -- Enchanted Thorium Platemail: Volume II
+  [7651] = { 164, 300 }, -- Enchanted Thorium Platemail: Volume III
+  [7652] = { 164, 265 }, -- A Blue Light Bargain
+  [7653] = { 164, 265 }, -- Imperial Plate Belt
+  [7654] = { 164, 265 }, -- Imperial Plate Boots
+  [7655] = { 164, 265 }, -- Imperial Plate Bracer
+  [7656] = { 164, 265 }, -- Imperial Plate Chest
+  [7657] = { 164, 265 }, -- Imperial Plate Helm
+  [7658] = { 164, 265 }, -- Imperial Plate Leggings
+  [7659] = { 164, 265 }, -- Imperial Plate Shoulders
+  [8193] = { 356, 1 }, -- Master Angler
+  [8194] = { 356, 1 }, -- Apprentice Angler
+  [8221] = { 356, 1 }, -- Rare Fish - Keefer's Angelfish
+  [8224] = { 356, 1 }, -- Rare Fish - Dezian Queenfish
+  [8225] = { 356, 1 }, -- Rare Fish - Brownell's Blue Striped Racer
+  [8228] = { 356, 175 }, -- Could I get a Fishing Flier?
+  [8229] = { 356, 175 }, -- Could I get a Fishing Flier?
+  [8307] = { 185, 285 }, -- Desert Recipe
+  [8313] = { 185, 285 }, -- Sharing the Knowledge
+  [8317] = { 185, 285 }, -- Kitchen Assistance
+  [8763] = { 185, 300 }, -- The Hero of the Day
+  [8798] = { 202, 1 }, -- A Yeti of Your Own
+  [8799] = { 185, 300 }, -- The Hero of the Day
+  [40234] = { 164, 250 }, -- A New Rune-Frontier
+  [40235] = { 164, 250 }, -- The Secrets of Darkforging
+  [40236] = { 164, 250 }, -- The Secrets of Darkforging
+  [40237] = { 164, 250 }, -- A Favor for Farsan
+  [40238] = { 164, 250 }, -- A Meeting With The Dreadlord
+  [40239] = { 164, 250 }, -- The Will of Lorthiras
+  [40240] = { 164, 250 }, -- Knowledge of Lorthiras
+  [40241] = { 164, 250 }, -- The Materials of Runeforging
+  [40259] = { 164, 200 }, -- The Dark-Rune Anvil
+  [40873] = { 171, 1 }, -- The Recipe of Dreamshard Elixir
+  [40874] = { 171, 1 }, -- The Recipe of Lucidity Potion
+  [40875] = { 165, 1 }, -- Pattern: Enchanted Armor Kit
+  [40883] = { 333, 1 }, -- Enchant Boots: Greater Spirit
+  [40884] = { 333, 1 }, -- Enchant Bracer: Greater Deflection
+  [40886] = { 186, 1 }, -- Smelting Dreamsteel
+  [40888] = { 164, 1 }, -- Dreamsteel Leggings
+  [40889] = { 164, 1 }, -- Dreamsteel Bracers
+  [40890] = { 164, 1 }, -- Dreamsteel Boots
+  [40895] = { 165, 1 }, -- Crafting Dreamhide
+  [40897] = { 165, 1 }, -- Dreamhide Bracers
+  [40898] = { 165, 1 }, -- Dreamhide Leggings
+  [40899] = { 165, 1 }, -- Dreamhide Belt
+  [40900] = { 197, 1 }, -- Crafting Dreamthread
+  [40902] = { 197, 1 }, -- Dreamthread Kilt
+  [40903] = { 197, 1 }, -- Dreamthread Bracers
+  [40904] = { 197, 1 }, -- Dreamthread Gloves
+  [41111] = { 164, 1 }, -- Plans: Dreamsteel Belt Buckle
+  [41275] = { 755, 225 }, -- Mastering Goldsmithing
+  [41276] = { 755, 225 }, -- Mastering Goldsmithing
+  [41277] = { 755, 225 }, -- Mastering Gemology
+  [41278] = { 755, 225 }, -- Mastering Gemology
+  [41291] = { 755, 225 }, -- Unfortunate Circumstances
+  [41296] = { 755, 225 }, -- The Collector
+  [41300] = { 755, 200 }, -- Just Ask Them Nicely
+  [41303] = { 755, 200 }, -- Lost In Ratchet
+  [41306] = { 755, 200 }, -- It's All Ogre Now
+  [41313] = { 755, 225 }, -- Leyline Investigation
+  [41316] = { 755, 300 }, -- Advanced Jewelcrafting XI: Hard as Diamonds
+  [41333] = { 755, 300 }, -- Advanced Gemology I
+  [41334] = { 755, 300 }, -- Advanced Gemology II
+  [41335] = { 755, 300 }, -- Advanced Goldsmithing I
+  [41336] = { 755, 300 }, -- An Unseen Obstacle
+  [41337] = { 755, 300 }, -- Advanced Goldsmithing II
+  [41345] = { 356, 300 }, -- Altar of an Ancient Evil
+  [41346] = { 356, 300 }, -- A Mossy Mystery
+  [41361] = { 755, 300 }, -- Gleaming Blood
+  [41362] = { 755, 300 }, -- To Cut A Heart
+  [55300] = { 164, 265 }, -- Imperial Plate Gauntlets
+  [70040] = { 164, 1 }, -- Reinforcing The Sepulcher
+  [80735] = { 171, 275 }, -- An Uncommon Request
+  [80736] = { 333, 275 }, -- A Rare Request
+}
+
+-- Goldsmithing referrals: either faction's introduction unlocks the recovery quest.
+-- Alliance Goldsmithing requires all three Talvash tasks.
+pfDB.quests["data-turtle"][41286].pre = { 41283, 41284, 41285 }
+pfDB.quests["data-turtle"][41286].preall = { 41283, 41284, 41285 }
+-- The Goldsmithing guide requires all three Jarkal tasks before continuing.
+pfDB.quests["data-turtle"][41290].pre = { 41287, 41288, 41289 }
+pfDB.quests["data-turtle"][41290].preall = { 41287, 41288, 41289 }
+pfDB.quests["data-turtle"][41291].pre = { 41286, 41290 }
+pfDB.questProfessionRequirements[41290] = { 755, 225 }
+
+-- The Brassbolts Brothers (2769) is an optional referral, not an acceptance
+-- requirement for Gahz'rilla. Turtle's quest template has PrevQuestId = 0.
+local gahzrilla = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][2770]
+  or pfDB.quests.data and pfDB.quests.data[2770]
+if type(gahzrilla) == "table" then gahzrilla.pre = nil end
+
+-- Repeatability from the downloaded Turtle quest_template SpecialFlags bit 1.
+-- A side table also works with the lean HDB runtime (no Lua quest rows).
+pfDB.quests.repeatable = {
+  [16] = true, [117] = true, [254] = true, [349] = true, [410] = true, [431] = true, [579] = true, [593] = true,
+  [619] = true, [708] = true, [779] = true, [795] = true, [813] = true, [822] = true, [889] = true, [908] = true,
+  [926] = true, [961] = true, [972] = true, [996] = true, [998] = true, [1127] = true, [1191] = true, [1192] = true,
+  [1193] = true, [1288] = true, [1423] = true, [1462] = true, [1463] = true, [1464] = true, [1514] = true, [1714] = true,
+  [1789] = true, [1790] = true, [1878] = true, [2522] = true, [2523] = true, [2582] = true, [2584] = true, [2586] = true,
+  [2602] = true, [2604] = true, [2747] = true, [2748] = true, [2749] = true, [2750] = true, [2878] = true, [2881] = true,
+  [2953] = true, [3363] = true, [3366] = true, [3382] = true, [3421] = true, [3483] = true, [3502] = true, [3503] = true,
+  [3567] = true, [3644] = true, [3645] = true, [3646] = true, [3647] = true, [3792] = true, [3803] = true, [3804] = true,
+  [3861] = true, [4041] = true, [4103] = true, [4104] = true, [4105] = true, [4106] = true, [4107] = true, [4108] = true,
+  [4109] = true, [4110] = true, [4111] = true, [4112] = true, [4113] = true, [4114] = true, [4115] = true, [4116] = true,
+  [4117] = true, [4118] = true, [4119] = true, [4221] = true, [4222] = true, [4295] = true, [4343] = true, [4381] = true,
+  [4382] = true, [4383] = true, [4384] = true, [4385] = true, [4386] = true, [4401] = true, [4403] = true, [4443] = true,
+  [4444] = true, [4445] = true, [4446] = true, [4447] = true, [4448] = true, [4461] = true, [4462] = true, [4463] = true,
+  [4464] = true, [4465] = true, [4466] = true, [4467] = true, [4481] = true, [4482] = true, [4483] = true, [4484] = true,
+  [4561] = true, [4603] = true, [4604] = true, [4661] = true, [4801] = true, [4802] = true, [4803] = true, [4804] = true,
+  [4805] = true, [4806] = true, [4807] = true, [4970] = true, [5042] = true, [5043] = true, [5044] = true, [5045] = true,
+  [5046] = true, [5059] = true, [5122] = true, [5150] = true, [5201] = true, [5218] = true, [5221] = true, [5224] = true,
+  [5227] = true, [5402] = true, [5403] = true, [5404] = true, [5406] = true, [5407] = true, [5408] = true, [5421] = true,
+  [5508] = true, [5509] = true, [5510] = true, [5519] = true, [5582] = true, [5892] = true, [5893] = true, [5981] = true,
+  [6241] = true, [6545] = true, [6546] = true, [6547] = true, [6581] = true, [6642] = true, [6643] = true, [6644] = true,
+  [6645] = true, [6646] = true, [6701] = true, [6741] = true, [6781] = true, [6801] = true, [6825] = true, [6826] = true,
+  [6827] = true, [6846] = true, [6847] = true, [6848] = true, [6861] = true, [6862] = true, [6881] = true, [6901] = true,
+  [6941] = true, [6942] = true, [6943] = true, [6962] = true, [6982] = true, [6983] = true, [6985] = true, [7001] = true,
+  [7002] = true, [7026] = true, [7027] = true, [7341] = true, [7342] = true, [7385] = true, [7386] = true, [7421] = true,
+  [7422] = true, [7423] = true, [7424] = true, [7425] = true, [7426] = true, [7427] = true, [7428] = true, [7429] = true,
+  [7478] = true, [7479] = true, [7480] = true, [7483] = true, [7484] = true, [7485] = true, [7604] = true, [7651] = true,
+  [7666] = true, [7725] = true, [7726] = true, [7735] = true, [7736] = true, [7737] = true, [7738] = true, [7796] = true,
+  [7801] = true, [7806] = true, [7812] = true, [7819] = true, [7825] = true, [7830] = true, [7832] = true, [7837] = true,
+  [7838] = true, [7846] = true, [7881] = true, [7882] = true, [7883] = true, [7884] = true, [7886] = true, [7887] = true,
+  [7888] = true, [7889] = true, [7890] = true, [7891] = true, [7892] = true, [7894] = true, [7895] = true, [7896] = true,
+  [7897] = true, [7899] = true, [7900] = true, [7901] = true, [7902] = true, [7907] = true, [7921] = true, [7922] = true,
+  [7923] = true, [7924] = true, [7925] = true, [7930] = true, [7931] = true, [7932] = true, [7933] = true, [7934] = true,
+  [7935] = true, [7936] = true, [7939] = true, [7940] = true, [7941] = true, [7942] = true, [7943] = true, [7944] = true,
+  [7981] = true, [8081] = true, [8124] = true, [8157] = true, [8158] = true, [8159] = true, [8163] = true, [8164] = true,
+  [8165] = true, [8184] = true, [8185] = true, [8186] = true, [8187] = true, [8188] = true, [8189] = true, [8190] = true,
+  [8191] = true, [8192] = true, [8193] = true, [8194] = true, [8195] = true, [8196] = true, [8221] = true, [8223] = true,
+  [8224] = true, [8225] = true, [8228] = true, [8229] = true, [8238] = true, [8239] = true, [8241] = true, [8242] = true,
+  [8243] = true, [8246] = true, [8249] = true, [8292] = true, [8293] = true, [8298] = true, [8300] = true, [8302] = true,
+  [8319] = true, [8324] = true, [8333] = true, [8342] = true, [8353] = true, [8354] = true, [8355] = true, [8356] = true,
+  [8357] = true, [8358] = true, [8359] = true, [8360] = true, [8362] = true, [8363] = true, [8364] = true, [8383] = true,
+  [8384] = true, [8385] = true, [8386] = true, [8387] = true, [8388] = true, [8389] = true, [8390] = true, [8391] = true,
+  [8392] = true, [8397] = true, [8398] = true, [8404] = true, [8405] = true, [8406] = true, [8407] = true, [8408] = true,
+  [8431] = true, [8432] = true, [8433] = true, [8434] = true, [8435] = true, [8440] = true, [8441] = true, [8442] = true,
+  [8443] = true, [8466] = true, [8467] = true, [8469] = true, [8493] = true, [8495] = true, [8496] = true, [8497] = true,
+  [8498] = true, [8500] = true, [8501] = true, [8502] = true, [8504] = true, [8506] = true, [8507] = true, [8508] = true,
+  [8510] = true, [8512] = true, [8514] = true, [8516] = true, [8518] = true, [8521] = true, [8523] = true, [8525] = true,
+  [8527] = true, [8529] = true, [8533] = true, [8534] = true, [8535] = true, [8536] = true, [8537] = true, [8538] = true,
+  [8539] = true, [8540] = true, [8541] = true, [8543] = true, [8546] = true, [8548] = true, [8550] = true, [8572] = true,
+  [8573] = true, [8574] = true, [8579] = true, [8581] = true, [8583] = true, [8589] = true, [8591] = true, [8595] = true,
+  [8601] = true, [8605] = true, [8608] = true, [8610] = true, [8612] = true, [8614] = true, [8616] = true, [8687] = true,
+  [8731] = true, [8732] = true, [8737] = true, [8738] = true, [8739] = true, [8740] = true, [8770] = true, [8771] = true,
+  [8772] = true, [8773] = true, [8774] = true, [8775] = true, [8776] = true, [8777] = true, [8778] = true, [8779] = true,
+  [8780] = true, [8781] = true, [8782] = true, [8783] = true, [8784] = true, [8785] = true, [8786] = true, [8787] = true,
+  [8789] = true, [8790] = true, [8804] = true, [8805] = true, [8806] = true, [8807] = true, [8808] = true, [8809] = true,
+  [8810] = true, [8811] = true, [8812] = true, [8813] = true, [8814] = true, [8815] = true, [8816] = true, [8817] = true,
+  [8818] = true, [8819] = true, [8820] = true, [8821] = true, [8822] = true, [8823] = true, [8824] = true, [8825] = true,
+  [8826] = true, [8829] = true, [8830] = true, [8831] = true, [8832] = true, [8833] = true, [8834] = true, [8835] = true,
+  [8836] = true, [8837] = true, [8838] = true, [8839] = true, [8840] = true, [8841] = true, [8842] = true, [8843] = true,
+  [8844] = true, [8845] = true, [8846] = true, [8847] = true, [8848] = true, [8849] = true, [8850] = true, [8851] = true,
+  [8852] = true, [8853] = true, [8854] = true, [8855] = true, [8862] = true, [8863] = true, [8864] = true, [8865] = true,
+  [8876] = true, [8877] = true, [8878] = true, [8879] = true, [8880] = true, [8881] = true, [8882] = true, [8893] = true,
+  [8981] = true, [8993] = true, [9094] = true, [9125] = true, [9127] = true, [9129] = true, [9132] = true, [9137] = true,
+  [9142] = true, [9178] = true, [9179] = true, [9181] = true, [9182] = true, [9183] = true, [9184] = true, [9185] = true,
+  [9186] = true, [9187] = true, [9188] = true, [9190] = true, [9191] = true, [9194] = true, [9195] = true, [9196] = true,
+  [9197] = true, [9198] = true, [9200] = true, [9201] = true, [9202] = true, [9203] = true, [9204] = true, [9205] = true,
+  [9206] = true, [9208] = true, [9209] = true, [9210] = true, [9211] = true, [9213] = true, [9221] = true, [9222] = true,
+  [9223] = true, [9224] = true, [9225] = true, [9226] = true, [9227] = true, [9228] = true, [9259] = true, [9266] = true,
+  [9267] = true, [9268] = true, [9317] = true, [9318] = true, [9320] = true, [9321] = true, [9338] = true, [9341] = true,
+  [9386] = true, [39993] = true, [40004] = true, [40221] = true, [40340] = true, [40341] = true, [40617] = true, [40618] = true,
+  [40619] = true, [40630] = true, [40631] = true, [40632] = true, [40709] = true, [40710] = true, [40711] = true, [40739] = true,
+  [40740] = true, [40813] = true, [40814] = true, [40815] = true, [40816] = true, [40871] = true, [40885] = true, [40894] = true,
+  [40910] = true, [40911] = true, [40912] = true, [40973] = true, [41005] = true, [41007] = true, [41018] = true, [41019] = true,
+  [41021] = true, [41031] = true, [41055] = true, [41068] = true, [41069] = true, [41079] = true, [41080] = true, [41081] = true,
+  [41082] = true, [41107] = true, [41108] = true, [41109] = true, [41115] = true, [41118] = true, [41123] = true, [41126] = true,
+  [41128] = true, [41328] = true, [41329] = true, [41330] = true, [41331] = true, [41332] = true, [41345] = true, [41346] = true,
+  [50215] = true, [50220] = true, [50311] = true, [50313] = true, [50316] = true, [50318] = true, [60030] = true, [60031] = true,
+  [60032] = true, [60033] = true, [60034] = true, [60035] = true, [60036] = true, [80219] = true, [80352] = true, [80353] = true,
+  [80369] = true, [80374] = true, [80379] = true, [80386] = true, [80740] = true,
+}
+
+-- Book of the Ancients: use Gem of the Serpent at the Serpent Statue to
+-- summon Lord Kragaru. The scripted interaction was absent from item targets.
+local serpentQuest = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][6027]
+  or pfDB.quests.data and pfDB.quests.data[6027]
+if type(serpentQuest) == "table" then
+  serpentQuest.obj = serpentQuest.obj or {}
+  serpentQuest.obj.IR = { 15766 }
+end
+pfDB["quests-itemreq"]["data-turtle"] = pfDB["quests-itemreq"]["data-turtle"] or {}
+pfDB["quests-itemreq"]["data-turtle"][15766] = { [-177673] = 19470 }
+
+-- Direct spell_script_target type 0 entries are gameobjects, not creatures.
+-- Preserve other item requirements while correcting the mis-typed links.
+local objectItemTargets = {
+  { 6637, 113791, 8899 }, -- Water Sapta -> Brazier of Everfount
+  { 6637, 101750, 8899 }, -- Water Sapta -> Shaman Shrine
+  { 6635, 100028, 8202 }, -- Earth Sapta -> Shaman Shrine
+  { 6635, 101749, 8202 }, -- Earth Sapta -> Shaman Shrine
+  { 6931, 92252, 8712 }, -- Moldy Tome -> Strahad's Summoning Circle
+  { 6997, 92252, 8712 }, -- Tattered Manuscript -> Strahad's Summoning Circle
+  { 9466, 144050, 11757 }, -- Orwin's Shovel -> Gordunni Trap
+  { 12287, 175124, 15958 }, -- Collectronic Module -> Rookery Egg
+  { 17696, 178905, 21885 }, -- Filled Cerulean Vial -> Vylestem Vine
+  { 17696, 178908, 21885 }, -- Filled Cerulean Vial -> Vylestem Vine
+  { 6999, 92252, 8712 }, -- Tome of the Cabal -> Strahad's Summoning Circle
+}
+local requirementDB = pfDB["quests-itemreq"]
+requirementDB["data-turtle"] = requirementDB["data-turtle"] or {}
+for _, link in ipairs(objectItemTargets) do
+  local itemID, objectID, spellID = link[1], link[2], link[3]
+  local requirements = requirementDB["data-turtle"][itemID]
+  if type(requirements) ~= "table" then
+    requirements = {}
+    for target, spell in pairs(requirementDB.data and requirementDB.data[itemID] or {}) do
+      requirements[target] = spell
+    end
+    requirementDB["data-turtle"][itemID] = requirements
+  end
+  requirements[objectID] = nil
+  requirements[-objectID] = spellID
+end
+
+
+-- Verified RavenCraft objective links; keep existing starts, turn-ins and gates.
+local verifiedObjectives = {
+  [41905] = { I = { 42072 } }, -- Eight Refugee Supplies from Stolen Crates.
+  [41955] = { I = { 42215, 42225, 42226, 42227 } }, -- Hydra Leather and three legendary hides.
+  [41935] = { I = { 42179 } }, -- Ten essences; the retained starting tablet is not a farming target.
+  [41940] = { I = { 42207, 42208, 42209, 42210 } }, -- Three cores of each element.
+  [40252] = { O = { 2010849 } }, -- Activate the Way-Stone of Eldarath.
+  [80341] = { IR = { 91774 } }, -- Use the supplied rod to tame a Snow Leopard.
+  [41906] = { O = { 3000203 } }, -- Free the captives from the Shadowforge Cage.
+  [42030] = { I = { 42308, 42309 } }, -- Obtain information from both informants.
+  [42032] = { I = { 42312 } }, -- Freidhelm's blueprint half.
+  [42056] = { U = { 63199 } }, -- Heal and fortify Brave Greenhorn.
+  [41963] = { I = { 42238, 42239, 9197 } },
+  [41986] = { I = { 12218 } }, -- Crafted Monster Omelets.
+  [41987] = { I = { 22527 } },
+}
+for questID, targets in pairs(verifiedObjectives) do
+  local quest = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][questID]
+    or pfDB.quests.data and pfDB.quests.data[questID]
+  if type(quest) == "table" then
+    quest.obj = quest.obj or {}
+    for kind, ids in pairs(targets) do
+      quest.obj[kind] = ids
+    end
+  end
+end
+-- Positive item-requirement targets are creatures; 44020 is Tame Snow Leopard.
+requirementDB["data-turtle"][91774] = { [1201] = 44020 }
+
+
+-- Garrison Armory: additional verified server spawns inside Blasted Lands.
+local garrisonSpawns = {
+  [60838] = {
+    { 62.55, 4.61, 4, 300 },
+    { 57.45, 4.79, 4, 300 },
+    { 61.25, 3.63, 4, 300 },
+    { 59.59, 2.54, 4, 300 },
+    { 59.15, 3.86, 4, 300 },
+    { 63.91, 3.23, 4, 300 },
+  },
+  [60839] = {
+    { 71.39, 8.27, 4, 300 },
+    { 66.36, 3.38, 4, 300 },
+    { 66.46, 1.76, 4, 300 },
+    { 61.69, 2.69, 4, 300 },
+    { 61.49, 5.88, 4, 300 },
+    { 62.27, 4.42, 4, 300 },
+    { 70.55, 0.92, 4, 300 },
+    { 68.11, 5.36, 4, 300 },
+  },
+  [60840] = {
+    { 71.31, 5.53, 4, 300 },
+    { 65.45, 0.3, 4, 300 },
+    { 57.68, 1.27, 4, 300 },
+    { 59.25, 3.06, 4, 300 },
+    { 60.76, 3.19, 4, 300 },
+    { 64.56, 5.93, 4, 300 },
+  },
+  [60842] = {
+    { 62.79, 2.78, 4, 300 },
+    { 71.92, 4.77, 4, 300 },
+    { 67.01, 4.01, 4, 300 },
+    { 67.47, 0.83, 4, 300 },
+    { 70.05, 3.66, 4, 300 },
+    { 71.28, 3.1, 4, 300 },
+    { 60.72, 0.56, 4, 300 },
+    { 56.77, 2.51, 4, 300 },
+    { 56.25, 4.29, 4, 300 },
+    { 58.72, 4.51, 4, 300 },
+    { 54.89, 4.39, 4, 300 },
+    { 55.6, 2.47, 4, 300 },
+    { 70.08, 2.2, 4, 300 },
+    { 58.29, 3.82, 4, 300 },
+  },
+}
+for unitID, locations in pairs(garrisonSpawns) do
+  local unit = pfDB.units["data-turtle"] and pfDB.units["data-turtle"][unitID]
+    or pfDB.units.data and pfDB.units.data[unitID]
+  if type(unit) == "table" then
+    unit.coords = unit.coords or {}
+    for _, location in ipairs(locations) do
+      table.insert(unit.coords, location)
+    end
+  end
+end
+
+-- It's a Secret to Everybody: restore the object relations omitted from the Turtle record.
+local raftQuest = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][3844]
+  or pfDB.quests.data and pfDB.quests.data[3844]
+if type(raftQuest) == "table" then
+  raftQuest.start = { O = { 161505 } }
+  raftQuest["end"] = { O = { 161504 } }
+end
+
+-- Horde Damaged Relic Mechanism: item-started hand-in to Jarkal Mossmeld.
+local relicHandin = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][41734]
+  or pfDB.quests.data and pfDB.quests.data[41734]
+if type(relicHandin) == "table" then
+  relicHandin["end"] = { U = { 6868 } }
+end
+
+-- Brangar's Journal is Alliance-only (including High Elves), per the current database.
+local brangarQuest = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][41873]
+  or pfDB.quests.data and pfDB.quests.data[41873]
+if type(brangarQuest) == "table" then brangarQuest.race = 589 end
+
+-- Pylon discovery quests need the client exploration-complete flag, not the talk shortcut.
+pfDB.quests.requireClientCompletion = pfDB.quests.requireClientCompletion or {}
+for _, questID in ipairs({ 4285, 4287, 4288 }) do
+  pfDB.quests.requireClientCompletion[questID] = true
+end
+
+-- Bilemaw is summoned at the Felstone cauldron trigger (NPC11152), not a
+-- persistent creature spawn. Server western_plaguelands.cpp maps it to5216/5229.
+local bilemawUnits = pfDB.units["data-turtle"] or pfDB.units.data
+local bilemaw = bilemawUnits and bilemawUnits[11075]
+if type(bilemaw) ~= "table" and pfDB.units.data then bilemaw = pfDB.units.data[11075] end
+if type(bilemaw) == "table" then bilemaw.coords = { { 37.1, 57.2, 28 } } end
+
+-- The Boran Family: deliver letters to the brothers, not hidden quest triggers.
+local boranQuest = pfDB.quests["data-turtle"] and pfDB.quests["data-turtle"][40141]
+  or pfDB.quests.data and pfDB.quests.data[40141]
+if type(boranQuest) == "table" then
+  boranQuest.obj = boranQuest.obj or {}
+  boranQuest.obj.U = { 1242, 92936 }
+end
+
+-- Delivery credit uses scripted objective text rather than the NPC's name.
+pfDB.quests.talkObjectives = pfDB.quests.talkObjectives or {}
+pfDB.quests.talkObjectives[40141] = { [1242] = 1, [92936] = 2 }
+
+-- Nafien stands at the Felwood entrance, which the Turtle client can display
+-- on its Timbermaw tunnel map. Keep his original outdoor-map coordinates.
+do
+  local units = pfDB.units and pfDB.units["data-turtle"]
+  local original = units and (units[15395] or (pfDB.units.data and pfDB.units.data[15395]))
+  if type(original) == "table" then
+    local nafien = {}
+    for key, value in pairs(original) do nafien[key] = value end
+    nafien.coords = {}
+    local found = false
+    for _, coord in ipairs(original.coords or {}) do
+      table.insert(nafien.coords, coord)
+      if coord[1] == 25.6 and coord[2] == 94.4 and coord[3] == 1769 then found = true end
+    end
+    if not found then table.insert(nafien.coords, { 25.6, 94.4, 1769, 300 }) end
+    units[15395] = nafien
+  end
+end
+
+-- Sandmoon Village extends into Tanaris, but its extracted NPC spawns only
+-- reference Thousand Needles/Shimmering Flats. Keep both coordinate systems.
+-- Derived from the same WorldMapArea rectangles used by the map projection:
+-- Thousand Needles4400x2933.33 at(-433.333,-3966.67),
+-- Tanaris6900x4600 at(-218.75,-5875).
+do
+  local units = pfDB.units and pfDB.units["data-turtle"]
+  for _, id in ipairs({60749, 60750, 60751, 60752, 60753, 60754, 60857}) do
+    local original = units and units[id]
+    if type(original) == "table" then
+      local copy = {}
+      for key, value in pairs(original) do copy[key] = value end
+      copy.coords = {}
+      local additions = {}
+      for _, coord in ipairs(original.coords or {}) do
+        table.insert(copy.coords, coord)
+        if coord[3] == 400 then
+          local x = (-433.333 - 4400 * coord[1] / 100 + 218.75) / -6900 * 100
+          local y = (-3966.67 - 2933.33 * coord[2] / 100 + 5875) / -4600 * 100
+          x, y = math.floor(x * 100 + 0.5) / 100, math.floor(y * 100 + 0.5) / 100
+          local found = false
+          for _, existing in ipairs(original.coords or {}) do
+            if existing[3] == 440 and existing[1] == x and existing[2] == y then found = true end
+          end
+          if not found and x >= 0 and x <= 100 and y >= 0 and y <= 100 then
+            table.insert(additions, {x, y, 440, coord[4]})
+          end
+        end
+      end
+      for _, coord in ipairs(additions) do table.insert(copy.coords, coord) end
+      units[id] = copy
+    end
+  end
+end
+
+-- Bloodsail Correspondence completes the first investigation and starts the
+-- report back to First Mate Crazz. Turtle's sparse records omit both links.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests and type(quests[595]) == "table" then quests[595]["end"] = { O = { 2083 } } end
+  if quests and type(quests[597]) == "table" then quests[597].start = { O = { 2083 } } end
+end
+
+-- Weapons of Spirit requires both the Muisek chain and Natural Materials.
+-- A plain pre list means either branch; retain an explicit all-required gate.
+pfDB.quests.preall = pfDB.quests.preall or {}
+pfDB.quests.preall[3129] = { 3127, 3128 }
+do
+  local quests = pfDB.quests["data-turtle"]
+  if quests and type(quests[3129]) == "table" then
+    quests[3129].preall = pfDB.quests.preall[3129]
+  end
+end
+
+-- Family Above All uses invisible credit triggers in the export. The player
+-- interacts with these two objects; the triggers have no drawable spawns.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests and type(quests[40541]) == "table" then
+    quests[40541].obj = { O = { 2010918, 2010919 } }
+  end
+  local objects = pfDB.objects and pfDB.objects["data-turtle"]
+  for id, xy in pairs({ [2010918] = {82.4, 52.3}, [2010919] = {82.5, 52.4} }) do
+    local original = objects and objects[id]
+    if type(original) == "table" then
+      local copy = {}
+      for key, value in pairs(original) do copy[key] = value end
+      copy.coords = {}
+      for _, coord in ipairs(original.coords or {}) do
+        if coord[3] == 47 then
+          table.insert(copy.coords, {xy[1], xy[2], 47, coord[4]})
+        else
+          table.insert(copy.coords, coord)
+        end
+      end
+      objects[id] = copy
+    end
+  end
+end
+
+-- Lard's kidnappers are summoned by the basket and have no static spawns.
+-- Retain the lunch drop objective and mark the interaction that summons them.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests then
+    if type(quests[7840]) ~= "table" then quests[7840] = {} end
+    quests[7840].obj = { I = {19034}, O = {179910} }
+  end
+  local objects = pfDB.objects and pfDB.objects["data-turtle"]
+  local original = objects and objects[179910]
+  if type(original) ~= "table" then
+    original = pfDB.objects and pfDB.objects.data and pfDB.objects.data[179910]
+  end
+  if objects and type(original) == "table" then
+    local copy = {}
+    for key, value in pairs(original) do copy[key] = value end
+    copy.coords = {}
+    for _, coord in ipairs(original.coords or {}) do
+      if coord[3] == 47 then
+        table.insert(copy.coords, {84.4, 41.2, 47, coord[4]})
+      else
+        table.insert(copy.coords, coord)
+      end
+    end
+    objects[179910] = copy
+  end
+end
+
+-- Filled sampling vials are created at spell-focus pools, not dropped by mobs.
+-- Link each item separately so completed samples stop showing their pool pin.
+do
+  local items = pfDB.items and pfDB.items["data-turtle"]
+  for item, object in pairs({[10691]=152598, [10692]=152604, [10693]=152605, [10694]=152606}) do
+    if items then
+      local original = items[item]
+      if type(original) ~= "table" then original = pfDB.items.data and pfDB.items.data[item] end
+      local copy = {}
+      for key, value in pairs(type(original) == "table" and original or {}) do copy[key] = value end
+      copy.O = {}
+      for id, chance in pairs(type(original) == "table" and original.O or {}) do copy.O[id] = chance end
+      copy.O[object] = 100
+      items[item] = copy
+    end
+  end
+end
+
+-- Player-confirmed Nighthaven mailbox, missing from the extracted spawns.
+-- Reuse the tracked night elf mailbox template; this is a location correction.
+do
+  local objects = pfDB.objects and pfDB.objects["data-turtle"]
+  local original = objects and objects[142109]
+  if type(original) ~= "table" then original = pfDB.objects and pfDB.objects.data and pfDB.objects.data[142109] end
+  if objects and type(original) == "table" then
+    local copy, found = {}, false
+    for key, value in pairs(original) do copy[key] = value end
+    copy.coords = {}
+    for _, coord in ipairs(original.coords or {}) do
+      table.insert(copy.coords, coord)
+      if coord[1] == 51.7 and coord[2] == 40.5 and coord[3] == 493 then found = true end
+    end
+    if not found then table.insert(copy.coords, {51.7, 40.5, 493, 0}) end
+    objects[142109] = copy
+  end
+end
+
+-- Poisoned Water transforms these static elementals into Discordant Surges.
+-- Keep the bracers' real drop source and mark where Aspect of Neptulon is used.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests then
+    if type(quests[6804]) ~= "table" then
+      quests[6804] = {}
+      for key, value in pairs(pfDB.quests.data and pfDB.quests.data[6804] or {}) do quests[6804][key] = value end
+    end
+    quests[6804].obj = { I = {17309}, U = {8519, 8520, 8521, 8522} }
+  end
+  local requirements = pfDB["quests-itemreq"] and pfDB["quests-itemreq"]["data-turtle"]
+  if requirements then
+    local original = requirements[17310]
+    if type(original) ~= "table" then original = pfDB["quests-itemreq"].data and pfDB["quests-itemreq"].data[17310] end
+    local copy = {}
+    for key, value in pairs(type(original) == "table" and original or {}) do copy[key] = value end
+    copy[8519], copy[8520], copy[8521], copy[8522] = 0, 0, 0, 0
+    requirements[17310] = copy
+  end
+end
+
+-- Grazle moved to southern Felwood; the old northern/Winterspring positions
+-- now belong to Nafien. Retain only Grazle's current Emerald Sanctuary spawn.
+do
+  local units = pfDB.units and pfDB.units["data-turtle"]
+  local original = units and units[11554]
+  if type(original) ~= "table" then original = pfDB.units and pfDB.units.data and pfDB.units.data[11554] end
+  if units and type(original) == "table" then
+    local copy = {}
+    for key, value in pairs(original) do copy[key] = value end
+    copy.coords = {}
+    for _, coord in ipairs(original.coords or {}) do
+      if coord[3] == 361 and coord[1] == 50.9 and coord[2] == 85 then
+        table.insert(copy.coords, coord)
+      end
+    end
+    if copy.coords[1] then units[11554] = copy end
+  end
+end
+
+-- November player reports: convergence gates and alternate introduction offers.
+pfDB.quests.preall = pfDB.quests.preall or {}
+for id, required in pairs({ [40424] = {40422, 40423}, [4321] = {4285, 4287, 4288} }) do
+  pfDB.quests.preall[id] = required
+  local quests = pfDB.quests["data-turtle"]
+  if quests and type(quests[id]) == "table" then quests[id].preall = required end
+end
+pfDB.quests.exclusive = pfDB.quests.exclusive or {}
+for _, group in ipairs({
+  {5066, 5090, 5091}, {5093, 5094, 5095},
+  {1000, 1004, 1018}, {1015, 1019, 1047},
+}) do
+  for _, id in ipairs(group) do pfDB.quests.exclusive[id] = group end
+end
+
+do
+  local quests = pfDB.quests["data-turtle"]
+  if quests then
+    for quest, object in pairs({ [4285] = 164955, [4287] = 164957, [4288] = 164956 }) do
+      if type(quests[quest]) == "table" then quests[quest].obj = { O = {object} } end
+    end
+    if type(quests[2936]) == "table" then
+      quests[2936].obj = { O = {142715} }
+      quests[2936]["end"] = { U = {3188} }
+    end
+  end
+  local objects = pfDB.objects and pfDB.objects["data-turtle"]
+  for id, xy in pairs({ [164955]={56.5,12.5}, [164957]={77.1,50.0}, [164956]={23.8,59.2} }) do
+    local old = objects and objects[id]
+    if type(old) ~= "table" then old = pfDB.objects and pfDB.objects.data and pfDB.objects.data[id] end
+    if objects and type(old) == "table" then
+      local copy = {}
+      for k,v in pairs(old) do copy[k] = v end
+      copy.coords = {{xy[1], xy[2], 490, 2}}
+      objects[id] = copy
+    end
+  end
+end
+
+do
+  local units = pfDB.units and pfDB.units["data-turtle"]
+  -- Same world position, expressed on the map from which Stagalbog is reached.
+  local old = units and units[950]
+  if type(old) ~= "table" then old = pfDB.units and pfDB.units.data and pfDB.units.data[950] end
+  if units and type(old) == "table" then
+    local copy = {}
+    for k,v in pairs(old) do copy[k] = v end
+    copy.coords = {{62.67, 88.14, 8, 300}}
+    units[950] = copy
+  end
+  if units then
+    units[63051] = { lvl=55, rnk=1, fac="H", coords={{65.3,38.6,5642,0}} }
+    units[63048] = { fac="H", coords={{65.2,66.8,5642,0}} }
+  end
+  local meta = pfDB["meta-turtle"]
+  if meta then
+    meta.flight = meta.flight or {}
+    meta.flight[63051], meta.flight[63048] = "H", "H"
+  end
+end
+
+-- The Maul'Ogg Crisis III uses an invisible credit trigger. Guide the player
+-- to the NPC they must speak with, keeping Haz'gorg as the return location.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests and type(quests[40266]) == "table" then
+    quests[40266].obj = { U = {91854} }
+  end
+end
+
+-- Avenging the Fallen is not offered again after completion on Raven.
+-- Its imported repeatable flag otherwise bypasses completed quest history.
+if pfDB.quests and pfDB.quests.repeatable then
+  pfDB.quests.repeatable[7830] = nil
+end
+
+-- Moonwhisper Coast player reports, checked against the Raven web database.
+-- Keep item objectives so completed collections remove their own source pins.
+do
+  local function Copy(t)
+    local out = {}
+    for k,v in pairs(t or {}) do out[k] = v end
+    return out
+  end
+  local function Record(db, id)
+    local data = pfDB[db]
+    local overlay = data and data["data-turtle"]
+    if not overlay then return end
+    local old = overlay[id]
+    if type(old) ~= "table" then old = data.data and data.data[id] end
+    local record = Copy(type(old) == "table" and old or nil)
+    overlay[id] = record
+    return record
+  end
+  local function Source(item, kind, target, chance)
+    local record = Record("items", item)
+    if not record then return end
+    record[kind] = Copy(record[kind])
+    record[kind][target] = chance
+  end
+  Source(42280, "O", 2020327, 100) -- Mothsilk Cocoon
+  Source(42140, "O", 2020265, 100) -- Maghan's Cargo
+  Source(42278, "O", 2020326, 100) -- Scroll of Lo'sho
+  Source(42000, "O", 2020319, 50)  -- Moonwhisper Berry Bush
+  Source(42305, "U", 63008, 50)    -- Moonwhisper Elekk
+  Source(42304, "U", 62998, 100)   -- Matriarch Ohanzee
+  Source(42301, "O", 2020334, 100) -- Glowing Snow Mound
+  for _, object in ipairs({2020322,2020323,2020324,2020325}) do
+    Source(42274, "O", object, 100) -- Maras'ethil Relic containers
+  end
+
+  -- Complete web-map spawn lists. The formation list replaces the misplaced
+  -- western cluster and includes the missing northern coast spawns.
+  local function Spawns(db, id, map, respawn, points)
+    local record = Record(db, id)
+    if not record then return end
+    record.coords = {}
+    for _, point in ipairs(points) do
+      table.insert(record.coords, {point[1],point[2],map,respawn})
+    end
+  end
+  Spawns("objects", 2020264, 5642, 0, {
+    {58.91,48.89},
+    {59.74,48.33},
+    {59.7,47.36},
+    {59,47.02},
+    {59.66,45.35},
+    {59.19,46.01},
+    {60.28,46.39},
+    {60.25,45.31},
+    {60.07,45.5},
+    {60.37,47.9},
+  })
+  Spawns("units", 63036, 5642, 5, {
+    {64.76,43.29},
+    {65.81,47.16},
+    {63.61,38.84},
+    {64.18,37.21},
+    {63.14,36.21},
+    {62.57,37.26},
+    {62.09,38.28},
+    {61.36,36.74},
+    {61.14,35.57},
+    {62.78,33.92},
+    {60.09,34.9},
+    {58.97,35.43},
+    {59.04,33.34},
+    {58.68,31.73},
+    {60.2,32.89},
+    {59.5,32.31},
+    {57.88,31.28},
+    {56.91,36.89},
+    {57.37,38.33},
+    {57.45,39.91},
+    {58.43,38.86},
+    {59.19,40.26},
+    {58.26,40.08},
+    {55.91,37.85},
+    {53.62,33.51},
+    {53.76,30.36},
+    {55.11,30.95},
+    {56.46,30.58},
+    {54.92,28.7},
+    {56.01,25.38},
+    {53.05,22.79},
+    {51.66,22.24},
+    {50.1,22.27},
+    {49.95,23.8},
+    {49.24,24.59},
+    {51.33,27.49},
+    {50.11,30.25},
+    {47.21,18.53},
+    {45.13,18.08},
+    {40.84,17.04},
+    {38.79,17.84},
+    {37.86,18.48},
+    {49.12,26.95},
+    {58.07,28.22},
+    {59.36,27.98},
+    {55.48,27.02},
+    {54.73,23.49},
+    {52.27,22.1},
+    {48.29,21.27},
+    {48.46,23.67},
+  })
+  Spawns("objects", 2020319, 5642, 0, {
+    {60.86,39.47},
+    {60.96,37.47},
+    {62.93,38.1},
+    {64.17,36.01},
+    {61.32,31.58},
+    {59.78,29.42},
+    {57.23,28.21},
+    {55.48,25.5},
+    {54.43,23.36},
+    {50.7,24.92},
+    {49.19,26.31},
+    {45.54,24.93},
+    {41.5,20.81},
+    {42.34,17.79},
+    {44.93,18.34},
+    {48.17,20.51},
+    {50.28,21.49},
+    {53.25,22.23},
+    {52.43,28.99},
+    {54.58,33.71},
+    {57.2,35.88},
+    {58.65,40.72},
+    {63.97,42.6},
+    {66.14,46.17},
+    {63.13,44.79},
+    {61.5,46.8},
+    {60.08,45.22},
+    {60.22,43.24},
+  })
+  Spawns("objects", 2020334, 618, 0, {
+    {63.55,59.45},
+    {64.4,60.07},
+    {65.17,59.67},
+    {66.14,60.41},
+    {65.52,60.6},
+    {65.23,62.15},
+    {65.65,63.3},
+    {65.19,64.16},
+    {64.32,62.6},
+    {64.92,64.53},
+    {65.87,59.41},
+  })
+  Spawns("objects", 2020266, 5642, 0, {
+    {53.96,88.75},
+    {54.61,91.98},
+    {53.3,97.2},
+    {56.89,91.87},
+    {55.02,87.64},
+    {56.95,85.82},
+    {59.34,88.78},
+    {59.99,87.22},
+    {63.78,85.75},
+    {62.51,82.06},
+    {60.07,81.37},
+    {58.27,77.93},
+    {59.54,74.66},
+    {55.89,79.67},
+    {55.54,80.82},
+    {55.44,75.6},
+    {56.58,72.28},
+    {56.17,71.43},
+    {57.61,68.55},
+    {63.36,75.23},
+    {64.94,79.9},
+    {67.4,74.83},
+    {65.79,71.7},
+    {70.76,66.85},
+    {68.04,65.97},
+    {66.75,65.37},
+    {67.06,63.39},
+    {73.19,61.58},
+    {67.4,58.83},
+    {66.81,61.42},
+    {64.74,62.73},
+    {61.32,63.52},
+    {59.6,64.95},
+    {58.3,66.01},
+    {54.36,63.19},
+    {57.78,52.83},
+    {60.29,54.27},
+    {63.59,53.98},
+    {65.55,55.32},
+    {68.62,57.34},
+    {72,55.31},
+    {73.75,54.6},
+    {66.03,50},
+    {60.97,49.31},
+    {58.86,48.88},
+    {60.04,45.6},
+    {61.12,42.63},
+    {64.32,44.81},
+    {63.46,46.43},
+    {67.35,46.88},
+    {63.39,37.05},
+    {60.32,34.7},
+    {58.9,30.19},
+    {57.09,34.9},
+    {58.59,41.67},
+    {54.13,37.1},
+    {53.64,28.31},
+    {53.14,25.03},
+    {47.55,33.99},
+    {47.65,29.36},
+    {45.82,28.87},
+    {43.76,28.88},
+    {40.96,26.84},
+    {40.06,24.7},
+    {42.43,20.67},
+    {46.18,20.23},
+    {47.76,24.74},
+    {49.35,20.31},
+    {54.06,12.71},
+    {50.21,5.49},
+    {47.94,5.05},
+  })
+
+  -- Add service locations without replacing any other-zone mailbox spawns.
+  local function Mailbox(id, x, y)
+    local record = Record("objects", id)
+    if not record then return end
+    record.coords = Copy(record.coords)
+    for _, coord in pairs(record.coords) do
+      if coord[3] == 5642 and math.abs(coord[1]-x) < .05
+        and math.abs(coord[2]-y) < .05 then return end
+    end
+    table.insert(record.coords, {x,y,5642,0})
+  end
+  Mailbox(173221, 63.7, 66.4)
+  Mailbox(143983, 66.9, 36.7)
+
+  local chief = Record("units", 62850)
+  if chief then
+    chief.lvl, chief.rnk, chief.fac = 60, 1, "AH"
+    chief.coords = {{60.91,65.19,5642,0}}
+  end
+  local warmbreeze = Record("units", 62975)
+  if warmbreeze then
+    warmbreeze.lvl, warmbreeze.fac = 53, "AH"
+    warmbreeze.coords = {{66.9,36.2,5642,0}}
+  end
+  local pli = Record("units", 62854)
+  if pli then
+    pli.lvl, pli.fac = 50, "AH"
+    pli.coords = {{64.9,66.7,5642,120}}
+  end
+  local quest = Record("quests", 41910)
+  if quest then quest.start = {U={62850}} end
+
+  local meta = pfDB["meta-turtle"]
+  if meta then
+    meta.innkeeper = meta.innkeeper or {}
+    meta.innkeeper[62854], meta.innkeeper[62975] = "AH", "AH"
+    meta.mailbox = meta.mailbox or {}
+    meta.mailbox[-173221], meta.mailbox[-143983] = "AH", "AH"
+  end
+end
+
+-- Moonwhisper follow-up: restore quest giver and material links from Raven.
+do
+  local function Copy(t)
+    local out = {}
+    for k,v in pairs(t or {}) do out[k] = v end
+    return out
+  end
+  local function Record(db, id)
+    local data = pfDB[db]
+    local overlay = data and data["data-turtle"]
+    if not overlay then return end
+    local old = overlay[id]
+    if type(old) ~= "table" then old = data.data and data.data[id] end
+    local record = Copy(type(old) == "table" and old or nil)
+    overlay[id] = record
+    return record
+  end
+  local cook = Record("units", 62861)
+  if cook then
+    cook.lvl, cook.fac = 48, "AH"
+    cook.coords = {{63.12,66.0,5642,0}}
+  end
+  local omen = Record("quests", 41912)
+  if omen then
+    omen.start, omen["end"] = {U={62986}}, {U={62920}}
+    -- Ral'pekta's gossip starts the scripted Crystal Entity encounter here.
+    omen.obj = {U={62920}}
+  end
+  local divination = Record("quests", 41913)
+  if divination then
+    divination.start, divination["end"] = {U={62920}}, {U={62920}}
+    divination.obj = {I={42134,42135,8831,42001}}
+  end
+  local secrets = Record("quests", 42079)
+  if secrets then secrets.class = 16 end -- Priest; retain the Tauren race mask.
+
+  local function Source(item, kind, id, chance)
+    local record = Record("items", item)
+    if not record then return end
+    record[kind] = Copy(record[kind])
+    record[kind][id] = chance
+  end
+  Source(42134, "U", 62815, 35) -- Arcane Bark
+  for _, unit in ipairs({62887,62888,62889,62890,62891}) do
+    Source(42135, "U", unit, 20) -- Highborne Fragment
+  end
+  Source(42001, "O", 2020266, 100) -- Draenethyst Formation
+  Source(42001, "O", 2020258, 100) -- Stormwrought Crystal (no static spawns)
+  Source(42385, "U", 63067, 100) -- Half-Burnt Scroll; Tauren priest quest
+end
+
+-- Hara'ne sends the player to Azh'okar; the elders' finale returns to K'la.
+do
+  local quests = pfDB.quests and pfDB.quests["data-turtle"]
+  if quests then
+    if type(quests[41918]) == "table" then
+      quests[41918].start = {U={62993}}
+    end
+    if type(quests[41916]) == "table" then
+      quests[41916].start = {U={62850}}
+      quests[41916].obj = {U={62992}}
+      quests[41916]["end"] = {U={62850}}
+    end
+  end
 end

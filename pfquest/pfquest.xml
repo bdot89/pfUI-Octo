@@ -19,9 +19,12 @@
   <Script file="db\enUS\professions.lua"/>
   <Script file="compat\pfUI.lua"/>
   <Script file="compat\client.lua"/>
+  <Script file="compat\optional.lua"/>
   <Script file="overwrites.lua"/>
   <Script file="locales.lua"/>
   <Script file="config.lua"/>
+  <Script file="changelog.lua"/>
+  <Script file="changelog-data.lua"/>
   <Script file="slashcmd.lua"/>
   <Script file="database.lua"/>
   <Script file="icons.lua"/>
@@ -39,6 +42,8 @@
   <Script file="db\refloot-turtle.lua"/>
   <Script file="db\quests-itemreq-turtle.lua"/>
   <Script file="db\quests-turtle.lua"/>
+  <Script file="db\patches-turtle.lua"/>
+  <Script file="db\feature-compat.lua"/>
   <Script file="db\zones-turtle.lua"/>
   <Script file="db\minimap-turtle.lua"/>
   <Script file="db\areatrigger-turtle.lua"/>
@@ -51,6 +56,17 @@
   <Script file="db\enUS\professions-turtle.lua"/>
   <Script file="turtle-overwrites.lua"/>
   <Script file="turtle-patchtable.lua"/>
-  <Script file="icons-nodes.lua"/>
+  <Script file="turtle-pfQuest-trees.lua"/>
+  <Script file="turtle-pfquest-arrow.lua"/>
+  <Script file="turtle-pfQuest-config.lua"/>
+  <Script file="turtle-pfQuest-worldmap.lua"/>
+  <Script file="turtle-pfQuest-lootpanel.lua"/>
+  <Script file="turtle-pfquest-questlog.lua"/>
+  <Script file="turtle-pfQuest-updater.lua"/>
+  <Script file="turtle-pfQuest-nameplates.lua"/>
+  <Script file="turtle-pfQuest-announce.lua"/>
+  <Script file="turtle-pfQuest-partyprogress.lua"/>
+  <Script file="turtle-pfQuest-config-resize.lua"/>
+  <Script file="turtle-changelog-data.lua"/>
   <Script file="restore.lua"/>
 </Ui>

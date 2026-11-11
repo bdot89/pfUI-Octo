@@ -1,9 +1,13 @@
 if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
 local function strsplit(delimiter, subject)
-  if not subject then return nil end
+  if not subject then
+    return nil
+  end
   local delimiter, fields = delimiter or ":", {}
   local pattern = string.format("([^%s]+)", delimiter)
-  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  string.gsub(subject, pattern, function(c)
+    fields[table.getn(fields) + 1] = c
+  end)
   return unpack(fields)
 end
 
@@ -16,13 +20,13 @@ versioncheck:RegisterEvent("PARTY_MEMBERS_CHANGED")
 versioncheck:RegisterEvent("PLAYER_ENTERING_WORLD")
 versioncheck:SetScript("OnEvent", function()
   if event == "ADDON_LOADED" then
-    if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" then
-      major, minor, fix = strsplit(".", tostring(GetAddOnMetadata(arg1, "Version")))
+    if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" or arg1 == "pfUI" then
+      major, minor, fix = strsplit(".", tostring(pfQuestOctoMeta("pfQuest", "Version")))
       major = tonumber(major) or 0
       minor = tonumber(minor) or 0
       fix = tonumber(fix) or 0
 
-      version = major*10000 + minor*100 + fix
+      version = major * 10000 + minor * 100 + fix
     end
 
     return
@@ -31,7 +35,9 @@ versioncheck:SetScript("OnEvent", function()
     local remoteversion = tonumber(remoteversion)
     if v == "VERSION" and remoteversion then
       remote = remote and max(remote, remoteversion) or remoteversion
-      if version and remote > version then pfQuest_config.latest = remote end
+      if version and remote > version then
+        pfQuest_config.latest = remote
+      end
     end
     return
   elseif event == "CHAT_MSG_ADDON" then
@@ -39,17 +45,25 @@ versioncheck:SetScript("OnEvent", function()
   end
 
   -- abort here without local version
-  if not version then return end
+  if not version then
+    return
+  end
 
   -- send updates
-  for _, chan in pairs(channels) do SendAddonMessage("pfQuest", "VERSION:" .. version, chan) end
+  for _, chan in pairs(channels) do
+    SendAddonMessage("pfQuest", "VERSION:" .. version, chan)
+  end
 
   -- abort here on group member events
-  if event == "PARTY_MEMBERS_CHANGED" then return end
+  if event == "PARTY_MEMBERS_CHANGED" then
+    return
+  end
 
   -- display available update
   if version and version > 0 and pfQuest_config.latest and pfQuest_config.latest > version and not displayed then
-    DEFAULT_CHAT_FRAME:AddMessage(pfQuest_Loc["|cff33ffccpf|rQuest: New version available! Have a look at http://shagu.org !"])
+    DEFAULT_CHAT_FRAME:AddMessage(
+      pfQuest_Loc["|cff33ffccpf|rQuest: New version available! Download it from https://github.com/rivi-s/pfQuest"]
+    )
     displayed = true
   end
 end)

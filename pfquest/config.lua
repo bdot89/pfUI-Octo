@@ -3,6 +3,10 @@ if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loade
 local compat = pfQuestCompat
 local L = pfQuest_Loc
 
+-- Performance: cache frequently-used globals
+local pairs = pairs
+local getn = table.getn
+
 pfQuest_history = {}
 pfQuest_colors = {}
 pfQuest_config = {}
@@ -50,120 +54,172 @@ local reset = {
   end,
 }
 
+StaticPopupDialogs["PFQUEST_DBURL"] = {
+  text = "Quest Database URL\nUse a homepage URL or a prefix ending with ?quest=",
+  button1 = SAVE,
+  button2 = CANCEL,
+  hasEditBox = 1,
+  maxLetters = 255,
+  timeout = 0,
+  whileDead = 1,
+  hideOnEscape = 1,
+  OnShow = function()
+    local editBox = getglobal(this:GetName() .. "EditBox")
+    local saved = pfQuest_global and pfQuest_global["dburl"]
+    editBox:SetText(saved and saved ~= "" and saved or "https://database.ravencraft.io/?quest=")
+    editBox:HighlightText()
+  end,
+  OnAccept = function()
+    local popup = this:GetParent()
+    local editBox = popup and getglobal(popup:GetName() .. "EditBox")
+    if not editBox then return end
+    pfQuest_global = pfQuest_global or {}
+    pfQuest_global["dburl"] = editBox:GetText()
+  end,
+  EditBoxOnEnterPressed = function()
+    local parent = this:GetParent()
+    pfQuest_global = pfQuest_global or {}
+    pfQuest_global["dburl"] = this:GetText()
+    parent:Hide()
+  end,
+}
+
+local function OpenDatabaseURL()
+  StaticPopup_Show("PFQUEST_DBURL")
+end
+
+local minimapRefreshMenu
+local function OpenMinimapRefreshSelector()
+  if not minimapRefreshMenu then
+    minimapRefreshMenu = CreateFrame("Frame", "pfQuestMinimapRefreshMenu", UIParent, "UIDropDownMenuTemplate")
+    UIDropDownMenu_Initialize(minimapRefreshMenu, function()
+      for _, mode in ipairs({ "smooth", "balanced", "performance" }) do
+        local info = UIDropDownMenu_CreateInfo()
+        info.text = mode:gsub("^%l", string.upper)
+        info.value = mode
+        info.checked = pfQuest_config["minimaprefresh"] == mode
+        info.func = function()
+          pfQuest_config["minimaprefresh"] = this.value
+          if pfMap then
+            pfMap.minimapTick = nil
+            pfMap.minimapAnchorAt = nil
+            pfMap:UpdateMinimap()
+          end
+        end
+        UIDropDownMenu_AddButton(info)
+      end
+    end)
+  end
+  ToggleDropDownMenu(1, nil, minimapRefreshMenu, this, 0, 0)
+end
+
 -- default config
 pfQuest_defconfig = {
-  { -- 1: All Quests; 2: Tracked; 3: Manual; 4: Hide
+  { -- 1: All Quests; 2: Tracked; 3: Manual; 4: Hide; 5: Current Zone Only
     config = "trackingmethod",
-    text = nil, default = 1, type = nil
+    text = nil,
+    default = 1,
+    type = nil,
+  },
+  {
+    config = "trackerquestsort",
+    text = nil,
+    default = "level",
+    type = nil,
+  },
+  {
+    config = "questpinlevelrange",
+    text = nil,
+    default = "off",
+    type = nil,
+  },
+  {
+    config = "questpinleveldirection",
+    text = nil,
+    default = "lower",
+    type = nil,
   },
 
-  { text = L["General"],
-    default = nil, type = "header" },
-  { text = L["Enable World Map Menu"],
-    default = "1", type = "checkbox", config = "worldmapmenu" },
-  { text = L["Enable Minimap Button"],
-    default = "1", type = "checkbox", config = "minimapbutton" },
-  { text = L["Enable Quest Tracker"],
-    default = "1", type = "checkbox", config = "showtracker" },
-  { text = L["Enable Quest Log Buttons"],
-    default = "1", type = "checkbox", config = "questlogbuttons" },
-  { text = L["Enable Quest Link Support"],
-    default = "1", type = "checkbox", config = "questlinks" },
-  { text = L["Show Database IDs"],
-    default = "0", type = "checkbox", config = "showids" },
-  { text = L["Draw Favorites On Login"],
-    default = "0", type = "checkbox", config = "favonlogin" },
-  { text = L["Minimum Item Drop Chance"],
-    default = "1", type = "text", config = "mindropchance" },
-  { text = L["Show Tooltips"],
-    default = "1", type = "checkbox", config = "showtooltips" },
-  { text = L["Show Help On Tooltips"],
-    default = "1", type = "checkbox", config = "tooltiphelp" },
-  { text = L["Show Level On Quest Tracker"],
-    default = "1", type = "checkbox", config = "trackerlevel" },
-  { text = L["Show Level On Quest Log"],
-    default = "0", type = "checkbox", config = "questloglevel" },
+  { text = "Interface", default = nil, type = "header", page = "general" },
+  { text = L["Enable World Map Menu"], default = "1", type = "checkbox", config = "worldmapmenu" },
+  { text = L["Enable Minimap Button"], default = "1", type = "checkbox", config = "minimapbutton" },
+  { text = L["Enable Quest Tracker"], default = "1", type = "checkbox", config = "showtracker" },
+  { text = L["Enable Quest Log Buttons"], default = "1", type = "checkbox", config = "questlogbuttons" },
+  { text = L["Enable Quest Link Support"], default = "1", type = "checkbox", config = "questlinks" },
+  { text = "Information & Tooltips", default = nil, type = "header", page = "general" },
+  { text = "Quest Database URL", default = "1", type = "button", func = OpenDatabaseURL },
+  { text = L["Show Database IDs"], default = "0", type = "checkbox", config = "showids" },
+  { text = L["Draw Favorites On Login"], default = "0", type = "checkbox", config = "favonlogin" },
+  { text = L["Minimum Item Drop Chance"], default = "1", type = "text", config = "mindropchance", tooltip = "Filters known item drop sources below this percentage. Vendors are unaffected. Active quest markers refresh after saving; repeat a database search to refresh its existing markers." },
+  { text = L["Show Tooltips"], default = "1", type = "checkbox", config = "showtooltips" },
+  { text = L["Show Help On Tooltips"], default = "1", type = "checkbox", config = "tooltiphelp" },
+  { text = L["Show Level On Quest Tracker"], default = "1", type = "checkbox", config = "trackerlevel" },
+  { text = L["Show Level On Quest Log"], default = "0", type = "checkbox", config = "questloglevel" },
 
-  { text = L["Questing"],
-    default = nil, type = "header" },
-  { text = L["Quest Tracker Visibility"],
-    default = "0", type = "text", config = "trackeralpha" },
-  { text = L["Quest Tracker Font Size"],
-    default = "12", type = "text", config = "trackerfontsize", },
-  { text = L["Quest Tracker Unfold Objectives"],
-    default = "0", type = "checkbox", config = "trackerexpand" },
-  { text = L["Quest Objective Spawn Points (World Map)"],
-    default = "1", type = "checkbox", config = "showspawn" },
-  { text = L["Quest Objective Spawn Points (Mini Map)"],
-    default = "1", type = "checkbox", config = "showspawnmini" },
-  { text = L["Quest Objective Icons (World Map)"],
-    default = "1", type = "checkbox", config = "showcluster" },
-  { text = L["Quest Objective Icons (Mini Map)"],
-    default = "0", type = "checkbox", config = "showclustermini" },
-  { text = L["Display Available Quest Givers"],
-    default = "1", type = "checkbox", config = "allquestgivers" },
-  { text = L["Display Current Quest Givers"],
-    default = "1", type = "checkbox", config = "currentquestgivers" },
-  { text = L["Display Low Level Quest Givers"],
-    default = "0", type = "checkbox", config = "showlowlevel" },
-  { text = L["Display Level+3 Quest Givers"],
-    default = "0", type = "checkbox", config = "showhighlevel" },
-  { text = L["Display Event & Daily Quests"],
-    default = "0", type = "checkbox", config = "showfestival" },
+  { text = "Quest Tracker", default = nil, type = "header", page = "questing" },
+  { text = L["Quest Tracker Visibility"], default = "0", type = "text", config = "trackeralpha" },
+  { text = L["Quest Tracker Font Size"], default = "12", type = "text", config = "trackerfontsize" },
+  { text = L["Quest Tracker Unfold Objectives"], default = "0", type = "checkbox", config = "trackerexpand" },
+  { text = "Quest Markers", default = nil, type = "header", page = "questing" },
+  { text = L["Quest Objective Spawn Points (World Map)"], default = "1", type = "checkbox", config = "showspawn" },
+  {
+    text = L["Quest Objective Spawn Points (Mini Map)"],
+    default = "1",
+    type = "checkbox",
+    config = "showspawnmini",
+  },
+  { text = L["Quest Objective Icons (World Map)"], default = "1", type = "checkbox", config = "showcluster" },
+  { text = L["Quest Objective Icons (Mini Map)"], default = "0", type = "checkbox", config = "showclustermini" },
+  { text = "Hide Quest Pins In Unexplored Areas", default = "0", type = "checkbox", config = "hideunexplored" },
+  { text = L["Display Available Quest Givers"], default = "1", type = "checkbox", config = "allquestgivers" },
+  { text = L["Display Current Quest Givers"], default = "1", type = "checkbox", config = "currentquestgivers" },
+  { text = L["Display Low Level Quest Givers"], default = "0", type = "checkbox", config = "showlowlevel" },
+  { text = L["Display Level+3 Quest Givers"], default = "0", type = "checkbox", config = "showhighlevel" },
+  { text = L["Display Event & Daily Quests"], default = "0", type = "checkbox", config = "showfestival" },
+  { text = L["Display Repeatable Quests"] .. " |cffffcc00[Beta]|r", default = "0", type = "checkbox", config = "showrepeatable", tooltip = "Show known repeatable quest offers with blue exclamation marks. Existing quest requirements still apply. Updates after accepting or turning in a quest are still being tested. Some repeatable quests may be missing; please report them with the quest name and ID if known." },
 
-  { text = L["Map & Minimap"],
-    default = nil, type = "header" },
-  { text = L["Enable Minimap Nodes"],
-    default = "1", type = "checkbox", config = "minimapnodes" },
-  { text = L["Use Icons For Tracking Nodes"],
-    default = "1", type = "checkbox", config = "trackingicons" },
-  { text = L["Use Monochrome Cluster Icons"],
-    default = "0", type = "checkbox", config = "clustermono" },
-  { text = L["Use Cut-Out Minimap Node Icons"],
-    default = "1", type = "checkbox", config = "cutoutminimap" },
-  { text = L["Use Cut-Out World Map Node Icons"],
-    default = "0", type = "checkbox", config = "cutoutworldmap" },
-  { text = L["Color Map Nodes By Spawn"],
-    default = "0", type = "checkbox", config = "spawncolors" },
-  { text = L["World Map Node Transparency"],
-    default = "1.0", type = "text", config = "worldmaptransp" },
-  { text = L["Minimap Node Transparency"],
-    default = "1.0", type = "text", config = "minimaptransp" },
-  { text = L["Node Fade Transparency"],
-    default = "0.3", type = "text", config = "nodefade" },
-  { text = L["Highlight Nodes On Mouseover"],
-    default = "1", type = "checkbox", config = "mouseover" },
+  { text = L["Map & Minimap"], default = nil, type = "header", page = "map" },
+  { text = L["Enable Minimap Nodes"], default = "1", type = "checkbox", config = "minimapnodes" },
+  { text = "Minimap Marker Refresh", default = "smooth", type = "button", func = OpenMinimapRefreshSelector },
+  { text = L["Use Icons For Tracking Nodes"], default = "1", type = "checkbox", config = "trackingicons" },
+  { text = L["Use Monochrome Cluster Icons"], default = "0", type = "checkbox", config = "clustermono" },
+  { text = L["Use Cut-Out Minimap Node Icons"], default = "1", type = "checkbox", config = "cutoutminimap" },
+  { text = L["Use Cut-Out World Map Node Icons"], default = "0", type = "checkbox", config = "cutoutworldmap" },
+  { text = L["Color Map Nodes By Spawn"], default = "0", type = "checkbox", config = "spawncolors" },
+  { text = L["World Map Node Transparency"], default = "1.0", type = "text", config = "worldmaptransp" },
+  { text = L["Minimap Node Transparency"], default = "1.0", type = "text", config = "minimaptransp" },
+  { text = L["Node Fade Transparency"], default = "0.3", type = "text", config = "nodefade" },
+  { text = L["Highlight Nodes On Mouseover"], default = "1", type = "checkbox", config = "mouseover" },
 
-  { text = L["Routes"],
-    default = nil, type = "header" },
-  { text = L["Show Route Between Objects"],
-    default = "1", type = "checkbox", config = "routes" },
-  { text = L["Include Unified Quest Locations"],
-    default = "1", type = "checkbox", config = "routecluster" },
-  { text = L["Include Quest Enders"],
-    default = "1", type = "checkbox", config = "routeender" },
-  { text = L["Include Quest Starters"],
-    default = "0", type = "checkbox", config = "routestarter" },
-  { text = L["Show Route On Minimap"],
-    default = "0", type = "checkbox", config = "routeminimap" },
-  { text = L["Show Arrow Along Routes"],
-    default = "1", type = "checkbox", config = "arrow" },
+  { text = "Routing", default = nil, type = "header", page = "routes" },
+  { text = L["Show Route Between Objects"], default = "1", type = "checkbox", config = "routes" },
+  { text = L["Include Unified Quest Locations"], default = "1", type = "checkbox", config = "routecluster" },
+  { text = L["Include Quest Enders"], default = "1", type = "checkbox", config = "routeender" },
+  { text = L["Include Quest Starters"], default = "0", type = "checkbox", config = "routestarter" },
+  { text = L["Show Route On Minimap"], default = "0", type = "checkbox", config = "routeminimap" },
+  { text = "Navigation Arrow", default = nil, type = "header", page = "routes" },
+  { text = L["Show Arrow Along Routes"], default = "1", type = "checkbox", config = "arrow" },
 
-  { text = L["User Data"],
-    default = nil, type = "header" },
-  { text = L["Reset Configuration"],
-    default = "1", type = "button", func = reset.config },
-  { text = L["Reset Quest History"],
-    default = "1", type = "button", func = reset.history },
-  { text = L["Reset Cache"],
-    default = "1", type = "button", func = reset.cache },
-  { text = L["Reset Everything"],
-    default = "1", type = "button", func = reset.everything },
+  { text = "Data & Reset", default = nil, type = "header", page = "general" },
+  { text = L["Reset Configuration"], default = "1", type = "button", func = reset.config },
+  { text = L["Reset Quest History"], default = "1", type = "button", func = reset.history },
+  { text = L["Reset Cache"], default = "1", type = "button", func = reset.cache },
+  { text = L["Reset Everything"], default = "1", type = "button", func = reset.everything },
 }
 
 StaticPopupDialogs["PFQUEST_RESET"] = {
   button1 = YES,
   button2 = NO,
+  timeout = 0,
+  whileDead = 1,
+  hideOnEscape = 1,
+}
+
+StaticPopupDialogs["PFQUEST_RELOAD_REQUIRED"] = {
+  text = "This setting requires a UI reload to take effect.",
+  button1 = "Reload UI",
+  button2 = "Later",
+  OnAccept = ReloadUI,
   timeout = 0,
   whileDead = 1,
   hideOnEscape = 1,
@@ -178,30 +234,6 @@ pfQuestConfig:SetFrameStrata("HIGH")
 pfQuestConfig:SetMovable(true)
 pfQuestConfig:EnableMouse(true)
 pfQuestConfig:SetClampedToScreen(true)
-pfQuestConfig:RegisterEvent("ADDON_LOADED")
-pfQuestConfig:SetScript("OnEvent", function()
-  if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" or arg1 == "pfUI" then
-    pfQuestConfig:LoadConfig()
-    pfQuestConfig:MigrateHistory()
-    pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
-
-    pfQuest_questcache = pfQuest_questcache or {}
-    pfQuest_history = pfQuest_history or {}
-    pfQuest_colors = pfQuest_colors or {}
-    pfQuest_config = pfQuest_config or {}
-    pfQuest_track = pfQuest_track or {}
-    pfBrowser_fav = pfBrowser_fav or {["units"] = {}, ["objects"] = {}, ["items"] = {}, ["quests"] = {}}
-
-    -- clear quest history on new characters
-    if UnitXP("player") == 0 and UnitLevel("player") == 1 then
-      pfQuest_history = {}
-    end
-
-    if pfBrowserIcon and pfQuest_config["minimapbutton"] == "0" then
-      pfBrowserIcon:Hide()
-    end
-  end
-end)
 
 pfQuestConfig:SetScript("OnMouseDown", function()
   this:StartMoving()
@@ -213,6 +245,7 @@ end)
 
 pfQuestConfig:SetScript("OnShow", function()
   this:UpdateConfigEntries()
+  if pfQuestChangelog then pfQuestChangelog:UpdateButton() end
 end)
 
 pfQuestConfig.vpos = 40
@@ -221,21 +254,24 @@ pfUI.api.CreateBackdrop(pfQuestConfig, nil, true, 0.75)
 table.insert(UISpecialFrames, "pfQuestConfig")
 
 -- detect current addon path
-local tocs = { "", "-master", "-tbc", "-wotlk" }
+-- pfUI Octo: built into pfUI
+pfQuestConfig.path = "Interface\\AddOns\\pfUI\\pfquest"
+pfQuestConfig.version = tostring(pfQuestOctoMeta("pfQuest", "Version") or "0")
+local tocs = {}
 for _, name in pairs(tocs) do
   local current = string.format("pfQuest%s", name)
   local _, title = GetAddOnInfo(current)
   if title then
     pfQuestConfig.path = "Interface\\AddOns\\" .. current
-    pfQuestConfig.version = tostring(GetAddOnMetadata(current, "Version"))
+    pfQuestConfig.version = tostring(pfQuestOctoMeta(current, "Version"))
     break
   end
 end
 
--- pfUI Octo: built into pfUI
+-- fallback if no matching addon found
 if not pfQuestConfig.path then
-  pfQuestConfig.path = "Interface\\AddOns\\pfUI\\pfquest"
-  pfQuestConfig.version = tostring(GetAddOnMetadata("pfUI", "X-pfQuest-Version") or "7.0.1")
+  pfQuestConfig.path = "Interface\\AddOns\\pfQuest"
+  pfQuestConfig.version = "unknown"
 end
 
 pfQuestConfig.title = pfQuestConfig:CreateFontString("Status", "LOW", "GameFontNormal")
@@ -250,50 +286,222 @@ pfQuestConfig.close:SetPoint("TOPRIGHT", -5, -5)
 pfQuestConfig.close:SetHeight(20)
 pfQuestConfig.close:SetWidth(20)
 pfQuestConfig.close.texture = pfQuestConfig.close:CreateTexture("pfQuestionDialogCloseTex")
-pfQuestConfig.close.texture:SetTexture(pfQuestConfig.path.."\\compat\\close")
+pfQuestConfig.close.texture:SetTexture(pfQuestConfig.path .. "\\compat\\close")
 pfQuestConfig.close.texture:ClearAllPoints()
 pfQuestConfig.close.texture:SetPoint("TOPLEFT", pfQuestConfig.close, "TOPLEFT", 4, -4)
 pfQuestConfig.close.texture:SetPoint("BOTTOMRIGHT", pfQuestConfig.close, "BOTTOMRIGHT", -4, 4)
 
-pfQuestConfig.close.texture:SetVertexColor(1,.25,.25,1)
-pfUI.api.SkinButton(pfQuestConfig.close, 1, .5, .5)
+pfQuestConfig.close.texture:SetVertexColor(1, 0.25, 0.25, 1)
+pfUI.api.SkinButton(pfQuestConfig.close, 1, 0.5, 0.5)
+local function CloseConfigWindow()
+  if pfQuestConfig.mapAppearancePending and pfMap and pfMap.ApplyMapAppearance then
+    pfMap:ApplyMapAppearance()
+    pfQuestConfig.mapAppearancePending = nil
+  end
+  if pfQuestConfig.trackingIconsPending and pfMap and pfMap.RefreshTrackingIcons then
+    pfMap:RefreshTrackingIcons()
+    pfQuestConfig.trackingIconsPending = nil
+  end
+  if pfQuestConfig.continentSettingsPending and pfMap and pfMap.ApplyContinentSettings then
+    pfMap:ApplyContinentSettings(pfQuestConfig.continentSettingsPending)
+    pfQuestConfig.continentSettingsPending = nil
+  end
+  if pfQuestConfig.trackerAppearancePending and pfQuest.tracker and pfQuest.tracker.ApplyAppearance then
+    pfQuest.tracker.ApplyAppearance(pfQuestConfig.trackerAppearancePending)
+    pfQuestConfig.trackerAppearancePending = nil
+  end
+  if pfQuestConfig.questFiltersPending then
+    if pfDatabase and pfDatabase.InvalidateHDBQuestGiverRequest then
+      pfDatabase:InvalidateHDBQuestGiverRequest()
+    end
+    pfQuest.updateQuestGivers = true
+    pfQuestConfig.questFiltersPending = nil
+  end
+  if pfQuestConfig.partySettingsPending and pfMap and pfMap.ApplyPartySettings then
+    pfMap:ApplyPartySettings(pfQuestConfig.partySettingsPending)
+    pfQuestConfig.partySettingsPending = nil
+  end
+  if pfQuestConfig.itemSourceSettingsPending and pfQuest.RefreshItemSourceSettings then
+    pfQuest:RefreshItemSourceSettings()
+    pfQuestConfig.itemSourceSettingsPending = nil
+  end
+  if pfQuestConfig.lootSettingsPending and pfQuestLoot and pfQuestLoot.ApplySettings then
+    pfQuestLoot.ApplySettings()
+    pfQuestConfig.lootSettingsPending = nil
+  end
+  pfQuestConfig:Hide()
+  if pfQuestConfig.reloadRequired then
+    if pfUI and pfUI.api and pfUI.api.CreateQuestionDialog then
+      pfUI.api.CreateQuestionDialog(
+        "This setting requires a UI reload to take effect.",
+        { "Reload UI", ReloadUI },
+        { "Later", function() end }
+      )
+    else
+      StaticPopup_Show("PFQUEST_RELOAD_REQUIRED")
+    end
+  end
+end
 pfQuestConfig.close:SetScript("OnClick", function()
-  this:GetParent():Hide()
+  CloseConfigWindow()
 end)
 
 pfQuestConfig.welcome = CreateFrame("Button", "pfQuestConfigWelcome", pfQuestConfig)
 pfQuestConfig.welcome:SetWidth(160)
 pfQuestConfig.welcome:SetHeight(28)
 pfQuestConfig.welcome:SetPoint("BOTTOMLEFT", 10, 10)
-pfQuestConfig.welcome:SetScript("OnClick", function() pfQuestConfig:Hide(); pfQuestInit:Show() end)
+pfQuestConfig.welcome:SetScript("OnClick", function()
+  pfQuestConfig:Hide()
+  pfQuestInit:Show()
+end)
 pfQuestConfig.welcome.text = pfQuestConfig.welcome:CreateFontString("Caption", "LOW", "GameFontWhite")
 pfQuestConfig.welcome.text:SetAllPoints(pfQuestConfig.welcome)
 pfQuestConfig.welcome.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.welcome.text:SetText(L["Welcome Screen"])
 pfUI.api.SkinButton(pfQuestConfig.welcome)
 
+-- Match the footer actions; unread highlighting is static, with no timer.
+pfQuestConfig.changelog = CreateFrame("Button", "pfQuestConfigChangelog", pfQuestConfig)
+pfQuestConfig.changelog:SetWidth(120)
+pfQuestConfig.changelog:SetHeight(28)
+pfQuestConfig.changelog:SetPoint("LEFT", pfQuestConfig.welcome, "RIGHT", 8, 0)
+pfQuestConfig.changelog:SetScript("OnClick", function() pfQuestChangelog:Show() end)
+pfQuestConfig.changelog.text = pfQuestConfig.changelog:CreateFontString("Caption", "LOW", "GameFontWhite")
+pfQuestConfig.changelog.text:SetAllPoints(pfQuestConfig.changelog)
+pfQuestConfig.changelog.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
+pfQuestConfig.changelog.text:SetText("Changelog")
+pfUI.api.SkinButton(pfQuestConfig.changelog)
+local unread = CreateFrame("Frame", nil, pfQuestConfig.changelog)
+pfQuestConfig.changelog.unreadBorder = unread
+unread:SetAllPoints(pfQuestConfig.changelog)
+unread:SetFrameLevel(pfQuestConfig.changelog:GetFrameLevel() + 1)
+for _, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+  local edge = unread:CreateTexture(nil, "OVERLAY")
+  edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+  edge:SetVertexColor(0.2, 1, 0.8, 0.9)
+  if side == "TOP" or side == "BOTTOM" then
+    edge:SetPoint(side .. "LEFT", unread, side .. "LEFT", -2, side == "TOP" and 2 or -2)
+    edge:SetPoint(side .. "RIGHT", unread, side .. "RIGHT", 2, side == "TOP" and 2 or -2)
+    edge:SetHeight(2)
+  else
+    edge:SetPoint("TOP" .. side, unread, "TOP" .. side, side == "LEFT" and -2 or 2, 2)
+    edge:SetPoint("BOTTOM" .. side, unread, "BOTTOM" .. side, side == "LEFT" and -2 or 2, -2)
+    edge:SetWidth(2)
+  end
+end
+unread:Hide()
+
 pfQuestConfig.save = CreateFrame("Button", "pfQuestConfigReload", pfQuestConfig)
 pfQuestConfig.save:SetWidth(160)
 pfQuestConfig.save:SetHeight(28)
 pfQuestConfig.save:SetPoint("BOTTOMRIGHT", -10, 10)
-pfQuestConfig.save:SetScript("OnClick", ReloadUI)
+pfQuestConfig.save:SetScript("OnClick", function()
+  CloseConfigWindow()
+end)
 pfQuestConfig.save.text = pfQuestConfig.save:CreateFontString("Caption", "LOW", "GameFontWhite")
 pfQuestConfig.save.text:SetAllPoints(pfQuestConfig.save)
 pfQuestConfig.save.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
 pfQuestConfig.save.text:SetText(L["Save & Close"])
 pfUI.api.SkinButton(pfQuestConfig.save)
 
+-- Most settings already update their saved value as soon as the control is
+-- clicked. Keep rendering work coalesced instead of rebuilding every quest
+-- node for each checkbox in a row.
+local refreshFrame = CreateFrame("Frame")
+refreshFrame:Hide()
+
+function pfQuestConfig:RequestRefresh(kind)
+  if kind == "full" then
+    self.pendingRefresh = "full"
+  elseif not self.pendingRefresh then
+    self.pendingRefresh = "map"
+  end
+  self.refreshAt = GetTime() + 0.15
+  refreshFrame:Show()
+end
+
+refreshFrame:SetScript("OnUpdate", function()
+  if not pfQuestConfig.refreshAt or pfQuestConfig.refreshAt > GetTime() then
+    return
+  end
+
+  local kind = pfQuestConfig.pendingRefresh
+  pfQuestConfig.pendingRefresh = nil
+  pfQuestConfig.refreshAt = nil
+  this:Hide()
+
+  if kind == "full" then
+    pfQuest:ResetAll()
+  elseif kind == "map" and pfMap then
+    pfMap:UpdateNodes()
+    if pfMap.UpdateMinimap then pfMap:UpdateMinimap() end
+  end
+end)
+
+local fullRefreshSettings = {
+  allquestgivers = true,
+  currentquestgivers = true,
+  showlowlevel = true,
+  showhighlevel = true,
+  showfestival = true,
+  showrepeatable = true,
+}
+
+local reloadSettings = {
+  worldmapmenu = true,
+  minimapbutton = true,
+  questlogbuttons = true,
+}
+
+function pfQuestConfig:IsReloadSetting(config)
+  return reloadSettings[config]
+end
+
+function pfQuestConfig:UpdateReloadRequired()
+  pfQuestConfig.reloadRequired = nil
+  if not pfQuestConfig.loadedReloadSettings then return end
+  for config in pairs(reloadSettings) do
+    if pfQuest_config[config] ~= pfQuestConfig.loadedReloadSettings[config] then
+      pfQuestConfig.reloadRequired = true
+      return
+    end
+  end
+end
+
+local mapRefreshSettings = {
+  showspawn = true,
+  showspawnmini = true,
+  showcluster = true,
+  showclustermini = true,
+  minimapnodes = true,
+  trackingicons = true,
+  clustermono = true,
+  cutoutminimap = true,
+  cutoutworldmap = true,
+  spawncolors = true,
+  mouseover = true,
+  hideunexplored = true,
+  continentClickThrough = true,
+}
+
 function pfQuestConfig:LoadConfig()
-  if not pfQuest_config then pfQuest_config = {} end
+  if not pfQuest_config then
+    pfQuest_config = {}
+  end
   for id, data in pairs(pfQuest_defconfig) do
     if data.config and not pfQuest_config[data.config] then
       pfQuest_config[data.config] = data.default
     end
   end
+  local mode = pfQuest_config["minimaprefresh"] or "smooth"
+  if mode ~= "smooth" and mode ~= "balanced" and mode ~= "performance" then mode = "smooth" end
+  pfQuest_config["minimaprefresh"] = mode
 end
 
 function pfQuestConfig:MigrateHistory()
-  if not pfQuest_history then return end
+  if not pfQuest_history then
+    return
+  end
 
   local match = false
 
@@ -316,32 +524,207 @@ function pfQuestConfig:MigrateHistory()
   end
 end
 
-local maxh, maxw = 0, 0
-local width, height = 230, 22
-local maxtext = 130
+local CONFIG_ENTRY_HEIGHT = 22
+local CONFIG_COLUMNS = 2
+local CONFIG_HEADER_INDENT = 10
+local CONFIG_ITEM_INDENT = 20
 local configframes = {}
-function pfQuestConfig:CreateConfigEntries(config)
-  local count = 1
+local configentries = {}
+local configtabs = {}
+local CONFIG_PAGES = {
+  { key = "general", label = L["General"] or "General" },
+  { key = "questing", label = L["Questing"] or "Questing" },
+  { key = "map", label = L["Map & Minimap"] or "Map" },
+  { key = "routes", label = L["Routes"] or "Routes" },
+  { key = "features", label = "Features" },
+}
 
-  for _, data in pairs(config) do
+local function SetCheckboxVisual(input, checked)
+  input:SetChecked(checked)
+  local templateCheck = input.GetCheckedTexture and input:GetCheckedTexture()
+  if templateCheck then templateCheck:Hide() end
+  if input.checkmark then
+    if checked then input.checkmark:Show() else input.checkmark:Hide() end
+  end
+end
+
+local function ClearConfigEntries()
+  for _, frame in ipairs(configentries) do
+    frame:Hide()
+    frame:SetParent(nil)
+  end
+  configframes = {}
+  configentries = {}
+  for _, frame in ipairs(configtabs) do
+    frame:Hide()
+    frame:SetParent(nil)
+  end
+  configtabs = {}
+end
+
+local function SetActiveConfigPage(page)
+  pfQuestConfig.activePage = page
+  for _, frame in ipairs(configentries) do
+    if frame.configPage == page then frame:Show() else frame:Hide() end
+  end
+  for _, tab in ipairs(configtabs) do
+    local active = tab.configPage == page
+    tab.text:SetTextColor(active and 0.3 or 1, active and 1 or 0.82, active and 0.8 or 0.3)
+    if active then tab:Disable() else tab:Enable() end
+  end
+end
+
+local function CreateConfigTabs(availablePages)
+  local visiblePages = {}
+  for _, page in ipairs(CONFIG_PAGES) do
+    if availablePages[page.key] then table.insert(visiblePages, page) end
+  end
+  local tabWidth = 112
+  local totalWidth = table.getn(visiblePages) * tabWidth
+  for index, page in ipairs(visiblePages) do
+    local tab = CreateFrame("Button", nil, pfQuestConfig)
+    tab:SetWidth(tabWidth - 4)
+    tab:SetHeight(22)
+    tab:SetPoint("TOP", pfQuestConfig, "TOP", -totalWidth / 2 + tabWidth * (index - 0.5), -27)
+    tab.configPage = page.key
+    tab.text = tab:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+    tab.text:SetAllPoints(tab)
+    tab.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
+    tab.text:SetText(page.label)
+    tab:SetScript("OnClick", function() SetActiveConfigPage(this.configPage) end)
+    pfUI.api.SkinButton(tab)
+    table.insert(configtabs, tab)
+  end
+end
+
+local function AddConfigTooltip(frame, data)
+  if not data.tooltip then return end
+  local function ShowTooltip()
+    GameTooltip_SetDefaultAnchor(GameTooltip, this)
+    GameTooltip:SetText(data.text)
+    GameTooltip:AddLine(data.tooltip, 1, 1, 1, true)
+    GameTooltip:SetWidth(260)
+    GameTooltip:Show()
+  end
+  frame:EnableMouse(true)
+  frame:SetScript("OnEnter", ShowTooltip)
+  frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  if frame.input then
+    frame.input:SetScript("OnEnter", ShowTooltip)
+    frame.input:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  end
+end
+
+local function HandleConfigToggle(input)
+  local previous = pfQuest_config[input.config]
+  local checked = pfQuest_config[input.config] ~= "1"
+  pfQuest_config[input.config] = checked and "1" or "0"
+  input.lastVisualValue = pfQuest_config[input.config]
+  SetCheckboxVisual(input, checked)
+
+  if reloadSettings[input.config] then
+    -- A late config-panel rebuild must never erase the value that was active
+    -- when the session began. Seed it from the pre-click value if an older
+    -- client did not populate the normal ADDON_LOADED snapshot.
+    pfQuestConfig.loadedReloadSettings = pfQuestConfig.loadedReloadSettings or {}
+    if pfQuestConfig.loadedReloadSettings[input.config] == nil then
+      pfQuestConfig.loadedReloadSettings[input.config] = previous
+    end
+    pfQuestConfig:UpdateReloadRequired()
+    if input.config == "minimapbutton" and pfBrowserIcon then
+      if checked then pfBrowserIcon:Show() else pfBrowserIcon:Hide() end
+    end
+  elseif input.config == "showtracker" and pfQuest.tracker then
+    if checked then pfQuest.tracker:Show() else pfQuest.tracker:Hide() end
+  elseif input.config == "trackerlevel" or input.config == "trackerexpand" then
+    pfQuestConfig.trackerAppearancePending = pfQuestConfig.trackerAppearancePending or {}
+    pfQuestConfig.trackerAppearancePending[input.config] = true
+  elseif fullRefreshSettings[input.config] then
+    pfQuestConfig:RequestRefresh("full")
+  elseif input.config == "hideChickenQuests" or input.config == "hideFelwoodFlowers"
+      or input.config == "hidePvPQuests" or input.config == "hideDonationQuests" then
+    pfQuestConfig.questFiltersPending = true
+  elseif input.config == "showPartyQuestPins" or input.config == "showPartyQuestPinsRoutable" then
+    pfQuestConfig.partySettingsPending = pfQuestConfig.partySettingsPending or {}
+    pfQuestConfig.partySettingsPending[input.config] = true
+  elseif input.config and string.find(input.config, "^lootPanel") then
+    pfQuestConfig.lootSettingsPending = true
+  elseif input.config == "continentPins" then
+    pfQuestConfig.continentSettingsPending = pfQuestConfig.continentSettingsPending or {}
+    pfQuestConfig.continentSettingsPending.visibility = true
+  elseif mapRefreshSettings[input.config] then
+    if input.config == "trackingicons" then pfQuestConfig.trackingIconsPending = true end
+    if input.config == "minimapnodes" or input.config == "cutoutminimap"
+        or input.config == "cutoutworldmap" or input.config == "spawncolors"
+        or input.config == "clustermono" then
+      pfQuestConfig.mapAppearancePending = true
+    else
+      pfQuestConfig:RequestRefresh("map")
+    end
+  elseif input.config == "routes" or input.config == "routecluster" or input.config == "routeender"
+    or input.config == "routestarter" or input.config == "routeminimap" or input.config == "arrow" then
+    if input.config == "arrow" and not checked and pfQuest.route and pfQuest.route.arrow then
+      pfQuest.route.arrow:Hide()
+    end
+    if pfQuest.route then pfQuest.route:Reset() end
+    if checked and pfMap and pfMap.UpdateNodes then pfMap:UpdateNodes() end
+  end
+end
+
+local function HandleConfigTextChanged(input)
+  local saved = input.globalconfig and pfQuest_global or pfQuest_config
+  saved[input.globalconfig or input.config] = input:GetText()
+
+  if input.config == "mindropchance" then
+    pfQuestConfig.itemSourceSettingsPending = true
+  elseif input.config == "continentNodeSize" or input.config == "continentUtilityNodeSize" then
+    pfQuestConfig.continentSettingsPending = pfQuestConfig.continentSettingsPending or {}
+    pfQuestConfig.continentSettingsPending.size = true
+  elseif input.config == "worldmaptransp" or input.config == "minimaptransp" or input.config == "nodefade" then
+    if input.config ~= "nodefade" and pfMap and pfMap.highlightdb then
+      local value = tonumber(input:GetText()) or 1
+      for frame in pairs(pfMap.highlightdb) do
+        local matches = (input.config == "worldmaptransp" and frame.worldmap)
+          or (input.config == "minimaptransp" and frame.minimap)
+        if matches then
+          frame.defalpha = value
+          if not frame.texture and not frame.cluster then frame:SetAlpha(value) end
+        end
+      end
+    end
+    pfQuestConfig:RequestRefresh("map")
+  elseif input.config == "trackerfontsize" or input.config == "trackeralpha" then
+    pfQuestConfig.trackerAppearancePending = pfQuestConfig.trackerAppearancePending or {}
+    pfQuestConfig.trackerAppearancePending[input.config] = true
+  elseif input.config == "arrowscale" and ResizeArrow then
+    ResizeArrow()
+  end
+end
+
+function pfQuestConfig:CreateConfigEntries(config)
+  ClearConfigEntries()
+  local maxtext, ordered = 130, {}
+
+  for _, data in ipairs(config) do
     if data.type then
       -- basic frame
-      local frame = CreateFrame("Frame", "pfQuestConfig" .. count, pfQuestConfig)
-      configframes[data.text] = frame
+      local frame = CreateFrame("Frame", nil, pfQuestConfig)
+      configframes[data] = frame
+      table.insert(configentries, frame)
 
       -- caption
       frame.caption = frame:CreateFontString("Status", "LOW", "GameFontWhite")
       frame.caption:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
-      frame.caption:SetPoint("LEFT", 20, 0)
+      frame.caption:SetPoint("LEFT", CONFIG_ITEM_INDENT, 0)
       frame.caption:SetJustifyH("LEFT")
       frame.caption:SetText(data.text)
-      maxtext = max(maxtext, frame.caption:GetStringWidth())
+      maxtext = max(maxtext, frame.caption:GetStringWidth() + (data.inputwidth or 32) - 32)
 
       -- header
       if data.type == "header" then
-        frame.caption:SetPoint("LEFT", 10, 0)
-        frame.caption:SetTextColor(.3,1,.8)
-        frame.caption:SetFont(pfUI.font_default, pfUI_config.global.font_size+2, "OUTLINE")
+        frame.caption:SetPoint("LEFT", CONFIG_HEADER_INDENT, 0)
+        frame.caption:SetTextColor(0.3, 1, 0.8)
+        frame.caption:SetFont(pfUI.font_default, pfUI_config.global.font_size + 2, "OUTLINE")
 
       -- checkbox
       elseif data.type == "checkbox" then
@@ -350,34 +733,37 @@ function pfQuestConfig:CreateConfigEntries(config)
         frame.input:SetPushedTexture("")
         frame.input:SetHighlightTexture("")
         pfUI.api.CreateBackdrop(frame.input, nil, true)
+        frame.input.checkmark = frame.input:CreateTexture(nil, "OVERLAY")
+        frame.input.checkmark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        frame.input.checkmark:SetAllPoints(frame.input)
+        local templateCheck = frame.input.GetCheckedTexture and frame.input:GetCheckedTexture()
+        if templateCheck then templateCheck:Hide() end
 
         frame.input:SetWidth(16)
         frame.input:SetHeight(16)
-        frame.input:SetPoint("RIGHT" , -20, 0)
+        frame.input:SetPoint("RIGHT", -CONFIG_ITEM_INDENT, 0)
 
         frame.input.config = data.config
-        if pfQuest_config[data.config] == "1" then
-          frame.input:SetChecked()
-        end
+        frame.input.lastVisualValue = pfQuest_config[data.config]
+        SetCheckboxVisual(frame.input, pfQuest_config[data.config] == "1")
 
-        frame.input:SetScript("OnClick", function ()
-          if this:GetChecked() then
-            pfQuest_config[this.config] = "1"
-          else
-            pfQuest_config[this.config] = "0"
+        frame.input:SetScript("OnClick", function() HandleConfigToggle(this) end)
+        frame.input:SetScript("OnUpdate", function()
+          local value = pfQuest_config[this.config]
+          if this.lastVisualValue ~= value then
+            this.lastVisualValue = value
+            SetCheckboxVisual(this, value == "1")
           end
-
-          pfQuest:ResetAll()
         end)
       elseif data.type == "text" then
         -- input field
         frame.input = CreateFrame("EditBox", nil, frame)
-        frame.input:SetTextColor(.2,1,.8,1)
+        frame.input:SetTextColor(0.2, 1, 0.8, 1)
         frame.input:SetJustifyH("RIGHT")
-        frame.input:SetTextInsets(5,5,5,5)
-        frame.input:SetWidth(32)
+        frame.input:SetTextInsets(5, 5, 5, 5)
+        frame.input:SetWidth(data.inputwidth or 32)
         frame.input:SetHeight(16)
-        frame.input:SetPoint("RIGHT", -20, 0)
+        frame.input:SetPoint("RIGHT", -CONFIG_ITEM_INDENT, 0)
         frame.input:SetFontObject(GameFontNormal)
         frame.input:SetAutoFocus(false)
         frame.input:SetScript("OnEscapePressed", function(self)
@@ -385,18 +771,18 @@ function pfQuestConfig:CreateConfigEntries(config)
         end)
 
         frame.input.config = data.config
-        frame.input:SetText(pfQuest_config[data.config])
+        frame.input.globalconfig = data.globalconfig
+        local saved = data.globalconfig and pfQuest_global or pfQuest_config
+        frame.input:SetText(saved[data.globalconfig or data.config] or data.default)
 
-        frame.input:SetScript("OnTextChanged", function(self)
-          pfQuest_config[this.config] = this:GetText()
-        end)
+        frame.input:SetScript("OnTextChanged", function() HandleConfigTextChanged(this) end)
 
         pfUI.api.CreateBackdrop(frame.input, nil, true)
       elseif data.type == "button" and data.func then
         frame.input = CreateFrame("Button", nil, frame)
         frame.input:SetWidth(32)
         frame.input:SetHeight(16)
-        frame.input:SetPoint("RIGHT", -20, 0)
+        frame.input:SetPoint("RIGHT", -CONFIG_ITEM_INDENT, 0)
         frame.input:SetScript("OnClick", data.func)
         frame.input.text = frame.input:CreateFontString("Caption", "LOW", "GameFontWhite")
         frame.input.text:SetAllPoints(frame.input)
@@ -407,64 +793,149 @@ function pfQuestConfig:CreateConfigEntries(config)
 
       -- increase size and zoom back due to blizzard backdrop reasons...
       if frame.input and pfUI.api.emulated then
-        frame.input:SetWidth(frame.input:GetWidth()/.6)
-        frame.input:SetHeight(frame.input:GetHeight()/.6)
-        frame.input:SetScale(.8)
+        frame.input:SetWidth(frame.input:GetWidth() / 0.6)
+        frame.input:SetHeight(frame.input:GetHeight() / 0.6)
+        frame.input:SetScale(0.8)
         if frame.input.SetTextInsets then
-          frame.input:SetTextInsets(8,8,8,8)
+          frame.input:SetTextInsets(8, 8, 8, 8)
         end
       end
 
-      count = count + 1
+      AddConfigTooltip(frame, data)
+      maxtext = max(maxtext, frame.caption:GetStringWidth() + (data.inputwidth or 32) - 32)
+      table.insert(ordered, { frame = frame, data = data })
     end
   end
 
-  -- update sizes / positions
-  width = maxtext + 100
-  local column, row = 1, 0
+  -- Keep each header and its options together while balancing the four columns.
+  local sections, current, currentPage = {}, nil, "general"
+  for _, entry in ipairs(ordered) do
+    if entry.data.type == "header" or not current then
+      if entry.data.page then currentPage = entry.data.page end
+      -- Extension headers without an explicit page belong to Features.
+      if entry.data.type == "header" and not entry.data.page then currentPage = "features" end
+      current = { entries = {}, rows = 0, index = table.getn(sections) + 1, page = currentPage }
+      table.insert(sections, current)
+    end
+    entry.frame.configPage = current.page
+    table.insert(current.entries, entry)
+    current.rows = current.rows + 1
+  end
 
-  for _, data in pairs(config) do
-    if data.type then
-      -- empty line for headers, next column for > 20 entries
-      row = row + ( data.type == "header" and row > 1 and 2 or 1 )
-      if row > 22 and data.type == "header" then
-        column, row = column + 1, 1
+  local availablePages, pageLayouts = {}, {}
+  for _, section in ipairs(sections) do
+    availablePages[section.page] = true
+    pageLayouts[section.page] = pageLayouts[section.page] or {}
+    table.insert(pageLayouts[section.page], section)
+  end
+
+  local width = maxtext + 100
+  local maximumRows = 0
+  for page, pageSections in pairs(pageLayouts) do
+    local largestFirst = {}
+    for _, section in ipairs(pageSections) do table.insert(largestFirst, section) end
+    table.sort(largestFirst, function(a, b) return a.rows > b.rows end)
+
+    local columnRows, columnSections = {}, {}
+    for column = 1, CONFIG_COLUMNS do
+      columnRows[column], columnSections[column] = 0, {}
+    end
+    for _, section in ipairs(largestFirst) do
+      local best = 1
+      for column = 2, CONFIG_COLUMNS do
+        local gap = columnRows[column] > 0 and 1 or 0
+        local bestGap = columnRows[best] > 0 and 1 or 0
+        if columnRows[column] + gap < columnRows[best] + bestGap then best = column end
       end
-
-      -- update max size values
-      maxw, maxh = max(maxw, column), max(maxh, row)
-
-      -- align frames to sizings
-      local spacer = (column-1)*20
-      local x, y = (column-1)*width, -(row-1)*height
-      local frame = configframes[data.text]
-      frame:SetWidth(width)
-      frame:SetHeight(height)
-      frame:SetPoint("TOPLEFT", pfQuestConfig, "TOPLEFT", x + spacer + 10, y - 40)
+      local gap = columnRows[best] > 0 and 1 or 0
+      columnRows[best] = columnRows[best] + gap + section.rows
+      table.insert(columnSections[best], section)
+    end
+    for column = 1, CONFIG_COLUMNS do
+      table.sort(columnSections[column], function(a, b) return a.index < b.index end)
+      local row = 0
+      for _, section in ipairs(columnSections[column]) do
+        if row > 0 then row = row + 1 end
+        for _, entry in ipairs(section.entries) do
+          row = row + 1
+          local spacer = (column - 1) * 20
+          local x, y = (column - 1) * width, -(row - 1) * CONFIG_ENTRY_HEIGHT
+          entry.frame:SetWidth(width)
+          entry.frame:SetHeight(CONFIG_ENTRY_HEIGHT)
+          entry.frame:ClearAllPoints()
+          entry.frame:SetPoint("TOPLEFT", pfQuestConfig, "TOPLEFT", x + spacer + 10, y - 60)
+        end
+      end
+      maximumRows = max(maximumRows, row)
     end
   end
 
-  local spacer = (maxw-1)*20
-  pfQuestConfig:SetWidth(maxw*width + spacer + 20)
-  pfQuestConfig:SetHeight(maxh*height + 100)
+  local spacer = (CONFIG_COLUMNS - 1) * 20
+  pfQuestConfig:SetWidth(CONFIG_COLUMNS * width + spacer + 20)
+  pfQuestConfig:SetHeight(maximumRows * CONFIG_ENTRY_HEIGHT + 125)
+  CreateConfigTabs(availablePages)
+  local activePage = pfQuestConfig.activePage
+  if not activePage or not availablePages[activePage] then activePage = "general" end
+  SetActiveConfigPage(activePage)
+  return true
 end
 
 function pfQuestConfig:UpdateConfigEntries()
-  for _, data in pairs(pfQuest_defconfig) do
-    if data.type and configframes[data.text] then
+  for _, data in ipairs(pfQuest_defconfig) do
+    if data.type and configframes[data] then
       if data.type == "checkbox" then
-        configframes[data.text].input:SetChecked((pfQuest_config[data.config] == "1" and true or nil))
+        local value = pfQuest_config[data.config]
+        local checked = value == "1"
+        configframes[data].input.lastVisualValue = value
+        SetCheckboxVisual(configframes[data].input, checked)
       elseif data.type == "text" then
-        configframes[data.text].input:SetText(pfQuest_config[data.config])
+        local saved = data.globalconfig and pfQuest_global or pfQuest_config
+        configframes[data].input:SetText(saved[data.globalconfig or data.config] or data.default)
       end
     end
   end
 end
+
+function pfQuestConfig:RebuildConfigUI()
+  return self:CreateConfigEntries(pfQuest_defconfig)
+end
+
+-- Register ADDON_LOADED event handler after all methods are defined
+-- This ensures LoadConfig, MigrateHistory, CreateConfigEntries exist when called
+pfQuestConfig:RegisterEvent("ADDON_LOADED")
+pfQuestConfig:SetScript("OnEvent", function()
+  if arg1 == "pfQuest" or arg1 == "pfQuest-tbc" or arg1 == "pfQuest-wotlk" or arg1 == "pfUI" then
+    pfQuestConfig:LoadConfig()
+    pfQuestConfig.loadedReloadSettings = {}
+    for config in pairs(reloadSettings) do
+      pfQuestConfig.loadedReloadSettings[config] = pfQuest_config[config]
+    end
+    pfQuestConfig.reloadRequired = nil
+    pfQuestConfig:MigrateHistory()
+    pfQuestConfig:CreateConfigEntries(pfQuest_defconfig)
+
+    pfQuest_questcache = pfQuest_questcache or {}
+    pfQuest_history = pfQuest_history or {}
+    pfQuest_colors = pfQuest_colors or {}
+    pfQuest_config = pfQuest_config or {}
+    pfQuest_track = pfQuest_track or {}
+    pfBrowser_fav = pfBrowser_fav or { ["units"] = {}, ["objects"] = {}, ["items"] = {}, ["quests"] = {} }
+
+    -- clear quest history on new characters
+    if UnitXP("player") == 0 and UnitLevel("player") == 1 then
+      pfQuest_history = {}
+    end
+
+    if pfBrowserIcon and pfQuest_config["minimapbutton"] == "0" then
+      pfBrowserIcon:Hide()
+    end
+  end
+end)
 
 do -- welcome/init popup dialog
   local config_stage = {
     arrow = 1,
-    mode = 2
+    mode = 2,
   }
 
   local desaturate = function(texture, state)
@@ -532,12 +1003,24 @@ do -- welcome/init popup dialog
 
   -- questing mode
   local buttons = {
-    { caption = L["Simple Markers"], texture = "\\img\\init\\simple", position = { "TOPLEFT", 10, -40 },
-      tooltip = L["Only show cluster icons with summarized objective locations based on spawn points"] },
-    { caption = L["Combined"], texture = "\\img\\init\\combined", position = { "TOP", 0, -40 },
-      tooltip = L["Show cluster icons with summarized locations and also display all spawn points of each quest objective"] },
-    { caption = L["Spawn Points"], texture = "\\img\\init\\spawns", position = { "TOPRIGHT", -10, -40 },
-      tooltip = L["Display all spawn points of each quest objective and hide summarized cluster icons."] },
+    {
+      caption = L["Simple Markers"],
+      texture = "\\img\\init\\simple",
+      position = { "TOPLEFT", 10, -40 },
+      tooltip = L["Only show cluster icons with summarized objective locations based on spawn points"],
+    },
+    {
+      caption = L["Combined"],
+      texture = "\\img\\init\\combined",
+      position = { "TOP", 0, -40 },
+      tooltip = L["Show cluster icons with summarized locations and also display all spawn points of each quest objective"],
+    },
+    {
+      caption = L["Spawn Points"],
+      texture = "\\img\\init\\spawns",
+      position = { "TOPRIGHT", -10, -40 },
+      tooltip = L["Display all spawn points of each quest objective and hide summarized cluster icons."],
+    },
   }
 
   for i, button in pairs(buttons) do
@@ -551,7 +1034,7 @@ do -- welcome/init popup dialog
     pfQuestInit[i].bg:SetWidth(200)
     pfQuestInit[i].bg:SetHeight(200)
     pfQuestInit[i].bg:SetPoint("CENTER", 0, 0)
-    pfQuestInit[i].bg:SetTexture(pfQuestConfig.path..button.texture)
+    pfQuestInit[i].bg:SetTexture(pfQuestConfig.path .. button.texture)
 
     pfQuestInit[i].caption = pfQuestInit:CreateFontString("Status", "LOW", "GameFontWhite")
     pfQuestInit[i].caption:SetPoint("TOP", pfQuestInit[i], "BOTTOM", 0, -5)
@@ -570,7 +1053,9 @@ do -- welcome/init popup dialog
 
     local OnEnter = pfQuestInit[i]:GetScript("OnEnter")
     pfQuestInit[i]:SetScript("OnEnter", function()
-      if OnEnter then OnEnter() end
+      if OnEnter then
+        OnEnter()
+      end
       GameTooltip_SetDefaultAnchor(GameTooltip, this)
 
       GameTooltip:SetText(this.caption:GetText())
@@ -581,7 +1066,9 @@ do -- welcome/init popup dialog
 
     local OnLeave = pfQuestInit[i]:GetScript("OnLeave")
     pfQuestInit[i]:SetScript("OnLeave", function()
-      if OnLeave then OnLeave() end
+      if OnLeave then
+        OnLeave()
+      end
       GameTooltip:Hide()
     end)
   end

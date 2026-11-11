@@ -2,9 +2,49 @@ if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loade
 -- multi api compat
 local compat = pfQuestCompat
 
+-- Performance: cache frequently-used globals
+local pairs = pairs
+local min, max = math.min, math.max
+local getn, sort = table.getn, table.sort
+local GetTime = GetTime
+
 local fontsize = 12
 local panelheight = 16
 local entryheight = 20
+
+-- The server and bundled database can use visually identical punctuation
+-- with different byte sequences (for example straight versus curly
+-- apostrophes). Use a display-independent key so one active quest cannot
+-- occupy two tracker rows through its live and database titles.
+local function TrackerTitleKey(title)
+  -- Lua's %w classification depends on the client's character locale. A byte
+  -- of a UTF-8 apostrophe can be treated as a letter in single-byte locales,
+  -- so replace whole punctuation sequences before stripping other separators.
+  title = string.gsub(title or "", "\226\128[\152\153]", "'")
+  title = string.gsub(title, "\202\188", "'")
+  title = string.gsub(title, "\239\188\135", "'")
+  return string.lower(string.gsub(title, "[^%w]", ""))
+end
+
+-- Some clients omit collapsed quests from the list; others still return them.
+-- Support both layouts without removing anything from pfQuest's quest cache.
+local function ReadQuestLogVisibility()
+  local visible, signature = {}, {}
+  local hidden, hasCollapsed = false, false
+  for i = 1, GetNumQuestLogEntries() do
+    local title, _, _, header, collapsed = compat.GetQuestLogTitle(i)
+    if title then
+      if header then
+        hidden = collapsed == true or collapsed == 1
+        if hidden then hasCollapsed = true end
+      elseif not hidden then
+        visible[title] = true
+      end
+      table.insert(signature, title .. ":" .. tostring(header) .. ":" .. tostring(collapsed))
+    end
+  end
+  return hasCollapsed and visible or nil, table.concat(signature, "\n")
+end
 
 local function HideTooltip()
   GameTooltip:Hide()
@@ -22,8 +62,13 @@ local function ShowTooltip()
     end
 
     if this.node and this.node.questid then
-      if pfDB["quests"] and pfDB["quests"]["loc"] and pfDB["quests"]["loc"][this.node.questid] and pfDB["quests"]["loc"][this.node.questid]["O"] then
-        GameTooltip:AddLine(pfDatabase:FormatQuestText(pfDB["quests"]["loc"][this.node.questid]["O"]), 1,1,1,1)
+      if
+        pfDB["quests"]
+        and pfDB["quests"]["loc"]
+        and pfDB["quests"]["loc"][this.node.questid]
+        and pfDB["quests"]["loc"][this.node.questid]["O"]
+      then
+        GameTooltip:AddLine(pfDatabase:FormatQuestText(pfDB["quests"]["loc"][this.node.questid]["O"]), 1, 1, 1, 1)
         GameTooltip:AddLine(" ")
       end
 
@@ -31,16 +76,16 @@ local function ShowTooltip()
       if qlogid then
         local objectives = GetNumQuestLeaderBoards(qlogid)
         if objectives and objectives > 0 then
-          for i=1, objectives, 1 do
+          for i = 1, objectives, 1 do
             local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
             local _, _, obj, cur, req = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
             if done then
-              GameTooltip:AddLine(" - " .. text, 0,1,0)
+              GameTooltip:AddLine(" - " .. text, 0, 1, 0)
             elseif cur and req then
-              local r,g,b = pfMap.tooltip:GetColor(cur, req)
-              GameTooltip:AddLine(" - " .. text, r,g,b)
+              local r, g, b = pfMap.tooltip:GetColor(cur, req)
+              GameTooltip:AddLine(" - " .. text, r, g, b)
             else
-              GameTooltip:AddLine(" - " .. text, 1,0,0)
+              GameTooltip:AddLine(" - " .. text, 1, 0, 0)
             end
           end
           GameTooltip:AddLine(" ")
@@ -48,12 +93,97 @@ local function ShowTooltip()
       end
     end
 
-    GameTooltip:AddLine(this.tooltip, 1,1,1)
+    GameTooltip:AddLine(this.tooltip, 1, 1, 1)
     GameTooltip:Show()
   end
 end
 
 local expand_states = {}
+local manual_expand_states = {}
+
+-- Ported from pfQuest-2: level-first remains the default, with an optional
+-- nearest-objective order selected from the tracker header.
+local function GetQuestSortMode()
+  return pfQuest_config["trackerquestsort"] == "distance" and "distance" or "level"
+end
+
+local function IsLevelSortAscending()
+  return pfQuest_config["trackerquestsortreverse"] == "1"
+end
+
+local DIST_FAR = 99999999
+
+local function UpdateSortButton()
+  if not tracker or not tracker.btnsort then return end
+  if tracker.mode == "QUEST_TRACKING" then
+    tracker.btnsort:Show()
+    if GetQuestSortMode() == "distance" then
+      tracker.btnsort.label:SetText("N")
+      tracker.btnsort.tooltip = "Quest Sort: Nearest First\n|cff33ffcc<Click>|r Sort By Level"
+    else
+      tracker.btnsort.label:SetText("L")
+      local direction = IsLevelSortAscending() and "Low to High" or "High to Low"
+      tracker.btnsort.tooltip = "Quest Sort: Level (" .. direction
+        .. ")\n|cff33ffcc<Click>|r Sort By Nearest\n|cff33ffcc<Right-Click>|r Reverse Level Order"
+    end
+  else
+    tracker.btnsort:Hide()
+  end
+end
+
+local function UpdateQuestDistances()
+  if tracker.mode ~= "QUEST_TRACKING" or GetQuestSortMode() ~= "distance" then return end
+
+  local changed, nearestByTitle, nearestByID = nil, {}, {}
+  local xplayer, yplayer = GetPlayerMapPosition("player")
+  if xplayer ~= 0 or yplayer ~= 0 then
+    for _, point in ipairs(tracker.questPoints or {}) do
+      local x, y = (xplayer * 100 - point.x) * 1.5, yplayer * 100 - point.y
+      local distance = ceil(math.sqrt(x * x + y * y) * 100) / 100
+      if not nearestByTitle[point.title] or distance < nearestByTitle[point.title] then
+        nearestByTitle[point.title] = distance
+      end
+      if point.questid and (not nearestByID[point.questid] or distance < nearestByID[point.questid]) then
+        nearestByID[point.questid] = distance
+      end
+    end
+  end
+
+  -- Older maps and third-party pins can have no tracker point. Retain route
+  -- points as a fallback, but never let route display settings decide the
+  -- nearest order for ordinary active quest objectives.
+  for _, data in ipairs((pfQuest.route and pfQuest.route.coords) or {}) do
+    local pin, distance = data[3], data[4]
+    if pin and pin.node and distance then
+      for title, node in pairs(pin.node) do
+        if not nearestByTitle[title] then
+          nearestByTitle[title] = distance
+        end
+        if node.questid and not nearestByID[node.questid] then
+          nearestByID[node.questid] = distance
+        end
+      end
+    end
+  end
+
+  for _, button in pairs(tracker.buttons) do
+    if not button.empty then
+      local distance = nearestByID[button.questid] or nearestByTitle[button.title]
+      if button.distance ~= distance then
+        button.distance = distance
+        changed = true
+      end
+    elseif button.distance then
+      button.distance = nil
+    end
+  end
+  if changed then
+    tracker.needsSort = true
+    -- Distance mode is live: request a deferred layout after movement changes
+    -- the nearest objective, rather than waiting for the next map refresh.
+    tracker:ScheduleLayout()
+  end
+end
 
 tracker = CreateFrame("Frame", "pfQuestMapTracker", UIParent)
 tracker:Hide()
@@ -62,11 +192,29 @@ tracker:SetWidth(200)
 tracker:SetMovable(true)
 tracker:EnableMouse(true)
 tracker:SetClampedToScreen(true)
+
+-- Map rendering registers every active quest coordinate. This intentionally
+-- differs from route.coords: a tracker sort must include objectives even when
+-- their route line, arrow, cluster, or endpoint display is disabled.
+function tracker.RegisterQuestPoint(title, node, x, y)
+  local id = tracker.buttonByTitle[TrackerTitleKey(title)]
+  local button = id and tracker.buttons[id]
+  if not button or button.empty then return end
+
+  tracker.questPoints = tracker.questPoints or {}
+  table.insert(tracker.questPoints, {
+    title = title,
+    questid = button.questid or node.questid,
+    x = x,
+    y = y,
+  })
+end
+
 tracker:RegisterEvent("PLAYER_ENTERING_WORLD")
 tracker:SetScript("OnEvent", function()
   -- update font sizes according to config
   fontsize = tonumber(pfQuest_config["trackerfontsize"]) or 12
-  entryheight = ceil(fontsize*1.6)
+  entryheight = ceil(fontsize * 1.6)
 
   -- restore tracker state
   if pfQuest_config["showtracker"] and pfQuest_config["showtracker"] == "0" then
@@ -76,13 +224,13 @@ tracker:SetScript("OnEvent", function()
   end
 end)
 
-tracker:SetScript("OnMouseDown",function()
+tracker:SetScript("OnMouseDown", function()
   if not pfQuest_config.lock then
     this:StartMoving()
   end
 end)
 
-tracker:SetScript("OnMouseUp",function()
+tracker:SetScript("OnMouseUp", function()
   this:StopMovingOrSizing()
   local anchor, x, y = pfUI.api.ConvertFrameAnchor(this, pfUI.api.GetBestAnchor(this))
   this:ClearAllPoints()
@@ -93,6 +241,24 @@ tracker:SetScript("OnMouseUp",function()
 end)
 
 tracker:SetScript("OnUpdate", function()
+  -- Native objective reads can emit more quest-log events. Keep those events
+  -- read-only and coalesce row refreshes outside their dispatch stack.
+  if (this.contentTick or 0) <= GetTime() then
+    this.contentTick = GetTime() + 0.2
+    for _, button in pairs(this.buttons or {}) do
+      if button.contentPending then
+        button.contentPending = nil
+        tracker.ButtonEvent(button)
+      end
+    end
+  end
+  -- Objective updates can change an entry's height. Reflow the complete list
+  -- once the QUEST_LOG_UPDATE burst settles so entries never retain old offsets.
+  if this.layoutAt and this.layoutAt <= GetTime() then
+    this.layoutAt = nil
+    this:DoLayout()
+  end
+
   if WorldMapFrame:IsShown() then
     if this.strata ~= "FULLSCREEN_DIALOG" then
       this:SetFrameStrata("FULLSCREEN_DIALOG")
@@ -107,13 +273,44 @@ tracker:SetScript("OnUpdate", function()
 
   local alpha = this.backdrop:GetAlpha()
   local content = tracker.buttons[1] and not tracker.buttons[1].empty and true or nil
-  local goal = ( content and not MouseIsOver(this) ) and 0 or not content and not MouseIsOver(this) and 0.5 or 1
-  if ceil(alpha*10) ~= ceil(goal*10)then
-    this.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and .1 or (goal - alpha) < 0 and -.1 or 0))
+  local goal = (content and not MouseIsOver(this)) and 0 or not content and not MouseIsOver(this) and 0.5 or 1
+  if ceil(alpha * 10) ~= ceil(goal * 10) then
+    this.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and 0.1 or (goal - alpha) < 0 and -0.1 or 0))
   end
 
   if pfQuestCompat.QuestWatchFrame:IsShown() then
     pfQuestCompat.QuestWatchFrame:Hide()
+  end
+
+  if tracker.mode == "QUEST_TRACKING" and GetQuestSortMode() == "distance" then
+    if not this.distanceTick or this.distanceTick < GetTime() then
+      this.distanceTick = GetTime() + 0.2
+      UpdateQuestDistances()
+    end
+  else
+    this.distanceTick = nil
+  end
+end)
+
+-- Section collapse/expand emits QUEST_LOG_UPDATE. Refresh on that event
+-- instead of scanning the full quest log from the map tracker's OnUpdate.
+tracker:RegisterEvent("QUEST_LOG_UPDATE")
+tracker:SetScript("OnEvent", function()
+  if event == "PLAYER_ENTERING_WORLD" then
+    -- update font sizes according to config
+    fontsize = tonumber(pfQuest_config["trackerfontsize"]) or 12
+    entryheight = ceil(fontsize * 1.6)
+
+    -- restore tracker state
+    if pfQuest_config["showtracker"] and pfQuest_config["showtracker"] == "0" then
+      this:Hide()
+    else
+      this:Show()
+    end
+    UpdateSortButton()
+  elseif event == "QUEST_LOG_UPDATE" then
+    this.sectionSignature = nil
+    this:ScheduleLayout()
   end
 end)
 
@@ -121,10 +318,10 @@ tracker:SetScript("OnShow", function()
   pfQuest_config["showtracker"] = "1"
 
   -- load tracker position if exists
-   if pfQuest_config.trackerpos then
-     this:ClearAllPoints()
-     this:SetPoint(unpack(pfQuest_config.trackerpos))
-   end
+  if pfQuest_config.trackerpos then
+    this:ClearAllPoints()
+    this:SetPoint(unpack(pfQuest_config.trackerpos))
+  end
 end)
 
 tracker:SetScript("OnHide", function()
@@ -132,12 +329,13 @@ tracker:SetScript("OnHide", function()
 end)
 
 tracker.buttons = {}
+tracker.buttonByTitle = {} -- reverse map: title → button index, for O(1) duplicate detection
 tracker.mode = "QUEST_TRACKING"
 
 tracker.backdrop = CreateFrame("Frame", nil, tracker)
 tracker.backdrop:SetAllPoints(tracker)
 tracker.backdrop.bg = tracker.backdrop:CreateTexture(nil, "BACKGROUND")
-tracker.backdrop.bg:SetTexture(0,0,0,.2)
+tracker.backdrop.bg:SetTexture(0, 0, 0, 0.2)
 tracker.backdrop.bg:SetAllPoints()
 
 do -- button panel
@@ -150,20 +348,22 @@ do -- button panel
   local buttons = {}
   local function CreateButton(icon, anchor, tooltip, func)
     anchors[anchor] = anchors[anchor] and anchors[anchor] + 1 or 0
-    local pos = 1+(panelheight+1)*anchors[anchor]
-    pos = anchor == "TOPLEFT" and pos or pos*-1
+    local pos = 1 + (panelheight + 1) * anchors[anchor]
+    pos = anchor == "TOPLEFT" and pos or pos * -1
     local func = func
 
     local b = CreateFrame("Button", nil, tracker.panel)
     b.tooltip = tooltip
     b.icon = b:CreateTexture(nil, "BACKGROUND")
     b.icon:SetAllPoints()
-    b.icon:SetTexture(pfQuestConfig.path.."\\img\\tracker_"..icon)
-    if table.getn(buttons) == 0 then b.icon:SetVertexColor(.2,1,.8) end
+    b.icon:SetTexture(pfQuestConfig.path .. "\\img\\tracker_" .. icon)
+    if table.getn(buttons) == 0 then
+      b.icon:SetVertexColor(0.2, 1, 0.8)
+    end
 
     b:SetPoint(anchor, pos, -1)
-    b:SetWidth(panelheight-2)
-    b:SetHeight(panelheight-2)
+    b:SetWidth(panelheight - 2)
+    b:SetHeight(panelheight - 2)
 
     b:SetScript("OnEnter", ShowTooltip)
     b:SetScript("OnLeave", HideTooltip)
@@ -171,11 +371,13 @@ do -- button panel
     if anchor == "TOPLEFT" then
       table.insert(buttons, b)
       b:SetScript("OnClick", function()
-        if func then func() end
-        for id, button in pairs(buttons) do
-          button.icon:SetVertexColor(1,1,1)
+        if func then
+          func()
         end
-        this.icon:SetVertexColor(.2,1,.8)
+        for id, button in pairs(buttons) do
+          button.icon:SetVertexColor(1, 1, 1)
+        end
+        this.icon:SetVertexColor(0.2, 1, 0.8)
       end)
     else
       b:SetScript("OnClick", func)
@@ -186,26 +388,70 @@ do -- button panel
 
   tracker.btnquest = CreateButton("quests", "TOPLEFT", pfQuest_Loc["Show Current Quests"], function()
     tracker.mode = "QUEST_TRACKING"
+    UpdateSortButton()
     pfMap:UpdateNodes()
   end)
 
   tracker.btndatabase = CreateButton("database", "TOPLEFT", pfQuest_Loc["Show Database Results"], function()
     tracker.mode = "DATABASE_TRACKING"
+    UpdateSortButton()
     pfMap:UpdateNodes()
   end)
 
   tracker.btngiver = CreateButton("giver", "TOPLEFT", pfQuest_Loc["Show Quest Givers"], function()
     tracker.mode = "GIVER_TRACKING"
+    UpdateSortButton()
     pfMap:UpdateNodes()
   end)
 
+  tracker.btnsort = CreateFrame("Button", nil, tracker.panel)
+  tracker.btnsort:SetPoint("TOPRIGHT", -69, -1)
+  tracker.btnsort:SetWidth(panelheight - 2)
+  tracker.btnsort:SetHeight(panelheight - 2)
+  tracker.btnsort.tooltip = "Quest Sort"
+  tracker.btnsort.bg = tracker.btnsort:CreateTexture(nil, "BACKGROUND")
+  tracker.btnsort.bg:SetAllPoints()
+  tracker.btnsort.bg:SetTexture(0, 0, 0, 0)
+  tracker.btnsort.label = tracker.btnsort:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  tracker.btnsort.label:SetAllPoints()
+  tracker.btnsort.label:SetFont(pfUI.font_default, 11)
+  tracker.btnsort.label:SetTextColor(0.9, 0.9, 0.9, 1)
+  tracker.btnsort:SetScript("OnEnter", ShowTooltip)
+  tracker.btnsort:SetScript("OnLeave", HideTooltip)
+  tracker.btnsort:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  tracker.btnsort:SetScript("OnClick", function()
+    if arg1 == "RightButton" and GetQuestSortMode() == "level" then
+      pfQuest_config["trackerquestsortreverse"] = IsLevelSortAscending() and "0" or "1"
+      UpdateSortButton()
+      tracker.needsSort = true
+      tracker:DoLayout()
+      return
+    end
+
+    pfQuest_config["trackerquestsort"] = GetQuestSortMode() == "distance" and "level" or "distance"
+    UpdateSortButton()
+    tracker.needsSort = true
+    -- Nearest-first is an explicit action: calculate the current map's
+    -- route distances now instead of waiting for the route's movement tick.
+    if pfQuest.route and pfQuest.route.UpdateDistances then
+      pfQuest.route:UpdateDistances()
+    end
+    UpdateQuestDistances()
+    tracker.distanceTick = GetTime() + 0.2
+    tracker:DoLayout()
+  end)
+
   tracker.btnclose = CreateButton("close", "TOPRIGHT", pfQuest_Loc["Close Tracker"], function()
-    DEFAULT_CHAT_FRAME:AddMessage(pfQuest_Loc["|cff33ffccpf|cffffffffQuest: Tracker is now hidden. Type `/db tracker` to show."])
+    DEFAULT_CHAT_FRAME:AddMessage(
+      pfQuest_Loc["|cff33ffccpf|cffffffffQuest: Tracker is now hidden. Type `/db tracker` to show."]
+    )
     tracker:Hide()
   end)
 
   tracker.btnsettings = CreateButton("settings", "TOPRIGHT", pfQuest_Loc["Open Settings"], function()
-    if pfQuestConfig then pfQuestConfig:Show() end
+    if pfQuestConfig then
+      pfQuestConfig:Show()
+    end
   end)
 
   tracker.btnclean = CreateButton("clean", "TOPRIGHT", pfQuest_Loc["Clean Database Results"], function()
@@ -214,39 +460,44 @@ do -- button panel
   end)
 
   tracker.btnsearch = CreateButton("search", "TOPRIGHT", pfQuest_Loc["Open Database Browser"], function()
-    if pfBrowser then pfBrowser:Show() end
+    if pfBrowser then
+      pfBrowser:Show()
+    end
   end)
 end
 
 function tracker.ButtonEnter()
   pfMap.highlight = this.title
+  tracker.ButtonUpdate(this)
   ShowTooltip()
 end
 
 function tracker.ButtonLeave()
   pfMap.highlight = nil
+  tracker.ButtonUpdate(this)
   HideTooltip()
 end
 
-function tracker.ButtonUpdate()
-  local alpha = tonumber((pfQuest_config["trackeralpha"] or .2)) or .2
+function tracker.ButtonUpdate(button)
+  local button = button or this
+  local alpha = tonumber((pfQuest_config["trackeralpha"] or 0.2)) or 0.2
 
-  if not this.alpha or this.alpha ~= alpha then
-    this.bg:SetTexture(0,0,0,alpha)
-    this.bg:SetAlpha(alpha)
-    this.alpha = alpha
+  if not button.alpha or button.alpha ~= alpha then
+    button.bg:SetTexture(0, 0, 0, alpha)
+    button.bg:SetAlpha(alpha)
+    button.alpha = alpha
   end
 
-  if pfMap.highlight and pfMap.highlight == this.title then
-    if not this.highlight then
-      this.bg:SetTexture(1,1,1,math.max(.2, alpha))
-      this.bg:SetAlpha(math.max(.5, alpha))
-      this.highlight = true
+  if pfMap.highlight and pfMap.highlight == button.title then
+    if not button.highlight then
+      button.bg:SetTexture(1, 1, 1, math.max(0.2, alpha))
+      button.bg:SetAlpha(math.max(0.5, alpha))
+      button.highlight = true
     end
-  elseif this.highlight then
-    this.bg:SetTexture(0,0,0,alpha)
-    this.bg:SetAlpha(alpha)
-    this.highlight = nil
+  elseif button.highlight then
+    button.bg:SetTexture(0, 0, 0, alpha)
+    button.bg:SetAlpha(alpha)
+    button.highlight = nil
   end
 end
 
@@ -266,7 +517,12 @@ function tracker.ButtonClick()
     if this.node.questid and not this.node.qlogid then
       -- mark as done in history
       pfQuest_history[this.node.questid] = { time(), UnitLevel("player") }
-      UIErrorsFrame:AddMessage(string.format("The Quest |cffffcc00[%s]|r (id:%s) is now marked as done.", this.title, this.node.questid), 1,1,1)
+      UIErrorsFrame:AddMessage(
+        string.format("The Quest |cffffcc00[%s]|r (id:%s) is now marked as done.", this.title, this.node.questid),
+        1,
+        1,
+        1
+      )
     end
 
     pfMap:DeleteNode(this.node.addon, this.title)
@@ -285,77 +541,109 @@ function tracker.ButtonClick()
   elseif IsControlKeyDown() and pfQuest_config["spawncolors"] == "0" then
     -- switch color
     pfQuest_colors[this.title] = { pfMap.str2rgb(this.title .. GetTime()) }
+    pfMap:RefreshPinColor(this.title)
     pfMap:UpdateNodes()
   elseif expand_states[this.title] == 0 then
     expand_states[this.title] = 1
+    manual_expand_states[this.title] = true
     tracker.ButtonEvent(this)
   elseif expand_states[this.title] == 1 then
     expand_states[this.title] = 0
+    manual_expand_states[this.title] = true
     tracker.ButtonEvent(this)
   end
 end
 
-local function trackersort(a,b)
+local function trackersort(a, b)
   if a.empty then
     return false
-  elseif ( a.tracked and 1 or -1 ) ~= (b.tracked and 1 or -1) then
-    return ( a.tracked and 1 or -1 ) > (b.tracked and 1 or -1)
-  elseif ( a.level or -1 ) ~= ( b.level or -1 ) then
+  elseif (a.tracked and 1 or -1) ~= (b.tracked and 1 or -1) then
+    return (a.tracked and 1 or -1) > (b.tracked and 1 or -1)
+  elseif tracker.mode == "QUEST_TRACKING" and GetQuestSortMode() == "distance"
+      and (a.distance or DIST_FAR) ~= (b.distance or DIST_FAR) then
+    return (a.distance or DIST_FAR) < (b.distance or DIST_FAR)
+  elseif (a.level or -1) ~= (b.level or -1) then
+    if tracker.mode == "QUEST_TRACKING" and IsLevelSortAscending() then
+      return (a.level or -1) < (b.level or -1)
+    end
     return (a.level or -1) > (b.level or -1)
-  elseif ( a.perc or -1 ) ~= ( b.perc or -1 ) then
+  elseif tracker.mode == "QUEST_TRACKING" and (a.distance or DIST_FAR) ~= (b.distance or DIST_FAR) then
+    return (a.distance or DIST_FAR) < (b.distance or DIST_FAR)
+  elseif (a.perc or -1) ~= (b.perc or -1) then
     return (a.perc or -1) > (b.perc or -1)
-  elseif ( a.title or "" ) ~= ( b.title or "" ) then
-    return ( a.title or "" ) < ( b.title or "" )
+  elseif (a.title or "") ~= (b.title or "") then
+    return (a.title or "") < (b.title or "")
   else
     return false
   end
 end
 
+-- Reusable cache for GetQuestLogLeaderBoard results within a single ButtonEvent
+-- call. Avoids calling the API twice per objective (once for progress, once for
+-- display). Cleared at the start of each ButtonEvent invocation.
+local board_cache = {}
+
 function tracker.ButtonEvent(self)
-  local self   = self or this
-  local title  = self.title
-  local node   = self.node
-  local id     = self.id
-  local qid    = self.questid
+  local self = self or this
+  local title = self.title
+  local node = self.node
+  local id = self.id
+  local qid = self.questid
 
   self:SetHeight(0)
 
   -- we got an event on a hidden button
-  if not title then return end
-  if self.empty then return end
+  if not title then
+    return
+  end
+  if self.empty then
+    return
+  end
 
   self:SetHeight(entryheight)
 
   -- initialize and hide all objectives
   self.objectives = self.objectives or {}
-  for id, obj in pairs(self.objectives) do obj:Hide() end
+  for id, obj in pairs(self.objectives) do
+    obj:Hide()
+  end
 
   -- update button icon
   if node.texture then
     self.icon:SetTexture(node.texture)
 
-    local r, g, b = unpack(node.vertex or {0,0,0})
+    local r, g, b = unpack(node.vertex or { 0, 0, 0 })
     if r > 0 or g > 0 or b > 0 then
       self.icon:SetVertexColor(unpack(node.vertex))
     else
-      self.icon:SetVertexColor(1,1,1,1)
+      self.icon:SetVertexColor(1, 1, 1, 1)
     end
   elseif pfQuest_config["spawncolors"] == "1" then
-    self.icon:SetTexture(pfQuestConfig.path.."\\img\\available_c")
-    self.icon:SetVertexColor(1,1,1,1)
+    self.icon:SetTexture(pfQuestConfig.path .. "\\img\\available_c")
+    self.icon:SetVertexColor(1, 1, 1, 1)
   else
-    self.icon:SetTexture(pfQuestConfig.path.."\\img\\node")
+    self.icon:SetTexture(pfQuestConfig.path .. "\\img\\node")
     self.icon:SetVertexColor(pfMap.str2rgb(title))
   end
 
   if tracker.mode == "QUEST_TRACKING" then
     local qlogid = pfQuest.questlog[qid] and pfQuest.questlog[qid].qlogid or 0
     local qtitle, level, tag, header, collapsed, complete = compat.GetQuestLogTitle(qlogid)
-    if not qlogid or not qtitle then return end
+    if not qlogid or not qtitle then
+      return
+    end
     local objectives = GetNumQuestLeaderBoards(qlogid)
+    -- A quest button can retain the node texture captured before the client
+    -- reports its final state. Refresh the completion icon from the current
+    -- quest log on every event; objective-free talk/report quests are ready
+    -- by the same rule used by pfQuest's map tooltip and objective state.
+    if complete or objectives == 0 then
+      self.icon:SetTexture(pfQuestConfig.path .. "\\img\\complete_c")
+      self.icon:SetVertexColor(1, 1, 1, 1)
+    end
     local watched = IsQuestWatched(qlogid)
     local color = pfQuestCompat.GetDifficultyColor(level)
-    local cur,max = 0,0
+    local cur, max = 0, 0
     local percent = 0
 
     -- write expand state
@@ -366,8 +654,10 @@ function tracker.ButtonEvent(self)
     local expanded = expand_states[title] == 1 and true or nil
 
     if objectives and objectives > 0 then
-      for i=1, objectives, 1 do
-        local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
+      -- populate cache and compute progress in one pass
+      for i = 1, objectives, 1 do
+        local text, type, done = GetQuestLogLeaderBoard(i, qlogid)
+        board_cache[i] = { text, type, done }
         local _, _, obj, objNum, objNeeded = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
         if objNum and objNeeded then
           max = max + objNeeded
@@ -376,54 +666,67 @@ function tracker.ButtonEvent(self)
           max = max + 1
         end
       end
+      -- clear stale entries beyond current objective count
+      for i = objectives + 1, table.getn(board_cache) do
+        board_cache[i] = nil
+      end
     end
 
     if cur == max or complete then
       cur, max = 1, 1
       percent = 100
     else
-      percent = cur/max*100
+      percent = cur / max * 100
     end
 
     -- expand button to show objectives
-    if objectives and (expanded or ( percent > 0 and percent < 100 )) then
+    if objectives and (expanded or (percent > 0 and percent < 100)) then
       self:SetHeight(entryheight + objectives * fontsize)
 
-      for i=1, objectives, 1 do
-        local text, _, done = GetQuestLogLeaderBoard(i, qlogid)
+      for i = 1, objectives, 1 do
+        -- read from cache instead of calling GetQuestLogLeaderBoard again
+        local entry = board_cache[i]
+        local text, _, done = entry[1], entry[2], entry[3]
         local _, _, obj, objNum, objNeeded = strfind(gsub(text, "\239\188\154", ":"), "(.*):%s*([%d]+)%s*/%s*([%d]+)")
 
         if not self.objectives[i] then
           self.objectives[i] = self:CreateFontString(nil, "HIGH", "GameFontNormal")
           self.objectives[i]:SetFont(pfUI.font_default, fontsize)
           self.objectives[i]:SetJustifyH("LEFT")
-          self.objectives[i]:SetPoint("TOPLEFT", 20, -fontsize*i-6)
-          self.objectives[i]:SetPoint("TOPRIGHT", -10, -fontsize*i-6)
+          self.objectives[i]:SetPoint("TOPLEFT", 20, -fontsize * i - 6)
+          self.objectives[i]:SetPoint("TOPRIGHT", -10, -fontsize * i - 6)
         end
 
         if objNum and objNeeded then
-          local r,g,b = pfMap.tooltip:GetColor(objNum, objNeeded)
-          self.objectives[i]:SetTextColor(r+.2, g+.2, b+.2)
+          local r, g, b = pfMap.tooltip:GetColor(objNum, objNeeded)
+          self.objectives[i]:SetTextColor(r + 0.2, g + 0.2, b + 0.2)
           self.objectives[i]:SetText(string.format("|cffffffff- %s:|r %s/%s", obj, objNum, objNeeded))
         else
-          self.objectives[i]:SetTextColor(.8,.8,.8)
+          self.objectives[i]:SetTextColor(0.8, 0.8, 0.8)
           self.objectives[i]:SetText("|cffffffff- " .. text)
         end
 
         self.objectives[i]:Show()
-
       end
     end
 
-    local r,g,b = pfMap.tooltip:GetColor(cur, max)
-    local colorperc = string.format("|cff%02x%02x%02x", r*255, g*255, b*255)
-    local showlevel = pfQuest_config["trackerlevel"] == "1" and "[" .. ( level or "??" ) .. ( tag and "+" or "") .. "] " or ""
+    local r, g, b = pfMap.tooltip:GetColor(cur, max)
+    local colorperc = string.format("|cff%02x%02x%02x", r * 255, g * 255, b * 255)
+    local showlevel = pfQuest_config["trackerlevel"] == "1" and "[" .. (level or "??") .. (tag and "+" or "") .. "] "
+      or ""
 
     self.tracked = watched
+    -- The tracker sort uses the numeric quest level. Keep it on the quest
+    -- button just as giver entries do, otherwise level-first compares every
+    -- quest as an unset value.
+    self.level = tonumber(level)
     self.perc = percent
-    self.text:SetText(string.format("%s%s |cffaaaaaa(%s%s%%|cffaaaaaa)|r", showlevel, title or "", colorperc or "", ceil(percent)))
+    self.text:SetText(
+      string.format("%s%s |cffaaaaaa(%s%s%%|cffaaaaaa)|r", showlevel, title or "", colorperc or "", ceil(percent))
+    )
     self.text:SetTextColor(color.r, color.g, color.b)
-    self.tooltip = pfQuest_Loc["|cff33ffcc<Click>|r Unfold/Fold Objectives\n|cff33ffcc<Right-Click>|r Show In QuestLog\n|cff33ffcc<Ctrl-Click>|r Show Map / Toggle Color\n|cff33ffcc<Shift-Click>|r Hide Nodes"]
+    self.tooltip =
+      pfQuest_Loc["|cff33ffcc<Click>|r Unfold/Fold Objectives\n|cff33ffcc<Right-Click>|r Show In QuestLog\n|cff33ffcc<Ctrl-Click>|r Show Map / Toggle Color\n|cff33ffcc<Shift-Click>|r Hide Nodes"]
   elseif tracker.mode == "GIVER_TRACKING" then
     local level = node.qlvl or node.level or UnitLevel("player")
     local color = pfQuestCompat.GetDifficultyColor(level)
@@ -435,46 +738,120 @@ function tracker.ButtonEvent(self)
 
     -- detect daily quests
     if node.qmin and node.qlvl and math.abs(node.qmin - node.qlvl) >= 30 then
-      level, color = 0, { r = .2, g = .8, b = 1 }
+      level, color = 0, { r = 0.2, g = 0.8, b = 1 }
     end
 
-    local showlevel = pfQuest_config["trackerlevel"] == "1" and "[" .. ( level or "??" ) .. "] " or ""
+    local showlevel = pfQuest_config["trackerlevel"] == "1" and "[" .. (level or "??") .. "] " or ""
     self.text:SetTextColor(color.r, color.g, color.b)
     self.text:SetText(showlevel .. title)
     self.level = tonumber(level)
-    self.tooltip = pfQuest_Loc["|cff33ffcc<Ctrl-Click>|r Show Map / Toggle Color\n|cff33ffcc<Shift-Click>|r Mark As Done"]
+    self.tooltip =
+      pfQuest_Loc["|cff33ffcc<Ctrl-Click>|r Show Map / Toggle Color\n|cff33ffcc<Shift-Click>|r Mark As Done"]
   elseif tracker.mode == "DATABASE_TRACKING" then
     self.text:SetText(title)
-    self.text:SetTextColor(1,1,1,1)
+    self.text:SetTextColor(1, 1, 1, 1)
     self.text:SetTextColor(pfMap.str2rgb(title))
     self.tooltip = pfQuest_Loc["|cff33ffcc<Ctrl-Click>|r Show Map / Toggle Color\n|cff33ffcc<Shift-Click>|r Hide Nodes"]
   end
 
-  -- sort all tracker entries
-  table.sort(tracker.buttons, trackersort)
+  -- Mark for sort instead of sorting immediately (deferred)
+  tracker.needsSort = true
+  tracker:ScheduleLayout()
+  if tracker.mode == "QUEST_TRACKING" and tracker.visibleQuests and not tracker.visibleQuests[title] then
+    self:Hide()
+  else
+    self:Show()
+  end
+end
 
-  self:Show()
+-- Separate function for layout (only called when needed)
+-- Apply tracker presentation once, outside quest-event dispatch. Rows retain
+-- their bindings; changing appearance never reloads quest or map data.
+function tracker.ApplyAppearance(changes)
+  if changes.trackerfontsize then
+    local requested = tonumber(pfQuest_config.trackerfontsize)
+    fontsize = requested and requested > 0 and requested or 12
+    entryheight = ceil(fontsize * 1.6)
+  end
+  if changes.trackerexpand then
+    local expanded = pfQuest_config.trackerexpand == "1" and 1 or 0
+    for title in pairs(expand_states) do
+      if not manual_expand_states[title] then expand_states[title] = expanded end
+    end
+  end
+  local refreshContent = changes.trackerfontsize or changes.trackerlevel or changes.trackerexpand
+  for _, button in pairs(tracker.buttons or {}) do
+    if not button.empty and button.title then
+      if changes.trackerfontsize then
+        button.text:SetFont(pfUI.font_default, fontsize)
+        for index, objective in pairs(button.objectives or {}) do
+          objective:SetFont(pfUI.font_default, fontsize)
+          objective:ClearAllPoints()
+          objective:SetPoint("TOPLEFT", button, "TOPLEFT", 20, -fontsize * index - 6)
+          objective:SetPoint("TOPRIGHT", button, "TOPRIGHT", -10, -fontsize * index - 6)
+        end
+      end
+      if refreshContent then
+        button.contentPending = nil
+        tracker.ButtonEvent(button)
+      end
+      tracker.ButtonUpdate(button)
+    end
+  end
+  tracker.DoLayout()
+end
+
+function tracker.DoLayout()
+  -- Sort all tracker entries if needed
+  if tracker.needsSort then
+    sort(tracker.buttons, trackersort)
+    tracker.needsSort = nil
+
+    -- Sorting moves frame objects between numeric slots. Rebuild the reverse
+    -- lookup so later updates address the frame that now owns each title.
+    for title in pairs(tracker.buttonByTitle) do
+      tracker.buttonByTitle[title] = nil
+    end
+    for id = 1, getn(tracker.buttons) do
+      local button = tracker.buttons[id]
+      if button and not button.empty and button.title then
+        tracker.buttonByTitle[TrackerTitleKey(button.title)] = id
+      end
+    end
+  end
+
+  local visibleQuests = tracker.mode == "QUEST_TRACKING" and ReadQuestLogVisibility() or nil
+  tracker.visibleQuests = visibleQuests
 
   -- resize window and align buttons
   local height = panelheight
   local width = 100
 
-  for bid, button in pairs(tracker.buttons) do
+  for bid = 1, getn(tracker.buttons) do
+    local button = tracker.buttons[bid]
     button:ClearAllPoints()
     button:SetPoint("TOPRIGHT", tracker, "TOPRIGHT", 0, -height)
     button:SetPoint("TOPLEFT", tracker, "TOPLEFT", 0, -height)
-    if not button.empty then
+    if not button.empty and (not visibleQuests or visibleQuests[button.title]) then
+      button:Show()
       height = height + button:GetHeight()
 
-      if button.text:GetStringWidth() > width then
-        width = button.text:GetStringWidth()
+      -- Cache GetStringWidth result (avoid calling twice)
+      local textWidth = button.text:GetStringWidth()
+      if textWidth > width then
+        width = textWidth
       end
 
       for id, objective in pairs(button.objectives) do
-        if objective:IsShown() and objective:GetStringWidth() > width then
-          width = objective:GetStringWidth()
+        if objective:IsShown() then
+          local objWidth = objective:GetStringWidth()
+          if objWidth > width then
+            width = objWidth
+          end
         end
       end
+    else
+      button:Hide()
     end
   end
 
@@ -483,71 +860,96 @@ function tracker.ButtonEvent(self)
   tracker:SetWidth(width)
 end
 
-function tracker.ButtonAdd(title, node)
-  if not title or not node then return end
+function tracker:ScheduleLayout()
+  self.layoutAt = GetTime() + 0.05
+end
 
-  local questid = title
-  for qid, data in pairs(pfQuest.questlog) do
-    if data.title == title then
-      questid = qid
-      break
+function tracker.ButtonAdd(title, node)
+  if not title or not node then
+    return
+  end
+
+  -- O(1) questid lookup: node.questid is set for all PFQUEST nodes from the DB.
+  -- For the rare case it's missing or not in questlog (title-keyed quests), fall
+  -- back to the linear scan so correctness is preserved.
+  local questid = node.questid
+  -- Reset() creates dummy entries without a database node. Resolve those by
+  -- title too; otherwise the QUEST_TRACKING guard below rejects every dummy
+  -- entry before it can display (notably client-unwatched quests).
+  if not questid or not pfQuest.questlog[questid] then
+    questid = title
+    for qid, data in pairs(pfQuest.questlog) do
+      if data.title == title then
+        questid = qid
+        break
+      end
     end
   end
 
   if tracker.mode == "QUEST_TRACKING" then -- skip everything that isn't in questlog
-    if node.addon ~= "PFQUEST" then return end
-    if not pfQuest.questlog or not pfQuest.questlog[questid] then return end
+    if node.addon ~= "PFQUEST" then
+      return
+    end
+    if not pfQuest.questlog or not pfQuest.questlog[questid] then
+      return
+    end
   elseif tracker.mode == "GIVER_TRACKING" then -- skip everything that isn't a questgiver
-    if node.addon ~= "PFQUEST" then return end
+    if node.addon ~= "PFQUEST" then
+      return
+    end
     -- break on already taken quests
-    if not pfQuest.questlog or pfQuest.questlog[questid] then return end
+    if not pfQuest.questlog or pfQuest.questlog[questid] then
+      return
+    end
     -- every layer above 2 is not a questgiver
-    if not node.layer or node.layer > 2 then return end
+    if not node.layer or node.layer > 2 then
+      return
+    end
   elseif tracker.mode == "DATABASE_TRACKING" then -- skip everything that isn't db query
-    if node.addon ~= "PFDB" then return end
+    if node.addon ~= "PFDB" then
+      return
+    end
   end
 
   local id
 
-  -- skip duplicate titles
-  for bid, button in pairs(tracker.buttons) do
-    if button.title and button.title == title then
-      if node.dummy or not node.texture then
-        -- We found a node icon (1st prio)
-        -- use the ID and update the button
-        id = bid
-        break
-      elseif node.cluster and ( not button.node or button.node.texture ) then
-        -- We found a cluster icon (2nd prio)
-        -- set the id, but still try to find a node icon
-        id = bid
-      else
-        -- got none of the above, therefore
-        -- no icon update required, skip here
-        return
-      end
+  -- O(1) duplicate check via reverse map (replaces linear scan of tracker.buttons)
+  local existing = tracker.buttonByTitle[TrackerTitleKey(title)]
+  if existing then
+    local button = tracker.buttons[existing]
+    if node.dummy or not node.texture then
+      id = existing -- node icon takes slot
+    elseif node.cluster and (not button.node or button.node.texture) then
+      id = existing -- cluster icon, acceptable
+    else
+      return -- no icon update needed
     end
   end
 
   if not id then
     -- use maxcount + 1 as default id
-    id = table.getn(tracker.buttons)+1
+    id = table.getn(tracker.buttons) + 1
 
     -- detect a reusable button
     for bid, button in pairs(tracker.buttons) do
-      if button.empty then id = bid break end
+      if button.empty then
+        id = bid
+        break
+      end
     end
   end
 
-  if id > 25 then return end
+  if id > 25 then
+    return
+  end
 
   -- create one if required
   if not tracker.buttons[id] then
-    tracker.buttons[id] = CreateFrame("Button", "pfQuestMapButton"..id, tracker)
+    tracker.buttons[id] = CreateFrame("Button", "pfQuestMapButton" .. id, tracker)
     tracker.buttons[id]:SetHeight(entryheight)
 
     tracker.buttons[id].bg = tracker.buttons[id]:CreateTexture(nil, "BACKGROUND")
-    tracker.buttons[id].bg:SetTexture(1,1,1,.2)
+    tracker.buttons[id].bg:SetTexture(1, 1, 1, 0.2)
     tracker.buttons[id].bg:SetAllPoints()
     tracker.buttons[id].bg:SetAlpha(0)
 
@@ -570,8 +972,7 @@ function tracker.ButtonAdd(title, node)
 
     tracker.buttons[id]:SetScript("OnEnter", tracker.ButtonEnter)
     tracker.buttons[id]:SetScript("OnLeave", tracker.ButtonLeave)
-    tracker.buttons[id]:SetScript("OnUpdate", tracker.ButtonUpdate)
-    tracker.buttons[id]:SetScript("OnEvent", tracker.ButtonEvent)
+    tracker.buttons[id]:SetScript("OnEvent", function() this.contentPending = true end)
     tracker.buttons[id]:SetScript("OnClick", tracker.ButtonClick)
   end
 
@@ -581,12 +982,17 @@ function tracker.ButtonAdd(title, node)
   tracker.buttons[id].node = node
   tracker.buttons[id].questid = questid
 
+  -- keep reverse map in sync
+  tracker.buttonByTitle[TrackerTitleKey(title)] = id
+
   -- reload button data
   tracker.ButtonEvent(tracker.buttons[id])
+  tracker.ButtonUpdate(tracker.buttons[id])
 end
 
 function tracker.Reset()
   tracker:SetHeight(panelheight)
+  tracker.questPoints = {}
   for id, button in pairs(tracker.buttons) do
     button.level = nil
     button.title = nil
@@ -595,18 +1001,31 @@ function tracker.Reset()
     button:SetHeight(0)
     button:Hide()
   end
+  -- reverse map is only valid while buttons hold titles; clear on full reset
+  for k in pairs(tracker.buttonByTitle) do
+    tracker.buttonByTitle[k] = nil
+  end
 
   -- add tracked quests
   local _, numQuests = GetNumQuestLogEntries()
   local found = 0
 
   -- iterate over all quests
-  for qlogid=1,40 do
+  for qlogid = 1, 40 do
     local title, level, tag, header, collapsed, complete = compat.GetQuestLogTitle(qlogid)
     if title and not header then
       local watched = IsQuestWatched(qlogid)
-      if watched then
-        local img = complete and pfQuestConfig.path.."\\img\\complete_c" or pfQuestConfig.path.."\\img\\complete"
+      -- "All Quests" must not depend on the client marking a quest as watched.
+      -- Turtle leaves some normal item/object quests (for example Hilary's
+      -- Necklace) unwatched, which previously made them disappear after the
+      -- tracker reset even though they were active in the quest log.
+      local trackingmethod = tonumber(pfQuest_config["trackingmethod"])
+      if trackingmethod ~= 5 and (watched or trackingmethod == 1) then
+        -- Objective rows can briefly be absent while the client reindexes the
+        -- quest log after a turn-in. Use the authoritative completion flag.
+        local img = complete
+          and pfQuestConfig.path .. "\\img\\complete_c"
+          or pfQuestConfig.path .. "\\img\\complete"
         pfQuest.tracker.ButtonAdd(title, { dummy = true, addon = "PFQUEST", texture = img })
       end
 
@@ -616,6 +1035,7 @@ function tracker.Reset()
       end
     end
   end
+  -- Note: DoLayout is called by UpdateNodes after all ButtonAdd calls complete
 end
 
 -- make global available

@@ -65,7 +65,19 @@ local function has(file, text)
 end
 ok(has("config.lua", 'arg1 == "pfUI"') and has("quest.lua", 'arg1 == "pfUI"'), "pfQuest starts on pfUI's ADDON_LOADED")
 ok(has("config.lua", 'pfQuestConfig.path = "Interface\\\\AddOns\\\\pfUI\\\\pfquest"'), "pfQuest's art is found in pfUI\\pfquest")
-ok(has("icons-nodes.lua", '"Interface\\\\AddOns\\\\pfUI\\\\pfquest\\\\icons"'), "the node icons are found in pfUI\\pfquest\\icons")
+-- (11 Nov 2026) lightblade's pfQuest-turtle as the launcher installs it: its pictures, its version
+ok(has("turtle-pfQuest-nameplates.lua", '"Interface\\\\AddOns\\\\pfUI\\\\pfquest\\\\turtle-img\\\\slay"')
+  and not has("turtle-pfQuest-nameplates.lua", "AddOns\\\\pfQuest-turtle"), "pfQuest-turtle's pictures are found in pfUI\\pfquest\\turtle-img")
+local th = io.open(DIR .. "/pfquest/turtle-img/slay.blp", "rb")
+ok(th ~= nil, "pfQuest-turtle's images are copied") if th then th:close() end
+ok(has("turtle-pfQuest-updater.lua", 'pfQuestOctoMeta("pfQuest-turtle", "Version")')
+  and not has("turtle-pfQuest-updater.lua", "GetAddOnMetadata("), "pfQuest-turtle asks pfUI's toc for its version")
+ok(has("updatenotify.lua", 'pfQuestOctoMeta("pfQuest", "Version")') and has("config.lua", "local tocs = {}"),
+  "pfQuest's version and folder come from pfUI, not an old pfQuest folder")
+ok(has("compat/client.lua", "pfQuestOctoParse = ParseQuestLevels") and not has("compat/client.lua", ".pfQuestHookAddMessage"),
+  "pfQuest's chat hook uses its own names")
+ok(has("pfquest.xml", 'turtle-pfQuest-worldmap.lua') and has("pfquest.xml", 'turtle-pfQuest-lootpanel.lua'),
+  "the world map pins and loot panel load")
 local h = io.open(DIR .. "/pfquest/img/available.tga", "rb")
 ok(h ~= nil, "pfQuest's images are copied") if h then h:close() end
 
@@ -78,6 +90,17 @@ local realPfUI, realConfig, realDB = pfUI, pfUI_config, rawget(_G, "pfDB")
 _G.pfDB = nil
 run("guard.lua")
 ok(pfQuestOctoSkip == false and pfUI == nil and pfUI_config == nil, "no standalone pfQuest: pfUI hidden while pfQuest's files run")
+do
+  local realMeta = rawget(_G, "GetAddOnMetadata")
+  _G.GetAddOnMetadata = function(a, f)
+    if a == "pfUI" and f == "X-pfQuest-Version" then return "8.0.51" end
+    if a == "pfUI" and f == "X-pfQuest-Turtle-Version" then return "1.0.39" end
+    if a == "pfQuest" then return "7.0.1" end -- an old copy left in AddOns
+  end
+  ok(pfQuestOctoMeta and pfQuestOctoMeta("pfQuest", "Version") == "8.0.51" and pfQuestOctoMeta("pfQuest-turtle", "Version") == "1.0.39",
+    "built in, pfQuest's versions come from pfUI's toc, not an old pfQuest folder")
+  _G.GetAddOnMetadata = realMeta
+end
 pfUI = { stand = "in" }
 run("restore.lua")
 ok(pfUI == realPfUI and pfUI_config == realConfig and pfQuestOctoHidden == nil, "restore.lua puts pfUI and its settings back")

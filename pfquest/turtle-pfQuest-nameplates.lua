@@ -1,0 +1,750 @@
+if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
+local questObjectives = {}
+local nameplateFrames = {}
+local iconFrames = {}
+local unusedIconFrames = {}
+local frameCount = 0
+
+local ICON_SIZE = 16
+local SWORD_ICON = "Interface\\AddOns\\pfUI\\pfquest\\turtle-img\\slay"
+local BAG_ICON = "Interface\\AddOns\\pfUI\\pfquest\\turtle-img\\loot"
+local NAMEPLATE_BORDER = "Interface\\Tooltips\\Nameplate-Border"
+local NAME_REGION_INDEX = 3
+
+local function MeetsDropThreshold(chance)
+    return (tonumber(chance) or 0) >= (tonumber(pfQuest_config and pfQuest_config.mindropchance) or 0)
+end
+
+local function ScanQuestObjectives()
+    questObjectives = {}
+
+    -- Disabling icons must also disable database/objective work, not just drawing.
+    if pfQuest_config and pfQuest_config["nameplatesEnabled"] == "0" then return 0 end
+
+    if not pfDB or not pfDB["quests"] or not pfDB["quests"]["data"] then
+        return 0
+    end
+
+    if not pfDB["quests"]["enUS"] or not pfDatabase then
+        return 0
+    end
+
+    local activeQuests = {}
+    local unresolvedRows = 0
+    for qid = 1, GetNumQuestLogEntries() do
+        local questTitle, _, _, isHeader, _, complete = pfQuestCompat.GetQuestLogTitle(qid)
+        if questTitle and not isHeader and complete ~= 1 then
+            -- Accepting a quest can refresh this scan while the Quest Log is
+            -- visible. Avoid selecting hidden rows during ID resolution so
+            -- collapsed categories remain closed.
+            local questId
+            -- pfQuest has already resolved active rows while maintaining its
+            -- quest log. Reuse that canonical ID instead of restarting an HDB
+            -- title lookup here; the asynchronous index can still be warming
+            -- up during login and would otherwise leave every icon unindexed.
+            for activeId, state in pairs(pfQuest.questlog or {}) do
+                if type(activeId) == "number" and state and state.qlogid == qid
+                  and state.title == questTitle then
+                    questId = activeId
+                    break
+                end
+            end
+            if not questId then
+                local preserveSelection = QuestLogFrame and QuestLogFrame:IsShown()
+                local questIds = pfDatabase:GetQuestIDs(qid, preserveSelection)
+                questId = questIds and tonumber(questIds[1])
+            end
+            if questId then
+                activeQuests[questId] = {}
+            else
+                unresolvedRows = unresolvedRows + 1
+            end
+            local numObjectives = GetNumQuestLeaderBoards(qid)
+
+            for i = 1, numObjectives do
+                local text, objType, finished = GetQuestLogLeaderBoard(i, qid)
+                if text and finished ~= true and finished ~= 1 then
+                    -- The raw leaderboard text follows the client's localized
+                    -- QUEST_MONSTERS_KILLED/QUEST_OBJECTS_FOUND templates, whose
+                    -- numbered placeholders (%1/%2/%3) some clients physically
+                    -- reorder. A plain "name: current/total" regex silently
+                    -- fails whenever a quest's format is reordered, so that
+                    -- quest's monster never gets a nameplate icon. Use cmatch,
+                    -- which resolves captures by their logical %N$ position
+                    -- instead of physical order (same fix already applied to
+                    -- map.lua/database.lua for the equivalent tooltip bug).
+                    local objName, current, total
+                    local format = objType == "monster" and QUEST_MONSTERS_KILLED
+                      or (objType == "item" or objType == "object") and QUEST_OBJECTS_FOUND
+                    if format and pfUI and pfUI.api and pfUI.api.cmatch then
+                        local ok, name, count, required = pcall(pfUI.api.cmatch, text, format)
+                        if ok then objName, current, total = name, count, required end
+                    end
+                    -- Turtle and UI replacements can expose nonstandard
+                    -- objective types or omit legacy string helpers. Retain
+                    -- the proven vanilla layout as a safe fallback so one
+                    -- parser mismatch cannot empty every nameplate icon.
+                    if not objName then
+                        _, _, objName, current, total = string.find(
+                          text, "(.*):%s*(%d+)%s*/%s*(%d+)"
+                        )
+                    end
+                    if objName and questId then
+                        objName = string.gsub(objName, "^%s*(.-)%s*$", "%1")
+                        table.insert(activeQuests[questId], {
+                            objective = objName,
+                            current = tonumber(current),
+                            total = tonumber(total)
+                        })
+                    end
+                end
+            end
+        end
+    end
+
+    -- Only inspect active quest IDs. The former title-based full database scan
+    -- ran thousands of records for every QUEST_LOG_UPDATE and also mixed up
+    -- unrelated stages that share a title.
+    for questId, activeObjectives in pairs(activeQuests) do
+            local questData = pfDB["quests"]["data"][questId]
+            if questData and questData["obj"] then
+                if questData["obj"]["U"] then
+                    for _, unitId in pairs(questData["obj"]["U"]) do
+                        if pfDB["units"] and pfDB["units"]["enUS"] and pfDB["units"]["enUS"][unitId] then
+                            local targetName = pfDB["units"]["enUS"][unitId]
+
+                            for _, activeObj in ipairs(activeObjectives) do
+                                if type(activeObj) == "table" and type(activeObj.objective) == "string" then
+                                    local objNameBase = string.gsub(activeObj.objective, " slain$", "")
+                                    objNameBase = string.gsub(objNameBase, " killed$", "")
+                                    if objNameBase == targetName and
+                                       (activeObj.current or 0) < (activeObj.total or 0) then
+                                        questObjectives[targetName] = SWORD_ICON
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if questData["obj"]["I"] then
+                    for _, itemId in pairs(questData["obj"]["I"]) do
+                        local itemName = nil
+                        if pfDB["items"] and pfDB["items"]["enUS"] and pfDB["items"]["enUS"][itemId] then
+                            itemName = pfDB["items"]["enUS"][itemId]
+                        end
+
+                        if pfDB["items"] and pfDB["items"]["data"] and pfDB["items"]["data"][itemId] then
+                            local itemData = pfDB["items"]["data"][itemId]
+
+                            if itemData["U"] then
+                                for unitId, dropRate in pairs(itemData["U"]) do
+                                    if MeetsDropThreshold(dropRate) and pfDB["units"] and pfDB["units"]["enUS"] and pfDB["units"]["enUS"][unitId] then
+                                        local npcName = pfDB["units"]["enUS"][unitId]
+
+                                        for _, activeObj in ipairs(activeObjectives) do
+                                            if type(activeObj) == "table" and type(activeObj.objective) == "string" and
+                                               itemName and string.find(activeObj.objective, itemName, 1, true) then
+                                                if (activeObj.current or 0) < (activeObj.total or 0) then
+                                                    questObjectives[npcName] = BAG_ICON
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+	            end
+    end
+    return unresolvedRows
+end
+
+local function IsNameplate(frame)
+    if not frame then return false end
+
+    if frame.nameplate or frame.UnitFrame or frame.extended or frame.aloftData or frame.kui then
+        return true
+    end
+
+    if frame:GetObjectType() ~= "Button" then return false end
+
+    local borderRegion = frame:GetRegions()
+    if borderRegion and borderRegion.GetObjectType and borderRegion:GetObjectType() == "Texture" then
+        local texture = borderRegion:GetTexture()
+        if texture == NAMEPLATE_BORDER then
+            return true
+        end
+
+        if texture == "" or texture == nil then
+            local nameRegion = ({ frame:GetRegions() })[NAME_REGION_INDEX]
+            if nameRegion and nameRegion.GetObjectType and nameRegion:GetObjectType() == "FontString" then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+local function GetNameplateNameText(frame)
+    -- pfUI disables the original Blizzard regions and renders the live unit
+    -- name on its own overlay. Prefer that field whenever it exists; the
+    -- original third region can be blank or stale on recycled plates.
+    local styledPlate = frame and frame.nameplate
+    local nameText = styledPlate and styledPlate.name
+
+    -- Retain compatibility with modern-style wrappers and the stock client.
+    if not nameText then
+        local unitFrame = frame and frame.UnitFrame
+        nameText = unitFrame and (unitFrame.name or unitFrame.Name)
+    end
+    -- BlizzNameplatesPlus keeps the original Blizzard name FontString on the
+    -- plate itself. ClassicAPI can later expose that plate with no native
+    -- regions, so the saved shortcut becomes the only stable name source.
+    if not nameText and frame then
+        nameText = frame.name
+    end
+    if not nameText and frame then
+        nameText = ({ frame:GetRegions() })[NAME_REGION_INDEX]
+    end
+
+    if nameText and nameText.GetObjectType
+      and nameText:GetObjectType() == "FontString" then
+        return nameText
+    end
+end
+
+local cachedScale, cachedX, cachedY = 1, -20, -8
+
+local function UpdateCachedSettings()
+    cachedScale = (pfQuest_config and tonumber(pfQuest_config["nameplateScale"])) or 1
+    cachedX = (pfQuest_config and tonumber(pfQuest_config["nameplateX"])) or -25
+    cachedY = (pfQuest_config and tonumber(pfQuest_config["nameplateY"])) or -5
+end
+
+local function GetIconFrame(nameplateFrame)
+    if iconFrames[nameplateFrame] then
+        return iconFrames[nameplateFrame]
+    end
+
+    if frameCount >= 300 then
+        return nil
+    end
+
+    local frame = tremove(unusedIconFrames)
+
+    if not frame then
+        frame = CreateFrame("Frame")
+        frame.Icon = frame:CreateTexture(nil, "ARTWORK")
+        frame.Icon:SetAllPoints(frame)
+        frameCount = frameCount + 1
+    end
+
+    frame:SetParent(nameplateFrame)
+    -- Quest decorations belong below ordinary windows and dropdown menus.
+    frame:SetFrameStrata("BACKGROUND")
+    frame:SetFrameLevel(nameplateFrame:GetFrameLevel() + 5)
+    frame:SetWidth(ICON_SIZE * cachedScale)
+    frame:SetHeight(ICON_SIZE * cachedScale)
+    frame:ClearAllPoints()
+    frame:SetPoint("LEFT", cachedX, cachedY)
+    frame:EnableMouse(false)
+
+    iconFrames[nameplateFrame] = frame
+    return frame
+end
+
+local function RemoveIconFrame(nameplateFrame)
+    local frame = iconFrames[nameplateFrame]
+    if not frame then
+        return
+    end
+
+    frame.Icon:SetTexture(nil)
+    frame:Hide()
+    frame.lastIcon = nil
+    tinsert(unusedIconFrames, frame)
+    iconFrames[nameplateFrame] = nil
+end
+
+local function OnNameplateShow(nameplateFrame)
+    if not pfQuest_config or pfQuest_config["nameplatesEnabled"] ~= "1" then
+        return
+    end
+
+    if WorldMapFrame and WorldMapFrame:IsShown() then
+        local iconFrame = iconFrames[nameplateFrame]
+        if iconFrame then iconFrame:Hide() end
+        return
+    end
+
+    -- Refresh the name-region reference because styled nameplates can create
+    -- or replace their overlay after the underlying Blizzard frame is found.
+    local nameText = GetNameplateNameText(nameplateFrame)
+    if not nameText then return end
+    nameplateFrames[nameplateFrame] = nameText
+
+    local unitName = nameText:GetText()
+    if not unitName then return end
+
+    local icon = questObjectives[unitName]
+
+    -- A styled nameplate overlay (pfUI, etc.) can abbreviate a long creature
+    -- name to fit the plate width (e.g. "Nightbane Shadow Weaver" becomes
+    -- "N. Shadow Weaver"), which no longer matches questObjectives' full
+    -- database name. Fall back to the raw Blizzard name region when the
+    -- preferred source found no match; it can be blank/stale on recycled
+    -- plates (why it isn't preferred outright above) but still carries the
+    -- full name on plates where it hasn't been cleared.
+    if not icon then
+        local rawRegion = ({ nameplateFrame:GetRegions() })[NAME_REGION_INDEX]
+        local rawText = rawRegion and rawRegion.GetObjectType and rawRegion:GetObjectType() == "FontString"
+          and rawRegion:GetText()
+        if rawText and rawText ~= unitName then
+            icon = questObjectives[rawText]
+        end
+    end
+
+    if icon then
+        local frame = GetIconFrame(nameplateFrame)
+        if frame then
+            if frame.lastIcon ~= icon then
+                frame.Icon:SetTexture(icon)
+                frame.lastIcon = icon
+            end
+            frame:Show()
+        end
+    else
+        RemoveIconFrame(nameplateFrame)
+    end
+end
+
+local function OnNameplateHide(nameplateFrame)
+    RemoveIconFrame(nameplateFrame)
+end
+
+local function ScanWorldFrameChildren(frames)
+    local numFrames = table.getn(frames)
+
+    for i = 1, numFrames do
+        local frame = frames[i]
+
+        if frame and not nameplateFrames[frame] and IsNameplate(frame) then
+            -- Resolve the active name region for pfUI, modern-style wrappers,
+            -- the stock client, and older nameplate addons.
+            local nameText = GetNameplateNameText(frame)
+            if nameText then
+                nameplateFrames[frame] = nameText
+
+                if frame:IsShown() then
+                    OnNameplateShow(frame)
+                end
+            end
+        end
+    end
+end
+
+local function UpdateAllNameplates()
+    for frame, nameText in pairs(nameplateFrames) do
+        if frame:IsShown() then
+            OnNameplateShow(frame)
+        else
+            OnNameplateHide(frame)
+        end
+    end
+end
+
+-- World-space nameplates can render over a windowed world map even when
+-- their icons use a lower frame level. Suppress our icons while it is open.
+if WorldMapFrame then
+    local previousOnShow = WorldMapFrame:GetScript("OnShow")
+    WorldMapFrame:SetScript("OnShow", function()
+        if previousOnShow then previousOnShow() end
+        for _, iconFrame in pairs(iconFrames) do iconFrame:Hide() end
+    end)
+    local previousOnHide = WorldMapFrame:GetScript("OnHide")
+    WorldMapFrame:SetScript("OnHide", function()
+        if previousOnHide then previousOnHide() end
+        UpdateAllNameplates()
+    end)
+end
+
+local function RedrawAllIcons()
+    UpdateCachedSettings()
+
+    for _, iconFrame in pairs(iconFrames) do
+        iconFrame:SetWidth(ICON_SIZE * cachedScale)
+        iconFrame:SetHeight(ICON_SIZE * cachedScale)
+        iconFrame:ClearAllPoints()
+        iconFrame:SetPoint("LEFT", cachedX, cachedY)
+    end
+end
+
+local ticker
+local StartNameplateWatcher
+local StopNameplateWatcher
+
+local configMonitor = CreateFrame("Frame")
+local lastEnabled = "1"
+
+local function StartConfigMonitor()
+    configMonitor.elapsed = 0
+    configMonitor:SetScript("OnUpdate", function()
+        this.elapsed = (this.elapsed or 0) + arg1
+        if this.elapsed >= 0.5 then
+            if pfQuest_config then
+                local currentEnabled = pfQuest_config["nameplatesEnabled"] or "1"
+
+                if currentEnabled ~= lastEnabled then
+                    lastEnabled = currentEnabled
+
+                    if currentEnabled == "1" then
+                        StartNameplateWatcher()
+                        UpdateAllNameplates()
+                    else
+                        StopNameplateWatcher()
+                        for frame in pairs(iconFrames) do
+                            RemoveIconFrame(frame)
+                        end
+                    end
+                end
+            end
+            this.elapsed = 0
+        end
+    end)
+end
+
+local lastNumChildren = 0
+local classicNameplates = pfQuestCompat.optional and pfQuestCompat.optional.nameplates
+local classicWatcherActive = false
+-- The stock client has no plate events and must retain its scan. ClassicAPI
+-- reports every plate lifecycle directly, so it needs no recurring scan.
+local SCAN_INTERVAL = 0.2
+
+local function ScanClassicNameplates()
+    if not classicNameplates then return end
+    local ok, frames = pcall(C_NamePlate.GetNamePlates)
+    if ok and type(frames) == "table" then
+        ScanWorldFrameChildren(frames)
+    end
+end
+
+StartNameplateWatcher = function()
+    if classicNameplates then
+        if classicWatcherActive then return end
+        classicWatcherActive = true
+        UpdateCachedSettings()
+        ScanClassicNameplates()
+
+        -- ClassicAPI events provide immediate updates, but some client and
+        -- nameplate-addon combinations do not emit an added event for every
+        -- simultaneously visible plate. Reconcile both discovery surfaces at
+        -- the same modest rate used by the legacy scanner so every matching
+        -- mob receives its own quest icon.
+        lastNumChildren = -1
+        ticker = CreateFrame("Frame")
+        ticker.elapsed = 0
+        ticker:SetScript("OnUpdate", function()
+            this.elapsed = this.elapsed + arg1
+            if this.elapsed >= SCAN_INTERVAL then
+                ScanClassicNameplates()
+                local numChildren = WorldFrame:GetNumChildren()
+                if numChildren ~= lastNumChildren then
+                    lastNumChildren = numChildren
+                    ScanWorldFrameChildren({ WorldFrame:GetChildren() })
+                end
+                UpdateAllNameplates()
+                this.elapsed = 0
+            end
+        end)
+
+        StartConfigMonitor()
+        return
+    end
+
+    if ticker then return end
+
+    UpdateCachedSettings()
+    lastNumChildren = -1
+    ScanClassicNameplates()
+
+    ticker = CreateFrame("Frame")
+    ticker.elapsed = 0
+    ticker:SetScript("OnUpdate", function()
+        this.elapsed = this.elapsed + arg1
+
+        if this.elapsed >= SCAN_INTERVAL then
+            local numChildren = WorldFrame:GetNumChildren()
+            if numChildren ~= lastNumChildren then
+                lastNumChildren = numChildren
+                ScanWorldFrameChildren({ WorldFrame:GetChildren() })
+            end
+            UpdateAllNameplates()
+            this.elapsed = 0
+        end
+    end)
+
+    StartConfigMonitor()
+end
+
+StopNameplateWatcher = function()
+    if classicNameplates then
+        classicWatcherActive = false
+    end
+
+    if ticker then
+        ticker:SetScript("OnUpdate", nil)
+        ticker = nil
+    end
+
+    -- Keep the config monitor alive so the checkbox can enable us again.
+end
+
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+eventFrame:RegisterEvent("ZONE_CHANGED")
+eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+local objectiveScan = CreateFrame("Frame")
+local function QueueObjectiveScan()
+    if objectiveScan:GetScript("OnUpdate") then return end
+    objectiveScan.elapsed = 0
+    objectiveScan.attempts = 0
+    objectiveScan:SetScript("OnUpdate", function()
+        this.elapsed = this.elapsed + arg1
+        if this.elapsed >= 0.5 then
+            -- The core deliberately waits for the login quest-log burst to settle.
+            -- Do not resolve the same rows ahead of that scan or while its queue
+            -- is draining; reuse the canonical IDs once the core is ready.
+            if not pfDatabase or not pfDatabase.localized
+                or (pfQuest.lock and pfQuest.lock > GetTime())
+                or (pfQuest.queueCount or 0) > 0 or pfQuest.updateQuestLog then
+                this.elapsed = 0
+                return
+            end
+            this.attempts = this.attempts + 1
+            local unresolvedRows = ScanQuestObjectives()
+            UpdateAllNameplates()
+            -- PLAYER_ENTERING_WORLD can arrive before pfQuest has attached
+            -- canonical IDs to its quest-log rows. Retry only while real
+            -- active rows remain unresolved; this mirrors the successful
+            -- manual /pfqnp scan without polling after initialization.
+            if unresolvedRows and unresolvedRows > 0 and this.attempts < 20 then
+                this.elapsed = 0
+            else
+                this:SetScript("OnUpdate", nil)
+            end
+        end
+    end)
+end
+
+eventFrame:SetScript("OnEvent", QueueObjectiveScan)
+
+if classicNameplates then
+    local classicNameplateEvents = CreateFrame("Frame")
+    local classicFramesByUnit = {}
+    classicNameplateEvents:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+    classicNameplateEvents:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+    classicNameplateEvents:SetScript("OnEvent", function()
+        local unit = arg1
+        if event == "NAME_PLATE_UNIT_ADDED" and unit then
+            local ok, frame = pcall(C_NamePlate.GetNamePlateForUnit, unit)
+            if ok and frame then
+                classicFramesByUnit[unit] = frame
+                ScanWorldFrameChildren({ frame })
+                OnNameplateShow(frame)
+            end
+        elseif event == "NAME_PLATE_UNIT_REMOVED" and unit then
+            local frame = classicFramesByUnit[unit]
+            classicFramesByUnit[unit] = nil
+            if frame then OnNameplateHide(frame) end
+        end
+    end)
+end
+
+local function ExtendPfQuestConfig()
+    local found = false
+    for _, entry in pairs(pfQuest_defconfig) do
+        if entry.config == "nameplatesEnabled" then
+            found = true
+            break
+        end
+    end
+
+    if not found then
+        table.insert(pfQuest_defconfig, { text = "Nameplate Quest Icons", type = "header", page = "questing" })
+        table.insert(pfQuest_defconfig, { text = "Show Quest Icons on Nameplates", default = "1", type = "checkbox", config = "nameplatesEnabled" })
+        table.insert(pfQuest_defconfig, { text = "Icon Scale", default = "1", type = "text", config = "nameplateScale" })
+        table.insert(pfQuest_defconfig, { text = "Icon X Position", default = "-20", type = "text", config = "nameplateX" })
+        table.insert(pfQuest_defconfig, { text = "Icon Y Position", default = "-8", type = "text", config = "nameplateY" })
+    end
+
+    pfQuest_config["nameplatesEnabled"] = pfQuest_config["nameplatesEnabled"] or "1"
+    pfQuest_config["nameplateScale"] = pfQuest_config["nameplateScale"] or "1"
+    pfQuest_config["nameplateX"] = pfQuest_config["nameplateX"] or "-20"
+    pfQuest_config["nameplateY"] = pfQuest_config["nameplateY"] or "-8"
+end
+
+local function HookConfigWindow()
+    if pfQuestConfig then
+        local originalOnHide = pfQuestConfig:GetScript("OnHide")
+        pfQuestConfig:SetScript("OnHide", function()
+            if originalOnHide then
+                originalOnHide()
+            end
+            RedrawAllIcons()
+        end)
+    end
+end
+
+local initialized = false
+local function InitializeNameplates()
+    if initialized or not pfQuest_defconfig or not pfQuest_config then return end
+    initialized = true
+    ExtendPfQuestConfig()
+    HookConfigWindow()
+    lastEnabled = pfQuest_config["nameplatesEnabled"]
+    StartConfigMonitor()
+    if lastEnabled == "1" then StartNameplateWatcher() end
+    QueueObjectiveScan()
+end
+local configExtenderFrame = CreateFrame("Frame")
+configExtenderFrame:RegisterEvent("VARIABLES_LOADED")
+configExtenderFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+configExtenderFrame:SetScript("OnEvent", InitializeNameplates)
+InitializeNameplates()
+
+SLASH_PFQUESTNP1 = "/pfqnp"
+SlashCmdList["PFQUESTNP"] = function(msg)
+    if msg == "debug" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle Nameplates Debug:|r")
+        DEFAULT_CHAT_FRAME:AddMessage("Enabled: " .. tostring(pfQuest_config and pfQuest_config["nameplatesEnabled"] == "1"))
+        DEFAULT_CHAT_FRAME:AddMessage("Watcher running: " .. tostring(ticker ~= nil))
+        DEFAULT_CHAT_FRAME:AddMessage("pfDB exists: " .. tostring(pfDB ~= nil))
+
+        local count = 0
+        for npcName, icon in pairs(questObjectives) do
+            count = count + 1
+            local iconType = (icon == SWORD_ICON) and "KILL" or "LOOT"
+            DEFAULT_CHAT_FRAME:AddMessage("  " .. npcName .. " - " .. iconType)
+        end
+        DEFAULT_CHAT_FRAME:AddMessage("Total objectives tracked: " .. count)
+
+        local npCount = 0
+        for _ in pairs(nameplateFrames) do npCount = npCount + 1 end
+        DEFAULT_CHAT_FRAME:AddMessage("Total nameplates tracked: " .. npCount)
+
+        local iconCount = 0
+        for _ in pairs(iconFrames) do iconCount = iconCount + 1 end
+        DEFAULT_CHAT_FRAME:AddMessage("Active nameplate icons: " .. iconCount .. ", total icon frames created: " .. frameCount)
+
+        if count == 0 then
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000No quest objectives found!|r")
+        end
+    elseif msg == "scan" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle:|r Manually scanning quest objectives...")
+        ScanQuestObjectives()
+        UpdateAllNameplates()
+        DEFAULT_CHAT_FRAME:AddMessage("Done! Run |cffffcc00/pfqnp debug|r to see results")
+    elseif msg == "inspect" then
+        local focus = GetMouseFocus and GetMouseFocus()
+        if not focus or focus == WorldFrame then
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff0000No frame under your mouse.|r Hover directly over a nameplate's health bar, then run /pfqnp inspect")
+        else
+            local frame = focus
+            local depth = 0
+            while frame and frame:GetParent() ~= WorldFrame and depth < 10 do
+                frame = frame:GetParent()
+                depth = depth + 1
+            end
+
+            if not frame then return end
+            DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle:|r Inspecting frame under mouse (walked up " .. depth .. " parent(s))")
+            DEFAULT_CHAT_FRAME:AddMessage("  Name: " .. tostring(frame:GetName()))
+            DEFAULT_CHAT_FRAME:AddMessage("  ObjectType: " .. tostring(frame:GetObjectType()))
+            DEFAULT_CHAT_FRAME:AddMessage("  Parent is WorldFrame: " .. tostring(frame:GetParent() == WorldFrame))
+            DEFAULT_CHAT_FRAME:AddMessage("  Region count: " .. table.getn({ frame:GetRegions() }))
+            DEFAULT_CHAT_FRAME:AddMessage("  Child count: " .. frame:GetNumChildren())
+
+            local r1 = frame:GetRegions()
+            if r1 and r1.GetObjectType then
+                DEFAULT_CHAT_FRAME:AddMessage("  Region 1 type: " .. tostring(r1:GetObjectType()))
+                if r1:GetObjectType() == "Texture" then
+                    DEFAULT_CHAT_FRAME:AddMessage("  Region 1 texture: '" .. tostring(r1:GetTexture()) .. "'")
+                end
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("  Region 1: none")
+            end
+
+            local r3 = ({ frame:GetRegions() })[3]
+            if r3 and r3.GetObjectType then
+                DEFAULT_CHAT_FRAME:AddMessage("  Region 3 type: " .. tostring(r3:GetObjectType()))
+                if r3:GetObjectType() == "FontString" then
+                    DEFAULT_CHAT_FRAME:AddMessage("  Region 3 text: '" .. tostring(r3:GetText()) .. "'")
+                end
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("  Region 3: none")
+            end
+
+            DEFAULT_CHAT_FRAME:AddMessage("  IsNameplate() result: " .. tostring(IsNameplate(frame)))
+            DEFAULT_CHAT_FRAME:AddMessage("  Already registered by us: " .. tostring(nameplateFrames[frame] ~= nil))
+
+            -- GetNameplateNameText() has 4 fallback sources and only the last
+            -- one is region 3 above. Report which source it actually resolved
+            -- and whether that resolved text has a tracked quest objective, to
+            -- catch a mismatch between a higher-priority (possibly stale or
+            -- differently-formatted) source and the raw region-3 text.
+            local source = "none"
+            if frame.nameplate and frame.nameplate.name then
+                source = "frame.nameplate.name (styled overlay)"
+            elseif frame.UnitFrame and (frame.UnitFrame.name or frame.UnitFrame.Name) then
+                source = "frame.UnitFrame.name/Name"
+            elseif frame.name then
+                source = "frame.name (BlizzNameplatesPlus shortcut)"
+            elseif r3 then
+                source = "region 3 (fallback)"
+            end
+            local resolvedText = GetNameplateNameText(frame)
+            local resolvedString = resolvedText and resolvedText:GetText()
+            DEFAULT_CHAT_FRAME:AddMessage("  GetNameplateNameText() source: " .. source)
+            DEFAULT_CHAT_FRAME:AddMessage("  GetNameplateNameText() text: '" .. tostring(resolvedString) .. "'")
+            if resolvedString then
+                local icon = questObjectives[resolvedString]
+                DEFAULT_CHAT_FRAME:AddMessage("  questObjectives[resolved text]: " .. tostring(icon))
+            end
+
+            -- Mirror OnNameplateShow's raw-region fallback exactly, so this
+            -- reports what the live fix path actually resolves to, not just
+            -- the preferred source above.
+            if r3 and r3.GetObjectType and r3:GetObjectType() == "FontString" then
+                local rawText = r3:GetText()
+                DEFAULT_CHAT_FRAME:AddMessage("  Raw region 3 questObjectives lookup: "
+                    .. tostring(rawText and questObjectives[rawText]))
+            end
+            DEFAULT_CHAT_FRAME:AddMessage("  Has an active icon frame right now: " .. tostring(iconFrames[frame] ~= nil))
+            if iconFrames[frame] then
+                DEFAULT_CHAT_FRAME:AddMessage("  Icon frame shown: " .. tostring(iconFrames[frame]:IsShown()))
+            end
+        end
+    elseif msg == "on" then
+        if not pfQuest_config then pfQuest_config = {} end
+        pfQuest_config["nameplatesEnabled"] = "1"
+        StartNameplateWatcher()
+        UpdateAllNameplates()
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle:|r Nameplate icons enabled")
+    elseif msg == "off" then
+        if not pfQuest_config then pfQuest_config = {} end
+        pfQuest_config["nameplatesEnabled"] = "0"
+        StopNameplateWatcher()
+        for frame in pairs(iconFrames) do
+            RemoveIconFrame(frame)
+        end
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle:|r Nameplate icons disabled")
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfQuest-turtle Nameplates:|r")
+        DEFAULT_CHAT_FRAME:AddMessage("Commands: |cffffcc00/pfqnp debug|r, |cffffcc00/pfqnp scan|r, |cffffcc00/pfqnp inspect|r (hover a nameplate first), |cffffcc00/pfqnp on|r, |cffffcc00/pfqnp off|r")
+        DEFAULT_CHAT_FRAME:AddMessage("Adjust icon size/position under pfQuest config -> Nameplates")
+    end
+end
