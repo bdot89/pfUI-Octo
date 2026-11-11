@@ -183,7 +183,16 @@ do
   ok(cf2.AddMessage == pfchat2 and cf2.HookAddMessage == game2,
     "off: with pfUI's chat on top, only pfQuest's link leaves the chain (pfUI's chat stays)")
   cf2.AddMessage, cf2.HookAddMessage = keep2[1], keep2[2]
-  ok(_G.pfMap == nil and Q.State() == "off", "off: no pfMap for the nameplates, state off")
+  -- (11 Nov 2026, Keeyn: "map.lua:34: attempt to index global 'pfMap'" after switching pfQuest off) pfMap
+  -- stays for any pfQuest script still running; our nameplates and farm map ignore it while off
+  ok(_G.pfMap ~= nil and Q.State() == "off" and not Q.MapOn(), "off: pfMap kept (no errors), its data unused, state off")
+  local PL = pfUI.plates and pfUI.plates.Lists
+  if PL and PL.Quest then
+    _G.pfMap.tooltips = { Hogger = { [1] = {} } }
+    ok(PL.Quest("Hogger") == nil, "off: the nameplates take no quest marks from pfQuest")
+    _G.pfMap.tooltips = {}
+  end
+  _G.pfMap = nil
 
   -- pages build in every state
   local OUo = pfUI.octoui and pfUI.octoui.Options

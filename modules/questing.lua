@@ -21,6 +21,9 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
     return "none"
   end
 
+  -- pfQuest's map data may be used (it is on, built in or standalone)
+  function Q.MapOn() return not Q.off and _G.pfMap ~= nil end
+
   function Q.TurnOff()
     local o = _G.pfQuestOcto
     if not o or o.done then return end
@@ -51,9 +54,15 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
         cf.pfQuestOctoHookAddMessage, cf.pfQuestOctoParse = nil, nil
       end
     end
-    -- the nameplates' quest marks and the farm map ask for pfMap: none now
+    -- (11 Nov 2026, Keeyn: with pfQuest switched off, "pfquest\map.lua:34: attempt to index global
+    -- 'pfMap' (a nil value)" over and over - a pfQuest script still ticking reads pfMap.) pfMap stays and
+    -- is only hidden; the nameplates' quest marks and the farm map check Q.off (pfUI.questing.IsOff).
     -- (pfDB stays: Gathering reads its node lists)
-    _G.pfMap = nil
+    local map = _G.pfMap
+    if map then
+      if map.Hide then map:Hide() end
+      if map.drawlayer and map.drawlayer.Hide then map.drawlayer:Hide() end
+    end
     Q.off = true
   end
 

@@ -9,7 +9,8 @@ pfUI:RegisterModule("farmmode", "vanilla:tbc", function ()
 
   local function MoveNodes(layer)
     -- pfMap entries (pfQuest / pfDB)
-    if pfMap and pfMap.drawlayer then
+    -- (pfQuest switched off keeps a hidden pfMap: leave it alone then)
+    if pfMap and pfMap.drawlayer and not (pfUI.questing and pfUI.questing.off) then
       pfMap.drawlayer = layer
       for id, pin in pairs(pfMap.mpins) do
         pin:SetParent(layer)

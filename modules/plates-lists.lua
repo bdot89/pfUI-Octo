@@ -87,7 +87,9 @@ pfUI:RegisterModule("plates-lists", "vanilla:tbc", function ()
   function L.Quest(name)
     if not name then return end
     -- pfQuest's map data (every unit on the map it marks, by quest)
-    local tips = pfMap and pfMap.tooltips and pfMap.tooltips[name]
+    -- (pfQuest switched off keeps a hidden pfMap: its data is not used then)
+    local off = pfUI.questing and pfUI.questing.off
+    local tips = not off and pfMap and pfMap.tooltips and pfMap.tooltips[name]
     if tips then
       local best
       for _, maps in pairs(tips) do

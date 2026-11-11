@@ -744,7 +744,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     Preview(p)
     W.Card(p, "Quests")
     W.Live(p, function()
-      return (pfMap and pfMap.tooltips) and "pfQuest |cff55ff55found|r: kill and loot objectives, quests to take (!) and hand in (?)"
+      return (pfUI.questing and pfUI.questing.MapOn and pfUI.questing.MapOn() and pfMap.tooltips) and "pfQuest |cff55ff55found|r: kill and loot objectives, quests to take (!) and hand in (?)"
         or "pfQuest |cffff5555not on|r: only mobs to kill from your quest log"
     end)
     Chk(p, "Quest marks", "A mark right of the name for quest mobs, quest givers and hand-ins.", S, "questmark")
