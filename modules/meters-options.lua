@@ -108,7 +108,11 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     end
     -- fits the box (the window keeps its own size; the view scales)
     local box = MO.box
-    local k = math.min(2.2, ((box:GetWidth() or 600) - 20) / w, ((box:GetHeight() or 200) - 30) / h)
+    -- (11 Nov 2026, Wolfahrt on Discord: crash #132 ACCESS_VIOLATION at 0x005A0959 in the client's
+    -- drawing code when the Height slider went under ~120 px. That is exactly where this view
+    -- started to blow the window up past 1 (box 150 - 30 = 120): it only ever shrinks now.
+    -- Zooming in is the box's own wheel zoom.)
+    local k = math.min(1, ((box:GetWidth() or 600) - 20) / w, ((box:GetHeight() or 200) - 30) / h)
     pw:SetScale(math.max(.4, k))
     pw:ClearAllPoints()
     pw:SetPoint("CENTER", box, "CENTER", 0, -6 / math.max(.4, k))

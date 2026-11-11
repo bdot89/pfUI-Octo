@@ -6098,6 +6098,28 @@ dofile(DIR .. "/tests/bagcats.lua")
 -- the consumables tracker (11 Nov 2026)
 dofile(DIR .. "/tests/consumes.lua")
 
+-- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)
+do
+  local MO, OO = pfUI.metersOcto, pfUI.octoui and pfUI.octoui.Options
+  if MO and OO then pcall(function() OO:Page("mtwindows") end) end
+  if MO and MO.preview and MO.Sync and MO.box then
+    local s = pfUI_config.meters and pfUI_config.meters["win" .. (MO.cur or 1)]
+    if type(s) == "table" then
+      local was = s.height
+      local worst = 0
+      for _, h in ipairs({ "60", "80", "104", "119", "160", "300" }) do
+        s.height = h
+        MO.preview.psize = nil
+        pcall(MO.Sync)
+        worst = math.max(worst, MO.preview:GetScale() or 0)
+      end
+      s.height = was
+      pcall(MO.Sync)
+      ok(worst <= 1, "meter preview: never scaled past 1 at any height (" .. worst .. ")")
+    end
+  end
+end
+
 -- automatic area looting (4 Nov 2026)
 dofile(DIR .. "/tests/autoloot.lua")
 
