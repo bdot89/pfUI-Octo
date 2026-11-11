@@ -422,6 +422,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("gear",       nil,           "autoswap",         "1")
   pfUI:UpdateConfig("gear",       nil,           "autotell",         "1")
   pfUI:UpdateConfig("gear",       nil,           "bosslevel",        "63") -- gear-events: "Target is a boss" from this level
+  pfUI:UpdateConfig("gear",       nil,           "autocombatweapons", "1") -- "0": automatic swaps' weapons wait for combat to end
   pfUI:UpdateConfig("gear",       nil,           "specwindow",       "1")
   pfUI:UpdateConfig("gear",       nil,           "spectell",         "1")
   pfUI:UpdateConfig("gear",       nil,           "specnotice",       "1")

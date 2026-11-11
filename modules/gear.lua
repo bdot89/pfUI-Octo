@@ -448,6 +448,17 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     if q.missing and q.missing ~= "" then Say("not found in your bags: " .. q.missing .. ".") end
     GR.Changed()
   end
+  -- this slot has to wait for combat to end: armour always; weapons when they may not
+  -- change in combat - for any swap (combatweapons) or only for automatic ones
+  -- (autocombatweapons; 11 Nov 2026, Wolfahrt: a boss / not-a-boss weapon swap mid-fight
+  -- costs a global cooldown)
+  local function WaitsForCombat(q, inv)
+    if not InCombat() then return false end
+    if not GR.WEAPON[inv] or C.gear.combatweapons == "0" then return true end
+    return (q.auto and C.gear.autocombatweapons == "0") and true or false
+  end
+  GR.WaitsForCombat = WaitsForCombat
+
   function GR.Tick()
     local q = GR.queue
     GR.ForgetWhere()
@@ -489,7 +500,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
         -- (three instant tries a slot, then the cursor queue has it)
         if not keep[inv] and not q.skip[inv] and type(want) == "table" and (q.sent[inv] or 0) <= now
           and (q.itries[inv] or 0) < 3
-          and not (InCombat() and not (GR.WEAPON[inv] and C.gear.combatweapons ~= "0")) then
+          and not WaitsForCombat(q, inv) then
           local from = GR.Find(want, keep)
           local k = from and (from.inv and ("i" .. from.inv) or (from.bag .. ":" .. from.slot))
           if from and not used[k] and not Locked(inv, from) then
@@ -508,7 +519,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
         -- sent by the instant pass, the server has not answered yet
         pending = true
       elseif not keep[inv] and not q.skip[inv] then
-        if InCombat() and not (GR.WEAPON[inv] and C.gear.combatweapons ~= "0") then
+        if WaitsForCombat(q, inv) then
           waiting = true
         else
           q.tries[inv] = (q.tries[inv] or 0) + 1
@@ -565,7 +576,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
       return a < b
     end)
     refused = {}
-    GR.queue = { name = name, slots = slots, order = order, tries = {}, skip = {} }
+    GR.queue = { name = name, slots = slots, order = order, tries = {}, skip = {}, auto = GR.autoSwap }
     runner:Show()
     GR.Tick()
   end

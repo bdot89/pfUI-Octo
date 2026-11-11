@@ -155,12 +155,31 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     return out
   end
 
-  -- the set an event wears: its own for the talent spec on now (c.specsets[slot],
-  -- Gear > Talent specs), else its usual one
+  -- the talent tree with the most points (1-3), from the talents themselves - so it works
+  -- for a respec anywhere, not only at the Brainwashing Device (11 Nov 2026, Wolfahrt:
+  -- warlock Destruction / Affliction, a trash and a boss set for each)
+  function GE.MainTree()
+    if not GetNumTalentTabs or not GetTalentTabInfo then return end
+    local best, most = nil, 0
+    for i = 1, (GetNumTalentTabs() or 0) do
+      local _, _, points = GetTalentTabInfo(i)
+      points = tonumber(points) or 0
+      if points > most then best, most = i, points end
+    end
+    return best
+  end
+
+  -- the set an event wears: its own for the spec saved at the Brainwashing Device that is
+  -- on now (c.specsets[slot], Gear > Talent specs), else its own for your main talent tree
+  -- (c.treesets[tree]), else its usual one
   function GE.SetFor(c)
+    local function Good(s) return s and s ~= "" and C.gear.sets[s] and s end
     local now = C.gear.specnow
-    local s = now and type(c.specsets) == "table" and c.specsets[tostring(now)]
-    if s and s ~= "" and C.gear.sets[s] then return s end
+    local s = now and type(c.specsets) == "table" and Good(c.specsets[tostring(now)])
+    if s then return s end
+    local tree = type(c.treesets) == "table" and GE.MainTree()
+    s = tree and Good(c.treesets[tostring(tree)])
+    if s then return s end
     return c.set
   end
 
@@ -206,7 +225,9 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
       st.active, st.back = key, (c.back == "1") or st.back
       if not GR.IsEquipped(name) then
         if C.gear.autotell ~= "0" then Say(e.label .. ": wearing " .. name .. ".") end
+        GR.autoSwap = true
         GR.Equip(name)
+        GR.autoSwap = nil
       end
     else
       -- the event ended: what was worn before, if it asked for that
@@ -214,7 +235,9 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
       st.active = nil
       if st.back and st.base and next(st.base) then
         if C.gear.autotell ~= "0" then Say("back to what you wore before.") end
+        GR.autoSwap = true
         GR.Wear(st.before or "Before", st.base)
+        GR.autoSwap = nil
         C.gear.current = st.before
       end
       st.base, st.back, st.before = nil, nil, nil
@@ -258,6 +281,16 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     for _, n in ipairs(GR.Sets()) do table.insert(out, { key = n, label = n }) end
     return out
   end
+  -- this character's talent trees: { { "1", "Affliction" }, ... }
+  local function Trees()
+    local out = {}
+    if not GetNumTalentTabs or not GetTalentTabInfo then return out end
+    for i = 1, (GetNumTalentTabs() or 0) do
+      local name = GetTalentTabInfo(i)
+      if type(name) == "string" and name ~= "" then table.insert(out, { tostring(i), name }) end
+    end
+    return out
+  end
   -- the talent specs saved at the Brainwashing Device: { { slot, name }, ... }
   local function Specs()
     local out, GS = {}, GR.specs
@@ -294,6 +327,9 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     Chk(p, "Wait while dead", "Swaps asked for while dead go on when you are alive again (off: they are refused).", "waitdead")
     Chk(p, "Wait while casting", "Swaps wait for your cast or channel to end, so they never cut it short.", "waitcast")
     Chk(p, "Weapons swap in combat", "1.12 lets weapons change in combat; armour always waits.", "combatweapons")
+    Chk(p, "Automatic swaps change weapons in combat", "Off: weapons from these automatic swaps wait for combat to "
+      .. "end like armour (a weapon swap costs a global cooldown). Swaps you make yourself still follow the switch above.",
+      "autocombatweapons")
     Chk(p, "Say when a swap waits", nil, "tellwait")
     Chk(p, "Say each automatic swap", nil, "autotell")
     local list = GE.All()
@@ -309,7 +345,19 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
           .. "boss always does). Below it: \"Target is not a boss\".", 2, 63, 1,
           function() return tonumber(C.gear.bosslevel) or 63 end, function(v) C.gear.bosslevel = tostring(v) end)
       end
-      -- (11 Nov 2026) a set of its own for each talent spec (Gear > Talent specs)
+      -- (11 Nov 2026) a set of its own for each talent tree you may be in (the one with most
+      -- points), and for each spec saved at the Brainwashing Device (that one wins)
+      for _, t in ipairs(Trees()) do
+        local tree, tname = t[1], t[2]
+        W.Dropdown(p, "Mostly " .. tname, "The set worn for this while most of your talent points are in "
+          .. tname .. ". \"Same as Wear\" uses the set above.", SpecSetList,
+          function() local x = Cfg(key).treesets return type(x) == "table" and x[tree] or "" end,
+          function(v)
+            local c = Cfg(key)
+            if type(c.treesets) ~= "table" then c.treesets = {} end
+            c.treesets[tree] = (v ~= "") and v or nil
+          end)
+      end
       for _, s in ipairs(Specs()) do
         local slot, sname = s[1], s[2]
         W.Dropdown(p, "In " .. sname, "The set worn for this while you are in your " .. sname .. " spec. "

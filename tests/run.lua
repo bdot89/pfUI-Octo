@@ -5175,6 +5175,29 @@ do
       ok(got == "TankBoss", "in spec 2 the boss event wears that spec's set (" .. tostring(got) .. ")")
       pfUI_config.gear.specnow = "1" got = nil GE.Check()
       ok(got == "Boss", "in a spec without its own set: the usual one")
+      -- no Brainwashing Device spec: the talent tree with most points picks the set
+      pfUI_config.gear.sets.DestroBoss = { icon = "x", slots = { s1 = { id = "5:0:0", name = "Destro helm", tex = "" } } }
+      local tabs = { rawget(_G, "GetNumTalentTabs"), rawget(_G, "GetTalentTabInfo"), rawget(pfUI.env, "GetNumTalentTabs"), rawget(pfUI.env, "GetTalentTabInfo") }
+      local pts = { 31, 0, 20 }
+      Stub("GetNumTalentTabs", function() return 3 end)
+      Stub("GetTalentTabInfo", function(i) return ({ "Affliction", "Demonology", "Destruction" })[i], "x", pts[i] end)
+      GE.Cfg("tboss").treesets = { ["3"] = "DestroBoss" }
+      pfUI_config.gear.specnow = nil got = nil GE.Check()
+      ok(got == nil and GE.state.active == "tboss|Boss", "mostly Affliction (no set of its own): the usual boss set stays on ("
+        .. tostring(GE.state.active) .. ")")
+      pts = { 11, 0, 40 } got = nil GE.Check()
+      ok(got == "DestroBoss", "mostly Destruction: its own boss set (" .. tostring(got) .. ")")
+      _G.GetNumTalentTabs, _G.GetTalentTabInfo, pfUI.env.GetNumTalentTabs, pfUI.env.GetTalentTabInfo = tabs[1], tabs[2], tabs[3], tabs[4]
+      pfUI_config.gear.sets.DestroBoss = nil
+      -- automatic swaps may keep their weapons till combat ends (a weapon swap costs a global cooldown)
+      local fight, acw = rawget(_G, "UnitAffectingCombat"), pfUI_config.gear.autocombatweapons
+      _G.UnitAffectingCombat = function() return true end
+      pfUI_config.gear.autocombatweapons = "0"
+      ok(GR.WaitsForCombat({ auto = true }, 16) and not GR.WaitsForCombat({}, 16) and GR.WaitsForCombat({}, 1),
+        "in combat: an automatic swap's weapon waits, your own swaps' weapons do not, armour always waits")
+      pfUI_config.gear.autocombatweapons = "1"
+      ok(not GR.WaitsForCombat({ auto = true }, 16), "switched on, automatic swaps change weapons in combat")
+      _G.UnitAffectingCombat, pfUI_config.gear.autocombatweapons = fight, acw
       there = false back = nil GE.Check()
       ok(GE.state.active == nil, "no target: the event ends")
       for _, n in ipairs(stubs) do _G[n], pfUI.env[n] = keepT[n][1], keepT[n][2] end
