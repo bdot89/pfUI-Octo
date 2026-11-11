@@ -3916,6 +3916,20 @@ do
       hb:SetValue(100)
       P.Fill(plate)
       ok(math.abs(f:GetWidth() - 150) < .01, "full health: the whole bar")
+      -- (11 Nov 2026) never an empty bar: no width yet -> the game's fill stays on
+      hb:SetWidth(0)
+      P.Fill(plate)
+      ok(not f:IsShown() and own:GetAlpha() == 1, "bar with no width yet: the game's fill shows, ours waits")
+      hb:SetWidth(150)
+      local realGet, keepPath = own.GetTexture, o.barPath
+      own.GetTexture = function() return nil end
+      o.barPath = nil
+      P.Fill(plate)
+      ok(not f:IsShown() and own:GetAlpha() == 1, "bar picture unknown: the game's fill shows, ours waits")
+      o.barPath = "Interface\\AddOns\\pfUI\\img\\bar"
+      P.Fill(plate)
+      ok(f:IsShown() and own:GetAlpha() == 0, "picture from the plate's own setting when the bar does not say")
+      own.GetTexture, o.barPath = realGet, keepPath
       pfUI_config.plates.enable = "0"
       P.Fill(plate)
       ok(not f:IsShown() and own:GetAlpha() == 1, "Octo plates off: the game's fill is back")

@@ -350,6 +350,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     h.text:SetFont(font, hpsize, "OUTLINE")
     local tex = (S.bartexture and S.bartexture ~= "") and pfUI.media[S.bartexture] or pfUI.media[C.nameplates.healthtexture]
     h:SetStatusBarTexture(tex)
+    o.barPath = tex
     cb:SetStatusBarTexture(tex)
     o.cend:SetStatusBarTexture(tex)
     o.hl:SetTexture(tex)
@@ -792,9 +793,18 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       return
     end
     if not tex then return end
+    -- (11 Nov 2026, Lilexx on Discord after updating: enemy plates' bars empty, "100%" on them.) Our fill
+    -- only takes over when it can be drawn: the bar's picture is known and the bar has a width. Otherwise
+    -- the game's own fill stays on, so a bar can never end up showing nothing.
+    local path = tex:GetTexture() or o.barPath
+    local w = C.nameplates.verticalhealth == "1" and hb:GetHeight() or hb:GetWidth()
+    if not path or path == "" or not w or w <= 0 then
+      if o.fill and o.fill:IsShown() then o.fill:Hide() end
+      if tex:GetAlpha() < 1 then tex:SetAlpha(1) end
+      return
+    end
     if not o.fill then o.fill = hb:CreateTexture(nil, "ARTWORK") end
     local f = o.fill
-    local path = tex:GetTexture()
     if path ~= o.fillPath then
       f:SetTexture(path)
       o.fillPath = path
