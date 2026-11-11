@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "autoattack" }
 
 -- ---------------------------------------------------------------- load
 
@@ -6183,6 +6183,76 @@ do
     _G.C_PlayerCache = cache
     tx.time, tx.channelnumonly, tx.classcolor = was[1], was[2], was[3]
     cf.HookAddMessage = hook
+  end
+end
+
+-- auto attack (11 Nov 2026, Origummy / user): starts in reach, never twice, never through CC or stealth
+do
+  local AA = pfUI.autoattack
+  ok(AA and AA.Check and AA.Toggle, "auto attack loaded")
+  if AA then
+    local cfg = pfUI_config.autoattack
+    local keep = {}
+    for k, v in pairs(cfg) do keep[k] = v end
+    local names = { "UnitExists", "UnitIsDead", "UnitIsDeadOrGhost", "UnitCanAttack", "UnitIsPlayer", "UnitReaction",
+      "UnitAffectingCombat", "UnitDebuff", "AttackTarget", "UnitXP", "UnitName", "UnitLevel", "IsStealthed" }
+    local old = {}
+    for _, n in ipairs(names) do old[n] = { rawget(_G, n), rawget(pfUI.env, n) } end
+    local function Stub(n, fn) _G[n] = fn pfUI.env[n] = fn end
+    local dist, cc, attacks, there = 8, nil, 0, true
+    Stub("UnitExists", function(u) return u == "target" and there end)
+    Stub("UnitIsDead", function() return false end)
+    Stub("UnitIsDeadOrGhost", function() return false end)
+    Stub("UnitCanAttack", function() return true end)
+    Stub("UnitIsPlayer", function() return false end)
+    Stub("UnitReaction", function() return 2 end)
+    Stub("UnitAffectingCombat", function() return false end)
+    Stub("UnitDebuff", function(u, i) if i == 1 and cc then return cc end end)
+    Stub("AttackTarget", function() attacks = attacks + 1 end)
+    Stub("UnitXP", function(a, b, c, d) if a == "distanceBetween" then return dist end end)
+    Stub("UnitName", function() return "Gnoll" end)
+    Stub("UnitLevel", function() return 20 end)
+    Stub("IsStealthed", function() return false end)
+    local capi = rawget(_G, "C_SwingTimer")
+    _G.C_SwingTimer = nil
+    AA.attacking, AA.stopped = false, nil
+    cfg.enable, cfg.players, cfg.neutral, cfg.combatonly, cfg.skipcc, cfg.reach = "1", "0", "1", "0", "1", "5"
+    AA.Check()
+    ok(attacks == 0, "8 yd away: no attack yet")
+    dist = 3
+    AA.Check()
+    ok(attacks == 1, "3 yd away: auto attack starts")
+    AA.attacking = true
+    AA.Check()
+    ok(attacks == 1, "already attacking: not called again (AttackTarget would switch it off)")
+    -- you stop it yourself: that target is left alone
+    local f = AA.frame
+    _G.event = "PLAYER_LEAVE_COMBAT" f:GetScript("OnEvent")()
+    AA.Check()
+    ok(attacks == 1 and AA.stopped, "stopped by you: it does not start again on the same target")
+    _G.event = "PLAYER_TARGET_CHANGED" f:GetScript("OnEvent")()
+    ok(attacks == 2, "a new target in reach: it starts")
+    AA.attacking = false
+    cc = "Interface\\Icons\\Spell_Nature_Polymorph"
+    AA.Check()
+    ok(attacks == 2, "a sheeped target: left alone")
+    cc = nil
+    Stub("IsStealthed", function() return true end)
+    AA.Check()
+    ok(attacks == 2, "stealthed: left alone")
+    Stub("IsStealthed", function() return false end)
+    Stub("UnitIsPlayer", function() return true end)
+    AA.Check()
+    ok(attacks == 2, "a player while Players too is off: left alone")
+    Stub("UnitIsPlayer", function() return false end)
+    cfg.enable = "0"
+    AA.Check()
+    ok(attacks == 2, "switched off: nothing")
+    _G.event = nil
+    _G.C_SwingTimer = capi
+    for _, n in ipairs(names) do _G[n], pfUI.env[n] = old[n][1], old[n][2] end
+    for k, v in pairs(keep) do cfg[k] = v end
+    AA.attacking, AA.stopped = false, nil
   end
 end
 

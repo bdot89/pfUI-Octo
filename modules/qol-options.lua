@@ -71,6 +71,23 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Chk(p, "No red error text", "Hides the red error messages in the middle of the screen.", "global", nil, "errors_hide")
     Chk(p, "\"Screen Captured\" message", "The game's message after a screenshot.", "global", nil, "screenshotmsg")
 
+    -- (11 Nov 2026, user / Origummy on Discord) auto attack on the target you pick, once in reach
+    if C.autoattack and pfUI.autoattack then
+      local AA = pfUI.autoattack
+      local function A() return C.autoattack end
+      W.Card(p, "Auto attack", { icon = "Ability_MeleeDamage", tip = "Your auto attack starts by itself on the target you "
+        .. "pick once it is in melee reach. Stop it yourself and it leaves that target alone until you pick another. "
+        .. "/autoattack on | off | why, or a key: Key Bindings > pfUI Octo: auto attack.",
+        on = { function() return A().enable == "1" end, function(v) AA.Toggle(v) end, "Auto attack on or off." } })
+      O.PfChk(p, "Players too", "Also start on enemy players (PvP).", A, "players", function() end)
+      O.PfChk(p, "Neutral mobs too", "Also start on yellow (neutral) mobs you target.", A, "neutral", function() end)
+      O.PfChk(p, "Only in combat", "Only once you are in combat - it never starts a fight.", A, "combatonly", function() end)
+      O.PfChk(p, "Not on crowd control", "Never on a target that is sheeped, sapped, gouged, blinded, asleep or trapped.",
+        A, "skipcc", function() end)
+      O.PfSld(p, "Melee reach", "Yards counted as in reach when the game's own check is not there (ClassicAPI has it).",
+        3, 10, .5, A, "reach", function() end, function(v) return v .. " yd" end)
+    end
+
     W.Card(p, "Helpers", { tip = "Whole little modules: on or off takes a reload (the Reload button turns gold)." })
     Mod(p, "Cancel form when needed", "A spell that needs you out of a form or off a mount cancels it for you.", "autoshift")
     Mod(p, "Feign death health", "Shows a feigning hunter's real health.", "feigndeath")

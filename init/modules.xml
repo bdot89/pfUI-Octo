@@ -103,6 +103,7 @@
   <Include file="..\modules\questing-options.lua"/>
   <Include file="..\modules\art-options.lua"/>
   <Include file="..\modules\range.lua"/>
+  <Include file="..\modules\autoattack.lua"/>
   <Include file="..\modules\range-options.lua"/>
   <Include file="..\modules\custommedia.lua"/>
   <Include file="..\modules\gear-specs.lua"/>
