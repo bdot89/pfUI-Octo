@@ -787,9 +787,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     local hb = plate and plate.health
     if not o or not hb or not hb.GetStatusBarTexture then return end
     local tex = hb:GetStatusBarTexture()
-    if S.enable ~= "1" then
+    -- (11 Nov 2026, user's own screen: every plate's bar black at 100%. In game o.fill is set up but never
+    -- seen, the mock draws it fine - cause not found yet. Switched off until it is understood: the game's
+    -- own fill is shown, as before 10 Nov. P.OWNFILL = true turns it back on for testing.)
+    if S.enable ~= "1" or not P.OWNFILL then
       if o.fill and o.fill:IsShown() then o.fill:Hide() end
-      if tex and o.fill and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
+      if tex and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
       return
     end
     if not tex then return end

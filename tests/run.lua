@@ -3885,7 +3885,13 @@ do
     -- shown is drawn from the value, never the game's own fill: through a pop and a resize it stays 40%
     do
       local hb = plate.health
-      local keepW, keepV, keepEn = hb:GetWidth(), hb:GetValue(), pfUI_config.plates.enable
+      -- (11 Nov 2026) off in game for now: the game's own fill shows
+      local enable0 = pfUI_config.plates.enable
+      pfUI_config.plates.enable = "1"
+      P.Fill(plate)
+      ok(hb:GetStatusBarTexture() == nil or hb:GetStatusBarTexture():GetAlpha() == 1, "own fill off: the game's fill shows")
+      P.OWNFILL = true
+      local keepW, keepV, keepEn = hb:GetWidth(), hb:GetValue(), enable0
       local _, keepMax = hb:GetMinMaxValues()
       pfUI_config.plates.enable = "1"
       if not hb:GetStatusBarTexture() then hb:SetStatusBarTexture("Interface\\AddOns\\pfUI\\img\\bar") end
@@ -3939,6 +3945,7 @@ do
       hb:SetWidth(keepW)
       hb:SetMinMaxValues(0, keepMax or 100)
       hb:SetValue(keepV or 100)
+      P.OWNFILL = nil
       P.Fill(plate)
     end
     -- your crit on it animates its plate
