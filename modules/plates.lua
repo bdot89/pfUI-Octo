@@ -821,7 +821,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if S.enable ~= "1" or not P.OWNFILL then
       if o.fill and o.fill:IsShown() then o.fill:Hide() end
       if tex and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
-      if S.enable == "1" then P.PlaceFill(hb, tex) end
+      if S.enable == "1" then P.PlaceFill(hb, tex) o.placedAt = GetTime() end
       return
     end
     if not tex then return end
@@ -1850,10 +1850,13 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     local tw = tex and tex.GetWidth and tex:GetWidth()
     local tl, tr = tex and tex.GetLeft and tex:GetLeft(), tex and tex.GetRight and tex:GetRight()
     local fill = plate.octo and plate.octo.fill
-    return string.format("%s%s v%s/%s-%s orig%s/%s-%s w%s fillW%s fillLR%s sc%s a%s%s",
+    local placed = plate.octo and plate.octo.placedAt == GetTime() and " placed" or ""
+    local hl, hr = hb:GetLeft(), hb:GetRight()
+    return string.format("%s%s v%s/%s-%s orig%s/%s-%s w%s barLR%s fillW%s fillLR%s sc%s a%s pts%s%s%s",
       plate.istarget and "*" or " ", tostring(plate.name and plate.name:GetText() or "?"),
-      R(v), R(mn), R(mx), R(ov), R(omn), R(omx), R(hb:GetWidth()), R(tw),
+      R(v), R(mn), R(mx), R(ov), R(omn), R(omx), R(hb:GetWidth()), (hl and hr) and R(hr - hl) or "-", R(tw),
       (tl and tr) and R(tr - tl) or "-", R(plate:GetScale()), R(tex and tex:GetAlpha()),
+      tostring(tex and tex.GetNumPoints and tex:GetNumPoints() or "-"), placed,
       (fill and fill:IsShown()) and " ownfill" or "")
   end
   probe:SetScript("OnEvent", function()
