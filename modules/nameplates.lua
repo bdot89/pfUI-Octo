@@ -1030,6 +1030,21 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
       end
     end
 
+    -- octo (11 Nov 2026, user: "when i target him for a split second the HP bar goes full then back"):
+    -- the client lays a status bar's fill out only when its value is set, so while target zoom
+    -- resizes the bar the fill kept its old width or drew full. Lay it out again in the same frame
+    -- as every resize: the value off by a hair and back.
+    local nw, nh = nameplate.health:GetWidth(), nameplate.health:GetHeight()
+    if nw ~= w or nh ~= h then
+      local v = nameplate.health:GetValue()
+      local mn, mx = nameplate.health:GetMinMaxValues()
+      if v and mn and mx and mx > mn then
+        local nudge = (mx - mn) * .002
+        nameplate.health:SetValue(v + nudge > mx and v - nudge or v + nudge)
+        nameplate.health:SetValue(v)
+      end
+    end
+
     -- castbar update
     if C.nameplates["showcastbar"] == "1" and ( C.nameplates["targetcastbar"] == "0" or target ) then
       local channel, cast, nameSubtext, text, texture, startTime, endTime, isTradeSkill
