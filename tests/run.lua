@@ -6079,6 +6079,19 @@ do
 
     ok(okc and got and string.find(got, "Ulfsar", 1, true) and string.find(got, "[6]", 1, true), "chat: a World line gets the short channel (" .. tostring(got or err) .. ")")
     ok(got and string.find(got, "|h|cff%x%x%x%x%x%xUlfsar|h") and not string.find(got, "b2b2b2", 1, true), "chat: a known warrior's name is in class colour (" .. tostring(got) .. ")")
+
+    -- (11 Nov 2026, dennis: class colours, times and short channels gone again) a standalone pfQuest
+    -- loaded after pfUI hooks chat with "pfQuestHookAddMessage = pfQuestHookAddMessage or AddMessage".
+    -- The built-in copy keeps the game's under its own name, so the standalone's hook chains to pfUI's.
+    ok(cf.pfQuestHookAddMessage == nil, "chat: the built-in pfQuest leaves pfQuest's own hook name free")
+    local cur = cf.AddMessage
+    cf.pfQuestHookAddMessage = cf.pfQuestHookAddMessage or cf.AddMessage
+    cf.AddMessage = function(self, text, a1, a2, a3) self.pfQuestHookAddMessage(self, text, a1, a2, a3) end
+    got = nil
+    pcall(cf.AddMessage, cf, "[6. World] |Hplayer:Ulfsar|h[Ulfsar]|h: wts runecloth", 1, 1, 1)
+    ok(got and string.find(got, "|h|cff%x%x%x%x%x%xUlfsar|h") and string.find(got, "[6]", 1, true),
+      "chat: a standalone pfQuest's chat hook still goes through pfUI's chat (" .. tostring(got) .. ")")
+    cf.AddMessage, cf.pfQuestHookAddMessage = cur, nil
     _G.C_PlayerCache = cache
     tx.time, tx.channelnumonly, tx.classcolor = was[1], was[2], was[3]
     cf.HookAddMessage = hook

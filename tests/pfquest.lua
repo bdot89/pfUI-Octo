@@ -98,9 +98,16 @@ do
   f:SetScript("OnEvent", function() end)
   f:Show()
   SlashCmdList.PFQUESTOCTOTEST = function() end
-  ChatFrame1.pfQuestHookAddMessage = ChatFrame1.AddMessage
+  ChatFrame1.pfQuestOctoHookAddMessage = ChatFrame1.AddMessage
   local pq = function() end
   ChatFrame1.AddMessage = pq
+  ChatFrame1.pfQuestOctoParse = pq
+  -- (11 Nov 2026) pfUI's chat sits on top of pfQuest's hook in ChatFrame2
+  local cf2, game2 = ChatFrame2, function() end
+  local pq2, pfchat2 = function() end, function() end
+  local keep2 = { cf2.AddMessage, cf2.HookAddMessage }
+  cf2.pfQuestOctoHookAddMessage, cf2.pfQuestOctoParse = game2, pq2
+  cf2.HookAddMessage, cf2.AddMessage = pq2, pfchat2
   _G.pfMap = { tooltips = {} }
   pfUI = nil
   run("restore.lua")
@@ -116,7 +123,10 @@ do
   ok(_G.AbandonQuest == gameAbandon, "off: the game's function is back")
   ok(SlashCmdList.PFQUESTOCTOTEST == nil, "off: pfQuest's slash command is gone")
   ok(not f:IsShown() and f:GetScript("OnEvent") == nil, "off: pfQuest's frames are silent and hidden")
-  ok(ChatFrame1.AddMessage ~= pq and ChatFrame1.pfQuestHookAddMessage == nil, "off: chat's AddMessage is no longer pfQuest's")
+  ok(ChatFrame1.AddMessage ~= pq and ChatFrame1.pfQuestOctoHookAddMessage == nil, "off: chat's AddMessage is no longer pfQuest's")
+  ok(cf2.AddMessage == pfchat2 and cf2.HookAddMessage == game2,
+    "off: with pfUI's chat on top, only pfQuest's link leaves the chain (pfUI's chat stays)")
+  cf2.AddMessage, cf2.HookAddMessage = keep2[1], keep2[2]
   ok(_G.pfMap == nil and Q.State() == "off", "off: no pfMap for the nameplates, state off")
 
   -- pages build in every state

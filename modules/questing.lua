@@ -38,12 +38,17 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
     end
     -- /db and the other commands would call into a pfQuest that never started
     for k in pairs(o.slash or {}) do _G.SlashCmdList[k] = nil end
-    -- quest link colours in chat (compat\client.lua sets each window's AddMessage)
+    -- quest link colours in chat (compat\client.lua sets each window's AddMessage).
+    -- (11 Nov 2026) Take only pfQuest's link out of the chain: pfUI's chat may sit on top
+    -- of it (HookAddMessage), and putting the game's AddMessage back went past pfUI's chat
+    -- - no times, short channels or class colours.
     for i = 1, (tonumber(_G.NUM_CHAT_WINDOWS) or 7) do
       local cf = _G["ChatFrame" .. i]
-      if cf and cf.pfQuestHookAddMessage then
-        cf.AddMessage = cf.pfQuestHookAddMessage
-        cf.pfQuestHookAddMessage = nil
+      local orig, pq = cf and cf.pfQuestOctoHookAddMessage, cf and cf.pfQuestOctoParse
+      if orig and pq then
+        if cf.AddMessage == pq then cf.AddMessage = orig
+        elseif cf.HookAddMessage == pq then cf.HookAddMessage = orig end
+        cf.pfQuestOctoHookAddMessage, cf.pfQuestOctoParse = nil, nil
       end
     end
     -- the nameplates' quest marks and the farm map ask for pfMap: none now

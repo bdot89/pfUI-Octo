@@ -141,11 +141,12 @@ if client <= 11200 then
       end
     end
 
-    frame.pfQuestHookAddMessage(frame, text, a1, a2, a3, a4, a5)
+    frame.pfQuestOctoHookAddMessage(frame, text, a1, a2, a3, a4, a5)
   end
 
   for i=1,NUM_CHAT_WINDOWS do
-    _G["ChatFrame"..i].pfQuestHookAddMessage = _G["ChatFrame"..i].pfQuestHookAddMessage or _G["ChatFrame"..i].AddMessage
+    _G["ChatFrame"..i].pfQuestOctoHookAddMessage = _G["ChatFrame"..i].pfQuestOctoHookAddMessage or _G["ChatFrame"..i].AddMessage
     _G["ChatFrame"..i].AddMessage = ParseQuestLevels
+    _G["ChatFrame"..i].pfQuestOctoParse = ParseQuestLevels
   end
 end

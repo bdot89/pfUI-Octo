@@ -65,8 +65,19 @@ foreach ($f in "init", "items", "units", "objects", "refloot", "quests-itemreq",
 foreach ($f in "items", "units", "objects", "quests", "zones", "professions") {
   Copy-Lua (Join-Path $src "db\enUS\$f.lua") "db\enUS\$f.lua" $null
 }
-foreach ($f in "compat\pfUI", "compat\client", "overwrites", "locales") {
+foreach ($f in "compat\pfUI", "overwrites", "locales") {
   Copy-Lua (Join-Path $src "$f.lua") "$f.lua" $null
+}
+# The chat hook keeps the game's AddMessage under its own name, not pfQuest's.
+# A standalone pfQuest (any folder name, loaded after pfUI) does
+# "pfQuestHookAddMessage = pfQuestHookAddMessage or AddMessage": finding ours
+# there, it went straight to the game's AddMessage past pfUI's chat - no times,
+# short channels or class colours (9 and 11 Nov 2026, Barbeque and dennis).
+Copy-Lua (Join-Path $src "compat\client.lua") "compat\client.lua" { param($t)
+  $t = Must $t 'frame.pfQuestHookAddMessage(frame, text, a1, a2, a3, a4, a5)' 'frame.pfQuestOctoHookAddMessage(frame, text, a1, a2, a3, a4, a5)'
+  $t = Must $t '_G["ChatFrame"..i].pfQuestHookAddMessage = _G["ChatFrame"..i].pfQuestHookAddMessage or _G["ChatFrame"..i].AddMessage' '_G["ChatFrame"..i].pfQuestOctoHookAddMessage = _G["ChatFrame"..i].pfQuestOctoHookAddMessage or _G["ChatFrame"..i].AddMessage'
+  # (Questing > off finds the hook by this name, wherever pfUI's chat put it)
+  Must $t '_G["ChatFrame"..i].AddMessage = ParseQuestLevels' ('_G["ChatFrame"..i].AddMessage = ParseQuestLevels' + "`r`n" + '    _G["ChatFrame"..i].pfQuestOctoParse = ParseQuestLevels')
 }
 Copy-Lua (Join-Path $src "config.lua") "config.lua" { param($t)
   $t = & $started $t
