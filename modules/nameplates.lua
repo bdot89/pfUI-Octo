@@ -979,55 +979,21 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
 
     -- target zoom
     local w, h = nameplate.health:GetWidth(), nameplate.health:GetHeight()
+    -- octo (11 Nov 2026): in one step, not grown 5% a frame - while a status bar's size changes every
+    -- frame this client draws its fill full or empty (the user's "goes full when I target him")
     if target and C.nameplates.targetzoom == "1" then
-      local zoomval = tonumber(C.nameplates.targetzoomval)+1
-      local wc = tonumber(C.nameplates.width)*zoomval
-      local hc = tonumber(C.nameplates.heighthealth)*(zoomval*.9)
-      local animation = false
-
-      if wc >= w then
-        wc = w*1.05
-        nameplate.health:SetWidth(wc)
-        nameplate.health.zoomTransition = true
-        animation = true
-      end
-
-      if hc >= h then
-        hc = h*1.05
-        nameplate.health:SetHeight(hc)
-        nameplate.health.zoomTransition = true
-        animation = true
-      end
-
-      if animation == false and not nameplate.health.zoomed then
-        nameplate.health:SetWidth(wc)
-        nameplate.health:SetHeight(hc)
+      if not nameplate.health.zoomed then
+        local zoomval = tonumber(C.nameplates.targetzoomval)+1
+        nameplate.health:SetWidth(tonumber(C.nameplates.width)*zoomval)
+        nameplate.health:SetHeight(tonumber(C.nameplates.heighthealth)*(zoomval*.9))
         nameplate.health.zoomTransition = nil
         nameplate.health.zoomed = true
       end
     elseif nameplate.health.zoomed or nameplate.health.zoomTransition then
-      local wc = tonumber(C.nameplates.width)
-      local hc = tonumber(C.nameplates.heighthealth)
-      local animation = false
-
-      if wc <= w then
-        wc = w*.95
-        nameplate.health:SetWidth(wc)
-        animation = true
-      end
-
-      if hc <= h then
-        hc = h*0.95
-        nameplate.health:SetHeight(hc)
-        animation = true
-      end
-
-      if animation == false then
-        nameplate.health:SetWidth(wc)
-        nameplate.health:SetHeight(hc)
-        nameplate.health.zoomTransition = nil
-        nameplate.health.zoomed = nil
-      end
+      nameplate.health:SetWidth(tonumber(C.nameplates.width))
+      nameplate.health:SetHeight(tonumber(C.nameplates.heighthealth))
+      nameplate.health.zoomTransition = nil
+      nameplate.health.zoomed = nil
     end
 
     -- octo (11 Nov 2026, user: "when i target him for a split second the HP bar goes full then back"):

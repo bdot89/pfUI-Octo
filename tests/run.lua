@@ -3216,12 +3216,12 @@ do
       Mock.units.player.combat = false
       Mock.now = Mock.now + .05
       P.Tick(plate)
-      ok(o.scale < 1.1 and o.scale > .9, "eases toward the out-of-combat size (" .. tostring(o.scale) .. ")")
-      Mock.now = Mock.now + 2
+      -- (11 Nov 2026: sizes change in one step - while a plate's scale changes every frame the client
+      -- draws its health fill full or empty)
+      ok(math.abs(o.scale - .9) < .01, "out of combat: 90% at once, no easing (" .. tostring(o.scale) .. ")")
+      -- (the time the easing checks used to let pass: older kicks are forgotten before the cast bar test)
+      Mock.now = Mock.now + 4
       P.Tick(plate)
-      Mock.now = Mock.now + 2
-      P.Tick(plate)
-      ok(math.abs(o.scale - .9) < .01, "out of combat: 90% (" .. tostring(o.scale) .. ")")
       Mock.units.player.combat = true
       -- range: 50 yd away fades
       plate.alpha = 1
@@ -3878,10 +3878,11 @@ do
     local plate = P.previews[1].nameplate
     local o = plate.octo
     local now = GetTime()
-    pfUI_config.plates.animsize = "25"
+    -- (11 Nov 2026) pop / bounce resized the plate every frame (health drawn full / empty): now the flash
     Fx.Play(o, "pop", now)
-    ok(Fx.Scale(plate, o, now + .09) > 1.2, "pop: the plate grows (" .. Fx.Scale(plate, o, now + .09) .. ")")
-    ok(Fx.Scale(plate, o, now + 1) == 1 and not o.anim, "and settles")
+    ok(o.anim == "flash" and Fx.Scale(plate, o, now + .09) == 1, "a saved pop plays the white flash, the plate keeps its size")
+    o.anim = nil
+    ok(table.getn(Fx.ANIMS) == 2, "only None and Flash white are offered")
     -- (10 Nov 2026, user, arenas: the health "would show for a split second that the health was full") the fill
     -- shown is drawn from the value, never the game's own fill: through a pop and a resize it stays 40%
     do
@@ -3891,28 +3892,6 @@ do
       pfUI_config.plates.enable = "1"
       P.Fill(plate)
       ok(hb:GetStatusBarTexture() == nil or hb:GetStatusBarTexture():GetAlpha() == 1, "own fill off: the game's fill shows")
-      -- (11 Nov 2026, /pfplateprobe: while a targeted plate's scale eased, the game's fill had no layout and drew
-      -- full) the game's own fill is placed by hand: as wide as the health share of the bar
-      do
-        local tex = hb:GetStatusBarTexture()
-        local w0, v0 = hb:GetWidth(), hb:GetValue()
-        local mn0, mx0 = hb:GetMinMaxValues()
-        hb:SetWidth(135)
-        hb:SetMinMaxValues(0, 5941)
-        hb:SetValue(4100)
-        local gl = hb.GetLeft
-        hb.GetLeft = function() return nil end -- the client has no layout for it this frame
-        P.Fill(plate)
-        local br = o.bridge
-        local bw = br and br:GetWidth()
-        ok(br and br:IsShown() and bw and math.abs(bw - 135 * 4100 / 5941) < .01 and tex and tex:GetAlpha() == 0,
-          "no layout (scale changing): the game's fill hidden, the stand-in drawn at the health share (" .. tostring(bw) .. " of 135)")
-        hb.GetLeft = function() return 10 end
-        P.Fill(plate)
-        ok(not o.bridge:IsShown() and tex:GetAlpha() == 1, "laid out again: the game's fill back, the stand-in hidden")
-        hb.GetLeft = gl
-        hb:SetWidth(w0) hb:SetMinMaxValues(mn0, mx0) hb:SetValue(v0)
-      end
       P.OWNFILL = true
       local keepW, keepV, keepEn = hb:GetWidth(), hb:GetValue(), enable0
       local _, keepMax = hb:GetMinMaxValues()

@@ -530,7 +530,11 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       function() return C.plates.indicator end, function(v) C.plates.indicator = v; U() end)
     Chk(p, "Accent colour", "The marker in pfUI Octo's accent colour.", S, "targetaccent")
     Color(p, "Marker colour", "When the accent colour is off.", S, "targetcolor")
-    Sld(p, "Target size", "Your target's plate grows to this.", 80, 160, 5, S, "size_target", Pct)
+    Sld(p, "Target size", "Your target's plate is this big (it changes size at once).", 80, 160, 5, S, "size_target", Pct)
+    -- (11 Nov 2026, user: "not easy to find in the UI at all" - also here, beside the target's size)
+    W.Dropdown(p, "When it becomes your target", "A white flash on the plate as you target it.",
+      { { key = "none", label = "None" }, { key = "flash", label = "Flash white" } },
+      function() return C.plates.animtarget end, function(v) C.plates.animtarget = v; U() end)
     Sld(p, "Marker size", "0 = twice the bar's height.", 0, 60, 1, S, "targetsize", Auto)
     Sld(p, "Marker distance", "How far the arrows sit from the bar. Or drag them in the preview.", -20, 60, 1, S, "targetgap", Px)
     Sld(p, "Other plates", "How see-through the plates that are not your target are.", 0.1, 1, 0.05, N, "notargalpha", Alpha)
@@ -866,15 +870,15 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       for _, e in ipairs(src or {}) do table.insert(out, { key = e[1], label = e[2] }) end
       return out
     end
-    W.Card(p, "Animations", { tip = "Movement when you crit a unit, or when a plate becomes your target." })
+    W.Card(p, "Animations", { tip = "A white flash when you crit a unit, or when a plate becomes your target. "
+      .. "(Plates no longer grow or wobble: the game draws a plate's health wrong while its size changes.)" })
     Drop(p, "When you crit it", nil, L(Fx and Fx.ANIMS), S, "animcrit")
     Drop(p, "When it becomes your target", nil, L(Fx and Fx.ANIMS), S, "animtarget")
-    Sld(p, "How much it grows", "For Pop and Bounce.", 5, 60, 1, S, "animsize", Pct)
     W.Buttons(p, { { "Play on the preview", function()
       P.playAt = GetTime()
       for _, game in ipairs(P.previews or {}) do
         local o = game.nameplate and game.nameplate.octo
-        if o and Fx then Fx.Play(o, S().animcrit ~= "none" and S().animcrit or "pop") end
+        if o and Fx then Fx.Play(o, S().animcrit ~= "none" and S().animcrit or "flash") end
       end
     end, nil, nil, on = function() return P.playAt and GetTime() - P.playAt < 1.5 end } })
     for i = 1, (Fx and Fx.RULES or 6) do

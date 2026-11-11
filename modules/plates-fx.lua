@@ -24,29 +24,25 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
 
   -- ---------------------------------------------------------------- animations
 
-  Fx.ANIMS = { { "none", "None" }, { "pop", "Pop (grow and settle)" }, { "bounce", "Bounce (a quick wobble)" },
-               { "flash", "Flash white" } }
-  local DUR = { pop = .3, bounce = .45, flash = .35 }
+  -- (11 Nov 2026) Pop and Bounce grew and shrank the plate every frame, and while a plate's scale
+  -- changes the client draws its health fill full or empty (the user's "flashes full when I target
+  -- him"; confirmed by switching them off). They are gone: a saved pop / bounce plays the white flash.
+  Fx.ANIMS = { { "none", "None" }, { "flash", "Flash white" } }
+  local DUR = { flash = .35 }
+  local OLD = { pop = "flash", bounce = "flash" }
+  for _, k in ipairs({ "animtarget", "animcrit" }) do
+    if OLD[S[k] or ""] then S[k] = OLD[S[k]] end
+  end
 
   function Fx.Play(o, kind, now)
-    if not kind or kind == "none" or not o then return end
+    kind = OLD[kind or ""] or kind
+    if not kind or kind == "none" or not o or not DUR[kind] then return end
     o.anim, o.animAt = kind, now or GetTime()
   end
 
-  -- the size the animation gives the plate now (1 = its own)
+  -- the size the animation gives the plate now: always its own (see above)
   local function AnimScale(o, now)
-    local kind = o.anim
-    if not kind or kind == "flash" then return 1 end
-    local t = (now - (o.animAt or 0)) / DUR[kind]
-    if t >= 1 then o.anim = nil return 1 end
-    local big = (tonumber(S.animsize) or 25) / 100
-    if kind == "pop" then
-      -- up fast, down slow
-      if t < .3 then return 1 + big * t / .3 end
-      return 1 + big * (1 - (t - .3) / .7)
-    end
-    -- bounce: a damped wobble
-    return 1 + big * .6 * math.sin(t * math.pi * 3) * (1 - t)
+    return 1
   end
 
   -- a white flash over the health bar
