@@ -5138,11 +5138,49 @@ do
       _G.IsMounted = function() return up end
       pfUI.env.IsMounted = _G.IsMounted
       GE.Check()
-      ok(got == "Riding" and GE.state.active == "mount", "mounting wears the riding set")
+      ok(got == "Riding" and GE.state.active == "mount|Riding", "mounting wears the riding set")
       up = false
       GE.Check()
       ok(back and back.s8 ~= nil and GE.state.active == nil, "getting off puts back what was worn in its slots")
       _G.IsMounted, pfUI.env.IsMounted = m, m
+
+      -- (11 Nov 2026, Wolfahrt) target level triggers, and a set per talent spec
+      local stubs = { "UnitExists", "UnitCanAttack", "UnitIsDead", "UnitLevel", "UnitClassification" }
+      local keepT = {}
+      for _, n in ipairs(stubs) do keepT[n] = { rawget(_G, n), rawget(pfUI.env, n) } end
+      local tlevel, tclass, there = 60, "elite", true
+      local function Stub(n, f) _G[n] = f pfUI.env[n] = f end
+      Stub("UnitExists", function(u) return u == "target" and there end)
+      Stub("UnitCanAttack", function() return true end)
+      Stub("UnitIsDead", function() return false end)
+      Stub("UnitLevel", function() return tlevel end)
+      Stub("UnitClassification", function() return tclass end)
+      pfUI_config.gear.sets.Trash = { icon = "x", slots = { s1 = { id = "2:0:0", name = "Hat", tex = "" } } }
+      pfUI_config.gear.sets.Boss = { icon = "x", slots = { s1 = { id = "3:0:0", name = "Helm", tex = "" } } }
+      pfUI_config.gear.sets.TankBoss = { icon = "x", slots = { s1 = { id = "4:0:0", name = "Tank helm", tex = "" } } }
+      GE.Cfg("tmob").on, GE.Cfg("tmob").set = "1", "Trash"
+      GE.Cfg("tboss").on, GE.Cfg("tboss").set = "1", "Boss"
+      local lvl, specnow = pfUI_config.gear.bosslevel, pfUI_config.gear.specnow
+      pfUI_config.gear.bosslevel, pfUI_config.gear.specnow = "63", nil
+      got = nil GE.Check()
+      ok(got == "Trash", "a level 60 target: the not-a-boss set (" .. tostring(got) .. ")")
+      tlevel = 63 got = nil GE.Check()
+      ok(got == "Boss", "level 63 and up: the boss set")
+      tlevel, tclass = -1, "elite" got = nil GE.Check()
+      ok(got == nil and GE.state.active == "tboss|Boss", "a skull level is a boss too (no swap again)")
+      tlevel, tclass = 55, "worldboss" got = nil GE.Check()
+      ok(got == nil and GE.state.active == "tboss|Boss", "and so is a world boss of any level")
+      GE.Cfg("tboss").specsets = { ["2"] = "TankBoss" }
+      pfUI_config.gear.specnow = "2" got = nil GE.Check()
+      ok(got == "TankBoss", "in spec 2 the boss event wears that spec's set (" .. tostring(got) .. ")")
+      pfUI_config.gear.specnow = "1" got = nil GE.Check()
+      ok(got == "Boss", "in a spec without its own set: the usual one")
+      there = false back = nil GE.Check()
+      ok(GE.state.active == nil, "no target: the event ends")
+      for _, n in ipairs(stubs) do _G[n], pfUI.env[n] = keepT[n][1], keepT[n][2] end
+      pfUI_config.gear.bosslevel, pfUI_config.gear.specnow = lvl, specnow
+      pfUI_config.gear.events.tmob, pfUI_config.gear.events.tboss = nil, nil
+      pfUI_config.gear.sets.Trash, pfUI_config.gear.sets.Boss, pfUI_config.gear.sets.TankBoss = nil, nil, nil
       GR.Equip, GR.Wear, GR.IsEquipped = equip, wear, worn
       pfUI_config.gear.events.mount, pfUI_config.gear.sets.Riding = nil, nil
     end

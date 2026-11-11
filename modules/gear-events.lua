@@ -94,6 +94,19 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     return (kind == "raid") == (raid and true or false)
   end
 
+  -- (11 Nov 2026, Wolfahrt on Discord: ItemRack's custom triggers - "if lvl < 63 (non boss)
+  -- then I equip X, else I equip my boss gear", per spec) the target: something you can
+  -- attack, alive; a boss = skull level, "worldboss", or at least C.gear.bosslevel
+  local function Foe()
+    return UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDead("target")
+  end
+  function GE.TargetIsBoss()
+    local level = UnitLevel("target")
+    if level == -1 then return true end
+    if UnitClassification and UnitClassification("target") == "worldboss" then return true end
+    return (tonumber(level) or 0) >= (tonumber(C.gear.bosslevel) or 63)
+  end
+
   -- the events, in the order they win; form events are added per character
   GE.LIST = {
     { key = "mount", label = "Mounted", test = Mounted },
@@ -102,6 +115,10 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     { key = "swim", label = "Swimming", needs = function() return IsSwimming ~= nil end,
       test = function() local ok, s = pcall(IsSwimming) return ok and s and true or false end },
     { key = "stealth", label = "Stealthed", test = Stealthed },
+    { key = "tboss", label = "Target is a boss", target = true,
+      test = function() return Foe() and GE.TargetIsBoss() and true or false end },
+    { key = "tmob", label = "Target is not a boss", target = true,
+      test = function() return Foe() and not GE.TargetIsBoss() and true or false end },
     { key = "bg", label = "In a battleground", test = InBattleground },
     { key = "raid", label = "In a raid", test = function() return Instance("raid") end },
     { key = "dungeon", label = "In a dungeon", test = function() return Instance("party") end },
@@ -126,26 +143,38 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     return out
   end
 
-  -- every event this character can have, in order: forms right after stealth
+  -- every event this character can have, in order: forms right after the target ones
   function GE.All()
     local out = {}
     for _, e in ipairs(GE.LIST) do
       if not e.needs or e.needs() then table.insert(out, e) end
-      if e.key == "stealth" then
+      if e.key == "tmob" then
         for _, f in ipairs(GE.Forms()) do table.insert(out, f) end
       end
     end
     return out
   end
 
-  -- the event that should be worn now: { key, set } or nil
+  -- the set an event wears: its own for the talent spec on now (c.specsets[slot],
+  -- Gear > Talent specs), else its usual one
+  function GE.SetFor(c)
+    local now = C.gear.specnow
+    local s = now and type(c.specsets) == "table" and c.specsets[tostring(now)]
+    if s and s ~= "" and C.gear.sets[s] then return s end
+    return c.set
+  end
+
+  -- the event that should be worn now: event, its settings, the set's name - or nil
   function GE.Want()
     if C.gear.autoswap == "0" then return nil end
     for _, e in ipairs(GE.All()) do
       local c = C.gear.events[e.key]
-      if type(c) == "table" and c.on == "1" and c.set ~= "" and C.gear.sets[c.set] then
-        local ok, yes = pcall(e.test)
-        if ok and yes then return e, c end
+      if type(c) == "table" and c.on == "1" then
+        local set = GE.SetFor(c)
+        if set and set ~= "" and C.gear.sets[set] then
+          local ok, yes = pcall(e.test)
+          if ok and yes then return e, c, set end
+        end
       end
     end
   end
@@ -166,17 +195,18 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
   function GE.Check()
     local st = GE.state
     if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then return end
-    local e, c = GE.Want()
-    local key = e and e.key
+    local e, c, name = GE.Want()
+    -- (the event and its set: a spec change while it lasts wears that spec's set)
+    local key = e and (e.key .. "|" .. name)
     if key == st.active then return end
     if e then
-      local set = C.gear.sets[c.set]
+      local set = C.gear.sets[name]
       if not st.active then st.before = C.gear.current end
       if c.back == "1" then Remember(set) end
       st.active, st.back = key, (c.back == "1") or st.back
-      if not GR.IsEquipped(c.set) then
-        if C.gear.autotell ~= "0" then Say(e.label .. ": wearing " .. c.set .. ".") end
-        GR.Equip(c.set)
+      if not GR.IsEquipped(name) then
+        if C.gear.autotell ~= "0" then Say(e.label .. ": wearing " .. name .. ".") end
+        GR.Equip(name)
       end
     else
       -- the event ended: what was worn before, if it asked for that
@@ -202,7 +232,8 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
   -- (a change of form, zone or combat is looked at at once, not half a second later)
   for _, ev in ipairs({ "UPDATE_SHAPESHIFT_FORMS", "PLAYER_AURAS_CHANGED", "ZONE_CHANGED_NEW_AREA",
                         "PLAYER_UPDATE_RESTING", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
-                        "UPDATE_BATTLEFIELD_STATUS", "PLAYER_UNGHOST", "PLAYER_ALIVE" }) do
+                        "UPDATE_BATTLEFIELD_STATUS", "PLAYER_UNGHOST", "PLAYER_ALIVE", "PLAYER_TARGET_CHANGED",
+                        "CHARACTER_POINTS_CHANGED" }) do
     pcall(ticker.RegisterEvent, ticker, ev)
   end
   ticker:SetScript("OnEvent", function() if next(C.gear.events) then GE.Check() end end)
@@ -222,22 +253,39 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     for _, n in ipairs(GR.Sets()) do table.insert(out, { key = n, label = n }) end
     return out
   end
+  local function SpecSetList()
+    local out = { { key = "", label = "- same as Wear -" } }
+    for _, n in ipairs(GR.Sets()) do table.insert(out, { key = n, label = n }) end
+    return out
+  end
+  -- the talent specs saved at the Brainwashing Device: { { slot, name }, ... }
+  local function Specs()
+    local out, GS = {}, GR.specs
+    if type(C.gear.specs) ~= "table" then return out end
+    for slot in pairs(C.gear.specs) do
+      local name = GS and GS.Name and GS.Name(slot)
+      table.insert(out, { tostring(slot), (name and name ~= "") and name or ("Spec " .. slot) })
+    end
+    table.sort(out, function(a, b) return (tonumber(a[1]) or 0) < (tonumber(b[1]) or 0) end)
+    return out
+  end
 
   local function Build(p)
     W.Heading(p, "Automatic swaps", {
       on = { function() return C.gear.autoswap ~= "0" end, function(v) C.gear.autoswap = v and "1" or "0" end,
         "Every automatic swap on or off." },
-      about = "Wear a set while something is happening - riding, swimming, in a stance or form, in a city, a "
-        .. "battleground or a raid - and put back what you wore when it ends. The first one in the list that is "
-        .. "happening wins. Armour waits for combat to end (weapons swap at once); everything waits while you are "
-        .. "dead or casting." })
+      about = "Wear a set while something is happening - riding, swimming, targeting a boss or not, in a stance or "
+        .. "form, in a city, a battleground or a raid - and put back what you wore when it ends. The first one in the "
+        .. "list that is happening wins. Each one can wear a different set in each talent spec. Armour waits for "
+        .. "combat to end (weapons swap at once); everything waits while you are dead or casting." })
     -- (31 Oct 2026, user: menus "overwhelming": the events in four tabs)
     local GROUP = { mount = "travel", taxi = "travel", swim = "travel", stealth = "forms", bg = "places", raid = "places",
-      dungeon = "places", rest = "places", combat = "combat" }
-    local tabs = { travel = {}, forms = {}, places = {}, combat = { "Waiting" } }
+      dungeon = "places", rest = "places", combat = "combat", tboss = "target", tmob = "target" }
+    local tabs = { travel = {}, target = {}, forms = {}, places = {}, combat = { "Waiting" } }
     for _, e in ipairs(GE.All()) do table.insert(tabs[GROUP[e.key] or "forms"], e.label) end
     O.CardTabs(p, {
       { "travel", "Travel", "Ability_Mount_RidingHorse", tabs.travel },
+      { "target", "Target", "Ability_Hunter_SniperShot", tabs.target },
       { "forms", "Stances and forms", "Ability_Warrior_DefensiveStance", tabs.forms },
       { "places", "Places", "INV_Misc_Map_01", tabs.places },
       { "combat", "Combat and waiting", "INV_Sword_04", tabs.combat },
@@ -256,6 +304,23 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
           "Wear a set while: " .. label .. "." } })
       W.Dropdown(p, "Wear", "The set worn while this lasts.", SetList,
         function() return Cfg(key).set end, function(v) Cfg(key).set = v end)
+      if key == "tboss" then
+        W.Slider(p, "Boss from level", "A target this level or higher counts as a boss (a skull level or a world "
+          .. "boss always does). Below it: \"Target is not a boss\".", 2, 63, 1,
+          function() return tonumber(C.gear.bosslevel) or 63 end, function(v) C.gear.bosslevel = tostring(v) end)
+      end
+      -- (11 Nov 2026) a set of its own for each talent spec (Gear > Talent specs)
+      for _, s in ipairs(Specs()) do
+        local slot, sname = s[1], s[2]
+        W.Dropdown(p, "In " .. sname, "The set worn for this while you are in your " .. sname .. " spec. "
+          .. "\"Same as Wear\" uses the set above.", SpecSetList,
+          function() local t = Cfg(key).specsets return type(t) == "table" and t[slot] or "" end,
+          function(v)
+            local c = Cfg(key)
+            if type(c.specsets) ~= "table" then c.specsets = {} end
+            c.specsets[slot] = (v ~= "") and v or nil
+          end)
+      end
       W.Check(p, "Put back after", "When it ends, wear again what you wore before.",
         function() return Cfg(key).back == "1" end, function(v) Cfg(key).back = v and "1" or "0" end)
     end
