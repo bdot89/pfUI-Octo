@@ -795,36 +795,33 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if not (mn and mx and mx > mn) then return false end
     local share = (v - mn) / (mx - mn)
     if share > 1 then share = 1 elseif share < 0 then share = 0 end
-    local b = o.bridge
-    if not b then
-      b = CreateFrame("Frame", nil, hb.backdrop or plate)
-      b.tex = b:CreateTexture(nil, "ARTWORK")
-      o.bridge = b
+    -- (11 Nov 2026, user: on UNtargeting the bar went empty instead - a frame of its own sat under the
+    -- bar's backdrop once the plate dropped back.) The texture lives on the backdrop frame itself:
+    -- ARTWORK is above that frame's dark fill and the bar (and its text) is a level above it.
+    local t = o.bridge
+    if not t then
+      t = (hb.backdrop or plate):CreateTexture(nil, "ARTWORK")
+      o.bridge = t
     end
-    b:SetFrameLevel(math.max(0, hb:GetFrameLevel() - 1))
-    b:ClearAllPoints()
-    b:SetAllPoints(hb)
-    local t = b.tex
-    if path ~= b.path then t:SetTexture(path) b.path = path end
+    if path ~= o.bridgePath then t:SetTexture(path) o.bridgePath = path end
     local r, g, bl, a = hb:GetStatusBarColor()
     t:SetVertexColor(r or 1, g or 1, bl or 1, a or 1)
     t:ClearAllPoints()
     if share <= 0 then
       t:Hide()
+      return true
     elseif vertical then
-      t:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
-      t:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+      t:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
+      t:SetPoint("BOTTOMRIGHT", hb, "BOTTOMRIGHT", 0, 0)
       t:SetHeight(math.max(.01, size * share))
       t:SetTexCoord(0, 1, 1 - share, 1)
-      t:Show()
     else
-      t:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
-      t:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      t:SetPoint("TOPLEFT", hb, "TOPLEFT", 0, 0)
+      t:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
       t:SetWidth(math.max(.01, size * share))
       t:SetTexCoord(0, share, 0, 1)
-      t:Show()
     end
-    b:Show()
+    t:Show()
     return true
   end
 
@@ -1727,6 +1724,8 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if fps >= 60 or S.enable ~= "1" then return end
     local o = plate.octo
     if plate.istarget or plate.eventcache or parent.preview or not o or o.busy then return end
+    -- (the stand-in fill is up: keep ticking until the game's fill is back - P.Fill)
+    if o.bridge and o.bridge:IsShown() then return end
     if plate.castbar:IsShown() or plate.cache.mouseover then return end
     if UnitExists("target") and parent:GetAlpha() == 1 then return end
     if UnitExists("mouseover") and plate.original.glow and plate.original.glow:IsShown() then return end
@@ -1886,11 +1885,11 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       R(v), R(mn), R(mx), R(ov), R(omn), R(omx), R(hb:GetWidth()), (hl and hr) and R(hr - hl) or "-", R(tw),
       (tl and tr) and R(tr - tl) or "-", R(plate:GetScale()), R(tex and tex:GetAlpha()),
       tostring(tex and tex.GetNumPoints and tex:GetNumPoints() or "-"), placed,
-      (fill and fill:IsShown()) and (" bridge" .. R(fill.tex:GetWidth())) or "")
+      (fill and fill:IsShown()) and (" bridge" .. R(fill:GetWidth())) or "")
   end
   probe:SetScript("OnEvent", function()
-    -- (clearing the target fires it too: wait for a real one)
-    if not UnitExists("target") then return end
+    -- (clearing the target fires it too: wait for a real one - or, for "/pfplateprobe clear", for the clearing)
+    if (this.mode == "clear") == (UnitExists("target") and true or false) then return end
     this.start, this.last, this.log = GetTime(), {}, {}
     _G.pfUI_cache = _G.pfUI_cache or {}
     _G.pfUI_cache.plateprobe = this.log
@@ -1917,8 +1916,11 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
   end)
   _G.SLASH_PFPLATEPROBE1 = "/pfplateprobe"
-  _G.SlashCmdList.PFPLATEPROBE = function()
+  _G.SlashCmdList.PFPLATEPROBE = function(msg)
+    probe.mode = (string.lower(msg or "") == "clear") and "clear" or "target"
     probe:RegisterEvent("PLAYER_TARGET_CHANGED")
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r plate probe: clear your target, then target your friend (his plate on screen).")
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r plate probe: " .. (probe.mode == "clear"
+      and "target your friend, then clear your target (his plate on screen)."
+      or "clear your target, then target your friend (his plate on screen)."))
   end
 end)

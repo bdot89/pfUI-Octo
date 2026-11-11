@@ -3904,7 +3904,7 @@ do
         hb.GetLeft = function() return nil end -- the client has no layout for it this frame
         P.Fill(plate)
         local br = o.bridge
-        local bw = br and br.tex:GetWidth()
+        local bw = br and br:GetWidth()
         ok(br and br:IsShown() and bw and math.abs(bw - 135 * 4100 / 5941) < .01 and tex and tex:GetAlpha() == 0,
           "no layout (scale changing): the game's fill hidden, the stand-in drawn at the health share (" .. tostring(bw) .. " of 135)")
         hb.GetLeft = function() return 10 end
