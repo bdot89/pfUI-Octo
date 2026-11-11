@@ -237,6 +237,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("meters",     nil,           "tooltiplines",     "8")
   pfUI:UpdateConfig("meters",     nil,           "clog",             "1")
   pfUI:UpdateConfig("meters",     nil,           "snap",             "1")
+  pfUI:UpdateConfig("meters",     nil,           "snapgroup",        "1") -- windows snapped together move together
   pfUI:UpdateConfig("meters",     nil,           "recent",           "")
   -- custom displays: a spell's damage / healing / casts / damage taken, a buff's or debuff's uptime
   for i = 1, 5 do

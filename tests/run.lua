@@ -6159,6 +6159,54 @@ do
   end
 end
 
+-- meter windows snapped together move together (11 Nov 2026, Wolfahrt)
+do
+  local M = pfUI.meters
+  if M and M.Group and M.Outer then
+    local n = 0
+    local function Win(l, b, w, h)
+      n = n + 1
+      local f = CreateFrame("Frame", "pfTestMeterWin" .. n, UIParent)
+      f.pos = { l, b }
+      f.GetLeft = function() return f.pos[1] end
+      f.GetBottom = function() return f.pos[2] end
+      f.GetRight = function() return f.pos[1] + w end
+      f.GetTop = function() return f.pos[2] + h end
+      f.GetWidth = function() return w end
+      f.GetHeight = function() return h end
+      f.GetNumPoints = function() return 0 end
+      f.GetEffectiveScale = function() return 1 end
+      f.free = true
+      f:Show()
+      return f
+    end
+    local a = Win(100, 100, 200, 120)
+    local L = M.Outer(a)
+    local e = a:GetLeft() - L
+    local b = Win(300 + 2 * e, 100, 150, 120)  -- outer edges flush, to the right of A
+    local c = Win(300 + 2 * e, 220 + 2 * e, 150, 60) -- on top of B
+    local d = Win(900, 600, 100, 50)           -- far away
+    local keepW, keepG = M.windows, pfUI_config.meters.snapgroup
+    M.windows = { a, b, c, d }
+    pfUI_config.meters.snapgroup = "1"
+    local g = M.Group(a)
+    local has = {}
+    for _, o in ipairs(g) do has[o] = true end
+    ok(table.getn(g) == 2 and has[b] and has[c] and not has[d], "snapped windows are one group (through each other), a far one is not")
+    M.GroupStart(a)
+    a.pos = { 150, 80 } -- dragged 50 right, 20 down
+    M.GroupFollow(a, true)
+    local _, _, _, bx, by = b:GetPoint(1)
+    local _, _, _, cx, cy = c:GetPoint(1)
+    ok(bx and math.abs(bx - (350 + 2 * e)) < .01 and math.abs(by - 80) < .01 and cx and math.abs(cy - (200 + 2 * e)) < .01,
+      "dragging one moves the others with it (" .. tostring(bx) .. ", " .. tostring(by) .. ")")
+    pfUI_config.meters.snapgroup = "0"
+    M.GroupStart(a)
+    ok(a.followers == nil, "switched off: a window moves alone")
+    M.windows, pfUI_config.meters.snapgroup = keepW, keepG
+  end
+end
+
 -- /pfprof (9 Nov 2026): off = the game's CreateFrame back; on = scripts timed, GetScript unchanged
 do
   local P = pfUI.prof

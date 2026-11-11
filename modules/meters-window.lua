@@ -1129,6 +1129,66 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return true
   end
 
+  -- (11 Nov 2026, Wolfahrt: "a way to move 2 windows together") windows snapped flush
+  -- against each other are a group: dragging one moves the others with it (Alt = alone)
+  local TOUCH = 2
+  function M.Touching(a, b)
+    local la, ta, ra, ba = Outer(a)
+    local lb, tb, rb, bb = Outer(b)
+    if not (la and lb) then return false end
+    local overlapX = la < rb - TOUCH and ra > lb + TOUCH
+    local overlapY = ba < tb - TOUCH and ta > bb + TOUCH
+    if overlapY and (math.abs(ra - lb) <= TOUCH or math.abs(rb - la) <= TOUCH) then return true end
+    if overlapX and (math.abs(ba - tb) <= TOUCH or math.abs(bb - ta) <= TOUCH) then return true end
+    return false
+  end
+  -- every shown free window joined to win through touching edges (not win itself)
+  function M.Group(win)
+    local seen, out, todo = { [win] = true }, {}, { win }
+    while table.getn(todo) > 0 do
+      local w = table.remove(todo)
+      for _, o in ipairs(M.windows or {}) do
+        if not seen[o] and o:IsShown() and o.free and M.Touching(w, o) then
+          seen[o] = true
+          table.insert(out, o)
+          table.insert(todo, o)
+        end
+      end
+    end
+    return out
+  end
+  -- note where the group sits from win (UIParent units), to follow it while it moves
+  function M.GroupStart(win)
+    win.followers = nil
+    if C.meters.snapgroup == "0" or (IsAltKeyDown and IsAltKeyDown()) then return end
+    local l, b = Corner(win)
+    if not l then return end
+    local k = Scale(win)
+    local list = {}
+    for _, o in ipairs(M.Group(win)) do
+      local ol, ob = Corner(o)
+      if ol then
+        local ko = Scale(o)
+        table.insert(list, { o, ol * ko - l * k, ob * ko - b * k })
+      end
+    end
+    if table.getn(list) > 0 then win.followers = list end
+  end
+  function M.GroupFollow(win, save)
+    if not win.followers then return end
+    local k = Scale(win)
+    local l, b = win:GetLeft(), win:GetBottom()
+    if not (l and b) then return end
+    for _, f in ipairs(win.followers) do
+      local o, dx, dy = f[1], f[2], f[3]
+      local ko = Scale(o)
+      o:ClearAllPoints()
+      o:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", (l * k + dx) / ko, (b * k + dy) / ko)
+      if save then SaveMovable(o) end
+    end
+    if save then win.followers = nil end
+  end
+
   -- what a status bar slot shows
   M.SLOTS = {
     { "none", "Nothing" }, { "time", "Fight time" }, { "mine", "Your value and rank" }, { "segment", "Fight name" },
@@ -1681,16 +1741,26 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if win.free and S(win).lock ~= "1" then
         -- (closing layout mode sets every mover frame unmovable)
         win:SetMovable(true)
+        M.GroupStart(win)
         pfUI.api.DragStart(win)
         win.moving = true
+        if win.followers then
+          M.groupMover = M.groupMover or CreateFrame("Frame")
+          M.groupMover.win = win
+          M.groupMover:SetScript("OnUpdate", function() if this.win and this.win.moving then M.GroupFollow(this.win) end end)
+          M.groupMover:Show()
+        end
       end
     end
     local function DragStop()
       if win.moving then
         pfUI.api.DragStop(win)
         win.moving = nil
-        if C.meters.snap ~= "0" and M.Snap then M.Snap(win) end
+        if M.groupMover then M.groupMover:Hide() end
+        -- (a group keeps its shape: it is not snapped onto one of its own windows)
+        if C.meters.snap ~= "0" and M.Snap and not win.followers then M.Snap(win) end
         SaveMovable(win)
+        M.GroupFollow(win, true)
       end
     end
 
