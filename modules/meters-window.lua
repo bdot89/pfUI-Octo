@@ -2121,18 +2121,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   local events = CreateFrame("Frame")
   events:RegisterEvent("PLAYER_ENTERING_WORLD")
   events:SetScript("OnEvent", function()
-    -- offer to turn off the addons the meters replace
-    local old = {}
-    if IsAddOnLoaded("ShaguDPS") then table.insert(old, "ShaguDPS") end
-    if IsAddOnLoaded("TWThreat") then table.insert(old, "TWThreat") end
-    if table.getn(old) > 0 and C.meters.asked ~= "1" then
-      C.meters.asked = "1"
-      CreateQuestionDialog(string.format(T["pfUI Octo has its own damage and threat meters now (in the right chat panel).\n\nTurn off %s? The UI reloads."], table.concat(old, " + ")),
-        function()
-          for _, name in ipairs(old) do DisableAddOn(name) end
-          ReloadUI()
-        end)
-    end
+    -- (11 Nov 2026: ShaguDPS / TWThreat are offered to be turned off with every other add-on pfUI Octo already
+    -- does, by modules\addoncompat.lua)
 
     -- entering an instance with old data: ask to reset (as Details! does)
     local inInstance = IsInInstance()

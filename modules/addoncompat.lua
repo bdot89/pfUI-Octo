@@ -49,20 +49,71 @@ pfUI:RegisterModule("addoncompat", function ()
     ["Prat"] = { always },
   }
 
+  -- pfUI Octo (11 Nov 2026, user: "an alert if people have anything enabled outside our addon that is already
+  -- inbuilt into our addon"). Key = the add-on's name made plain (Plain: lower case, letters and digits only,
+  -- a download's "-master" / "-main" dropped), so "pfQuest-master" and "pfquest" are the same add-on.
+  -- [3] = what of ours does the same, for the question. Only asked while that part of pfUI Octo is in use.
+  local function has(path)
+    return function()
+      local t = pfUI
+      for part in string.gfind(path, "[^%.]+") do
+        if type(t) ~= "table" then return false end
+        t = t[part]
+      end
+      return t ~= nil
+    end
+  end
+  local octoconflict = {
+    ["pfquest"] = { always, nil, "Questing (pfQuest is built in; pfUI's copy stays off while this one is on)" },
+    ["shagudps"] = { has("meters"), nil, "Meters (damage, healing and more)" },
+    ["twthreat"] = { has("meters"), nil, "Threat meter and threat label" },
+    ["sct"] = { has("sct"), nil, "Combat Text" },
+    ["sctd"] = { has("sct"), nil, "Combat Text (your damage on enemies)" },
+    ["bagnon"] = { has("bagsOcto"), nil, "Bags (one window for all bags)" },
+    ["bagshui"] = { has("bagCats"), nil, "Bag categories" },
+    ["itemrack"] = { has("gear"), nil, "Gear sets" },
+    ["outfitter"] = { has("gear"), nil, "Gear sets" },
+    ["closetgnome"] = { has("gear"), nil, "Gear sets" },
+    ["trinketmenu"] = { has("gear"), nil, "Gear: trinket bar and trinket queue" },
+    ["weaponswingtimer"] = { has("swing"), nil, "Swing Timer" },
+    ["spswingtimer"] = { has("swing"), nil, "Swing Timer" },
+    ["brainwasherpro"] = { has("gear.specs"), nil, "Gear: talent specs at the Brainwashing Device" },
+    ["bettercharacterstats"] = { always, nil, "Character stats in the character window" },
+    ["evenbettercharacterstats"] = { always, nil, "Character stats in the character window" },
+    ["pfuicustommedia"] = { always, nil, "Bar textures, fonts and gryphon pictures (pfUI-CustomMedia is built in)" },
+  }
+
+  local function Plain(name)
+    local n = string.lower(name or "")
+    n = string.gsub(n, "[^%w]", "")
+    n = string.gsub(n, "master$", "")
+    n = string.gsub(n, "main$", "")
+    return n
+  end
+
   local require_reload
   local queue_soft = {}
   local queue_hard = {}
+  local reason = {}
 
   -- scan through all addons
-  for i=1, GetNumAddOns() do
-    local name, title, notes, enabled = GetAddOnInfo(i)
-    if enabled and not pfUI_init.addons[name] then
-      if hardconflict[name] and hardconflict[name][1]() then
-        queue_hard[name] = i
-      end
+  -- (pfUI Octo: run when the queue starts, so every module has started and the [1] checks can see it)
+  local function Scan(again)
+    for i=1, GetNumAddOns() do
+      local name, title, notes, enabled = GetAddOnInfo(i)
+      local octo = name and octoconflict[Plain(name)]
+      if again and octo then pfUI_init.addons[name] = nil end
+      if enabled and not pfUI_init.addons[name] then
+        if hardconflict[name] and hardconflict[name][1]() then
+          queue_hard[name] = i
+        end
 
-      if softconflict[name] and softconflict[name][1]() then
-        queue_soft[name] = i
+        if softconflict[name] and softconflict[name][1]() then
+          queue_soft[name] = i
+        elseif octo and octo[1]() then
+          queue_soft[name] = i
+          reason[name] = octo
+        end
       end
     end
   end
@@ -96,15 +147,24 @@ pfUI:RegisterModule("addoncompat", function ()
     -- run through softlist
     local name, id = next(queue_soft)
     if name and id then
-      CreateQuestionDialog(
-        string.format(T["Every feature that \"|cff33ffcc%s|r\" offers is already built into pfUI."], name) .. "\n"
-        .. T["Do you want to disable the addon?"],
+      local octo = reason[name]
+      local text
+      if octo then
+        text = string.format(T["\"|cff33ffcc%s|r\" is already built into pfUI Octo:"], name) .. "\n|cffffd100"
+          .. T[octo[3]] .. "|r\n\n" .. T["Running both can show things twice or make them fight."] .. "\n"
+          .. T["Do you want to disable the addon?"]
+      else
+        text = string.format(T["Every feature that \"|cff33ffcc%s|r\" offers is already built into pfUI."], name) .. "\n"
+          .. T["Do you want to disable the addon?"]
+      end
+      CreateQuestionDialog(text,
         {T["Yes"], function()
           queue_soft[name] = nil
 
           -- trigger action if availabe
-          if softconflict[name][2] then
-            softconflict[name][2]()
+          local entry = softconflict[name] or octo
+          if entry and entry[2] then
+            entry[2]()
           end
 
           DisableAddOn(id)
@@ -122,6 +182,7 @@ pfUI:RegisterModule("addoncompat", function ()
 
     -- in case of changes, ask for reload
     if require_reload then
+      require_reload = nil
       CreateQuestionDialog(
         T["The addon selection has changed."] .. "\n"
         .. T["Do you want to reload the UI now?"],
@@ -132,6 +193,27 @@ pfUI:RegisterModule("addoncompat", function ()
         nil)
     end
   end
+
+  -- pfUI Octo: the list, and asking again about the ones answered "No" before (Quality of Life page)
+  pfUI.addoncompat = {
+    Plain = Plain,
+    octo = octoconflict,
+    -- the switched-on add-ons that pfUI Octo already does: { { name, what }, ... }
+    Doubled = function()
+      local found = {}
+      for i=1, GetNumAddOns() do
+        local name, _, _, enabled = GetAddOnInfo(i)
+        local octo = name and octoconflict[Plain(name)]
+        if enabled and octo and octo[1]() then table.insert(found, { name, octo[3] }) end
+      end
+      return found
+    end,
+    Check = function()
+      Scan(true)
+      if next(queue_soft) or next(queue_hard) then RunQueue() return true end
+      return false
+    end,
+  }
 
   -- run the addonconflict queue when firstrun is ready
   local delay = CreateFrame("Frame")
@@ -146,6 +228,7 @@ pfUI:RegisterModule("addoncompat", function ()
       end
     end
 
+    Scan()
     RunQueue()
     this:SetScript("OnUpdate", nil)
   end)

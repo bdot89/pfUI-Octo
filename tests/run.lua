@@ -6013,6 +6013,47 @@ dofile(DIR .. "/tests/gather.lua")
 -- pfQuest built in (9 Nov 2026)
 dofile(DIR .. "/tests/pfquest.lua")
 
+-- add-ons pfUI Octo already does (11 Nov 2026): found by any folder name, asked about, "No" remembered
+do
+  local AC = pfUI.addoncompat
+  ok(AC ~= nil, "addoncompat started")
+  if AC then
+    ok(AC.Plain("pfQuest-master") == "pfquest" and AC.Plain("Bagnon") == "bagnon"
+      and AC.Plain("pfUI-CustomMedia") == "pfuicustommedia", "names made plain: case, dashes, -master")
+    local realNum, realInfo, realAsk, realDis = GetNumAddOns, GetAddOnInfo, pfUI.env.CreateQuestionDialog, DisableAddOn
+    local list = { { "pfUI", 1 }, { "pfQuest-master", 1 }, { "ShaguDPS", 1 }, { "pfQuest-turtle", 1 },
+                   { "ItemRack", nil }, { "BigWigs", 1 } }
+    _G.GetNumAddOns = function() return table.getn(list) end
+    _G.GetAddOnInfo = function(i) local e = list[i] if e then return e[1], e[1], "", e[2], 1 end end
+    local found = AC.Doubled()
+    local names = {}
+    for _, e in ipairs(found) do names[e[1]] = e[2] end
+    ok(names["pfQuest-master"] and names["ShaguDPS"] and not names["pfQuest-turtle"] and not names["ItemRack"]
+      and not names["BigWigs"] and not names["pfUI"], "doubled: pfQuest-master and ShaguDPS, not switched-off, "
+      .. "pfQuest's add-ons or unrelated ones")
+    local asked, disabled = {}, {}
+    pfUI.env.CreateQuestionDialog = function(text, yes, no, _, after)
+      table.insert(asked, text)
+      if string.find(text, "pfQuest", 1, true) then no[2]() else yes[2]() end
+      if after then after() end
+    end
+    _G.DisableAddOn = function(id) disabled[id] = true end
+    pfUI_init = pfUI_init or {}
+    pfUI_init.addons = pfUI_init.addons or {}
+    pfUI_init.addons["pfQuest-master"] = true
+    local checked = AC.Check()
+    if os.getenv("PFUI_TEST_VERBOSE") then
+      print("addoncompat: checked " .. tostring(checked) .. ", asked " .. table.getn(asked) .. ": " .. tostring(asked[1]))
+    end
+    ok(disabled[3] and not disabled[2], "asked again: Yes turns ShaguDPS off, No keeps pfQuest-master")
+    ok(pfUI_init.addons["pfQuest-master"] == true and string.find(asked[1] or "", "built into pfUI Octo", 1, true),
+      "the question names what pfUI Octo does; No is remembered")
+    ok(string.find(asked[table.getn(asked)] or "", "reload", 1, true), "a reload is offered after turning one off")
+    pfUI_init.addons["pfQuest-master"] = nil
+    _G.GetNumAddOns, _G.GetAddOnInfo, pfUI.env.CreateQuestionDialog, _G.DisableAddOn = realNum, realInfo, realAsk, realDis
+  end
+end
+
 -- chat lines really pass pfUI's chat (9 Nov 2026: in game a World line came out with no time, no short
 -- channel and no class colour while all three were on)
 do

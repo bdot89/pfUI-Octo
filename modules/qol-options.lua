@@ -82,6 +82,22 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Mod(p, "Whisper forwarding", "A chat button that forwards whispers to another character.", "whisperproxy")
     Mod(p, "Friend and guild list extras", "Last seen, class and zone colours, notes on friends.", "socialmod")
     Mod(p, "Clean macro history", "/run, /script and /cast lines stay out of the chat history.", "macrotweak")
+
+    -- (11 Nov 2026) add-ons that do what pfUI Octo already does: listed, and asked about again
+    local AC = pfUI.addoncompat
+    if AC then
+      W.Card(p, "Add-ons pfUI Octo already does", { tip = "At login pfUI asks about each switched-on add-on that does "
+        .. "the same as a part of pfUI Octo. \"No\" is remembered; the button below asks again." })
+      local found = AC.Doubled()
+      if table.getn(found) == 0 then
+        W.Note(p, "None switched on: nothing does the same job twice.")
+      else
+        for _, e in ipairs(found) do W.Note(p, "|cffffd100" .. e[1] .. "|r - " .. e[2]) end
+      end
+      W.Buttons(p, { { "Ask about them again", function()
+        if not AC.Check() then DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r: no switched-on add-on does what pfUI Octo already does.") end
+      end, 180, "Asks about each switched-on add-on that pfUI Octo already does, even ones you said No to." } })
+    end
   end
   O:AddPage("Quality of Life", "qolgeneral", "QoL", BuildQoL)
 
