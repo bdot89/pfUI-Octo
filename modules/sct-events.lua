@@ -1145,12 +1145,21 @@ local GAME_CVARS = { dmg = "CombatDamage", pet = "PetMeleeDamage", heal = "Heali
 -- but the addon loads on demand: if it loads later (switched on after login),
 -- its own CombatText_AddMessage replaces that hook and the GUIDs show until a
 -- /reload. CT:FixHealerNames puts the same fix on whenever it is missing.
-local fixedAdd, origAdd
+-- (11 Nov 2026, dennis on Discord, a hunter shooting: "sct-events.lua:1155: stack overflow" on every
+-- line.) It ran at every ADDON_LOADED, and each time the function on top was not exactly its own -
+-- pfUI's superwow.lua wraps CombatText_AddMessage too - it wrapped again, with ONE shared "original":
+-- the older wrapper then called the newer one's original, which called the older wrapper... forever.
+-- Now each wrapper keeps its own original, and a function it has seen (its own wrappers and every
+-- function it wrapped, wrapped by others or not) is never wrapped again.
+local seenAdd = {}
+CT.seenAdd = seenAdd
 function CT:FixHealerNames()
   local cur = CombatText_AddMessage
-  if not cur or cur == fixedAdd then return end
+  if not cur or seenAdd[cur] then return end
   if SuperAPI and cur == SuperAPI.CombatText_AddMessage and SuperAPI.CombatText_AddMessageOriginal then return end
-  origAdd = cur
+  local origAdd = cur
+  seenAdd[cur] = true
+  local fixedAdd
   fixedAdd = function(message, a1, a2, a3, a4, a5, a6)
     if type(message) == "string" and string.find(message, "[0x", 1, true) then
       message = string.gsub(message, " %[(0x%x+)%]", function(hex)
@@ -1163,6 +1172,7 @@ function CT:FixHealerNames()
     end
     return origAdd(message, a1, a2, a3, a4, a5, a6)
   end
+  seenAdd[fixedAdd] = true
   CombatText_AddMessage = fixedAdd
 end
 

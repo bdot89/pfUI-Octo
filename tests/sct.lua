@@ -342,6 +342,17 @@ ok(SHOW_COMBAT_TEXT == "1" and fctUpdates >= 1, "off: Blizzard's scrolling text 
 CombatText_AddMessage("+875 [0x00000000000000A1]")
 CombatText_AddMessage("+500 [0x00000000000000FF]")
 ok(fctMsgs[1] == "+875 [Rogueone]" and fctMsgs[2] == "+500", "healer GUIDs shown as names (" .. tostring(fctMsgs[1]) .. ", " .. tostring(fctMsgs[2]) .. ")")
+-- (11 Nov 2026, dennis: "sct-events.lua:1155: stack overflow") another wrapper on top (pfUI's superwow.lua
+-- does this), then more ADDON_LOADED: no endless loop, each message goes through once
+do
+  local ours = CombatText_AddMessage
+  CombatText_AddMessage = function(m, a, b, c) return ours(m, a, b, c) end
+  for i = 1, 3 do Fire("ADDON_LOADED", "SomeAddon" .. i) end
+  local n = table.getn(fctMsgs)
+  local okc, err = pcall(CombatText_AddMessage, "+300 [0x00000000000000A1]")
+  ok(okc and table.getn(fctMsgs) == n + 1 and fctMsgs[n + 1] == "+300 [Rogueone]",
+    "wrapped by another add-on, then add-ons load: one message, no stack overflow (" .. tostring(err or fctMsgs[n + 1]) .. ")")
+end
 SlashCmdList.PFUI("sct on")
 ok(SHOW_COMBAT_TEXT == "0", "on: Blizzard's scrolling text off, so heals don't show twice")
 LoadAddOn, CombatText, CombatText_UpdateDisplayedMessages, CombatText_AddMessage, SHOW_COMBAT_TEXT = nil, nil, nil, nil, nil
