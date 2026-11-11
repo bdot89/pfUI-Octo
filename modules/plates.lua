@@ -782,6 +782,34 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   -- Now the bar's own fill is invisible and o.fill is drawn from the value itself: width = the health share of
   -- the bar's width at this moment, its colour = the bar's colour. Run on every health change, at the end of
   -- every P.Tick and after P.Refill. Octo plates off: the game's fill comes back.
+  -- (11 Nov 2026, /pfplateprobe on the user's friend, targeted: while the plate's scale eased and
+  -- bounced (size_target, pop) the bar's own fill texture had NO layout at all - width 0, no left or
+  -- right - for 300 ms, and the game drew it across the whole bar; setting the value again did not
+  -- lay it out while the scale kept changing. The game's own fill texture is placed by hand instead:
+  -- on the bar's left (bottom when vertical), as wide as the health share of the bar's width.)
+  function P.PlaceFill(hb, tex)
+    if not tex or not tex.SetPoint then return end
+    local v = hb:GetValue() or 0
+    local mn, mx = hb:GetMinMaxValues()
+    if not (mn and mx and mx > mn) then return end
+    local share = (v - mn) / (mx - mn)
+    if share > 1 then share = 1 elseif share < 0 then share = 0 end
+    tex:ClearAllPoints()
+    if C.nameplates.verticalhealth == "1" then
+      local h = hb:GetHeight() or 0
+      if h <= 0 then return end
+      tex:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
+      tex:SetPoint("BOTTOMRIGHT", hb, "BOTTOMRIGHT", 0, 0)
+      tex:SetHeight(math.max(.01, h * share))
+    else
+      local w = hb:GetWidth() or 0
+      if w <= 0 then return end
+      tex:SetPoint("TOPLEFT", hb, "TOPLEFT", 0, 0)
+      tex:SetPoint("BOTTOMLEFT", hb, "BOTTOMLEFT", 0, 0)
+      tex:SetWidth(math.max(.01, w * share))
+    end
+  end
+
   function P.Fill(plate)
     local o = plate and plate.octo
     local hb = plate and plate.health
@@ -793,6 +821,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if S.enable ~= "1" or not P.OWNFILL then
       if o.fill and o.fill:IsShown() then o.fill:Hide() end
       if tex and tex:GetAlpha() < 1 then tex:SetAlpha(1) end
+      if S.enable == "1" then P.PlaceFill(hb, tex) end
       return
     end
     if not tex then return end

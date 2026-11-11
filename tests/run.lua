@@ -3891,6 +3891,21 @@ do
       pfUI_config.plates.enable = "1"
       P.Fill(plate)
       ok(hb:GetStatusBarTexture() == nil or hb:GetStatusBarTexture():GetAlpha() == 1, "own fill off: the game's fill shows")
+      -- (11 Nov 2026, /pfplateprobe: while a targeted plate's scale eased, the game's fill had no layout and drew
+      -- full) the game's own fill is placed by hand: as wide as the health share of the bar
+      do
+        local tex = hb:GetStatusBarTexture()
+        local w0, v0 = hb:GetWidth(), hb:GetValue()
+        local mn0, mx0 = hb:GetMinMaxValues()
+        hb:SetWidth(135)
+        hb:SetMinMaxValues(0, 5941)
+        hb:SetValue(4100)
+        P.Fill(plate)
+        local tw = tex and tex:GetWidth()
+        ok(tex and tw and math.abs(tw - 135 * 4100 / 5941) < .01 and tex:GetNumPoints() == 2,
+          "own fill off: the game's fill is placed at the health share (" .. tostring(tw) .. " of 135)")
+        hb:SetWidth(w0) hb:SetMinMaxValues(mn0, mx0) hb:SetValue(v0)
+      end
       P.OWNFILL = true
       local keepW, keepV, keepEn = hb:GetWidth(), hb:GetValue(), enable0
       local _, keepMax = hb:GetMinMaxValues()
