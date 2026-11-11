@@ -794,11 +794,35 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
   -- ---------------------------------------------------------------- range and execute
 
   local function RangeCards(p)
-    W.Card(p, "Range", { on = { function() return C.plates.range == "1" end, function(v) C.plates.range = v and "1" or "0"; U() end,
-      "Fade plates of far units." } })
-    Sld(p, "Further than", nil, 5, 100, 1, S, "rangeyards", Yd)
-    Sld(p, "Fade to", nil, 0.05, 1, 0.05, S, "rangealpha", Alpha)
-    Chk(p, "Out of sight too", "Also fade units behind walls.", S, "los")
+    -- (11 Nov 2026, Wolfahrt: how far plates show was nowhere, and "Range" only faded them)
+    local have = P.PlateRangeCVars and P.PlateRangeCVars() or {}
+    W.Card(p, "How far away plates show", { tip = "How far from you nameplates appear at all. The game decides "
+      .. "this; SuperWoW (NameplateRange) and nampower (NP_NameplateDistance) let it be changed." })
+    if table.getn(have) > 0 then
+      W.Slider(p, "Show plates up to", "Units further away than this get no nameplate.", 10, 80, 1,
+        function() return tonumber(C.plates.drawrange) or (P.PlateRange()) or 41 end,
+        function(v) C.plates.drawrange = tostring(v) P.SetPlateRange(v) end, Yd)
+      local names = {}
+      for _, c in ipairs(have) do table.insert(names, c[1]) end
+      W.Note(p, "Set through " .. table.concat(names, " and ") .. ". Plates already on screen update as units come and go.")
+      W.Buttons(p, { { "Game's own", function()
+        C.plates.drawrange = ""
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r: nameplate distance left to the game from now on (restart the game to get its own back).")
+        O:Refresh()
+      end, 110, "Stop setting it: the game's own distance after a restart." } })
+    else
+      W.Note(p, "|cffffcc00This client cannot change it|r: install SuperWoW or nampower (Install DLLs) for a longer distance.")
+    end
+
+    W.Card(p, "Fade far plates", { on = { function() return C.plates.range == "1" end, function(v) C.plates.range = v and "1" or "0"; U() end,
+      "Plates of units further away than this are see-through (they still show)." },
+      tip = "Plates that are shown but far away fade. Needs UnitXP SP3, ClassicAPI or SuperWoW to measure the distance." })
+    if P.FadeDistanceKnown and not P.FadeDistanceKnown() then
+      W.Note(p, "|cffffcc00No distance on this client|r: install UnitXP SP3, ClassicAPI or SuperWoW (Install DLLs).")
+    end
+    Sld(p, "Fade plates further than", "Units further away than this fade.", 5, 100, 1, S, "rangeyards", Yd)
+    Sld(p, "Fade to", "How see-through a far plate is.", 0.05, 1, 0.05, S, "rangealpha", Alpha)
+    Chk(p, "Out of sight too", "Also fade units behind walls (UnitXP SP3).", S, "los")
     W.Card(p, "Execute")
     W.Dropdown(p, "Execute range", "Automatic: on for warriors (Execute) and paladins (Hammer of Wrath).",
       { { key = "auto", label = "Automatic" }, { key = "on", label = "Always" }, { key = "off", label = "Off" } },

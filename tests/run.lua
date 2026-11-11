@@ -3228,6 +3228,32 @@ do
       o.rangeAt = 0
       P.Tick(plate)
       ok(o.far and math.abs(plate.alpha - .4) < .001, "50 yd away: faded to 40% (" .. tostring(plate.alpha) .. ")")
+      -- (11 Nov 2026, Wolfahrt) without UnitXP the ClassicAPI / SuperWoW distance fades too
+      do
+        local ux, lcd = rawget(_G, "UnitXP"), pfUI.api.libclient.Distance
+        local uxe = rawget(pfUI.env, "UnitXP")
+        _G.UnitXP, pfUI.env.UnitXP = nil, nil
+        local uds = rawget(_G, "UnitDistanceSquared")
+        _G.UnitDistanceSquared = function() return 2500 end
+        pfUI.api.libclient.Distance = function() return 50 end
+        plate.alpha, o.rangeAt, o.far = 1, 0, nil
+        P.Tick(plate)
+        ok(o.far and math.abs(plate.alpha - .4) < .001, "no UnitXP: ClassicAPI's 50 yd fades too (" .. tostring(plate.alpha) .. ")")
+        _G.UnitXP, pfUI.env.UnitXP, _G.UnitDistanceSquared = ux, uxe, uds
+        pfUI.api.libclient.Distance = lcd
+      end
+      -- how far plates show: SuperWoW / nampower settings, set only when the user picks a distance
+      do
+        local cv, gcv, scv = { NameplateRange = "20" }, rawget(_G, "GetCVar"), rawget(_G, "SetCVar")
+        local egc, esc = rawget(pfUI.env, "GetCVar"), rawget(pfUI.env, "SetCVar")
+        local function G1(n) if cv[n] == nil then error("unknown CVar") end return cv[n] end
+        local function S1(n, v) if cv[n] == nil then error("unknown CVar") end cv[n] = v end
+        _G.GetCVar, _G.SetCVar, pfUI.env.GetCVar, pfUI.env.SetCVar = G1, S1, G1, S1
+        local now1, list = P.PlateRange()
+        ok(now1 == 20 and table.getn(list) == 1, "SuperWoW's NameplateRange read (20), nampower's absent")
+        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "41", "a picked distance is set on it")
+        _G.GetCVar, _G.SetCVar, pfUI.env.GetCVar, pfUI.env.SetCVar = gcv, scv, egc, esc
+      end
       -- cast bar: a stopped cast flashes red and says who did it
       local cb = plate.castbar
       cb:SetMinMaxValues(0, 2)

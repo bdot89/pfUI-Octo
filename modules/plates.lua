@@ -919,6 +919,48 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
   end
 
+  -- can far plates be told apart at all? (UnitXP SP3, or ClassicAPI / SuperWoW positions)
+  function P.FadeDistanceKnown()
+    if _G.UnitXP then return true end
+    return (_G.UnitDistanceSquared or _G.UnitPosition) and true or false
+  end
+
+  -- (11 Nov 2026, Wolfahrt: "I don't understand how to setup the nameplate display range") How far away
+  -- plates appear is the client's, not pfUI's: SuperWoW adds the setting "NameplateRange", nampower
+  -- "NP_NameplateDistance". C.plates.drawrange = "" leaves the game's own; a number is set on each one
+  -- this client has (at login and when changed).
+  P.RANGECVARS = { "NameplateRange", "NP_NameplateDistance" }
+  function P.PlateRangeCVars()
+    local out = {}
+    if not GetCVar then return out end
+    for _, n in ipairs(P.RANGECVARS) do
+      local ok, v = pcall(GetCVar, n)
+      if ok and v ~= nil and v ~= "" then table.insert(out, { n, tonumber(v) }) end
+    end
+    return out
+  end
+  function P.PlateRange()
+    local list = P.PlateRangeCVars()
+    return list[1] and list[1][2], list
+  end
+  function P.SetPlateRange(yd)
+    yd = tonumber(yd)
+    if not yd then return 0 end
+    local n = 0
+    for _, c in ipairs(P.PlateRangeCVars()) do
+      if pcall(SetCVar, c[1], tostring(yd)) then n = n + 1 end
+    end
+    return n
+  end
+  do
+    local login = CreateFrame("Frame")
+    login:RegisterEvent("PLAYER_ENTERING_WORLD")
+    login:SetScript("OnEvent", function()
+      this:UnregisterAllEvents()
+      if tonumber(S.drawrange) then P.SetPlateRange(S.drawrange) end
+    end)
+  end
+
   function P.Tick(plate)
     local o = plate and plate.octo
     if not o or S.enable ~= "1" then return end
@@ -953,13 +995,23 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
 
     -- range / line of sight: fade (after pfUI's non-target alpha)
-    if S.range == "1" and UnitXP and o.unit and o.unit ~= "target" then
+    -- (11 Nov 2026, Wolfahrt: the fade "doesn't seem to change anything" - it needed UnitXP SP3; the
+    -- centre-to-centre distance of ClassicAPI / SuperWoW (libclient.Distance) is the fallback now)
+    if S.range == "1" and o.unit and o.unit ~= "target" and P.FadeDistanceKnown() then
       if now >= (o.rangeAt or 0) then
         o.rangeAt = now + .2
-        local ok, d = pcall(UnitXP, "distanceBetween", "player", o.unit)
-        o.far = (ok and type(d) == "number" and d > (tonumber(S.rangeyards) or 40)) or nil
+        local d
+        if UnitXP then
+          local ok, v = pcall(UnitXP, "distanceBetween", "player", o.unit)
+          if ok and type(v) == "number" then d = v end
+        end
+        if not d then
+          local lc = pfUI.api and pfUI.api.libclient
+          d = lc and lc.Distance and lc.Distance(o.unit)
+        end
+        o.far = (type(d) == "number" and d > (tonumber(S.rangeyards) or 40)) or nil
         o.unseen = nil
-        if S.los == "1" then
+        if S.los == "1" and UnitXP then
           local ok2, seen = pcall(UnitXP, "inSight", "player", o.unit)
           o.unseen = (ok2 and seen == false) or nil
         end
