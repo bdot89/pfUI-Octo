@@ -159,6 +159,27 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   }
   function M.SampleRows(modekey)
     local rows = {}
+    -- (12 Nov 2026) threat as the real window shows it: the pull line, then threat and % of the tank's
+    if modekey == "threat" then
+      local tank = 21400 * 2.2
+      if C.meters.threatpull ~= "0" then
+        table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = 100, max = 100,
+                             extra = Num(tank * 1.1), text = "+" .. Num(tank * 1.1 - 8600 * 3.4), gap = tank * 1.1 - 8600 * 3.4, at = tank * 1.1 })
+      end
+      table.insert(rows, { name = "Garrosh", class = "WARRIOR", value = 100, max = 100, extra = Num(tank), text = "100%", tank = true })
+      for _, p in ipairs(SAMPLE) do
+        if p[1] ~= "Garrosh" and p[1] ~= "Anduin" and p[1] ~= "Uther" then
+          local th = p[3] * .62
+          table.insert(rows, { name = p[1], class = p[2], value = th / tank * 100, max = 100, extra = Num(th),
+                               text = floor(th / tank * 100) .. "%" })
+        end
+      end
+      table.sort(rows, function(x, y)
+        if x.pullrow or y.pullrow then return x.pullrow and not y.pullrow end
+        return x.value > y.value
+      end)
+      return rows
+    end
     for _, p in ipairs(SAMPLE) do
       local v
       if modekey == "heal" or modekey == "hps" then v = p[4]
@@ -356,6 +377,18 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       -- (bars glide: TH.shown holds the value on its way to e.perc)
       local function Shown(e) return (TH.shown and TH.shown[e.name]) or e.perc end
       for _, e in ipairs(TH.list) do if Shown(e) > top then top = Shown(e) end end
+      -- (12 Nov 2026) the pull line first: where you take aggro and how far off it is (tank: your lead)
+      local kind, a, b
+      if TH.Pull then kind, a, b = TH.Pull() end
+      if kind and C.meters.threatpull ~= "0" then
+        if kind == "pull" then
+          table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = top, max = top,
+                               extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a })
+        else
+          table.insert(rows, { name = T["Your lead on"] .. " " .. b.name, pullrow = kind, value = top, max = top,
+                               extra = Num(math.abs(a)), text = "", gap = a })
+        end
+      end
       for _, e in ipairs(TH.list) do
         local w = M.Who(e.name)
         table.insert(rows, { name = e.name, value = Shown(e), max = top, class = w and w.class,
@@ -513,6 +546,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if win.mode ~= "threat" then title = title .. " - " .. gsub(SegmentName(win.segment), "|c%x%x%x%x%x%x%x%x", "") end
     title = gsub(gsub(title, "|r", ""), "%*", "")
     local out = { title }
+    -- (the threat window's pull line is yours alone: not in reports)
+    if rows[1] and rows[1].pullrow then table.remove(rows, 1) end
     for i = 1, min(table.getn(rows), tonumber(C.meters.reportlines) or 10) do
       local r = rows[i]
       local line = i .. ". " .. r.name .. "  " .. r.text
@@ -807,6 +842,19 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local row = bar.row
     if not row or C.meters.tooltip == "0" then return end
     GameTooltip:SetOwner(bar, "ANCHOR_LEFT")
+    -- the threat window's pull line explains itself
+    if row.pullrow then
+      GameTooltip:AddLine(row.name, 1, .82, 0)
+      if row.pullrow == "pull" then
+        GameTooltip:AddLine(T["The mob turns on you at this threat: the tank's x 1.1 in melee range, x 1.3 at range."], 1, 1, 1, 1)
+        GameTooltip:AddDoubleLine(T["Room left"], row.text or "", .6, .6, .6, 1, 1, 1)
+      else
+        GameTooltip:AddLine(T["You hold aggro: this is how far ahead of the next player you are."], 1, 1, 1, 1)
+      end
+      GameTooltip:AddLine(T["Meters > Threat: \"Pull aggro line\" turns it off."], .6, .6, .6, 1)
+      GameTooltip:Show()
+      return
+    end
     GameTooltip:AddLine(row.name, 1, 1, 1)
     local a = row.actor
     local mode = MODE[bar.win.mode] or MODE.damage
@@ -882,7 +930,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if M.PreviewClick then M.PreviewClick(this.win, "bars") end
         return
       end
-      if this.row then M.ShowDetails(this.win, this.row) end
+      if this.row and not this.row.pullrow then M.ShowDetails(this.win, this.row) end
     end)
     win.bars[i] = b
     return b
@@ -932,6 +980,50 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return total
   end
   M.RightText = RightText
+
+  -- (12 Nov 2026, user: another threat meter "looks a bit neater") threat rows get the threat and the % in two
+  -- columns of their own, right-aligned, so the numbers line up down the window (they shared one text). The pull
+  -- line: the threat you pull at, then how far off it is - green with room, gold when close, red past it.
+  local function ThreatColumns(b, s, row, vsize, font, outline, rightpad)
+    if not b.mid then
+      b.mid = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      b.mid:SetJustifyH("RIGHT")
+      b.pct = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      b.pct:SetJustifyH("RIGHT")
+    end
+    for _, fs in ipairs({ b.mid, b.pct }) do
+      fs:SetFont(font, vsize, outline)
+      if s.shadow == "1" then fs:SetShadowOffset(1, -1) fs:SetShadowColor(0, 0, 0, 1) else fs:SetShadowOffset(0, 0) end
+      fs:SetHeight(vsize + 4)
+    end
+    b.pct:SetWidth(floor(vsize * 3.4))
+    b.mid:SetWidth(floor(vsize * 3.6))
+    b.pct:ClearAllPoints()
+    b.pct:SetPoint("RIGHT", b, "RIGHT", -4 - (rightpad or 0), 0)
+    b.mid:ClearAllPoints()
+    b.mid:SetPoint("RIGHT", b.pct, "LEFT", -4, 0)
+    b.left:SetPoint("RIGHT", b.mid, "LEFT", -4, 0)
+    b.right:SetText("")
+    local color = row.class and RAID_CLASS_COLORS[row.class]
+    if s.valuecolor == "class" and color then b.mid:SetTextColor(color.r, color.g, color.b)
+    elseif s.valuecolor == "custom" then b.mid:SetTextColor(Col(s.valuecustom, "1,1,1,1"))
+    else b.mid:SetTextColor(1, 1, 1) end
+    b.pct:SetTextColor(Col(s.subcolor, "0.67,0.67,0.67,1"))
+    if row.pullrow then
+      b.left:SetTextColor(1, .82, 0)
+      b.mid:SetTextColor(.8, .8, .8)
+      local gap = row.gap or 0
+      local good = row.pullrow == "lead" and gap > 0 or (row.pullrow == "pull" and gap > (row.at or 0) * .1)
+      local r, g, bb = 1, .82, 0
+      if gap < 0 then r, g, bb = 1, .25, .2 elseif good then r, g, bb = .3, 1, .4 end
+      b.pct:SetTextColor(r, g, bb)
+      if row.pullrow == "lead" then b.mid:SetTextColor(r, g, bb) end
+    end
+    b.mid:SetText(row.extra or "")
+    b.pct:SetText(row.text or "")
+    b.mid:Show()
+    b.pct:Show()
+  end
 
   -- the look of a window from its settings: background, border, title bar,
   -- buttons, fonts (bars are drawn in Refresh)
@@ -1201,8 +1293,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       return seg and Clock(M.Duration(seg)) or "0:00"
     elseif kind == "mine" then
       local me = UnitName("player")
+      local n = 0
       for i, r in ipairs(win.rowsShown or {}) do
-        if r.name == me or (win.preview and i == 2) then return "#" .. i .. "  " .. (r.text or "") end
+        if not r.pullrow then n = n + 1 end
+        if not r.pullrow and (r.name == me or (win.preview and i == 2)) then return "#" .. n .. "  " .. (r.text or "") end
       end
       return "-"
     elseif kind == "segment" then
@@ -1236,7 +1330,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     win.title:SetText(mode.name)
     win.titlebtn:SetWidth(win.title:GetStringWidth() + 10)
     if win.mode == "threat" then
-      win.seg:SetText("")
+      -- (12 Nov 2026) the mob the numbers are for, beside the title
+      local mob = UnitExists("target") and UnitName("target")
+      win.seg:SetText(mob and ("|cffaaaaaa" .. mob .. "|r") or "")
     else
       win.seg:SetText(SegmentName(win.segment, win))
     end
@@ -1256,6 +1352,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local statush = s.status == "1" and 14 or 0
     local room = win:GetHeight() - top - 2 - statush
     local visible = max(1, floor((room + gap) / (height + gap)))
+    -- (the threat meter asks the server for this many players, meters-threat.lua TH.Limit)
+    win.visibleRows = visible
     if win.offset > max(0, table.getn(rows) - visible) then win.offset = max(0, table.getn(rows) - visible) end
 
     -- texts
@@ -1291,7 +1389,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if win.mode == "threat" then
           -- you: green -> yellow -> red towards the pull point; the tank: dark red
           local share = row.name == me and M.threat and M.threat.Mine()
-          if row.tank then r, g, bb = .6, .15, .15
+          if row.pullrow then r, g, bb = .16, .19, .26
+          elseif row.tank then r, g, bb = .6, .15, .15
           elseif share then r, g, bb = min(1, share * 2), min(1, 2 - share * 2), .1 end
         end
         -- your own bar: a border or a brighter bar (25 Oct 2026)
@@ -1347,8 +1446,15 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if s.valuecolor == "class" and color then b.right:SetTextColor(color.r, color.g, color.b)
         elseif s.valuecolor == "custom" then b.right:SetTextColor(Col(s.valuecustom, "1,1,1,1"))
         else b.right:SetTextColor(1, 1, 1) end
-        b.left:SetText((s.rank ~= "0" and (Hex(s.rankcolor, "0.67,0.67,0.67,1") .. (i + win.offset) .. ".|r ") or "") .. row.name)
-        b.right:SetText(RightText(s, row))
+        -- (the pull line has no rank, and the players under it count from 1)
+        local rank = i + win.offset - ((rows[1] and rows[1].pullrow) and 1 or 0)
+        b.left:SetText((s.rank ~= "0" and not row.pullrow and (Hex(s.rankcolor, "0.67,0.67,0.67,1") .. rank .. ".|r ") or "") .. row.name)
+        if win.mode == "threat" then
+          ThreatColumns(b, s, row, vsize, font, outline, iconright and iconw or 0)
+        else
+          if b.mid then b.mid:Hide() b.pct:Hide() end
+          b.right:SetText(RightText(s, row))
+        end
         b:Show()
       else
         b.row = nil

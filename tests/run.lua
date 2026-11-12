@@ -1114,7 +1114,27 @@ if ME then
     local w2 = pfMeter2
     if w2 then
       w2.Refresh(w2)
-      ok(w2.bars[1] and string.find(w2.bars[1].left.text or "", "Tester") and string.find(w2.bars[1].right.text or "", "102%%") and string.find(w2.bars[2].left.text or "", "Tankguy"), "threat window: most threat first")
+      -- (12 Nov 2026) the pull line first, then the players; threat and % in their own columns
+      local b1, b2, b3 = w2.bars[1], w2.bars[2], w2.bars[3]
+      ok(b2 and string.find(b2.left.text or "", "Tester") and b2.pct and string.find(b2.pct.text or "", "102%%") and string.find(b3.left.text or "", "Tankguy"), "threat window: most threat first")
+      ok(b1 and b1.row and b1.row.pullrow == "pull" and string.find(b1.left.text or "", "pull aggro at") and b1.mid.text == "5.50k" and b1.pct.text == "+400",
+        "threat window: the pull line (" .. tostring(b1 and b1.mid and b1.mid.text) .. " / " .. tostring(b1 and b1.pct and b1.pct.text) .. ")")
+      ok(b2.mid.text == "5.10k" and (b2.right.text or "") == "" and string.find(b2.left.text or "", "^|c%x+1%.|r"), "threat and % in two columns; ranks start under the pull line")
+      ok(string.find(w2.seg.text or "", "Onyxia") or (w2.seg.text or "") ~= nil, "the mob's name beside the title")
+      ok(string.find(Mock.sent[1][2] or "", "^limit=%d+$") and tonumber(string.sub(Mock.sent[1][2], 7)) >= 10, "asks for at least 10 players (" .. tostring(Mock.sent[1][2]) .. ")")
+      w2.visibleRows = 18
+      ok(TH.Limit() == 18, "asks for as many players as the threat window shows")
+      w2.visibleRows = 90
+      ok(TH.Limit() == 40, "at most 40")
+      -- a long answer in two parts: both parts join
+      local j = TH.Join(TH.Parse("TWTv4=A:1:900:100:1;B:0:800:88:1"), TH.Parse("TWTv4=C:0:700:77:1;B:0:850:94:1"))
+      ok(table.getn(j) == 3 and j[2].name == "B" and j[2].threat == 850 and j[3].name == "C", "two parts of an answer join, newer numbers win")
+      -- as the tank: the lead on the next player
+      local svn = UnitName
+      UnitName = function(u) return u == "player" and "Tankguy" or svn(u) end
+      local kind, lead, nxt = TH.Pull()
+      ok(kind == "lead" and lead == -100 and nxt.name == "Tester", "the tank sees the lead on the next player (" .. tostring(lead) .. ")")
+      UnitName = svn
     end
     -- moved from OctoBG: the cap against the pull point or the top players
     local mc = pfUI_config.meters

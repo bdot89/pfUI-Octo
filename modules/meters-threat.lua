@@ -41,6 +41,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     return out
   end
 
+  -- two parts of one answer as one sorted list (a name in both: the newer part's numbers)
+  function TH.Join(old, new)
+    local out, seen = {}, {}
+    for _, e in ipairs(new) do seen[e.name] = true table.insert(out, e) end
+    for _, e in ipairs(old) do if not seen[e.name] then table.insert(out, e) end end
+    table.sort(out, function(a, b) return a.threat > b.threat end)
+    return out
+  end
+
   local function InGroup() return GetNumRaidMembers() > 0 or GetNumPartyMembers() > 0 end
   -- solo with a pet tanking (1 Nov 2026, GratisNinja: a warlock and his Voidwalker):
   -- the server answers groups only, so the numbers are estimated here (TH.Estimate).
@@ -284,6 +293,20 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     return moving
   end
 
+  -- (12 Nov 2026, user: TWThreat showed 16 players, ours 10) how many players to ask the server for: as many
+  -- rows as the biggest threat window shows (Refresh notes win.visibleRows), at least 10, at most 40
+  function TH.Limit()
+    local n = 10
+    for _, w in ipairs(M.windows or {}) do
+      if w.mode == "threat" and w.visibleRows and w.visibleRows > n then n = w.visibleRows end
+    end
+    return math.min(40, n)
+  end
+  local function Send()
+    return pcall(SendAddonMessage, "TWT_UDTSv4", "limit=" .. TH.Limit(), GetNumRaidMembers() > 0 and "RAID" or "PARTY")
+  end
+  TH.Send = Send
+
   function TH.Ask()
     if not TH.Wanted() then return end
     -- (6 Nov 2026, "threat meter updating slow ... INSTANT": asked every C.meters.threatrate seconds,
@@ -298,7 +321,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       -- a normal mob: tried a few times (the answer, if there is one, is what proves it), the estimate shows
       if (TH.probes or 0) < 8 then
         TH.probes = (TH.probes or 0) + 1
-        pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY")
+        Send()
         TH.askAt = GetTime()
       end
       TH.Estimate()
@@ -306,7 +329,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     end
     -- (grouped again: the server's numbers only, never the estimate)
     if TH.estimated then TH.list, TH.estimated = nil, nil end
-    if pcall(SendAddonMessage, "TWT_UDTSv4", "limit=10", GetNumRaidMembers() > 0 and "RAID" or "PARTY") then
+    if Send() then
       TH.askAt = GetTime()
       TH.silent = TH.silent + 1
       if TH.silent >= GIVE_UP and TH.answers == 0 then TH.gaveUp = true end
@@ -320,6 +343,28 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if not InGroup() and not Solo() then return T["Threat shows in a group, or solo with a pet"] end
     if not TH.Wanted() then return T["Target a mob in combat"] end
     if TH.answers == 0 then return T["Asking the server..."] end
+  end
+
+  -- (12 Nov 2026) the line over the threat list. Not the tank: "pull", the threat you take aggro at (the tank's
+  -- x 1.1 in melee range, x 1.3 at range) and how much more you can do before it. The tank: "lead", how far ahead
+  -- of the next player you are, and who that is.
+  function TH.Pull()
+    if not TH.list then return end
+    local me = UnitName("player")
+    local tank, mine
+    for _, e in ipairs(TH.list) do
+      if e.tank then tank = e end
+      if e.name == me then mine = e end
+    end
+    if not mine or not tank then return end
+    if mine.tank then
+      for _, e in ipairs(TH.list) do
+        if not e.tank then return "lead", mine.threat - e.threat, e end
+      end
+      return
+    end
+    local at = tank.threat * ((mine.melee and 110 or 130) / 100)
+    return "pull", at, at - mine.threat
   end
 
   -- your share of the pull point: 1.0 = you pull aggro
@@ -347,6 +392,9 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       if type(arg2) ~= "string" or not string.find(arg2, "TWTv4=", 1, true) then return end
       local list = TH.Parse(arg2)
       if not list then return end
+      -- (12 Nov 2026) a longer list may come in more than one message: parts that answer the same ask join up
+      if TH.list and TH.ansAsk == TH.askAt and TH.askAt > 0 and not TH.estimated then list = TH.Join(TH.list, list) end
+      TH.ansAsk = TH.askAt
       TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
       -- an answer for a normal mob: this server sends them too
       if UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
