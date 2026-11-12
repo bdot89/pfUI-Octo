@@ -1206,6 +1206,17 @@ if pfUI.sct and SB and SB.db then
   local before = CTX.nlive
   local good, e = pcall(CTX.Show, CTX, "-1234", 1, .2, .2, "inc", { crit = true })
   ok(good and CTX.nlive == before + 1, "a combat text shows: " .. tostring(e))
+  -- (12 Nov 2026, Lobo) an area hidden with layout mode's Hide shows no texts
+  do
+    pfUI_config.unlock.hidden = pfUI_config.unlock.hidden or {}
+    pfUI_config.unlock.hidden.pfCombatTextNotes = "1"
+    local n0 = CTX.nlive
+    CTX:Show("KILLING BLOW", 1, 1, 1, "note")
+    ok(CTX.nlive == n0, "Notes hidden in layout mode: its texts stay away")
+    pfUI_config.unlock.hidden.pfCombatTextNotes = nil
+    CTX:Show("KILLING BLOW", 1, 1, 1, "note")
+    ok(CTX.nlive == n0 + 1, "shown again: its texts come back")
+  end
   good, e = pcall(CTX.TestMode, CTX, true)
   ok(good and CTX:Testing(), "test mode starts: " .. tostring(e))
   good, e = pcall(CTX.TestRound, CTX)

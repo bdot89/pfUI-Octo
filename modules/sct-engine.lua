@@ -622,6 +622,11 @@ function CT:Show(text, r, g, b, where, opts)
   if not plate then
     a = db.areas[where] or db.areas.out
     if not a.enabled then return end
+    -- (12 Nov 2026, Lobo: "Hide" on the Notes box in layout mode, and "KILLING BLOW" still showed - the
+    -- texts are drawn on one shared frame, not inside the area's box) the box's Hide stops its texts too
+    local UH = pfUI.unlockHidden
+    local panel = self.panels and self.panels[db.areas[where] and where or "out"]
+    if UH and UH.IsHidden and panel and UH.IsHidden(panel) then return end
     areaKey = where
   end
   if self.nlive >= (db.maxLive or MAX_LIVE) then Release(1) end
