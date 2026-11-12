@@ -131,6 +131,252 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
     pfUI:LoadConfig()
   end
 
+  -- octo (12 Nov 2026, Wolfahrt on Discord: set up one character, then bring only some
+  -- features to the others): pick which sections of an import or a saved profile are applied.
+
+  -- the default config, without touching the real one for good
+  -- (the real table goes back afterwards, not a copy - modules keep references to its parts)
+  local function defaults()
+    local original = pfUI_config
+    _G.pfUI_config = {}
+    pfUI:LoadConfig()
+    local def = CopyTable(pfUI_config)
+    _G.pfUI_config = original
+    C = original
+    pfUI.env.C = original
+    return def
+  end
+
+  -- a copy of b with a laid over it (what a section looks like after LoadConfig fills defaults)
+  local function overlay(a, b)
+    local out = {}
+    if type(b) == "table" then for k, v in pairs(b) do out[k] = type(v) == "table" and overlay(nil, v) or v end end
+    if type(a) == "table" then
+      for k, v in pairs(a) do
+        if type(v) == "table" then out[k] = overlay(v, out[k]) else out[k] = v end
+      end
+    end
+    return out
+  end
+
+  -- values that differ between two tables, both ways
+  local function differ(a, b)
+    local n = 0
+    a = type(a) == "table" and a or {}
+    b = type(b) == "table" and b or {}
+    for k, v in pairs(a) do
+      if type(v) == "table" or type(b[k]) == "table" then n = n + differ(v, b[k])
+      elseif tostring(b[k]) ~= tostring(v) then n = n + 1 end
+    end
+    for k, v in pairs(b) do
+      if a[k] == nil then n = n + (type(v) == "table" and differ(nil, v) or 1) end
+    end
+    return n
+  end
+
+  -- sections never offered: kept as they are unless the string carries them
+  -- ("Ignore Layout" strings have no positions / disabled modules / combat text);
+  -- the UI layouts are this character's screens and are never exported
+  local function kept(imported, section)
+    if section == "layouts" then return true end
+    if (section == "position" or section == "disabled" or section == "sct") and imported[section] == nil then return true end
+    return false
+  end
+
+  -- every section the import would change, as the result after defaults are filled in:
+  -- { {section, count}, ... } sorted by name
+  local function sections(imported, current, def)
+    def = def or defaults()
+    local seen, list = {}, {}
+    local function check(section)
+      if seen[section] then return end
+      seen[section] = true
+      if kept(imported, section) then return end
+      if imported[section] ~= nil and type(imported[section]) ~= "table" then return end
+      local after = overlay(imported[section], def[section])
+      local n = differ(after, current[section])
+      if n > 0 then table.insert(list, { section, n }) end
+    end
+    for s in pairs(imported) do check(s) end
+    for s in pairs(def) do check(s) end
+    table.sort(list, function(a, b) return a[1] < b[1] end)
+    return list
+  end
+
+  -- applies only the picked sections ({ [section] = true }); the rest stays as it is
+  local function importPicked(imported, picked)
+    for section in pairs(picked) do
+      if not kept(imported, section) then
+        pfUI_config[section] = type(imported[section]) == "table" and CopyTable(imported[section]) or {}
+      end
+    end
+    pfUI:LoadConfig()
+  end
+
+  -- friendlier names for the sections whose key says little
+  local names = {
+    position = "Frame positions", disabled = "Modules on / off", sct = "Combat text",
+    abuttons = "Addon buttons", buffbar = "Buff bars", castbar = "Cast bars",
+    plates = "Nameplates (Octo)", nameplates = "Nameplates", unitframes = "Unit frames",
+    bars = "Action bars", tooltip = "Tooltip", questlog = "Quest log",
+  }
+  local function label(section)
+    local n = names[section] or (string.upper(string.sub(section, 1, 1)) .. string.sub(section, 2))
+    return T[n] or n
+  end
+
+  -- the tick list: every section that would change, all ticked; Apply hands the
+  -- ticked ones to onApply (then the UI reloads)
+  local pick
+  local function Pick(title, imported, onApply)
+    local list = sections(imported, pfUI_config)
+    if not pick then
+      pick = CreateFrame("Frame", "pfSharePick", UIParent)
+      pick:SetWidth(360)
+      pick:SetHeight(440)
+      pick:SetPoint("CENTER", 0, 0)
+      pick:SetFrameStrata("FULLSCREEN_DIALOG")
+      pick:SetMovable(true)
+      pick:EnableMouse(true)
+      pick:RegisterForDrag("LeftButton")
+      pick:SetScript("OnDragStart", function() this:StartMoving() end)
+      pick:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
+      CreateBackdrop(pick, nil, true, 0.9)
+      CreateBackdropShadow(pick)
+      table.insert(UISpecialFrames, "pfSharePick")
+
+      pick.title = pick:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      pick.title:SetFont(pfUI.font_default, C.global.font_size + 2, "OUTLINE")
+      pick.title:SetPoint("TOPLEFT", 10, -10)
+      pick.title:SetPoint("TOPRIGHT", -10, -10)
+      pick.title:SetJustifyH("LEFT")
+
+      pick.info = pick:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      pick.info:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+      pick.info:SetPoint("TOPLEFT", pick.title, "BOTTOMLEFT", 0, -6)
+      pick.info:SetPoint("TOPRIGHT", pick.title, "BOTTOMRIGHT", 0, -6)
+      pick.info:SetJustifyH("LEFT")
+      pick.info:SetTextColor(.7, .7, .7)
+      pick.info:SetText(T["Only the ticked features are applied; everything else stays as it is on this character."])
+
+      pick.scroll = pfUI.api.CreateScrollFrame("pfSharePickScroll", pick)
+      pick.scroll:SetPoint("TOPLEFT", 10, -60)
+      pick.scroll:SetPoint("BOTTOMRIGHT", -10, 70)
+      pick.scroll.bg = CreateFrame("Frame", nil, pick.scroll)
+      pick.scroll.bg:SetFrameLevel(1)
+      pick.scroll.bg:SetPoint("TOPLEFT", -5, 5)
+      pick.scroll.bg:SetPoint("BOTTOMRIGHT", 5, -5)
+      CreateBackdrop(pick.scroll.bg, nil, true)
+      pick.list = CreateFrame("Frame", "pfSharePickList", pick.scroll)
+      pick.list:SetWidth(330)
+      pick.list:SetHeight(10)
+      pick.scroll:SetScrollChild(pick.list)
+      pick.rows = {}
+
+      local function Button(name, text, width)
+        local b = CreateFrame("Button", name, pick)
+        SkinButton(b)
+        b:SetWidth(width)
+        b:SetHeight(22)
+        b.text = b:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+        b.text:SetAllPoints(b)
+        b.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+        b.text:SetText(text)
+        return b
+      end
+      pick.all = Button("pfSharePickAll", T["All"], 60)
+      pick.all:SetPoint("BOTTOMLEFT", 10, 40)
+      pick.none = Button("pfSharePickNone", T["None"], 60)
+      pick.none:SetPoint("LEFT", pick.all, "RIGHT", 6, 0)
+      pick.count = pick:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      pick.count:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+      pick.count:SetPoint("LEFT", pick.none, "RIGHT", 10, 0)
+      pick.apply = Button("pfSharePickApply", T["Apply"], 90)
+      pick.apply:SetPoint("BOTTOMRIGHT", -10, 10)
+      pick.cancel = Button("pfSharePickCancel", T["Cancel"], 90)
+      pick.cancel:SetPoint("RIGHT", pick.apply, "LEFT", -6, 0)
+      pick.cancel:SetScript("OnClick", function() pick:Hide() end)
+
+      function pick.Update()
+        local n = 0
+        for i = 1, pick.shown do if pick.rows[i].check:GetChecked() then n = n + 1 end end
+        pick.count:SetText(n .. " / " .. pick.shown .. " " .. T["ticked"])
+        if n > 0 then pick.apply:Enable() pick.apply.text:SetTextColor(.5, 1, .5) else pick.apply:Disable() pick.apply.text:SetTextColor(.5, .5, .5) end
+      end
+      local function SetAll(on)
+        for i = 1, pick.shown do pick.rows[i].check:SetChecked(on) end
+        pick.Update()
+      end
+      pick.all:SetScript("OnClick", function() SetAll(true) end)
+      pick.none:SetScript("OnClick", function() SetAll(false) end)
+      pick.apply:SetScript("OnClick", function()
+        local picked = {}
+        for i = 1, pick.shown do
+          local r = pick.rows[i]
+          if r.check:GetChecked() then picked[r.section] = true end
+        end
+        pick:Hide()
+        if pick.onApply then pick.onApply(picked) end
+      end)
+    end
+
+    pick.title:SetText(title)
+    pick.onApply = onApply
+    pick.shown = table.getn(list)
+    for i = 1, math.max(pick.shown, table.getn(pick.rows)) do
+      local r = pick.rows[i]
+      if not r and i <= pick.shown then
+        r = CreateFrame("Button", nil, pick.list)
+        r:SetHeight(18)
+        r:SetPoint("TOPLEFT", 0, -(i - 1) * 20)
+        r:SetPoint("RIGHT", pick.list, "RIGHT", -12, 0)
+        r.check = CreateFrame("CheckButton", nil, r, "UICheckButtonTemplate")
+        r.check:SetNormalTexture("")
+        r.check:SetPushedTexture("")
+        r.check:SetHighlightTexture("")
+        CreateBackdrop(r.check, nil, true)
+        r.check:SetWidth(14)
+        r.check:SetHeight(14)
+        r.check:SetPoint("LEFT", 4, 0)
+        r.check:SetScript("OnClick", function() pick.Update() end)
+        r.text = r:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+        r.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+        r.text:SetPoint("LEFT", r.check, "RIGHT", 8, 0)
+        r.text:SetJustifyH("LEFT")
+        r.changes = r:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+        r.changes:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+        r.changes:SetPoint("RIGHT", -4, 0)
+        r.changes:SetTextColor(.7, .7, .7)
+        -- the whole row toggles the tick
+        r:SetScript("OnClick", function() this.check:SetChecked(not this.check:GetChecked()) pick.Update() end)
+        pick.rows[i] = r
+      end
+      if r then
+        if i <= pick.shown then
+          r.section = list[i][1]
+          r.text:SetText(label(list[i][1]))
+          r.changes:SetText(list[i][2] .. " " .. T["changes"])
+          r.check:SetChecked(true)
+          r:Show()
+        else
+          r.section = nil
+          r:Hide()
+        end
+      end
+    end
+    pick.list:SetHeight(math.max(10, pick.shown * 20))
+    pick.scroll:SetVerticalScroll(0)
+    pick.Update()
+    if pick.shown == 0 then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r: " .. T["Nothing differs from your settings."])
+      return
+    end
+    pick:Show()
+    pick.scroll:UpdateScrollChildRect()
+    pick.scroll:UpdateScrollState()
+    return pick
+  end
+
   local function compress(input)
     -- based on Rochet2's lzw compression
     if type(input) ~= "string" then
@@ -512,25 +758,12 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
           return
         end
 
-        -- preview: which sections change, and whether the layout is kept
-        local list = preview(imported, pfUI_config)
-        local text = T["Import this profile?"] .. "\n\n"
-        local shown = 0
-        for _, entry in ipairs(list) do
-          if shown < 12 then
-            text = text .. entry[1] .. ": |cffffffff" .. entry[2] .. "|r " .. T["changes"] .. "\n"
-          end
-          shown = shown + 1
-        end
-        if shown > 12 then text = text .. "+" .. (shown - 12) .. " " .. T["more sections"] .. "\n" end
-        if shown == 0 then text = text .. T["Nothing differs from your settings."] .. "\n" end
-        if not imported.position then
-          text = text .. "\n|cffaaffaa" .. T["Your frame positions are kept."] .. "|r"
-        end
-        text = text .. "\n" .. T["The UI reloads afterwards."]
-
-        CreateQuestionDialog(text, function()
-          import(imported)
+        -- octo (12 Nov 2026): a tick list of the sections that change; only the ticked ones
+        -- are applied (an "Ignore Layout" string never touches the frame positions)
+        local title = T["Import: pick the features to apply"]
+        if not imported.position then title = title .. "\n|cffaaffaa" .. T["Your frame positions are kept."] .. "|r" end
+        Pick(title, imported, function(picked)
+          importPicked(imported, picked)
           ReloadUI()
         end)
       end)
@@ -604,6 +837,7 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
 
     -- for tests\run.lua and other modules
     pfUI.share = { serialize = serialize, parse = parse, preview = preview, import = import,
+                   sections = sections, importPicked = importPicked, Pick = Pick, defaults = defaults,
                    compress = compress, decompress = decompress, enc = enc, dec = dec }
 
     _G.SLASH_PFEXPORT1, _G.SLASH_PFEXPORT2, _G.SLASH_PFEXPORT3 = "/export", "/import", "/share"

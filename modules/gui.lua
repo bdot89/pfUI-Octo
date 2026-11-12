@@ -1991,6 +1991,21 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       -- load profile
       CreateConfig(nil, T["Load profile"], C.global, "profile", "button", function()
         if C.global.profile and pfUI_profiles[C.global.profile] then
+          -- octo (12 Nov 2026, Wolfahrt): tick which features of the profile to take
+          local S = pfUI.share
+          if S and S.Pick then
+            local selp = C.global.profile
+            local rchat = C.chat.right.enable
+            local prof = CopyTable(pfUI_profiles[selp])
+            S.Pick(T["Load profile"] .. " '" .. rgbhex(GetAccentColor()) .. selp .. "|r': " .. T["pick the features to apply"], prof, function(picked)
+              S.importPicked(prof, picked)
+              pfUI:UpdateConfig("global", nil, "profile", selp)
+              pfUI_config.global.profile = selp
+              if pfUI_config.chat and pfUI_config.chat.right then pfUI_config.chat.right.enable = rchat end
+              ReloadUI()
+            end)
+            return
+          end
           CreateQuestionDialog(T["Load profile"] .. " '" .. rgbhex(GetAccentColor()) .. C.global.profile .. "|r'?", function()
             local selp = C.global.profile
             local rchat = C.chat.right.enable

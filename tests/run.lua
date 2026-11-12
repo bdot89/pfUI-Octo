@@ -469,6 +469,59 @@ if S then
   _G.pfUI_config = before
   pfUI:LoadConfig()
 
+  -- (12 Nov 2026, Wolfahrt) pick which sections of an import / profile are applied
+  if S.sections and S.importPicked and S.Pick then
+    -- on a fresh default config (earlier tests leave settings changed); the real table goes back after
+    local real = pfUI_config
+    _G.pfUI_config = S.defaults()
+    pfUI_config.appearance.border.color = "0,0,0,1"
+    pfUI_config.tooltip.position = "bottom"
+    pfUI_config.unitframes.player.width = "321"   -- the import has no unitframes: back to the default
+    pfUI_config.position = { pfPlayer = { xpos = 1, ypos = 2 } }
+    local imp = { appearance = { border = { color = "1,0,0,1" } }, tooltip = { position = "cursor" } }
+    local list = S.sections(imp, pfUI_config)
+    local by = {}
+    for _, e in ipairs(list) do by[e[1]] = e[2] end
+    ok(by.appearance == 1 and by.tooltip == 1, "pick list: appearance and tooltip change once each (" .. tostring(by.appearance) .. ", " .. tostring(by.tooltip) .. ")")
+    ok(by.unitframes and by.unitframes >= 1, "pick list: a section the string leaves at its defaults is offered too")
+    ok(by.position == nil and by.layouts == nil, "pick list: positions (not in the string) and layouts are never offered")
+    local cfg = pfUI_config
+    S.importPicked(imp, { tooltip = true })
+    ok(pfUI_config == cfg, "partial import keeps the same config table")
+    ok(pfUI_config.tooltip.position == "cursor", "partial import: the ticked section is applied")
+    ok(pfUI_config.appearance.border.color == "0,0,0,1", "partial import: an unticked section stays as it was")
+    ok(pfUI_config.unitframes.player.width == "321", "partial import: unticked unitframes keep their own width")
+    ok(pfUI_config.position.pfPlayer and pfUI_config.position.pfPlayer.xpos == 1, "partial import: positions kept")
+    S.importPicked(imp, { unitframes = true, position = true })
+    ok(pfUI_config.unitframes.player.width ~= "321", "partial import: a ticked section the string leaves out goes back to defaults")
+    ok(pfUI_config.position.pfPlayer and pfUI_config.position.pfPlayer.xpos == 1, "partial import: positions never touched when the string has none")
+    -- the window: rows for every changed section, all ticked; None + Apply hands nothing, a row click toggles
+    pfUI_config.tooltip.position = "bottom"
+    local got
+    local win = S.Pick("test", imp, function(p) got = p end)
+    ok(win and win:IsShown() and win.shown == table.getn(S.sections(imp, pfUI_config)), "pick window lists the sections (" .. tostring(win and win.shown) .. ")")
+    if win then
+      local all = true
+      for i = 1, win.shown do if not win.rows[i].check:GetChecked() then all = false end end
+      ok(all, "pick window: everything ticked at first")
+      win.none:GetScript("OnClick")()
+      local tip
+      for i = 1, win.shown do if win.rows[i].section == "tooltip" then tip = win.rows[i] end end
+      ok(tip, "pick window has a tooltip row")
+      if tip then _G.this = tip tip:GetScript("OnClick")() end
+      win.apply:GetScript("OnClick")()
+      local n = 0
+      for k in pairs(got or {}) do n = n + 1 end
+      ok(got and got.tooltip and n == 1, "pick window: Apply hands only the ticked section")
+      ok(not win:IsShown(), "pick window closes on Apply")
+    end
+    _G.pfUI_config = real
+    pfUI.env.C = real
+    ok(S.defaults() and pfUI_config == real and pfUI.env.C == real, "the real config is back after the pick tests")
+  else
+    ok(false, "share module exposes sections / importPicked / Pick")
+  end
+
   -- the window: paste the encoded string, Import is enabled
   if pfShare then
     pfShare:Show()
