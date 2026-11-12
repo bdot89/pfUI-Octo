@@ -6599,5 +6599,32 @@ do
     ok(table.getn(pinned) == 0, "no zoom preview pinned to a low frame level: " .. table.concat(pinned, ", "))
   end
 end
+-- macrotweak stands aside for SuperCleveRoidMacros (Geekoi, 12 Nov 2026: a #showtooltip macro froze the game)
+do
+  local mt = pfUI.macrotweak
+  ok(mt and mt.Other, "macrotweak: started with its SuperCleveRoidMacros check")
+  if mt and mt.Other then
+    -- (the mock makes unknown CamelCase globals into stand-ins: say plainly that the others are absent)
+    local wasCR, wasSM, wasIA = rawget(_G, "CleveRoids"), rawget(_G, "SuperMacroFrame"), rawget(_G, "IsAddOnLoaded")
+    rawset(_G, "CleveRoids", false)
+    rawset(_G, "SuperMacroFrame", false)
+    rawset(_G, "IsAddOnLoaded", function() return nil end)
+    local was = rawget(_G, "SRCM_LOADED")
+    rawset(_G, "SRCM_LOADED", false) -- (ALL_CAPS names read as strings in the mock)
+    local plain = mt.Other()
+    _G.SRCM_LOADED = true
+    ok(not plain and mt.Other(), "macrotweak: SuperCleveRoidMacros' SRCM_LOADED flag is seen, nothing else trips it")
+    _G.SRCM_LOADED = was
+    local send = _G.SendChatMessage
+    _G.SRCM_LOADED = true
+    Mock.Fire("PLAYER_LOGIN")
+    _G.SRCM_LOADED = was
+    ok(_G.SendChatMessage == send and mt.off and not mt.on,
+      "macrotweak: with SuperCleveRoidMacros loaded no chat / slash hooks are put in")
+    rawset(_G, "CleveRoids", wasCR)
+    rawset(_G, "SuperMacroFrame", wasSM)
+    rawset(_G, "IsAddOnLoaded", wasIA)
+  end
+end
 print(string.format("%d checks, %d failed", checks, fails))
 if fails > 0 then os.exit(1) end

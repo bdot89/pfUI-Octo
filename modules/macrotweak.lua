@@ -1,4 +1,19 @@
 pfUI:RegisterModule("macrotweak", "vanilla", function ()
+  -- octo (12 Nov 2026, Geekoi on Discord: "#showtooltip Ambush / /cast Pick Pocket / /cast Ambush" froze the game
+  -- with SuperCleveRoidMacros, fine without pfUI). SuperCleveRoidMacros has its own /use, /equip and #showtooltip
+  -- filter and expects this module to stand aside (other pfUI forks do the same); with both, every macro line went
+  -- through two SendChatMessage hooks, two /use handlers and pfUI's history hook. pfUI loads before it, so the check
+  -- waits for PLAYER_LOGIN (every add-on loaded by then); SRCM_LOADED is its own flag, set whatever its folder is named.
+  local function Other()
+    return _G.SRCM_LOADED or type(_G.CleveRoids) == "table" or (IsAddOnLoaded and IsAddOnLoaded("SuperCleveRoidMacros"))
+      or _G.SuperMacroFrame or (IsAddOnLoaded and IsAddOnLoaded("UltimaMacros"))
+  end
+  pfUI.macrotweak = { Other = Other }
+
+  local function Setup()
+  if Other() then pfUI.macrotweak.off = true return end
+  pfUI.macrotweak.on = true
+
   -- do not write macro calls into chat input history
   if ChatFrameEditBox._AddHistoryLine then
     local userinput
@@ -47,5 +62,17 @@ pfUI:RegisterModule("macrotweak", "vanilla", function ()
     elseif not bag and slot then
       UseInventoryItem(slot)
     end
+  end)
+  end
+
+  if Other() then pfUI.macrotweak.off = true return end
+  local wait = CreateFrame("Frame")
+  wait:RegisterEvent("PLAYER_LOGIN")
+  wait:RegisterEvent("PLAYER_ENTERING_WORLD") -- also there when the module starts after login
+  wait:SetScript("OnEvent", function()
+    if wait.done then return end
+    wait.done = true
+    wait:UnregisterAllEvents()
+    Setup()
   end)
 end)
