@@ -77,6 +77,13 @@ function R.Info(item, bag, slot, count)
     local _, _, n = find(item, "%[(.-)%]")
     t.name = n
   end
+  -- (12 Nov 2026) an item the client has not cached yet: its name from pfQuest's item database
+  if not t.name and id and type(_G.pfDB) == "table" and type(_G.pfDB.items) == "table" then
+    local loc = _G.pfDB.items.loc or _G.pfDB.items.enUS
+    local n = type(loc) == "table" and loc[id]
+    if type(n) == "table" then n = n[1] end
+    if type(n) == "string" then t.name = n end
+  end
   return t
 end
 
@@ -168,8 +175,38 @@ function env.Tooltip(a, b, c, d, e, f, g, h, i, j, k, l) return TipHas(L(a, b, c
 function env.BoE() return TipHas({ lower(_G.ITEM_BIND_ON_EQUIP or "Binds when equipped") }) end
 function env.BoP() return TipHas({ lower(_G.ITEM_BIND_ON_PICKUP or "Binds when picked up") }) end
 function env.Soulbound() return TipHas({ lower(_G.ITEM_SOULBOUND or "Soulbound") }) end
+-- (12 Nov 2026, Bread: Auto Loot "isn't picking up quest items") a quest drop the client has not seen
+-- yet has no type and an empty tooltip, so Quest() missed it and a later rule (greys) could leave it.
+-- The items your quest log asks for ("Gnoll Paw: 3/8") count too, by name.
+function R.QuestLogItems()
+  local now = GetTime and GetTime() or 0
+  if R.qlogAt and now - R.qlogAt < 2 and R.qlog then return R.qlog end
+  local out = {}
+  if type(_G.GetNumQuestLogEntries) == "function" and type(_G.GetQuestLogLeaderBoard) == "function" then
+    local sel = _G.GetQuestLogSelection and _G.GetQuestLogSelection()
+    local n = _G.GetNumQuestLogEntries() or 0
+    for i = 1, n do
+      local _, _, _, header, _, complete = _G.GetQuestLogTitle(i)
+      if not header and _G.SelectQuestLogEntry then
+        _G.SelectQuestLogEntry(i)
+        for j = 1, (_G.GetNumQuestLeaderBoards and _G.GetNumQuestLeaderBoards() or 0) do
+          local text, kind, done = _G.GetQuestLogLeaderBoard(j)
+          if text and kind == "item" then
+            local _, _, item = find(text, "^(.-):%s*%d+%s*/%s*%d+")
+            if item then out[lower(item)] = true end
+          end
+        end
+      end
+    end
+    if sel and _G.SelectQuestLogEntry then _G.SelectQuestLogEntry(sel) end
+  end
+  R.qlog, R.qlogAt = out, now
+  return out
+end
+
 function env.Quest()
-  return Has(cur.type, { "Quest" }) or TipHas({ lower(_G.ITEM_BIND_QUEST or "Quest Item"), "quest item" })
+  if Has(cur.type, { "Quest" }) or TipHas({ lower(_G.ITEM_BIND_QUEST or "Quest Item"), "quest item" }) then return true end
+  return cur.name and R.QuestLogItems()[lower(cur.name)] and true or false
 end
 function env.Stackable() return (cur.stack or 1) > 1 end
 function env.Count(n) return (cur.count or 1) >= (tonumber(n) or 1) end

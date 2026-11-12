@@ -25,6 +25,24 @@ ok(not LF.Keep({ id = 4865 }), "grey items are left")
 ok(LF.Keep({ id = 2589 }) and LF.Keep({ id = 5000 }), "other items are taken")
 ok(LF.Keep({ id = 5002 }), "a grey quest item is taken: Quest items come first")
 ok(LF.Keep({ id = 99999, link = "|cff9d9d9d|Hitem:99999:0:0:0|h[Unknown]|h|r", quality = 0 }) == false, "an item the client hasn't seen: quality from the link colour")
+-- (12 Nov 2026, Bread: quest items left behind) a quest drop the client hasn't seen yet is still a quest
+-- item when the quest log asks for it by name
+do
+  local qs = {}
+  for _, k in ipairs({ "GetNumQuestLogEntries", "GetQuestLogTitle", "SelectQuestLogEntry", "GetQuestLogSelection",
+    "GetNumQuestLeaderBoards", "GetQuestLogLeaderBoard" }) do qs[k] = rawget(_G, k) end
+  _G.GetNumQuestLogEntries = function() return 1 end
+  _G.GetQuestLogTitle = function() return "The Fins", 10, nil, nil, nil, nil end
+  _G.SelectQuestLogEntry = function() end
+  _G.GetQuestLogSelection = function() return 1 end
+  _G.GetNumQuestLeaderBoards = function() return 1 end
+  _G.GetQuestLogLeaderBoard = function() return "Murloc Fin: 2/8", "item", nil end
+  pfUI.rules.qlog = nil
+  ok(LF.Keep({ id = 99997, link = "|cff9d9d9d|Hitem:99997:0:0:0|h[Murloc Fin]|h|r", quality = 0 }),
+    "an unseen grey item your quest log asks for is taken (Quest items come first)")
+  for k, v in pairs(qs) do _G[k] = v end
+  pfUI.rules.qlog = nil
+end
 local before = LF.skipped
 LF.Keep({ id = 4865 }, true)
 ok(LF.skipped == before, "a try is not counted")
