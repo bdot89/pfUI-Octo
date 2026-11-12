@@ -194,6 +194,17 @@ do
   end
   _G.pfMap = nil
 
+  -- (12 Nov 2026, Wolfahrt: "map.lua:50: attempt to index global 'pfMap'" twice a second) a world map model
+  -- with no model file stopped map.lua at load before pfMap was made: the arrow search tolerates it
+  do
+    local h = io.open(DIR .. "/pfquest/map.lua", "rb")
+    local src = h and h:read("*a") or ""
+    if h then h:close() end
+    local s1 = string.find(src, "strlower(v:GetModel() or \"\")", 1, true)
+    local s2 = string.find(src, "strlower(v:GetModel())", 1, true)
+    ok(s1 and not s2, "map.lua: a world map model without a model file does not stop pfQuest's map loading")
+  end
+
   -- pages build in every state
   local OUo = pfUI.octoui and pfUI.octoui.Options
   ok(OUo and OUo.BUILD and OUo.BUILD.qstpfquest and OUo.BUILD.qsthelpers, "Questing pages registered")

@@ -107,6 +107,13 @@ $patches = @{
     Must $t 'local tocs = { "", "-master", "-tbc", "-wotlk", "-turtle" }' ("-- pfUI Octo: built into pfUI`r`npfQuestConfig.path = `"Interface\\AddOns\\pfUI\\pfquest`"`r`npfQuestConfig.version = tostring(pfQuestOctoMeta(`"pfQuest`", `"Version`") or `"0`")`r`nlocal tocs = {}")
   }
   "quest.lua" = $started
+  # (12 Nov 2026, Wolfahrt: "pfquest\map.lua:50: attempt to index global 'pfMap'" twice a second) at load
+  # map.lua looks through the world map's models for the player arrow; another add-on's model there with
+  # no model file set gives GetModel() = nil, strlower errored, the file stopped before pfMap was made and
+  # the control-key ticker made above it errored for good.
+  "map.lua" = { param($t)
+    Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel() or "")'
+  }
   # built in, its version comes from pfUI's toc; another player's VERSION message
   # before ours is known must not error (9 Nov 2026: endless chat errors)
   "updatenotify.lua" = { param($t)

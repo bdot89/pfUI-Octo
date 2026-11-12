@@ -223,7 +223,7 @@ end
 -- put player position above everything on worldmap
 for k, v in pairs({ WorldMapFrame:GetChildren() }) do
   if v:IsObjectType("Model") and not v:GetName() then
-    if string.find(strlower(v:GetModel()), "interface\\minimap\\minimaparrow") then
+    if string.find(strlower(v:GetModel() or ""), "interface\\minimap\\minimaparrow") then
       v:SetFrameLevel(255)
       break
     end
