@@ -18,6 +18,100 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   local S = C.mapstyle
   local cos, sin, rad, floor = math.cos, math.sin, math.rad, math.floor
 
+  -- ---------------------------------------------------------------- the guard
+  -- (user, 13 Nov 2026: "my minimap keeps dissapearing i have to put it to blizzard frames then back to
+  -- make it show again". Nothing in the settings hides it, so: once a second, when the map should be
+  -- on screen, whatever is wrong is put right - the game's Minimap out of pfUI's frame or hidden,
+  -- pfUI's frame hidden, see-through or flat - and noted (pfUI_cache.maplog, /pfmap) with what it was,
+  -- so the cause shows. Whenever pfUI's frame shows again the Minimap is hidden and shown once: on
+  -- 1.12 a frame that came out of a hidden parent stays unseen until then.)
+  do
+    local guard = CreateFrame("Frame", "pfMinimapGuard", UIParent)
+    map.guard = guard
+    -- you hid it yourself with the game's Toggle Minimap key: left alone until toggled back
+    hooksecurefunc("ToggleMinimap", function() guard.toggled = not Minimap:IsShown() or nil end)
+
+    local function Wanted()
+      if pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("minimap") then return false end
+      if map.octoAway or map.octoHidden then return false end
+      if pfUI.farmmap and pfUI.farmmap:IsShown() then return false end
+      if pfUI.context and (pfUI.context.mapHidden or (C.mapauto and C.mapauto[pfUI.context.zone or "world"] == "1")) then return false end
+      if pfUI.unlock and pfUI.unlock:IsShown() then return false end
+      if guard.toggled then return false end
+      return true
+    end
+    local function Note(what)
+      pfUI_cache.maplog = pfUI_cache.maplog or {}
+      local log = pfUI_cache.maplog
+      table.insert(log, date("%d %b %H:%M:%S") .. "  " .. what .. "  (" .. tostring(GetRealZoneText and GetRealZoneText() or "?") .. ")")
+      while table.getn(log) > 30 do table.remove(log, 1) end
+      guard.told = guard.told or {}
+      if not guard.told[what] then
+        guard.told[what] = true
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r: the minimap was put back (" .. what .. "). /pfmap lists every time.")
+      end
+    end
+    local function Reshow() if Minimap:IsShown() then Minimap:Hide() Minimap:Show() end end
+    function map.GuardCheck()
+      if not Wanted() then return end
+      local fixed
+      if not map:IsShown() then map:Show() fixed = "pfUI's map frame was hidden" end
+      local alpha = UnitAffectingCombat("player") and (tonumber(C.mapstyle.combatalpha) or 1) or (tonumber(C.mapstyle.alpha) or 1)
+      if alpha > .05 and (map:GetAlpha() or 1) < .05 then map:SetAlpha(alpha) fixed = fixed or "pfUI's map frame was see-through" end
+      if Minimap:GetParent() ~= map then
+        Minimap:SetParent(map)
+        Minimap:ClearAllPoints()
+        Minimap:SetPoint("CENTER", map, "CENTER", .5, -.5)
+        Minimap:SetFrameLevel(1)
+        Minimap:Show()
+        Reshow()
+        fixed = fixed or "the game's Minimap was outside pfUI's frame"
+      end
+      if not Minimap:IsShown() then Minimap:Show() fixed = fixed or "the game's Minimap was hidden" end
+      if (map:GetHeight() or 0) < 20 or (Minimap:GetWidth() or 0) < 20 then
+        if map.UpdateConfig then pcall(map.UpdateConfig, map) end
+        fixed = fixed or "the map had no size"
+      end
+      if not fixed and Minimap:IsShown() and not Minimap:IsVisible() then
+        -- (something above pfUI's frame is hidden: say what)
+        local p, name = map:GetParent(), "?"
+        while p do
+          if not p:IsShown() then name = (p.GetName and p:GetName()) or "a frame without a name" break end
+          p = p.GetParent and p:GetParent()
+        end
+        if not guard.parentTold then guard.parentTold = true Note("hidden by its parent " .. name .. " - not changed") end
+        return
+      end
+      if fixed then
+        if map.ApplyStyle then pcall(map.ApplyStyle) end
+        Note(fixed)
+      end
+    end
+    guard:SetScript("OnUpdate", function()
+      this.t = (this.t or 0) + arg1
+      -- (the Minimap shown again a moment after pfUI's frame came back)
+      if this.reshow and GetTime() >= this.reshow then this.reshow = nil Reshow() end
+      if this.t < 1 then return end
+      this.t = 0
+      map.GuardCheck()
+    end)
+    local onShow = map:GetScript("OnShow")
+    map:SetScript("OnShow", function()
+      if onShow then onShow() end
+      guard.reshow = GetTime() + .1
+    end)
+    _G.SLASH_PFMAP1 = "/pfmap"
+    _G.SlashCmdList.PFMAP = function()
+      local log = pfUI_cache.maplog or {}
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r minimap: put back " .. table.getn(log) .. " time(s)" .. (table.getn(log) == 0 and "." or ":"))
+      for _, l in ipairs(log) do DEFAULT_CHAT_FRAME:AddMessage("  " .. l) end
+      DEFAULT_CHAT_FRAME:AddMessage(string.format("  now: frame shown %s, alpha %.2f, size %dx%d; Minimap shown %s, visible %s, in pfUI's frame %s",
+        tostring(map:IsShown() and true or false), map:GetAlpha() or 0, map:GetWidth() or 0, map:GetHeight() or 0,
+        tostring(Minimap:IsShown() and true or false), tostring(Minimap:IsVisible() and true or false), tostring(Minimap:GetParent() == map)))
+      map.GuardCheck()
+    end
+  end
+
   local MASKS = { square = pfUI.media["img:minimap"], round = "Textures\\MinimapMask" }
   local function MaskOf(shape)
     return MASKS[shape] or pfUI.media["img:minimap\\mask-" .. shape]

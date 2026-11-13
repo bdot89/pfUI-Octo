@@ -2497,6 +2497,40 @@ do
       SW.testUntil = nil
       SW.ApplyLayout()
     end
+    -- the minimap guard (user, 13 Nov 2026: "my minimap keeps dissapearing"): whatever hides it is undone
+    local mm = pfUI.minimap
+    if mm and mm.GuardCheck then
+      local logWas = pfUI_cache.maplog
+      pfUI_cache.maplog = {}
+      local unl = pfUI.unlock and pfUI.unlock:IsShown()
+      if unl then pfUI.unlock:Hide() end
+      Minimap:Hide()
+      mm.GuardCheck()
+      ok(Minimap:IsShown() and table.getn(pfUI_cache.maplog) == 1, "a hidden Minimap is shown again and noted (" .. tostring(pfUI_cache.maplog[1]) .. ")")
+      Minimap:SetParent(UIParent)
+      mm:SetAlpha(0)
+      mm.GuardCheck()
+      ok(Minimap:GetParent() == mm and mm:GetAlpha() > .05, "out of pfUI's frame or see-through: put back")
+      mm:Hide()
+      mm.GuardCheck()
+      ok(mm:IsShown(), "pfUI's map frame hidden: shown again")
+      -- your own Toggle Minimap is left alone
+      mm.guard.toggled = true
+      Minimap:Hide()
+      mm.GuardCheck()
+      ok(not Minimap:IsShown(), "hidden with the game's Toggle Minimap key: left alone")
+      mm.guard.toggled = nil
+      -- hidden on purpose by "Hide by itself": left alone
+      if pfUI.context then
+        pfUI.context.mapHidden = true
+        mm.GuardCheck()
+        ok(not Minimap:IsShown(), "hidden by the zone setting: left alone")
+        pfUI.context.mapHidden = nil
+      end
+      mm.GuardCheck()
+      ok(Minimap:IsShown() and SlashCmdList.PFMAP ~= nil, "and back once nothing wants it hidden; /pfmap lists it")
+      pfUI_cache.maplog = logWas
+    end
     -- the minimap pages: a preview whose parts are picked, moved and sized
     local MMO = pfUI.minimapOcto
     O:Select("o:mmmap")
