@@ -5688,8 +5688,39 @@ do
     local st = ST.state
     local keep = { st.mhStart, st.mhSpeed, st.cw }
     st.mhSpeed = 2.6
+    st.casting, st.castEnded = nil, nil   -- (no cast of an earlier test still counting: the mock's clock stands still)
     ST.OnEvent("PLAYER_SWING", 1.5, 0)
     ok(st.cw and math.abs((st.mhStart + st.mhSpeed) - (GetTime() + 1.5)) < .05, "PLAYER_SWING sets when the next main-hand swing lands")
+    -- (13 Nov 2026, Bread: "the cast bar is resetting the swing timer") a cast with a cast time is not a swing
+    do
+      local sw = pfUI_config.swing
+      local was = sw.castswing
+      sw.castswing = "pause"
+      local before = st.mhStart
+      ST.OnEvent("SPELLCAST_START", "Slam", 1500)
+      ST.OnEvent("PLAYER_SWING", 2.6, 0)
+      ok(st.mhStart == before, "the client's timer reset when a cast starts is not a swing")
+      st.casting.start = st.casting.start - 1.5   -- (the cast took its 1.5 s)
+      ST.OnEvent("SPELLCAST_STOP")
+      ok(math.abs(st.mhStart - (before + 1.5)) < .01, "the swing paused for the cast and goes on from where it was")
+      ST.OnEvent("PLAYER_SWING", 2.6, 0)
+      ok(math.abs(st.mhStart - (before + 1.5)) < .01, "nor is the reset when the cast ends")
+      st.castEnded = GetTime() - 1
+      ST.OnEvent("PLAYER_SWING", 2.6, 0)
+      ok(math.abs(st.mhStart - GetTime()) < .01, "a real swing afterwards counts again")
+      sw.castswing = "restart"
+      st.mhStart = GetTime() - 2
+      ST.OnEvent("SPELLCAST_START", "Slam", 1500)
+      ST.OnEvent("SPELLCAST_STOP")
+      ok(math.abs(st.mhStart - GetTime()) < .01, "set to start again: a new swing when the cast lands")
+      sw.castswing = "client"
+      st.mhStart = GetTime() - 2
+      ST.OnEvent("SPELLCAST_START", "Slam", 1500)
+      ST.OnEvent("PLAYER_SWING", 2.6, 0)
+      ok(math.abs(st.mhStart - GetTime()) < .01, "set to the client: its event decides, as before")
+      ST.OnEvent("SPELLCAST_STOP")
+      sw.castswing, st.casting, st.castEnded = was, nil, nil
+    end
     ST.OnEvent("PLAYER_SWING_RANGE_UPDATE", 0, nil, 1)
     ok(st.outMelee == true, "out of reach dims the bar")
     ST.OnEvent("PLAYER_SWING_RANGE_UPDATE", 0, 1, 1)

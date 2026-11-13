@@ -404,6 +404,26 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     if hand == "off" then s.ohStart = t else s.mhStart = t end
     s.lastSwing = t
   end
+  -- your cast with a cast time is over (13 Nov 2026). C.swing.castswing:
+  --   pause   (default) the swing waited while you cast and goes on from where it was: both hands' bars
+  --           move later by the time the cast took (how this server treats Slam)
+  --   restart the swing starts again when the cast lands (the 1.12 rule); a cast that failed only paused it
+  --   client  nothing here: ClassicAPI's PLAYER_SWING decides
+  function ST.CastEnd(done)
+    local c = s.casting
+    if not c then return end
+    s.casting = nil
+    local t = now()
+    s.castEnded = t
+    local mode = C.swing.castswing
+    if mode == "client" then return end
+    local took = math.max(0, math.min(t - c.start, c.dur + .5))
+    if mode == "restart" and done then
+      s.mhStart, s.ohStart = t, t
+    else
+      s.mhStart, s.ohStart = (s.mhStart or t) + took, (s.ohStart or t) + took
+    end
+  end
   function ST.TargetSwing() s.tgStart = now() s.tgSeen = now() end
   -- (wand: the Multi-Shot clip zone is for Auto Shot only)
   function ST.Shot(wand)
@@ -757,6 +777,14 @@ pfUI:RegisterModule("swing", "vanilla", function ()
         if s.rgSpeed and s.rgSpeed > 0 then s.rgStart = t + left - s.rgSpeed end
         s.rsw, s.cwr = true, true
       else
+        s.sw, s.cw = true, true
+        -- (13 Nov 2026, Bread: "the cast bar is resetting the swing timer, and it's been throwing out my slam
+        -- input") a spell with a cast time (Slam) makes the client reset its attack timer, and that fires this
+        -- event too: not a swing. While you cast, and a moment after, the cast decides (ST.CastEnd), unless
+        -- C.swing.castswing = "client" asks for the client's word.
+        -- (a cast whose end event never came stops counting half a second after it should have ended)
+        if s.casting and t > s.casting.start + s.casting.dur + .5 then ST.CastEnd(true) end
+        if C.swing.castswing ~= "client" and (s.casting or (s.castEnded and t - s.castEnded < .25)) then return end
         local hand = kind == 1 and "off" or "main"
         ST.Swing(hand)
         -- (a parried hit can make it shorter than the weapon's speed)
@@ -804,14 +832,18 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     if evt == "SPELLCAST_START" then
       local kind = ST.CASTS[a1 or ""]
       if kind then s.cast = { name = a1, kind = kind, start = now(), dur = math.max(.1, (tonumber(a2) or 0) / 1000) } end
+      -- any spell with a cast time holds your melee swing (Slam)
+      if (tonumber(a2) or 0) > 0 then s.casting = { start = now(), dur = tonumber(a2) / 1000 } end
       return
     end
     if evt == "SPELLCAST_DELAYED" then
       if s.cast then s.cast.dur = s.cast.dur + (tonumber(a1) or 0) / 1000 end
+      if s.casting then s.casting.dur = s.casting.dur + (tonumber(a1) or 0) / 1000 end
       return
     end
     if evt == "SPELLCAST_STOP" or evt == "SPELLCAST_FAILED" or evt == "SPELLCAST_INTERRUPTED" then
       s.cast = nil
+      ST.CastEnd(evt == "SPELLCAST_STOP")
       return
     end
     if evt == "START_AUTOREPEAT_SPELL" then Speeds() s.rgSeen = now() return end

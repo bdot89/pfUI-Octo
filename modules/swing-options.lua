@@ -215,6 +215,13 @@ pfUI:RegisterModule("swing-options", "vanilla", function ()
     Color(p, "Main hand", nil, G("player"), "maincolor")
     Color(p, "Off hand", nil, G("player"), "offcolor")
     Color(p, "Text", nil, G("player"), "textcolor")
+    W.Dropdown(p, "While you cast (Slam)", "What your swing does while you cast a spell with a cast time, like Slam. "
+      .. "Pauses: it waits and goes on from where it was when the cast ends (this server). Starts again: a new full "
+      .. "swing when the cast lands (the old 1.12 rule). As the game client says: ClassicAPI's own timer, untouched.",
+      { { key = "pause", label = "It pauses", tip = "The swing waits while you cast, then goes on from where it was." },
+        { key = "restart", label = "It starts again", tip = "A new full swing when the cast lands." },
+        { key = "client", label = "As the game client says", tip = "ClassicAPI's own swing timer, untouched (needs ClassicAPI)." } },
+      function() return C.swing.castswing or "pause" end, function(v) C.swing.castswing = v end)
 
     W.Card(p, "Queued attacks", { tip = "The main hand bar changes colour while an attack waits on your next swing." })
     Color(p, "Heroic Strike / Raptor Strike", nil, G("warrior"), "queuecolor")
