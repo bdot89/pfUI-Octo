@@ -195,3 +195,55 @@ S.skill = "1"
 
 for k, v in pairs(saved) do _G[k] = v end
 S.nodes, S.extra = "", ""
+
+-- nodes remembered for the world map (14 Nov 2026; Khijazi: no herbs shown in Moonwhisper Coast)
+do
+  local cacheWas = pfUI_cache.gathernodes
+  pfUI_cache.gathernodes = {}
+  -- a made-up zone: map x follows world y (west = smaller), map y follows world x, as the game's maps do
+  local function MapOf(wx, wy) return .5 - (wy - 1000) / 4000, .5 - (wx - 2000) / 3000 end
+  local samples = {}
+  for i = 0, 5 do
+    -- (not one straight line: a turn on the way)
+    local wx, wy = 2000 + i * 30, 1000 + (i * i) * 9
+    local mx, my = MapOf(wx, wy)
+    table.insert(samples, { wx, wy, mx, my })
+  end
+  local fit = GF.Fit(samples)
+  ok(fit and fit.xi == 2 and fit.yi == 1, "the zone's map is fitted from your own positions (map x from world y)")
+  if fit then
+    local mx, my = GF.ToMap(fit, 2100, 900)
+    local ex, ey = MapOf(2100, 900)
+    ok(math.abs(mx - ex) < .001 and math.abs(my - ey) < .001, "a node's world place lands right on the map (" .. mx .. ", " .. my .. ")")
+  end
+  ok(GF.Fit({ samples[1], samples[2] }) == nil, "too few positions: no fit yet")
+  -- remembering: the same node twice is one; another herb beside it is its own
+  ok(GF.Remember("9:9", "Dreamfoil", "Herbalism", 2100, 900) == true, "a node is remembered")
+  ok(GF.Remember("9:9", "Dreamfoil", "Herbalism", 2102, 901) == false, "the same node seen again is not doubled")
+  ok(GF.Remember("9:9", "Dreamfoil", "Herbalism", 2150, 900) == true and GF.Remember("9:9", "Mountain Silversage", "Herbalism", 2101, 900) == true,
+    "another node, or another herb beside it, is its own")
+  local nodes, zones = GF.Count()
+  ok(nodes == 3 and zones == 1, "counted: 3 nodes in 1 zone (" .. nodes .. ", " .. zones .. ")")
+  -- pins on the world map for the zone it shows
+  pfUI_cache.gathernodes["9:9"].fit = fit
+  local gc, gz = GetCurrentMapContinent, GetCurrentMapZone
+  _G.GetCurrentMapContinent = function() return 9 end
+  _G.GetCurrentMapZone = function() return 9 end
+  local wasPins = pfUI_config.gather.mappins
+  pfUI_config.gather.mappins = "1"
+  if WorldMapButton then WorldMapButton:SetWidth(1000) WorldMapButton:SetHeight(600) end
+  local shown = GF.DrawPins()
+  ok(shown == 3 and GF.pins[1]:IsShown() and GF.pins[1].name == "Dreamfoil", "the world map shows a pin per remembered node (" .. tostring(shown) .. ")")
+  if GF.pins[1] then
+    local _, _, _, x, y = GF.pins[1]:GetPoint(1)
+    local ex, ey = MapOf(2100, 900)
+    ok(math.abs(x - ex * 1000) < 1 and math.abs(y + ey * 600) < 1, "at its place on the map (" .. tostring(x) .. ", " .. tostring(y) .. ")")
+  end
+  pfUI_config.gather.mappins = "0"
+  ok(GF.DrawPins() == 0 and not GF.pins[1]:IsShown(), "switched off: no pins")
+  pfUI_config.gather.mappins = wasPins
+  _G.GetCurrentMapContinent, _G.GetCurrentMapZone = gc, gz
+  GF.Forget(true)
+  ok(GF.Count() == 0, "Forget all empties it")
+  pfUI_cache.gathernodes = cacheWas
+end

@@ -72,6 +72,32 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
       { "Check the client", function() GF.Probe() end, 130, "Prints what the game answers for the nodes near you (for bug reports)." },
     })
 
+    -- (14 Nov 2026: nodes remembered, for zones the quest database has no spawns for)
+    W.Card(p, "Remembered on the map", { icon = "Interface\\Icons\\INV_Misc_Map_01", tip = "Every node you come near is remembered - for all "
+      .. "your characters - and shown on the world map, so zones the quest database knows nothing about (Moonwhisper Coast...) "
+      .. "fill in as you play. Works with the box above switched off too. Needs ClassicAPI." })
+    Chk(p, "Remember the nodes I pass", "Herbs, veins and pools the finder sees are kept with their place.", "record")
+    Chk(p, "Show them on the world map", "A small flower, pick or fish where each one was seen; hover for its name.", "mappins",
+      function() GF.pinsDirty = true end)
+    Sld(p, "Pin size", nil, 6, 24, 1, "pinsize", O.Px, function() GF.pinsDirty = true end)
+    W.Live(p, function()
+      local nodes, zones = GF.Count()
+      local key = GF.ZoneKey()
+      local z = key and pfUI_cache.gathernodes and pfUI_cache.gathernodes[key]
+      local here = ""
+      if z then
+        here = "   This zone: " .. table.getn(z.nodes) .. (z.fit and "" or "  |cffffcc00(walk about 40 yards each way so the map can place them)|r")
+      end
+      return "Remembered: |cffffffff" .. nodes .. "|r nodes in |cffffffff" .. zones .. "|r zones." .. here
+    end)
+    W.Buttons(p, {
+      { "Forget this zone's", function() GF.Forget() end, 150, "Drops the nodes remembered in the zone you are in.", role = "off" },
+      { "Forget all", function()
+        if GF.sureAt and GetTime() < GF.sureAt then GF.sureAt = nil GF.Forget(true)
+        else GF.sureAt = GetTime() + 3 DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r gathering: click Forget all again within 3 s.") end
+      end, 110, "Click twice: every remembered node, in every zone.", role = "off" },
+    })
+
     W.Card(p, "Herbs", { icon = "Interface\\Icons\\INV_Misc_Flower_02", tip = "Off, Show or Priority for each herb." })
     Nodes(p, "Herbalism")
     W.Card(p, "Ore and stone", { icon = "Interface\\Icons\\Trade_Mining", tip = "Off, Show or Priority for each vein and deposit." })

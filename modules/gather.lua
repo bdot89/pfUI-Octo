@@ -445,6 +445,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     end
     GF.seen = seen
     GF.found = found
+    -- (kept for the world map: "nodes remembered" below)
+    if GF.RecordFound then GF.RecordFound(px, py) end
     return found
   end
 
@@ -580,6 +582,11 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   function GF.Tick(now)
     if not On("enable") then
       if GF.frame and not GF.preview then GF.frame:Hide() end
+      -- (the box is off but nodes are still remembered for the map: a look a second)
+      if On("record") and not GF.preview and GF.Available() and now >= nextAt then
+        nextAt = now + 1
+        if not ((_G.UnitOnTaxi and _G.UnitOnTaxi("player")) or (_G.UnitIsDeadOrGhost and _G.UnitIsDeadOrGhost("player"))) then GF.Scan(now) end
+      end
       return
     end
     if now < nextAt then return end
@@ -594,6 +601,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   driver:SetScript("OnUpdate", function()
     if not On("enable") and not GF.preview then
       if GF.frame and GF.frame:IsShown() then GF.frame:Hide() end
+      if On("record") then GF.Tick(GetTime()) end
       return
     end
     GF.Tick(GetTime())
@@ -605,6 +613,200 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   driver:SetScript("OnEvent", function()
     GF.ResetSkills()
     if event == "PLAYER_ENTERING_WORLD" then GF.swap = nil GF.cache = {} GF.LoadDB() end
+  end)
+
+  -- ---------------------------------------------------------------- nodes remembered
+  -- (14 Nov 2026; Khijazi: Herbs & Flowers shows nothing in Moonwhisper Coast - the quest database has
+  -- no herb spawns for the new zones; user: "record nodes".) Every node the finder sees is kept with its
+  -- place in the world (pfUI_cache.gathernodes[zone], for every character) and drawn on the world map.
+  --   zone   continent:zone of the map while it is shut (then it is the zone you are in)
+  --   fit    where a world position is on that zone's map: learnt from your own position, which the
+  --          game gives both ways (UnitPosition and GetPlayerMapPosition). Each map axis follows one
+  --          world axis in a straight line; a few samples 20 yd apart across 40 yd of each axis give
+  --          it. Until then nodes are kept all the same and show once the zone is known.
+  --   pins   a small flower / pick / fish on the world map; hover = the node's name
+  local SAME, STEP, SPREAD = 6, 20, 40
+  local function Store()
+    pfUI_cache.gathernodes = pfUI_cache.gathernodes or {}
+    return pfUI_cache.gathernodes
+  end
+  function GF.ZoneKey()
+    if WorldMapFrame and WorldMapFrame:IsShown() then return nil end
+    local c, z = GetCurrentMapContinent and GetCurrentMapContinent(), GetCurrentMapZone and GetCurrentMapZone()
+    if not c or not z or c <= 0 or z <= 0 then return nil end
+    return c .. ":" .. z
+  end
+  local function Zone(key)
+    local s = Store()
+    s[key] = s[key] or { nodes = {}, samples = {} }
+    return s[key]
+  end
+
+  -- a straight line m = a * w + c through pairs { w, m }: a, c, worst miss, spread of w
+  local function Line(list, wi, mi)
+    local n = table.getn(list)
+    local sw, sm, lo, hi = 0, 0, nil, nil
+    for i = 1, n do
+      local w, m = list[i][wi], list[i][mi]
+      sw, sm = sw + w, sm + m
+      if not lo or w < lo then lo = w end
+      if not hi or w > hi then hi = w end
+    end
+    local mw, mm = sw / n, sm / n
+    local cov, var = 0, 0
+    for i = 1, n do
+      local dw = list[i][wi] - mw
+      cov = cov + dw * (list[i][mi] - mm)
+      var = var + dw * dw
+    end
+    if var <= 0 then return nil end
+    local a = cov / var
+    local c = mm - a * mw
+    local miss = 0
+    for i = 1, n do miss = math.max(miss, math.abs(a * list[i][wi] + c - list[i][mi])) end
+    return a, c, miss, (hi - lo)
+  end
+  -- the zone's fit from its samples { wx, wy, mx, my }: which world axis each map axis follows
+  function GF.Fit(samples)
+    if table.getn(samples) < 4 then return nil end
+    local best, fits = nil, 0
+    for _, try in ipairs({ { 1, 2 }, { 2, 1 } }) do
+      local ax, cx, mx, sx = Line(samples, try[1], 3)
+      local ay, cy, my, sy = Line(samples, try[2], 4)
+      if ax and ay and sx >= SPREAD and sy >= SPREAD then
+        local miss = math.max(mx, my)
+        if miss < .004 then fits = fits + 1 end
+        if miss < .004 and (not best or miss < best.miss) then
+          best = { xi = try[1], yi = try[2], ax = ax, cx = cx, ay = ay, cy = cy, miss = miss }
+        end
+      end
+    end
+    -- (walked in one straight line both ways round fit: not known yet, until you turn)
+    if fits > 1 then return nil end
+    return best
+  end
+  function GF.ToMap(fit, wx, wy)
+    local w = { wx, wy }
+    return fit.ax * w[fit.xi] + fit.cx, fit.ay * w[fit.yi] + fit.cy
+  end
+
+  -- your own position, both ways, for the zone's fit
+  function GF.Sample(key, px, py)
+    local z = Zone(key)
+    if z.fit and table.getn(z.samples) >= 12 then return end
+    local mx, my = GetPlayerMapPosition("player")
+    if not mx or not my or (mx == 0 and my == 0) then return end
+    for _, s in ipairs(z.samples) do
+      local dx, dy = s[1] - px, s[2] - py
+      if dx * dx + dy * dy < STEP * STEP then return end
+    end
+    table.insert(z.samples, { px, py, mx, my })
+    if table.getn(z.samples) > 40 then table.remove(z.samples, 1) end
+    z.fit = GF.Fit(z.samples) or z.fit
+  end
+
+  -- a node seen at a world position: new, or one already kept
+  function GF.Remember(key, name, prof, wx, wy)
+    local z = Zone(key)
+    for _, n in ipairs(z.nodes) do
+      if n[1] == name then
+        local dx, dy = n[3] - wx, n[4] - wy
+        if dx * dx + dy * dy < SAME * SAME then return false end
+      end
+    end
+    table.insert(z.nodes, { name, prof, wx, wy })
+    GF.pinsDirty = true
+    return true
+  end
+  function GF.RecordFound(px, py)
+    if not On("record") then return end
+    local key = GF.ZoneKey()
+    if not key then return end
+    GF.Sample(key, px, py)
+    for _, e in ipairs(GF.found or {}) do
+      if e.x and e.y and not e.fake then GF.Remember(key, e.name, e.prof, e.x, e.y) end
+    end
+  end
+  function GF.Count()
+    local zones, nodes = 0, 0
+    for _, z in pairs(Store()) do
+      if table.getn(z.nodes) > 0 then zones = zones + 1 nodes = nodes + table.getn(z.nodes) end
+    end
+    return nodes, zones
+  end
+  function GF.Forget(all)
+    if all then pfUI_cache.gathernodes = {} else
+      local key = GF.ZoneKey()
+      if key then Store()[key] = nil end
+    end
+    GF.pinsDirty = true
+  end
+
+  -- the pins on the world map (the zone it is showing)
+  local PINICON = { [HERB] = "Interface\\Icons\\INV_Misc_Flower_02", [ORE] = "Interface\\Icons\\Trade_Mining" }
+  local pinHost = WorldMapButton and CreateFrame("Frame", "pfGatherPins", WorldMapButton)
+  GF.pins = {}
+  local function Pin(i)
+    local p = GF.pins[i]
+    if p then return p end
+    p = CreateFrame("Button", nil, pinHost)
+    p:SetFrameLevel((pinHost:GetFrameLevel() or 1) + 3)
+    p.tex = p:CreateTexture(nil, "OVERLAY")
+    p.tex:SetAllPoints(p)
+    p.tex:SetTexCoord(.08, .92, .08, .92)
+    p:SetScript("OnEnter", function()
+      WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      WorldMapTooltip:AddLine(this.name)
+      WorldMapTooltip:AddLine("Seen here by pfUI's gathering finder", .7, .7, .7)
+      WorldMapTooltip:Show()
+    end)
+    p:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
+    GF.pins[i] = p
+    return p
+  end
+  function GF.DrawPins()
+    if not pinHost then return 0 end
+    local shown = 0
+    local c, z = GetCurrentMapContinent(), GetCurrentMapZone()
+    local zone = (On("mappins") and c and z and z > 0) and Store()[c .. ":" .. z] or nil
+    if zone and zone.fit then
+      local w, h = WorldMapButton:GetWidth(), WorldMapButton:GetHeight()
+      local size = Num("pinsize", 12)
+      for _, n in ipairs(zone.nodes) do
+        local mx, my = GF.ToMap(zone.fit, n[3], n[4])
+        if mx > 0 and mx < 1 and my > 0 and my < 1 and shown < 400 then
+          shown = shown + 1
+          local p = Pin(shown)
+          p.name = n[1]
+          p.tex:SetTexture(PINICON[n[2]] or (GF.PROF[n[2]] and GF.PROF[n[2]].icon) or "Interface\\Icons\\INV_Misc_Bag_10")
+          p:SetWidth(size)
+          p:SetHeight(size)
+          p:ClearAllPoints()
+          p:SetPoint("CENTER", WorldMapButton, "TOPLEFT", mx * w, -my * h)
+          p:Show()
+        end
+      end
+    end
+    for i = shown + 1, table.getn(GF.pins) do GF.pins[i]:Hide() end
+    return shown
+  end
+  if pinHost then
+    pinHost:SetAllPoints(WorldMapButton)
+    pinHost:RegisterEvent("WORLD_MAP_UPDATE")
+    pinHost:SetScript("OnEvent", function() GF.pinsDirty = true end)
+    pinHost:SetScript("OnShow", function() GF.pinsDirty = true end)
+    pinHost:SetScript("OnUpdate", function()
+      if not GF.pinsDirty then return end
+      GF.pinsDirty = nil
+      GF.DrawPins()
+    end)
+  end
+  -- the map shows the zone you are in whenever it is shut (for the zone key and your map position)
+  local zoneWatch = CreateFrame("Frame")
+  zoneWatch:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+  zoneWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
+  zoneWatch:SetScript("OnEvent", function()
+    if On("record") and SetMapToCurrentZone and not (WorldMapFrame and WorldMapFrame:IsShown()) then SetMapToCurrentZone() end
   end)
 
   -- /gather probe: the raw answers, to check this client's call
