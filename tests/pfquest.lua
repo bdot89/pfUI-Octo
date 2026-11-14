@@ -101,9 +101,15 @@ do
     "built in, pfQuest's versions come from pfUI's toc, not an old pfQuest folder")
   _G.GetAddOnMetadata = realMeta
 end
-pfUI = { stand = "in" }
+-- (Khijazi, 14 Nov 2026: /db tabs errored - a helper only the stand-in pfUI had)
+local hadSBFC = realPfUI.api.SetButtonFontColor
+realPfUI.api.SetButtonFontColor = nil
+pfUI = { stand = "in", api = { SetButtonFontColor = function() return "standin" end, round = function() return "standin" end, emulated = true } }
 run("restore.lua")
 ok(pfUI == realPfUI and pfUI_config == realConfig and pfQuestOctoHidden == nil, "restore.lua puts pfUI and its settings back")
+ok(type(pfUI.api.SetButtonFontColor) == "function" and pfUI.api.round() ~= "standin" and pfUI.api.emulated == nil,
+  "helpers only pfQuest's stand-in had go to the real pfUI; its own stay")
+if hadSBFC then realPfUI.api.SetButtonFontColor = hadSBFC end
 
 -- the off switch (9 Nov 2026): guard / restore note what pfQuest's files change,
 -- modules\questing.lua puts it back
