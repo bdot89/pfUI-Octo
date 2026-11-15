@@ -111,3 +111,21 @@ pfUI_cache.transports = {}
 TR.Fix(TR.routes[72], 100, 5000, nil, 0)
 ok(not string.find(TR.Message(72, 5010), "|", 1, true), "transport messages have no |")
 pfUI_cache.transports = {}
+
+-- a client that gives y, x: riding still works and the order is learnt
+pfUI_cache.transports = {}
+TR.swap = nil
+local savedPos2 = rawget(_G, "UnitPosition")
+local f1 = 0
+_G.UnitPosition = function() return leg[3] + (leg[5] - leg[3]) * f1, leg[2] + (leg[4] - leg[2]) * f1, 0 end
+TR.ride = {}
+for k = 0, 8 do
+  f1 = k * 15 / (leg[9] - leg[8])
+  TR.Ride(9500 + k * .5, 200 + k * .5)
+end
+ok(TR.swap == true and pfUI_cache.transports[121] and pfUI_cache.transports[121].t0, "y, x positions: order learnt and the ride counted")
+_G.UnitPosition = savedPos2
+TR.swap = nil
+pfUI_cache.transportswap = nil
+pfUI_cache.transports = {}
+TR.ride = {}

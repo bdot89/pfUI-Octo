@@ -180,8 +180,14 @@ pfUI:RegisterModule("transports", "vanilla", function ()
   local function Pos()
     if type(_G.UnitPosition) ~= "function" then return end
     local ok, x, y = pcall(_G.UnitPosition, "player")
-    if ok and tonumber(x) and tonumber(y) then return tonumber(x), tonumber(y) end
+    if not (ok and tonumber(x) and tonumber(y)) then return end
+    -- (15 Nov 2026, user's /transports probe at the Orgrimmar tower gave
+    -- -4597, 1307 = the tower's y, x) this client's order is learnt: TR.Ride
+    -- flips TR.swap when only the other order lies on a route
+    if TR.swap then return tonumber(y), tonumber(x) end
+    return tonumber(x), tonumber(y)
   end
+  TR.swap = pfUI_cache and pfUI_cache.transportswap or nil
   TR.watch = {}
   -- one look at every transport object near you
   function TR.Look(now, clock)
@@ -194,7 +200,8 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       if ok and a and b and (a ~= 0 or b ~= 0) then
         -- the call gives y, x (gather.lua); take whichever order lies nearer you
         local x, y = b, a
-        if px and (px - a) * (px - a) + (py - b) * (py - b) < (px - x) * (px - x) + (py - y) * (py - y) then x, y = a, b end
+        -- whichever order lies on a route
+        if not (TR.Match(nil, x, y) or TR.StopAt(x, y)) then x, y = a, b end
         TR.Seen(oid, x, y, now, clock)
       end
     end
@@ -211,7 +218,15 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     local R = TR.ride
     if not x or (UnitOnTaxi and UnitOnTaxi("player")) then TR.ride = {} return end
     local r, t, len = TR.Match(nil, x, y)
-    if not r then TR.ride = {} return end
+    if not r then
+      r, t, len = TR.Match(nil, y, x)
+      if not r then TR.ride = {} return end
+      -- only the other order lies on a route: this client gives y, x
+      TR.swap = not TR.swap
+      pfUI_cache = pfUI_cache or {}
+      pfUI_cache.transportswap = TR.swap
+      x, y = y, x
+    end
     if R.id == r.id and R.len and clock > R.clock then
       local sp = (len - R.len) / (clock - R.clock)
       if sp > 15 and sp < 80 then
@@ -534,6 +549,8 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     local d, e = TR.TRAM[city], TR.Tram()[city]
     if e and e.dx and areaByName[d.map] then
       local u, v = TR.MapSpot(areaByName[d.map], areaByName[d.map][2], e.dx, e.dy)
+      if u then return u, v end
+      u, v = TR.MapSpot(areaByName[d.map], areaByName[d.map][2], e.dy, e.dx)
       if u then return u, v end
     end
     return d.u, d.v
