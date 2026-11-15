@@ -1210,7 +1210,11 @@ pfUI:RegisterModule("meters", "vanilla", function ()
         if not next(list) then open[unit] = nil end
       end
     end
-    if dirty then
+    -- (16 Nov 2026, Wolfahrt: FPS drops in a 30-man raid) the windows used to redraw on every frame
+    -- something was recorded - in a raid that is every frame, each window sorting and painting all its
+    -- bars. Now at most every C.meters.refreshrate seconds (threat windows keep their instant path).
+    if dirty and GetTime() >= (this.drawAt or 0) then
+      this.drawAt = GetTime() + (tonumber(C.meters.refreshrate) or .3)
       dirty = nil
       for _, fn in pairs(M.callbacks) do fn() end
     end

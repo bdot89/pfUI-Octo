@@ -164,8 +164,12 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
       local c = o.lastColor
       if c and o.anim ~= "flash" then hb:SetStatusBarColor(c[1], c[2], c[3], c[4]) end
     elseif hb and hb.GetStatusBarColor then
+      -- (one table per plate, filled in place: a new one each frame on every plate was garbage
+      -- the client had to collect, a stutter in raids with many plates)
       local r, g, b, a = hb:GetStatusBarColor()
-      o.lastColor = { r or 1, g or 1, b or 1, a or 1 }
+      local c = o.lastColor
+      if not c then c = {} o.lastColor = c end
+      c[1], c[2], c[3], c[4] = r or 1, g or 1, b or 1, a or 1
     end
     -- a plate that becomes your target pops
     local target = plate.istarget and true or false
