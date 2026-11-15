@@ -49,13 +49,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
     { "Art & Extras", { "Art", "WeirdUtils" } },
+    -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
+    -- same day: named CoolDownManager, under Interface
+    { "CoolDownManager", { "CoolDownManager" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
     { "Gear", { "Gear" } },
     -- (11 Nov 2026, Wolfahrt on Discord: track consumes by character) consumes-options.lua
     { "Consumables", { "Consumables" } },
-    -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua
-    { "Cooldowns", { "Cooldowns" } },
     { "Meters", { "Meters" } },
     { "Combat Text", { "Combat Text" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
@@ -76,13 +77,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
     { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
-    { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Cooldowns", "Tooltip" } },
+    { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
+    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["Cooldowns"] = { "cdm", "Cooldown bars" } }
+  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -102,7 +103,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["Consumables"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
-    ["Cooldowns"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
+    ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
     ["About"] = "Version, updates and thanks.",

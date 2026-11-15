@@ -647,5 +647,5 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     W.Note(p, "Command: /cdm (this page), /cdm fill (read the spell book again, removed ones too).")
   end
 
-  O:AddPage("Cooldowns", "cdmbars", "Bars", Build)
+  O:AddPage("CoolDownManager", "cdmbars", "Bars", Build)
 end)
