@@ -43,6 +43,8 @@ function Must([string]$text, [string]$old, [string]$new) {
 # find pfQuest-turtle's pictures inside pfUI
 function Octo([string]$t) {
   $t = $t.Replace("GetAddOnMetadata(", "pfQuestOctoMeta(")
+  # the player-arrow search never errors on another add-on's model (guard.lua: pfQuestOctoModel)
+  $t = $t.Replace("strlower(v:GetModel())", "pfQuestOctoModel(v)")
   return $t.Replace('Interface\\AddOns\\pfQuest-turtle\\img', 'Interface\\AddOns\\pfUI\\pfquest\\turtle-img')
 }
 function Copy-Lua([string]$from, [string]$rel, [scriptblock]$patch, [bool]$code) {
@@ -109,10 +111,11 @@ $patches = @{
   "quest.lua" = $started
   # (12 Nov 2026, Wolfahrt: "pfquest\map.lua:50: attempt to index global 'pfMap'" twice a second) at load
   # map.lua looks through the world map's models for the player arrow; another add-on's model there with
-  # no model file set gives GetModel() = nil, strlower errored, the file stopped before pfMap was made and
-  # the control-key ticker made above it errored for good.
+  # no usable model name made strlower error, the file stopped before pfMap was made and the control-key
+  # ticker made above it errored for good. Octo() swaps the call for pfQuestOctoModel(v) in every file;
+  # this only makes the sync stop if pfQuest's line ever changes.
   "map.lua" = { param($t)
-    Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel() or "")'
+    Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel())'
   }
   # built in, its version comes from pfUI's toc; another player's VERSION message
   # before ours is known must not error (9 Nov 2026: endless chat errors)
@@ -243,6 +246,16 @@ function pfQuestOctoMeta(addon, field)
   end
   return GetAddOnMetadata(addon, field)
 end
+-- (16 Nov 2026, Wolfahrt, again: "pfquest\map.lua:50: attempt to index global 'pfMap'") pfQuest looks through
+-- the world map's and the minimap's models for the player arrow with strlower(v:GetModel()). A model another
+-- add-on put there may answer with something that is not text (nothing, or the model itself), strlower errors,
+-- the file stops there and pfMap is never made. Every such call in the copied code asks this instead: always
+-- text, never an error.
+function pfQuestOctoModel(v)
+  local ok, m = pcall(v.GetModel, v)
+  if ok and type(m) == "string" then return string.lower(m) end
+  return ""
+end
 -- This copy loads after pfUI's files but before pfUI has its settings, so pfUI
 -- is hidden while pfQuest's files run and put back after (restore.lua):
 -- pfQuest starts exactly as it does next to the standalone pfUI.
@@ -303,6 +316,22 @@ if pfQuestOcto and pfQuestOcto.make then
     if not pfQuestOcto.slash[k] then newslash[k] = true end
   end
   pfQuestOcto.changed, pfQuestOcto.slash, pfQuestOcto.before = changed, newslash, nil
+end
+
+-- (16 Nov 2026) If pfQuest's map still failed to load, its control-key ticker would error twice a second
+-- for the whole session. It is stopped, and one chat line at login says so instead.
+if not pfQuestOctoSkip and pfMap == nil then
+  if pfQuestControlKey and pfQuestControlKey.SetScript then pfQuestControlKey:SetScript("OnUpdate", nil) end
+  pfQuestOctoNoMap = true
+  local tell = CreateFrame("Frame")
+  tell:RegisterEvent("PLAYER_ENTERING_WORLD")
+  tell:SetScript("OnEvent", function()
+    this:UnregisterAllEvents()
+    if DEFAULT_CHAT_FRAME then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: pfQuest's map could not load, so quest pins are off. "
+        .. "Please report the FIRST red error shown right after logging in.")
+    end
+  end)
 end
 "@
 [IO.File]::WriteAllText((Join-Path $dst "guard.lua"), ($skip -replace "`r?`n", "`r`n"), $utf8)

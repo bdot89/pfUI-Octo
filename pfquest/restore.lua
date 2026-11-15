@@ -31,3 +31,19 @@ if pfQuestOcto and pfQuestOcto.make then
   end
   pfQuestOcto.changed, pfQuestOcto.slash, pfQuestOcto.before = changed, newslash, nil
 end
+
+-- (16 Nov 2026) If pfQuest's map still failed to load, its control-key ticker would error twice a second
+-- for the whole session. It is stopped, and one chat line at login says so instead.
+if not pfQuestOctoSkip and pfMap == nil then
+  if pfQuestControlKey and pfQuestControlKey.SetScript then pfQuestControlKey:SetScript("OnUpdate", nil) end
+  pfQuestOctoNoMap = true
+  local tell = CreateFrame("Frame")
+  tell:RegisterEvent("PLAYER_ENTERING_WORLD")
+  tell:SetScript("OnEvent", function()
+    this:UnregisterAllEvents()
+    if DEFAULT_CHAT_FRAME then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: pfQuest's map could not load, so quest pins are off. "
+        .. "Please report the FIRST red error shown right after logging in.")
+    end
+  end)
+end

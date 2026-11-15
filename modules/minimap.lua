@@ -44,7 +44,9 @@ pfUI:RegisterModule("minimap", "vanilla:tbc", function ()
     local minimaparrow = ({Minimap:GetChildren()})[9]
     for k, v in pairs({Minimap:GetChildren()}) do
       if v:IsObjectType("Model") and not v:GetName() then
-        if string.find(strlower(v:GetModel()), "interface\\minimap\\minimaparrow") then
+        -- octo (16 Nov 2026): another add-on's model may answer GetModel with something that is not text
+        local okm, mdl = pcall(v.GetModel, v)
+        if okm and type(mdl) == "string" and string.find(strlower(mdl), "interface\\minimap\\minimaparrow") then
           minimaparrow = v
           break
         end

@@ -67,7 +67,7 @@ end
 local minimaparrow = ({ Minimap:GetChildren() })[9]
 for k, v in pairs({ Minimap:GetChildren() }) do
   if v:IsObjectType("Model") and not v:GetName() then
-    if string.find(strlower(v:GetModel()), "interface\\minimap\\minimaparrow") then
+    if string.find(pfQuestOctoModel(v), "interface\\minimap\\minimaparrow") then
       minimaparrow = v
       break
     end

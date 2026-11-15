@@ -47,6 +47,16 @@ function pfQuestOctoMeta(addon, field)
   end
   return GetAddOnMetadata(addon, field)
 end
+-- (16 Nov 2026, Wolfahrt, again: "pfquest\map.lua:50: attempt to index global 'pfMap'") pfQuest looks through
+-- the world map's and the minimap's models for the player arrow with strlower(v:GetModel()). A model another
+-- add-on put there may answer with something that is not text (nothing, or the model itself), strlower errors,
+-- the file stops there and pfMap is never made. Every such call in the copied code asks this instead: always
+-- text, never an error.
+function pfQuestOctoModel(v)
+  local ok, m = pcall(v.GetModel, v)
+  if ok and type(m) == "string" then return string.lower(m) end
+  return ""
+end
 -- This copy loads after pfUI's files but before pfUI has its settings, so pfUI
 -- is hidden while pfQuest's files run and put back after (restore.lua):
 -- pfQuest starts exactly as it does next to the standalone pfUI.

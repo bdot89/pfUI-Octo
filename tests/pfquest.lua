@@ -206,9 +206,40 @@ do
     local h = io.open(DIR .. "/pfquest/map.lua", "rb")
     local src = h and h:read("*a") or ""
     if h then h:close() end
-    local s1 = string.find(src, "strlower(v:GetModel() or \"\")", 1, true)
-    local s2 = string.find(src, "strlower(v:GetModel())", 1, true)
+    local s1 = string.find(src, "pfQuestOctoModel(v)", 1, true)
+    local s2 = string.find(src, "v:GetModel()", 1, true)
     ok(s1 and not s2, "map.lua: a world map model without a model file does not stop pfQuest's map loading")
+    -- (16 Nov 2026, the error came back) the answer may be nothing, the model itself or an error: always text
+    ok(has("compat/client.lua", "pfQuestOctoModel(v)") and not has("compat/client.lua", "v:GetModel()"),
+      "compat\\client.lua: the minimap arrow search uses the safe model name too")
+    local M = rawget(_G, "pfQuestOctoModel")
+    ok(type(M) == "function", "guard.lua gives pfQuestOctoModel")
+    if type(M) == "function" then
+      local self = {}
+      ok(M({ GetModel = function() return nil end }) == "" and M({ GetModel = function() return self end }) == ""
+        and M({ GetModel = function() error("no model") end }) == "" and M({}) == ""
+        and M({ GetModel = function() return "Interface\\Minimap\\MinimapArrow" end }) == "interface\\minimap\\minimaparrow",
+        "pfQuestOctoModel: nothing, a table, an error or no method give empty text; a name comes back lower case")
+    end
+    -- the arrow loop itself, with such models on the world map: it finishes and still finds the arrow
+    do
+      local found
+      local kids = {
+        { IsObjectType = function() return true end, GetName = function() end, GetModel = function() return {} end },
+        { IsObjectType = function() return true end, GetName = function() end, GetModel = function() return nil end },
+        { IsObjectType = function() return true end, GetName = function() end,
+          GetModel = function() return "Interface\\Minimap\\MinimapArrow" end, SetFrameLevel = function() found = true end },
+      }
+      local okLoop = pcall(function()
+        for _, v in pairs(kids) do
+          if v:IsObjectType("Model") and not v:GetName() then
+            if string.find(M(v), "interface\\minimap\\minimaparrow") then v:SetFrameLevel(255) break end
+          end
+        end
+      end)
+      ok(okLoop and found, "the arrow search passes odd models and still raises the player arrow")
+    end
+    ok(has("restore.lua", "pfQuestControlKey:SetScript(\"OnUpdate\", nil)"), "restore.lua stops the ticker if the map is still missing")
   end
 
   -- pages build in every state
