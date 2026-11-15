@@ -219,6 +219,10 @@ function pfUI:LoadConfig()
   -- octo nameplates phase 4: animations and rules (plates-fx.lua)
   pfUI:UpdateConfig("plates",     nil,           "animcrit",         "flash") -- (11 Nov 2026: pop / bounce resized plates)
   pfUI:UpdateConfig("plates",     nil,           "animtarget",       "flash")
+  -- target glow extras (plates-fx.lua): size %, pulse, bright (additive) glow
+  pfUI:UpdateConfig("plates",     nil,           "tglowsize",        "100")
+  pfUI:UpdateConfig("plates",     nil,           "tglowpulse",       "0")
+  pfUI:UpdateConfig("plates",     nil,           "tglowbright",      "0")
   pfUI:UpdateConfig("plates",     nil,           "animsize",         "25")
   -- calm plates (not target / casting / moving) redraw this often; 60 = every frame
   pfUI:UpdateConfig("plates",     nil,           "calmfps",          "30")

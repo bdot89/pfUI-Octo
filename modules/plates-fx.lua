@@ -148,6 +148,24 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
     return m
   end
 
+  -- (15 Nov 2026, user: a target you can spot through smoke) pfUI's target glow (plate.glow, shown by
+  -- nameplates.lua) made bigger, additive and pulsing per C.plates.tglow*. Plates already draw through walls.
+  function Fx.TargetGlow(plate, now)
+    local g = plate.glow
+    if not g or not g:IsShown() then return end
+    local N = C.nameplates
+    local k = (tonumber(S.tglowsize) or 100) / 100
+    local w = ((tonumber(N.width) or 120) + 60) * k
+    local h = ((tonumber(N.heighthealth) or 8) + 30) * k
+    -- (compared with the live size: pfUI sets it back on every config change)
+    if math.abs(g:GetWidth() - w) > .5 or math.abs(g:GetHeight() - h) > .5 then g:SetWidth(w) g:SetHeight(h) end
+    local blend = S.tglowbright == "1" and "ADD" or "BLEND"
+    if g.octoBlend ~= blend then g:SetBlendMode(blend) g.octoBlend = blend end
+    local r, gg, b, a = Col(N.glowcolor)
+    if S.tglowpulse == "1" then a = a * (.55 + .45 * math.sin(now * 5)) end
+    g:SetVertexColor(r, gg, b, a)
+  end
+
   function Fx.Tick(plate, o, now)
     Fx.seen[plate] = now
     -- (7 Nov 2026, GratisNinja, again: in a pop the bar was full and the wrong colour for the length of the
@@ -176,6 +194,7 @@ pfUI:RegisterModule("plates-fx", "vanilla:tbc", function ()
     if target and not o.wasTarget then Fx.Play(o, S.animtarget, now) end
     o.wasTarget = target
     Flash(plate, o, now)
+    Fx.TargetGlow(plate, now)
     Rules(plate, o, now)
     local fx = o.fx
     if fx then
