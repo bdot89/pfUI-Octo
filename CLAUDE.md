@@ -1200,3 +1200,21 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    screen inside, departures seen leaving your platform time it ("T|city|since|gap"). Icons = white glyph on a dark
    disc + coloured ring (tools\mktransport.c -> img\transports), 34 px zone / 28 px continent. Switch: QoL > Map and
    tooltips (C.appearance.worldmap.transports). Not on the whole-world view (no coordinates for it). Tests: tests\transports.lua.
+30. Auction house, phase 1 (15 Nov 2026, NOT seen in game; NEW FILES = full client restart; user with aux-addon.zip
+   and AuctionQueryThrottle: "merge them ... make this AH the best ever", then chose "write our own" - aux (shirsig)
+   has no licence, so its feature list only; AuctionQueryThrottle is a GPL-3 DLL that lifts the client's 5 s wait
+   between searches: nothing to merge in Lua, tools\install_dlls.ps1 fetches it; the separate "Octo DLL Installer"
+   add-on's list was NOT updated). modules/auction.lua (`pfUI.auction` = AH, module "auction"): AH.Search(q, onPage,
+   onDone) pages a query as fast as CanSendAuctionQuery allows into AH.rows (row.unit = buyout each, row.next = what
+   a bid costs); history pfUI_cache.auction["Realm-Faction"].h[key] = { day, min, days } (one low a day, AH.Value =
+   the middle), .p[key] = last asked prices, .recent; AH.Buy finds the row again by what it is (AH.Find / AH.Same)
+   and fetches its page first when the client holds another (AH.fetch); AH.Post = a queue that splits / joins bag
+   stacks to the asked size (AH.PostTick); AH.Owned / Bids / Cancel. At AUCTION_HOUSE_SHOW the game's AuctionFrame
+   loses its own opening and its OnHide (TameBlizzard) and is hidden for 1.5 s (AH.hideGame; the "Game window"
+   button brings it back); ours stands aside while aux / Auctionator / Auctioneer is loaded (AH.Other).
+   modules/auction-window.lua: frame pfAuction (Esc closes = CloseAuctionHouse), tabs Browse / Sell / My auctions /
+   My bids on one list widget (NewList: sort by column, wheel, Shift-click links); Alt-click = buyout, Ctrl-click =
+   bid. modules/auction-options.lua: section "Auctions" after Consumables (O.ModuleSwitch "auction": off = neither
+   engine nor window is made). Sidebar rows may now shrink to 13 px (22 sections at a 600 px window).
+   Next (not built): saved searches / filter language, tooltip prices, scan-all snapshot, disenchant and vendor
+   values, undercut check of your own auctions, bag clicks into the Sell tab, deposit shown. Tests: tests\auction.lua.
