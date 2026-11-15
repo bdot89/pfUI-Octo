@@ -264,6 +264,15 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       TR.replyAt = GetTime() + 2 + math.random() * 4
       return
     end
+    local _, _, city, since, gap = string.find(msg, "^T|(%a+)|(%d+)|([%d%.]+)$")
+    if city then
+      since, gap = tonumber(since), tonumber(gap)
+      local e = TR.TRAM and TR.TRAM[city] and TR.Tram()[city]
+      if not TR.TRAM or not TR.TRAM[city] or from == UnitName("player") or since > 6 * 3600 or gap < 20 or gap > 160 then return end
+      if e and e.dep and e.dep >= now - since - 1 then return end
+      TR.TramDeparted(city, now - since, from, gap)
+      return
+    end
     local _, _, id, t, age, sp = string.find(msg, "^S|(%d+)|([%d%.]+)|(%d+)|([%d%.]+)$")
     id, t, age, sp = tonumber(id), tonumber(t), tonumber(age), tonumber(sp)
     if not id or not TR.routes[id] or age > 6 * 3600 or sp < 5 or sp > 80 then return end
@@ -286,6 +295,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       for id, e in pairs(Store()) do
         if e.seen and now - e.seen < 6 * 3600 and not e.from then TR.Tell(id) end
       end
+      for city in pairs(TR.TRAM or {}) do TR.TellTram(city) end
     end
     if out[1] and clock >= sendAt and type(SendAddonMessage) == "function" then
       sendAt = clock + 1
@@ -353,11 +363,11 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     b.tex = b:CreateTexture(nil, "OVERLAY")
     b.tex:SetAllPoints(b)
     b:SetScript("OnEnter", function()
-      local r = this.route
+      local r = this.route or (this.tramCity and TR.TRAMROUTE)
       if not r then return end
       local tip = _G.WorldMapTooltip or GameTooltip
       tip:SetOwner(this, "ANCHOR_RIGHT")
-      local lines = TR.Lines(r)
+      local lines = this.tramCity and TR.TramLines(this.tramCity) or TR.Lines(r)
       tip:AddLine(lines[1], r.color[1], r.color[2], r.color[3])
       for k = 2, table.getn(lines) do tip:AddLine(lines[k], 1, 1, 1) end
       tip:Show()
@@ -379,7 +389,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
         if u then
           i = i + 1
           local b = Pin(i)
-          b.route = r
+          b.route, b.tramCity = r, nil
           b:ClearAllPoints()
           b:SetPoint("CENTER", layer, "TOPLEFT", u * w, -v * h)
           b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\transports\\" .. r.kind)
@@ -390,8 +400,172 @@ pfUI:RegisterModule("transports", "vanilla", function ()
           b:Show()
         end
       end
+      -- the Deeprun Tram's door in each city
+      for city, d in pairs(TR.TRAM) do
+        if a[1] == d.map then
+          local u, v = TR.TramSpot(city)
+          i = i + 1
+          local b = Pin(i)
+          b.route, b.tramCity = nil, city
+          b:ClearAllPoints()
+          b:SetPoint("CENTER", layer, "TOPLEFT", u * w, -v * h)
+          b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\transports\\tram")
+          b.tex:SetTexCoord(0, 1, 0, 1)
+          b.tex:SetVertexColor(A[1], A[2], A[3])
+          b:SetAlpha(TR.TramNext(city) and 1 or .45)
+          b:Show()
+        end
+      end
     end
     for k = i + 1, table.getn(TR.pins) do TR.pins[k]:Hide() end
+  end
+
+  -- ------------------------------------------------------ Deeprun Tram
+  -- The tram runs in its own instance (no world map). Its cars (objects
+  -- 176080-176085, TransportAnimation.dbc) take 143.3 s for a whole loop and
+  -- wait 13 s at each end. Inside, ClassicAPI shows the cars: one near you
+  -- that starts moving = a departure from your platform (kept per city, the
+  -- gap between departures learnt, shared as "T|city|seconds since|gap").
+  -- Your platform = the city you came in from while you stay near where you
+  -- came in, else the other one. The map door spot is learnt from where you
+  -- stood just before going in (UnitPosition), else a guess.
+  TR.TRAMROUTE = { color = A }
+  TR.TRAMCARS = { 176080, 176081, 176082, 176083, 176084, 176085 }
+  TR.TRAMLOOP, TR.TRAMWAIT = 143.3, 13
+  TR.TRAM = {
+    Stormwind = { map = "Stormwind", zone = "Stormwind City", u = .694, v = .31, other = "Ironforge" },
+    Ironforge = { map = "Ironforge", zone = "Ironforge", u = .766, v = .512, other = "Stormwind" },
+  }
+  function TR.Tram()
+    local s = Store()
+    s.tram = s.tram or {}
+    return s.tram
+  end
+  function TR.TramSpot(city)
+    local d, e = TR.TRAM[city], TR.Tram()[city]
+    if e and e.dx and areaByName[d.map] then
+      local u, v = TR.MapSpot(areaByName[d.map], areaByName[d.map][2], e.dx, e.dy)
+      if u then return u, v end
+    end
+    return d.u, d.v
+  end
+  -- seconds until the next car leaves `city`, or nil when never timed
+  function TR.TramNext(city, now)
+    local e = TR.Tram()[city]
+    if not e or not e.dep then return end
+    now = now or time()
+    local gap = e.gap or TR.TRAMLOOP
+    local n = math.ceil((now - e.dep) / gap)
+    if n < 0 then n = 0 end
+    return e.dep + n * gap - now, gap, e
+  end
+  function TR.TramDeparted(city, now, from, gap)
+    local e = TR.Tram()[city] or {}
+    TR.Tram()[city] = e
+    if e.dep and not from then
+      local d = now - e.dep
+      if d > 20 and d < TR.TRAMLOOP + 10 then e.gap = d end
+    end
+    if gap then e.gap = gap end
+    e.dep, e.from = now, from
+    TR.dirty = true
+  end
+  function TR.TramLines(city, now)
+    now = now or time()
+    local lines = { "Deeprun Tram to " .. TR.TRAM[city].other }
+    local wait, gap, e = TR.TramNext(city, now)
+    if not wait then
+      table.insert(lines, "|cffff9933Not timed yet: ride it once with ClassicAPI, or a guild mate does.|r")
+      return lines
+    end
+    local still = gap - wait
+    if still < TR.TRAMWAIT and still >= 0 then
+      table.insert(lines, "A car is at the platform (" .. Clock(TR.TRAMWAIT - still) .. " left)")
+    end
+    table.insert(lines, "Next car leaves in " .. Clock(wait))
+    local ago = now - e.dep
+    table.insert(lines, "|cff999999A car every " .. Clock(gap) .. "; timed " .. (ago < 120 and "just now" or ago < 7200
+      and (math.floor(ago / 60) .. " min ago") or (math.floor(ago / 3600) .. " h ago")) .. (e.from and (" by " .. e.from) or "") .. "|r")
+    return lines
+  end
+  -- which city's platform you are on inside the tram
+  function TR.TramPlatform()
+    local x, y = Pos()
+    local inn = TR.tramIn
+    if not inn then return end
+    if x and inn.x and (x - inn.x) * (x - inn.x) + (y - inn.y) * (y - inn.y) > 150 * 150 then
+      return TR.TRAM[inn.city] and TR.TRAM[inn.city].other
+    end
+    return inn.city
+  end
+  TR.cars = {}
+  function TR.InTram()
+    local z = GetRealZoneText and GetRealZoneText()
+    return z == "Deeprun Tram" or (TR.tramIn and TR.tramIn.zone == z)
+  end
+  -- every .5 s: remember the city spot, watch the cars inside
+  function TR.TramTick(now, clock)
+    local z = GetRealZoneText and GetRealZoneText() or ""
+    local x, y = Pos()
+    for city, d in pairs(TR.TRAM) do
+      if z == d.zone and x then TR.lastCity = { city = city, x = x, y = y } end
+    end
+    if not TR.InTram() then
+      TR.tramIn = nil
+      if TR.tramText then TR.tramText:Hide() end
+      return
+    end
+    if not TR.tramIn then
+      local c = TR.lastCity
+      TR.tramIn = { city = c and c.city or "Ironforge", zone = z, x = x, y = y }
+      if c then
+        local e = TR.Tram()[c.city] or {}
+        TR.Tram()[c.city] = e
+        e.dx, e.dy = c.x, c.y
+      end
+    end
+    local city = TR.TramPlatform()
+    local find = Finder()
+    local here, coming
+    if find and x then
+      for _, oid in ipairs(TR.TRAMCARS) do
+        local ok, a, b = pcall(find, oid)
+        a, b = tonumber(a), tonumber(b)
+        if ok and a and b then
+          local cx, cy = b, a
+          if (x - a) * (x - a) + (y - b) * (y - b) < (x - cx) * (x - cx) + (y - cy) * (y - cy) then cx, cy = a, b end
+          local dist = math.sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy))
+          local w = TR.cars[oid]
+          if w and clock - w.clock < 3 then
+            local sp = (w.dist - dist) / (clock - w.clock)
+            local moving = math.abs(dist - w.dist) > .3
+            if dist < 40 and not moving then here = true end
+            if dist < 45 and moving and w.still and city then TR.TramDeparted(city, now) TR.TellTram(city) end
+            if moving and sp > 3 and (not coming or dist / sp < coming) then coming = dist / sp end
+            w.still = not moving
+          end
+          TR.cars[oid] = { dist = dist, clock = clock, still = TR.cars[oid] and TR.cars[oid].still }
+        end
+      end
+    end
+    if not TR.tramText then
+      local t = UIParent:CreateFontString("pfTransportTram", "OVERLAY", "GameFontNormalLarge")
+      t:SetPoint("TOP", UIParent, "TOP", 0, -140)
+      TR.tramText = t
+    end
+    local text
+    if here then text = "Tram: a car is here"
+    elseif coming then text = "Tram: next car here in " .. Clock(coming)
+    elseif city then
+      local wait = TR.TramNext(city, now)
+      text = wait and ("Tram to " .. TR.TRAM[city].other .. ": leaves in about " .. Clock(wait)) or nil
+    end
+    if text then TR.tramText:SetText(text) TR.tramText:Show() else TR.tramText:Hide() end
+  end
+  function TR.TellTram(city)
+    local wait, gap, e = TR.TramNext(city)
+    if not wait or e.from or table.getn(out) >= 40 then return end
+    table.insert(out, "T|" .. city .. "|" .. math.floor(time() - e.dep) .. "|" .. string.format("%.1f", gap))
   end
 
   TR.BuildAll()
@@ -412,11 +586,13 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     TR.ShareTick(clock)
     if not TR.On() then
       if layer and layer:IsShown() then layer:Hide() end
+      if TR.tramText then TR.tramText:Hide() end
       return
     end
     if clock >= lookAt then
-      lookAt = clock + 1
-      TR.Look(time(), clock)
+      lookAt = clock + .5
+      if not TR.InTram() then TR.Look(time(), clock) end
+      TR.TramTick(time(), clock)
     end
     if WorldMapButton and WorldMapFrame and WorldMapFrame:IsShown() then
       if not layer then

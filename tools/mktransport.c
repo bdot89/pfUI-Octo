@@ -83,5 +83,17 @@ int main(void) {
   rect(24, 37, 27, 44); rect(35, 37, 38, 44);
   rect(20, 43, 42, 51);
   save("zeppelin.tga");
+  /* tram: a car body (windows cut out below) on a rail with wheels */
+  rect(10, 18, 54, 44);
+  rect(6, 50, 58, 53);
+  ellipse(20, 47, 4, 4); ellipse(44, 47, 4, 4);
+  rect(28, 10, 36, 18);
+  { /* windows: clear holes */
+    for (int y = 22; y < 32; y++) for (int x = 14; x < 50; x++) {
+      int cx = (x - 14) % 12;
+      if (cx < 9) M[y][x] = 0;
+    }
+  }
+  save("tram.tga");
   return 0;
 }

@@ -56,3 +56,21 @@ TR.Seen(20808, l[2] + (l[4] - l[2]) * .1, l[3] + (l[5] - l[3]) * .1, 7001, 2)
 ok(pfUI_cache.transports[72] and pfUI_cache.transports[72].t0, "a transport seen moving fixes its route")
 pfUI_cache.transports = {}
 TR.BuildAll()
+
+-- Deeprun Tram: departures, the gap between them, sharing, map spot
+ok(TR.TRAM and TR.TramNext and TR.TramLines, "tram functions")
+pfUI_cache.transports = {}
+ok(TR.TramNext("Ironforge", 1000) == nil, "tram not timed until a car is seen leaving")
+TR.TramDeparted("Ironforge", 1000)
+TR.TramDeparted("Ironforge", 1048)
+local w2, gap = TR.TramNext("Ironforge", 1060)
+ok(gap == 48 and w2 == 36, "tram gap learnt from two departures, next car in 36 s (" .. tostring(w2) .. ")")
+local tl = TR.TramLines("Ironforge", 1050)
+ok(tl[1] == "Deeprun Tram to Stormwind" and string.find(tl[2], "at the platform"), "tram tooltip says a car is waiting")
+pfUI_cache.transports = {}
+TR.Receive("T|Stormwind|10|47.5", "Friend", 2000)
+local w3, g3, e3 = TR.TramNext("Stormwind", 2000)
+ok(e3 and e3.from == "Friend" and g3 == 47.5 and math.abs(w3 - 37.5) < .01, "shared tram timing taken")
+local u3 = TR.TramSpot("Ironforge")
+ok(u3 and u3 > 0 and u3 < 1, "tram door spot on the Ironforge map")
+pfUI_cache.transports = {}
