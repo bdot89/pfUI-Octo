@@ -74,3 +74,16 @@ ok(e3 and e3.from == "Friend" and g3 == 47.5 and math.abs(w3 - 37.5) < .01, "sha
 local u3 = TR.TramSpot("Ironforge")
 ok(u3 and u3 > 0 and u3 < 1, "tram door spot on the Ironforge map")
 pfUI_cache.transports = {}
+
+-- a zeppelin standing at its tower puts the map in its wait there
+pfUI_cache.transports = {}
+TR.watch = {}
+local zr = TR.routes[121]
+local zs = zr.stops[1]
+TR.Seen(164871, zs.x + 3, zs.y - 2, 8000, 10)
+TR.Seen(164871, zs.x + 3, zs.y - 2, 8000.5, 10.5)
+local zt, ze = TR.Now(zr, 8000.5)
+local _, _, _, _, zstop = TR.At(zr, zt)
+ok(ze and ze.docked and zstop == zs, "a transport seen standing at a dock is drawn there")
+pfUI_cache.transports = {}
+TR.watch = {}

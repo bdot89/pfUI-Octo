@@ -167,7 +167,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     local e = s[r.id]
     local seen = at - (age or 0)
     if e.seen and e.seen > seen + 1 then return false end
-    e.t0, e.seen, e.from = at - t, seen, from
+    e.t0, e.seen, e.from, e.docked = at - t, seen, from, nil
     return true
   end
 
@@ -200,6 +200,32 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     end
   end
   -- a transport seen at x, y: once it is seen moving, fix its route
+  -- the dock stop nearest a point (within 50 yd): route, stop
+  function TR.StopAt(x, y)
+    local br, bs, bd
+    for _, r in pairs(TR.routes) do
+      for _, s in ipairs(r.stops) do
+        local d = (s.x - x) * (s.x - x) + (s.y - y) * (s.y - y)
+        if d < 2500 and (not bd or d < bd) then br, bs, bd = r, s, d end
+      end
+    end
+    return br, bs
+  end
+  -- a transport standing still at a dock (15 Nov 2026; user saw two
+  -- zeppelins at the Orgrimmar tower and none on the map: only moving ones
+  -- were used). Unless the map already has it at that dock, put it in the
+  -- middle of its wait there; the moment it leaves makes it exact.
+  function TR.SeenDocked(x, y, now)
+    local r, s = TR.StopAt(x, y)
+    if not r then return end
+    local t = TR.Now(r, now)
+    local _, _, _, _, stop = TR.At(r, t)
+    if stop == s then return end
+    if TR.Fix(r, (s.t1 + s.t2) / 2, now, nil, 0) then
+      Store()[r.id].docked = true
+      TR.dirty = true
+    end
+  end
   function TR.Seen(oid, x, y, now, clock)
     local w = TR.watch[oid]
     if not w or clock - w.clock > 6 then
@@ -207,7 +233,11 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       return
     end
     local moved = (x - w.x) * (x - w.x) + (y - w.y) * (y - w.y)
-    if moved < 1 then w.clock = clock return end
+    if moved < 1 then
+      w.clock = clock
+      TR.SeenDocked(x, y, now)
+      return
+    end
     local r, t, len = TR.Match(nil, x, y)
     if not r then return end
     -- speed from a watch of 8 s or more on the same route, no stop between
@@ -630,6 +660,22 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     if (msg == "off" or msg == "on") and C.appearance.worldmap then
       C.appearance.worldmap.transports = msg == "on" and "1" or "0"
       out2:AddMessage("|cff33ffccpfUI|r boats and zeppelins on the map: " .. msg)
+      return
+    elseif msg == "probe" then
+      -- which transport objects the client sees now, and where
+      local find, px, py = Finder(), Pos()
+      if not find then out2:AddMessage("|cff33ffccpfUI|r probe needs ClassicAPI.") return end
+      out2:AddMessage("|cff33ffccpfUI|r you at " .. tostring(px) .. ", " .. tostring(py))
+      for _, oid in ipairs(TR.OBJECTS) do
+        local ok, a, b, c = pcall(find, oid)
+        if ok and a then
+          local r1, s1 = TR.StopAt(tonumber(b) or 0, tonumber(a) or 0)
+          local r2, s2 = TR.StopAt(tonumber(a) or 0, tonumber(b) or 0)
+          local s = s1 or s2
+          out2:AddMessage("  " .. oid .. ": " .. tostring(a) .. ", " .. tostring(b) .. ", " .. tostring(c)
+            .. (s and ("  at " .. s.dock .. " (" .. table.concat((r1 or r2).docks, " - ") .. ")") or ""))
+        end
+      end
       return
     elseif msg == "forget" then
       pfUI_cache.transports = {}
