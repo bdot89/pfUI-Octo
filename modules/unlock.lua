@@ -49,6 +49,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     -- octo: meters and combat text (an Octo page key opens that page)
     ["Meter%d"]       = { "mtwindows", nil },
     ["CDM%d"]         = { "cdmbars", nil },
+    ["FlightBar"]     = { "flight", nil },
     ["TargetRange"]   = { "ufrange", nil },
     ["CombatText%a+"] = { "ctareas", nil },
     ["Group%d"]       = { "ufframes", "group" },

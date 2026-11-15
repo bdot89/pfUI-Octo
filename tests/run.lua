@@ -129,10 +129,10 @@ CHAT_FRAME_TEXTURES = { "Background", "TopLeftTexture", "BottomLeftTexture", "To
 ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g = 1, b = 1, id = 0 } rawset(t, k, v) return v end })
 
 -- modules that must start cleanly (the octo ones, as they are added)
-local MUST_LOAD = { "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
+local MUST_LOAD = { "transports", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "autoattack" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "flight", "flight-options", "autoattack" }
 
 -- ---------------------------------------------------------------- load
 
@@ -6252,6 +6252,7 @@ dofile(DIR .. "/tests/bagcats.lua")
 -- the consumables tracker (11 Nov 2026)
 dofile(DIR .. "/tests/consumes.lua")
 dofile(DIR .. "/tests/cdm.lua")
+dofile(DIR .. "/tests/flight.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)
 do
@@ -6559,6 +6560,9 @@ dofile(DIR .. "/tests/custommedia.lua")
 
 -- layout mode sizes, Match, the raid grid and the Unit Frames sections (25 Oct 2026)
 dofile(DIR .. "/tests/layout-size.lua")
+
+-- boats and zeppelins on the world map (15 Nov 2026)
+dofile(DIR .. "/tests/transports.lua")
 
 local started, broken = 0, 0
 for _, m in ipairs(pfUI.modules) do
