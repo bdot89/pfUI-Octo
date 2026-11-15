@@ -6380,6 +6380,42 @@ do
     local p = store[f] and store[f].points[1]
     ok(not asked and p and p[1] == "TOPLEFT" and p[2] == UIParent and p[4] == 10 and p[5] == 20,
       "login snapshot: a frame on UIParent is noted by its place on screen, GetPoint never asked")
+    -- (16 Nov 2026, Barbeque: "fix the blizzard ui options") the game's own frames go back on the game's own
+    -- anchors (BZ.DEFAULTS, from its FrameXML), not a fixed screen spot or nowhere - and still no GetPoint
+    local D = BZ.DEFAULTS
+    ok(D and D.PlayerFrame and D.MultiBarBottomLeft and D.MultiBarBottomLeft[1][2] == "ActionButton1"
+      and D.PartyMemberFrame2[1][2] == "PartyMemberFrame1PetFrame" and table.getn(D.ChatFrameEditBox) == 2,
+      "Blizzard frames: the game's own anchors are known")
+    if D then
+      local keepA, keepB = rawget(_G, "OctoTestBlizzBar"), rawget(_G, "ActionButton1")
+      local anchor = CreateFrame("Frame", nil, UIParent)
+      local bar = CreateFrame("Frame", "OctoTestBlizzBar", UIParent)
+      local asked2 = false
+      bar.GetPoint = function() asked2 = true end
+      bar.GetNumPoints = function() return 1 end
+      bar.GetLeft = function() return nil end -- no screen place yet, as at load
+      bar.GetTop = function() return nil end
+      rawset(_G, "ActionButton1", anchor)
+      D.OctoTestBlizzBar = D.MultiBarBottomLeft
+      local was = BZ.snap[bar]
+      BZ.snap[bar] = nil
+      BZ.Snap(bar)
+      local q = BZ.snap[bar] and BZ.snap[bar].points[1]
+      ok(not asked2 and q and q[1] == "BOTTOMLEFT" and q[2] == anchor and q[3] == "TOPLEFT" and q[4] == 0 and q[5] == 17,
+        "Blizzard frames: a bar with no screen place yet is noted on the game's anchor (ActionButton1), GetPoint never asked")
+      -- and put back there
+      bar:ClearAllPoints()
+      bar:SetPoint("CENTER", UIParent, "CENTER", 300, 300)
+      BZ.Restore(bar, false)
+      bar.GetPoint = nil -- (the mock's own GetPoint again, to read where it went)
+      local a, rel, b, x, y = bar:GetPoint(1)
+      ok(a == "BOTTOMLEFT" and rel == anchor and b == "TOPLEFT" and x == 0 and y == 17,
+        "Blizzard frames: switching back puts the bar on the game's anchor again")
+      BZ.snap[bar] = was
+      D.OctoTestBlizzBar = nil
+      rawset(_G, "ActionButton1", keepB)
+      rawset(_G, "OctoTestBlizzBar", keepA)
+    end
   end
 end
 

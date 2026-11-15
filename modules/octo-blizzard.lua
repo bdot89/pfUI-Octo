@@ -23,6 +23,30 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
 
   -- ---------------------------------------------------------------- snapshot (before pfUI)
 
+  -- where the game itself puts its frames that sit on UIParent (patch-4 / patch FrameXML of this client:
+  -- PlayerFrame, TargetFrame, PartyFrame, CastingBarFrame, BuffFrame, MainMenuBar, MultiActionBars, LootFrame,
+  -- FloatingChatFrame .xml). { point, the frame it hangs on, that frame's point, x, y }
+  BZ.DEFAULTS = {
+    PlayerFrame = { { "TOPLEFT", "UIParent", "TOPLEFT", -19, -4 } },
+    TargetFrame = { { "TOPLEFT", "UIParent", "TOPLEFT", 250, -4 } },
+    PartyMemberFrame1 = { { "TOPLEFT", "UIParent", "TOPLEFT", 10, -128 } },
+    PartyMemberFrame2 = { { "TOPLEFT", "PartyMemberFrame1PetFrame", "BOTTOMLEFT", -23, -10 } },
+    PartyMemberFrame3 = { { "TOPLEFT", "PartyMemberFrame2PetFrame", "BOTTOMLEFT", -23, -10 } },
+    PartyMemberFrame4 = { { "TOPLEFT", "PartyMemberFrame3PetFrame", "BOTTOMLEFT", -23, -10 } },
+    CastingBarFrame = { { "BOTTOM", "UIParent", "BOTTOM", 0, 55 } },
+    BuffFrame = { { "TOPRIGHT", "UIParent", "TOPRIGHT", -205, -13 } },
+    TemporaryEnchantFrame = { { "TOPRIGHT", "UIParent", "TOPRIGHT", -175, -13 } },
+    MainMenuBar = { { "BOTTOM", "UIParent", "BOTTOM", 0, 0 } },
+    MultiBarBottomLeft = { { "BOTTOMLEFT", "ActionButton1", "TOPLEFT", 0, 17 } },
+    MultiBarBottomRight = { { "LEFT", "MultiBarBottomLeft", "RIGHT", 10, 0 } },
+    MultiBarRight = { { "BOTTOMRIGHT", "UIParent", "BOTTOMRIGHT", -7, 98 } },
+    MultiBarLeft = { { "TOPRIGHT", "MultiBarRight", "TOPLEFT", -5, 0 } },
+    LootFrame = { { "TOPLEFT", "UIParent", "TOPLEFT", 0, -104 } },
+    ChatFrame1 = { { "BOTTOMLEFT", "UIParent", "BOTTOMLEFT", 32, 95 } },
+    ChatFrameMenuButton = { { "BOTTOM", "ChatFrame1UpButton", "TOP", 0, 0 } },
+    ChatFrameEditBox = { { "TOPLEFT", "ChatFrame1", "BOTTOMLEFT", -5, -2 }, { "TOPRIGHT", "ChatFrame1", "BOTTOMRIGHT", 5, -2 } },
+  }
+
   local function Snap(f, store)
     store = store or BZ.snap
     if not f or store[f] then return end
@@ -35,8 +59,19 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     -- WeirdUtils-Octo framecrash RESEARCH.md. This snapshot was the one place asking ~40 of the game's
     -- frames at login.) A frame on UIParent is noted by where it is on screen (GetLeft / GetTop never
     -- touch the freed part) and put back there on UIParent; only frames on other frames ask GetPoint.
+    -- (16 Nov 2026, Barbeque: "fix the blizzard ui options") That left the game's frames with no place to go
+    -- back to (at load a frame has no screen place yet) or with a fixed spot in place of its real anchor
+    -- (the extra bars hang on ActionButton1, party frames on each other, the edit box on the chat window).
+    -- The game's own anchors are known: BZ.DEFAULTS, read from its FrameXML - still no GetPoint.
     local par = s.parent
-    if par == nil or par == UIParent then
+    local known = store == BZ.snap and f.GetName and BZ.DEFAULTS[f:GetName() or ""]
+    if known then
+      for i = 1, table.getn(known) do
+        local p = known[i]
+        local rel = _G[p[2]]
+        if rel then s.points[table.getn(s.points) + 1] = { p[1], rel, p[3], p[4], p[5] } end
+      end
+    elseif par == nil or par == UIParent then
       local l, t = f.GetLeft and f:GetLeft(), f.GetTop and f:GetTop()
       if l and t then s.points[1] = { "TOPLEFT", UIParent, "BOTTOMLEFT", l, t } end
     else
