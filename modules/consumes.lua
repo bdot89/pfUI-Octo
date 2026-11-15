@@ -840,7 +840,9 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
   local ev = CreateFrame("Frame")
   CS.ev = ev
   for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_AURAS_CHANGED", "BAG_UPDATE", "UNIT_INVENTORY_CHANGED",
-                       "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "PLAYER_DEAD", "PLAYER_UNGHOST", "PLAYER_ALIVE" }) do
+                       "PLAYER_REGEN_ENABLED", "PLAYER_REGEN_DISABLED", "PLAYER_DEAD", "PLAYER_UNGHOST", "PLAYER_ALIVE",
+                       -- (ClassicAPI 15 Nov 2026: an oil / stone / poison going on or off shows at once)
+                       "WEAPON_ENCHANT_CHANGED" }) do
     pcall(ev.RegisterEvent, ev, e)
   end
   ev:SetScript("OnEvent", function()

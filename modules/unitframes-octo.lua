@@ -377,6 +377,9 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
         if not (lp and lp.UnitHasIncomingResurrection and lp:UnitHasIncomingResurrection(unit)) then word = "Dead" end
       elseif player and UnitIsAFK and UnitIsAFK(unit) then
         mark = "uf-afk"
+      elseif player and UnitIsDND and UnitIsDND(unit) then
+        -- (ClassicAPI 15 Nov 2026 added UnitIsDND; without it this is never reached)
+        word = "DND"
       end
     end
     -- (the options' Test buttons show a state for a few seconds)
