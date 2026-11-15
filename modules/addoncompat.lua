@@ -83,6 +83,25 @@ pfUI:RegisterModule("addoncompat", function ()
     ["pfuicustommedia"] = { always, nil, "Bar textures, fonts and gryphon pictures (pfUI-CustomMedia is built in)" },
   }
 
+  -- (15 Nov 2026, Barbeque_Squirrel: turning pfQuest off also turned off add-ons that need it, such as an
+  -- OctoWoW quest / drop database, so mob drops left the map.) pfQuest is not offered for switching off
+  -- while an enabled add-on lists it as a dependency: pfUI's own copy stays off and theirs keeps working.
+  local function Needed(name)
+    if not GetAddOnDependencies then return false end
+    local want = string.lower(name)
+    for i = 1, GetNumAddOns() do
+      local _, _, _, enabled = GetAddOnInfo(i)
+      if enabled then
+        local deps = { GetAddOnDependencies(i) }
+        for _, d in pairs(deps) do
+          if type(d) == "string" and string.lower(d) == want then return true end
+        end
+      end
+    end
+    return false
+  end
+  octoconflict["pfquest"][1] = function() return not Needed("pfQuest") end
+
   local function Plain(name)
     local n = string.lower(name or "")
     n = string.gsub(n, "[^%w]", "")
