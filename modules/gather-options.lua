@@ -79,6 +79,8 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
     Chk(p, "Remember the nodes I pass", "Herbs, veins and pools the finder sees are kept with their place.", "record")
     Chk(p, "Show them on the world map", "A small flower, pick or fish where each one was seen; hover for its name.", "mappins",
       function() GF.pinsDirty = true end)
+    Chk(p, "Marks button on the world map", "A small \"Marks\" button at the map's bottom left: switches for your remembered herbs, ore and pools "
+      .. "and for every list of the quest database (herbs, ore, chests, rares, vendors...), and Hide everything. They stay as you set them.", "mapbutton")
     Chk(p, "Share with other pfUI Octo players", "Nodes you find go to your guild and your group, and theirs come to you, "
       .. "so one player's walk fills the map for everyone. Hover a pin to see who found it.", "share")
     Sld(p, "Pin size", nil, 6, 24, 1, "pinsize", O.Px, function() GF.pinsDirty = true end)

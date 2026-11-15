@@ -759,6 +759,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
       WorldMapTooltip:AddLine(this.name)
       WorldMapTooltip:AddLine(this.from and ("Seen here by " .. this.from) or "Seen here by pfUI's gathering finder", .7, .7, .7)
+      WorldMapTooltip:AddLine("Hide these: the Marks button at the map's bottom left", .45, .7, 1)
       WorldMapTooltip:Show()
     end)
     p:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
@@ -775,7 +776,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       local size = Num("pinsize", 12)
       for _, n in ipairs(zone.nodes) do
         local mx, my = GF.ToMap(zone.fit, n[3], n[4])
-        if mx > 0 and mx < 1 and my > 0 and my < 1 and shown < 400 then
+        if mx > 0 and mx < 1 and my > 0 and my < 1 and shown < 400 and GF.PinKind(n[2]) then
           shown = shown + 1
           local p = Pin(shown)
           p.name, p.from = n[1], n[5]
@@ -943,6 +944,184 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   share:RegisterEvent("CHAT_MSG_ADDON")
   share:SetScript("OnEvent", function() if arg1 == PREFIX then GF.Receive(arg2, arg4) end end)
   share:SetScript("OnUpdate", function() GF.ShareTick(GetTime()) end)
+
+  -- ---------------------------------------------------------------- marks on the map, switched on the map
+  -- (15 Nov 2026; user: remembered herbs "are not hideable ... can we add toggles in the map frame for all
+  -- these commands which are hard saved".) A "Marks" button on the world map opens a list of switches:
+  -- our remembered nodes by kind (C.gather.pinherbs / pinore / pinfish) and every pfQuest tracking list
+  -- (/db track <list>: pfDatabase:TrackMeta, kept by pfQuest in pfQuest_track). All stay as set.
+  local PINKEY = { [HERB] = "pinherbs", [ORE] = "pinore", [FISH] = "pinfish" }
+  function GF.PinKind(prof)
+    local key = PINKEY[prof]
+    return not key or G()[key] ~= "0"
+  end
+  GF.TRACKS = {
+    { "herbs", "Herbs" }, { "mines", "Ore veins" }, { "fish", "Fishing pools" }, { "chests", "Chests" }, { "trees", "Trees" },
+    { "rares", "Rare mobs" }, { "flight", "Flight masters" }, { "innkeeper", "Innkeepers" }, { "mailbox", "Mailboxes" },
+    { "vendor", "Vendors" }, { "repair", "Repair" }, { "banker", "Bankers" }, { "auctioneer", "Auctioneers" },
+    { "stablemaster", "Stable masters" }, { "battlemaster", "Battlemasters" }, { "meetingstone", "Meeting stones" },
+    { "spirithealer", "Spirit healers" },
+  }
+  local function QuestDB() return rawget(_G, "pfDatabase"), rawget(_G, "pfDB"), rawget(_G, "pfQuest_track") end
+  -- the switches: { key, label, icon, on (function), set (function) }
+  function GF.MarkList()
+    local list = {}
+    -- one click for a clean map: every switch below off
+    table.insert(list, { label = "Hide everything", action = function()
+      for _, d in ipairs(GF.MarkList()) do
+        if d.set and d.on() then d.set(false) end
+      end
+    end })
+    table.insert(list, { head = "Seen by you and your guild" })
+    for _, d in ipairs({ { "pinherbs", "Herbs", "Interface\\Icons\\INV_Misc_Flower_02" }, { "pinore", "Ore veins", "Interface\\Icons\\Trade_Mining" },
+                         { "pinfish", "Fishing pools", "Interface\\Icons\\Trade_Fishing" } }) do
+      local key = d[1]
+      table.insert(list, { key = key, label = d[2], icon = d[3],
+        on = function() return G().mappins == "1" and G()[key] ~= "0" end,
+        set = function(v)
+          G()[key] = v and "1" or "0"
+          if v then G().mappins = "1" end
+          GF.pinsDirty = true
+        end })
+    end
+    local db, data, track = QuestDB()
+    if type(db) == "table" and type(db.TrackMeta) == "function" and type(data) == "table" and type(data.meta) == "table" then
+      table.insert(list, { head = "From the quest database" })
+      local seen = {}
+      local function Add(name, label)
+        if seen[name] or not data.meta[name] then return end
+        seen[name] = true
+        local cfg = rawget(_G, "pfQuestConfig")
+        local icon = (db.metaTrackingIcons and db.metaTrackingIcons[name]) or (((cfg and cfg.path) or "Interface\\AddOns\\pfUI\\pfquest") .. "\\img\\tracking\\" .. name)
+        table.insert(list, { key = "db:" .. name, label = label, icon = icon,
+          on = function() local t = rawget(_G, "pfQuest_track") return type(t) == "table" and t[name] and true or false end,
+          set = function(v) pcall(db.TrackMeta, db, name, v and true or false) end })
+      end
+      for _, t in ipairs(GF.TRACKS) do Add(t[1], t[2]) end
+      local rest = {}
+      for name in pairs(data.meta) do if not seen[name] then table.insert(rest, name) end end
+      table.sort(rest)
+      for _, name in ipairs(rest) do Add(name, string.upper(string.sub(name, 1, 1)) .. string.sub(name, 2)) end
+    end
+    return list
+  end
+  local marks
+  local function MarkRow(i)
+    local r = marks.rows[i]
+    if r then return r end
+    r = CreateFrame("Button", nil, marks)
+    r:SetHeight(18)
+    r:SetPoint("TOPLEFT", marks, "TOPLEFT", 4, -4 - (i - 1) * 18)
+    r:SetPoint("RIGHT", marks, "RIGHT", -4, 0)
+    r.hl = r:CreateTexture(nil, "BACKGROUND")
+    r.hl:SetAllPoints(r)
+    r.hl:SetTexture(1, 1, 1, .1)
+    r.hl:Hide()
+    r.box = r:CreateTexture(nil, "ARTWORK")
+    r.box:SetWidth(10)
+    r.box:SetHeight(10)
+    r.box:SetPoint("LEFT", r, "LEFT", 4, 0)
+    r.icon = r:CreateTexture(nil, "ARTWORK")
+    r.icon:SetWidth(14)
+    r.icon:SetHeight(14)
+    r.icon:SetPoint("LEFT", r, "LEFT", 20, 0)
+    r.text = r:CreateFontString(nil, "OVERLAY")
+    r.text:SetFont(pfUI.font_default, 11, "OUTLINE")
+    r.text:SetPoint("LEFT", r, "LEFT", 40, 0)
+    r:SetScript("OnEnter", function() if this.d and not this.d.head then this.hl:Show() end end)
+    r:SetScript("OnLeave", function() this.hl:Hide() end)
+    r:SetScript("OnClick", function()
+      local d = this.d
+      if not d or d.head then return end
+      if d.action then d.action() else d.set(not d.on()) end
+      GF.PaintMarks()
+    end)
+    marks.rows[i] = r
+    return r
+  end
+  function GF.PaintMarks()
+    if not marks then return end
+    local list = GF.MarkList()
+    for i, d in ipairs(list) do
+      local r = MarkRow(i)
+      r.d = d
+      if d.head then
+        r.box:Hide() r.icon:Hide()
+        r.text:ClearAllPoints()
+        r.text:SetPoint("LEFT", r, "LEFT", 4, 0)
+        r.text:SetText(d.head)
+        r.text:SetTextColor(.6, .75, 1)
+      elseif d.action then
+        r.box:Hide() r.icon:Hide()
+        r.text:ClearAllPoints()
+        r.text:SetPoint("LEFT", r, "LEFT", 4, 0)
+        r.text:SetText(d.label)
+        r.text:SetTextColor(1, .45, .4)
+      else
+        local on = d.on()
+        r.box:SetTexture(on and .3 or .5, on and .9 or .2, on and .4 or .2, 1)
+        r.box:Show()
+        r.icon:SetTexture(d.icon)
+        if r.icon.SetDesaturated then r.icon:SetDesaturated(not on) end
+        r.icon:SetAlpha(on and 1 or .5)
+        r.icon:Show()
+        r.text:ClearAllPoints()
+        r.text:SetPoint("LEFT", r, "LEFT", 40, 0)
+        r.text:SetText(d.label)
+        if on then r.text:SetTextColor(1, 1, 1) else r.text:SetTextColor(.55, .55, .55) end
+      end
+      r:Show()
+    end
+    for i = table.getn(list) + 1, table.getn(marks.rows) do marks.rows[i]:Hide() end
+    marks:SetHeight(table.getn(list) * 18 + 8)
+    return list
+  end
+  if WorldMapButton then
+    local btn = CreateFrame("Button", "pfMapMarksButton", WorldMapButton)
+    GF.marksButton = btn
+    btn:SetWidth(64)
+    btn:SetHeight(20)
+    -- (bottom left: the top left has Zoom Out, the top right pfQuest's menus, the bottom right the coordinates)
+    btn:SetPoint("BOTTOMLEFT", WorldMapButton, "BOTTOMLEFT", 8, 8)
+    btn:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 20)
+    btn:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    btn:SetBackdropColor(0, 0, 0, .7)
+    btn:SetBackdropBorderColor(.3, .3, .35, 1)
+    btn.text = btn:CreateFontString(nil, "OVERLAY")
+    btn.text:SetFont(pfUI.font_default, 11, "OUTLINE")
+    btn.text:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    btn.text:SetText("Marks")
+    marks = CreateFrame("Frame", "pfMapMarks", btn)
+    GF.marks = marks
+    marks.rows = {}
+    marks:SetWidth(190)
+    marks:SetPoint("BOTTOMLEFT", btn, "TOPLEFT", 0, 2)
+    marks:SetFrameLevel(btn:GetFrameLevel() + 2)
+    marks:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    marks:SetBackdropColor(0, 0, 0, .85)
+    marks:SetBackdropBorderColor(.3, .3, .35, 1)
+    marks:EnableMouse(true)
+    marks:Hide()
+    btn:SetScript("OnClick", function()
+      if marks:IsShown() then marks:Hide() else GF.PaintMarks() marks:Show() end
+    end)
+    btn:SetScript("OnEnter", function()
+      WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      WorldMapTooltip:AddLine("Marks on the map")
+      WorldMapTooltip:AddLine("Switch herbs, ore, vendors and the rest on or off. They stay as you set them.", .7, .7, .7, 1)
+      WorldMapTooltip:Show()
+    end)
+    btn:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
+    btn:SetScript("OnUpdate", function()
+      local want = G().mapbutton ~= "0"
+      if want ~= this.shownAs then
+        this.shownAs = want
+        this:SetAlpha(want and 1 or 0)
+        this:EnableMouse(want)
+        if not want then marks:Hide() end
+      end
+    end)
+  end
 
   -- /gather probe: the raw answers, to check this client's call
   function GF.Probe()

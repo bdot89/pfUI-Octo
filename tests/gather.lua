@@ -239,6 +239,40 @@ do
     local ex, ey = MapOf(2100, 900)
     ok(math.abs(x - ex * 1000) < 1 and math.abs(y + ey * 600) < 1, "at its place on the map (" .. tostring(x) .. ", " .. tostring(y) .. ")")
   end
+  -- the Marks list on the map: our kinds and the quest database's lists, each a saved switch
+  do
+    local dbWas, dataWas, trackWas = rawget(_G, "pfDatabase"), rawget(_G, "pfDB"), rawget(_G, "pfQuest_track")
+    local calls = {}
+    _G.pfQuest_track = { herbs = { {}, {} } }
+    _G.pfDB = { meta = { herbs = {}, mines = {}, vendor = {}, zebra = {} } }
+    _G.pfDatabase = { TrackMeta = function(self, name, state)
+      table.insert(calls, name .. "=" .. tostring(state))
+      _G.pfQuest_track[name] = state and { {}, {} } or nil
+    end }
+    local list = GF.MarkList()
+    local by = {}
+    for _, d in ipairs(list) do if d.key then by[d.key] = d end end
+    ok(list[1].action and by.pinherbs and by.pinore and by.pinfish and by["db:herbs"] and by["db:mines"] and by["db:vendor"] and by["db:zebra"] and not by["db:rares"],
+      "the Marks list: Hide everything, our three kinds, and the database's lists that exist")
+    ok(by["db:herbs"].on() == true and by["db:mines"].on() == false and by["db:zebra"].label == "Zebra", "each shows whether it is on")
+    by["db:herbs"].set(false)
+    by["db:mines"].set(true)
+    ok(calls[1] == "herbs=false" and calls[2] == "mines=true" and by["db:herbs"].on() == false and by["db:mines"].on() == true,
+      "a switch turns the database list off / on (kept by pfQuest)")
+    GF.Remember("9:9", "Tin Vein", "Mining", 2400, 800)
+    by.pinherbs.set(false)
+    ok(pfUI_config.gather.pinherbs == "0" and GF.DrawPins() == 1, "remembered herbs off: only the other kinds stay (" .. GF.DrawPins() .. ")")
+    by.pinherbs.set(true)
+    ok(GF.DrawPins() == 4, "and on again")
+    GF.Remember("9:9", "Tin Vein", "Mining", 2400, 800)
+    list[1].action()
+    ok(GF.DrawPins() == 0 and by["db:mines"].on() == false and pfUI_config.gather.pinore == "0", "Hide everything: a clean map")
+    pfUI_config.gather.pinherbs, pfUI_config.gather.pinore, pfUI_config.gather.pinfish = "1", "1", "1"
+    pfUI_cache.gathernodes["9:9"].nodes[4] = nil
+    local good, err = pcall(GF.PaintMarks)
+    ok(good and getglobal("pfMapMarksButton"), "the Marks button and its list draw " .. tostring(err or ""))
+    _G.pfDatabase, _G.pfDB, _G.pfQuest_track = dbWas, dataWas, trackWas
+  end
   pfUI_config.gather.mappins = "0"
   ok(GF.DrawPins() == 0 and not GF.pins[1]:IsShown(), "switched off: no pins")
   pfUI_config.gather.mappins = wasPins
