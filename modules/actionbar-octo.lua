@@ -616,6 +616,12 @@ pfUI:RegisterModule("actionbar-octo", "vanilla:tbc", function ()
     local c = nameOf[slot]
     if c and c.tex == tex then return c.name end
     local name
+    -- never a tooltip scan on a macro: macro add-ons (SuperCleveRoidMacros) work out the
+    -- macro's conditions on every SetAction (Geekoi, 15 Nov 2026: Pick Pocket macros froze)
+    if GetActionText(slot) then
+      nameOf[slot] = { tex = tex }
+      return nil
+    end
     if pfUI.keymap and pfUI.keymap.ActionSpell then
       name = pfUI.keymap.ActionSpell(slot)
     end
@@ -714,7 +720,7 @@ pfUI:RegisterModule("actionbar-octo", "vanilla:tbc", function ()
       scan = CreateFrame("GameTooltip", "pfOctoBarScan", nil, "GameTooltipTemplate")
     end
     local r, g, b = .2, .8, .2
-    if scan.SetAction and f.id then
+    if scan.SetAction and f.id and not GetActionText(f.id) then
       scan:SetOwner(WorldFrame, "ANCHOR_NONE")
       scan:SetAction(f.id)
       local line = _G["pfOctoBarScanTextLeft1"]

@@ -1658,7 +1658,8 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
       end
 
       -- search for reagent requirements
-      if HasAction(slot) then
+      -- octo: no tooltip scan on macros (SuperCleveRoidMacros runs its conditions on each one)
+      if HasAction(slot) and not GetActionText(slot) then
         scanner:SetAction(slot)
         local _, reagents = scanner:Find(reagent_capture)
 
