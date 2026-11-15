@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "transports", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "flight", "flight-options", "autoattack" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "flight", "flight-options", "auction", "auction-window", "auction-options", "autoattack" }
 
 -- ---------------------------------------------------------------- load
 
@@ -3813,7 +3813,7 @@ do
     -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it;
     -- (9 Nov 2026) Questing after it
     -- (11 Nov 2026) Consumables after Gear
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "CoolDownManager" and heads[13] == "Gear" and heads[14] == "Consumables" and heads[15] == "Meters" and heads[16] == "Combat Text" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "CoolDownManager" and heads[13] == "Gear" and heads[14] == "Consumables" and heads[15] == "Auctions" and heads[16] == "Meters" and heads[17] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -6253,6 +6253,7 @@ dofile(DIR .. "/tests/bagcats.lua")
 dofile(DIR .. "/tests/consumes.lua")
 dofile(DIR .. "/tests/cdm.lua")
 dofile(DIR .. "/tests/flight.lua")
+dofile(DIR .. "/tests/auction.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)
 do

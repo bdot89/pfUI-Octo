@@ -57,6 +57,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Gear", { "Gear" } },
     -- (11 Nov 2026, Wolfahrt on Discord: track consumes by character) consumes-options.lua
     { "Consumables", { "Consumables" } },
+    -- (15 Nov 2026, user: our own auction house, "add a section on the side for auctions") auction-options.lua
+    { "Auctions", { "Auctions" } },
     { "Meters", { "Meters" } },
     { "Combat Text", { "Combat Text" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
@@ -78,12 +80,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   O.NAVGROUPS = {
     { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Tooltip" } },
+    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Auctions", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" } }
+  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["Auctions"] = { "auction", "The auction house" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -103,6 +105,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["Consumables"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
+    ["Auctions"] = "Our own auction window: search every page, sell at the going price, your auctions and bids.",
     ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
@@ -1797,8 +1800,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       hh, gap = 15, 2
       rh = math.floor((fit - NAV_TOP - m * hh - math.max(0, m - 1) * gap) / math.max(n, 1))
     end
-    -- rows fill the column (bigger in a tall window), never below 15
-    rh = math.max(15, math.min(32, rh))
+    -- rows fill the column (bigger in a tall window), never below 13 (15 until the Auctions section,
+    -- 15 Nov 2026: 22 sections no longer fitted a 600 px window at 15)
+    rh = math.max(13, math.min(32, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
       if grp.headFrame then

@@ -57,7 +57,10 @@ $DLLS = @(
   @{ Name = "UnitXP_SP3";  Repo = "brues-code/UnitXP_SP3";    File = "UnitXP_SP3.dll" },
   # (on Codeberg, whose release API answers like GitHub's. The noperf build: the full one hung this
   # client at the loading bar. v0.7.1 has no interact module; our build of newer source crashed, 29 Oct)
-  @{ Name = "WeirdUtils";  Repo = "MarcelineVQ/WeirdUtils";   File = "weirdutils_noperf.dll"; Api = "https://codeberg.org/api/v1/repos/"; Site = "codeberg.org/" }
+  @{ Name = "WeirdUtils";  Repo = "MarcelineVQ/WeirdUtils";   File = "weirdutils_noperf.dll"; Api = "https://codeberg.org/api/v1/repos/"; Site = "codeberg.org/" },
+  # (15 Nov 2026, the auction house: lifts the client's 5 s wait between searches, so a search of
+  # every page runs as fast as the server answers. GPL-3, taken from its author's release as it is)
+  @{ Name = "AuctionQueryThrottle"; Repo = "brues-code/AuctionQueryThrottle"; File = "AuctionQueryThrottle.dll" }
   # (the interact key: InteractNearest(), as OctoBG's Interact key calls it - MIT, github.com/lookino/Interact.
   # It extends UnitXP like UnitXP_SP3 does, so it loads after it: new lines go at the end of dlls.txt)
   # (29 Oct 2026: v1.0.4 crashed the game, #132 inside Interact.dll, on every key press here - left out)
