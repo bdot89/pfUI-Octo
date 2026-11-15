@@ -1218,3 +1218,12 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    engine nor window is made). Sidebar rows may now shrink to 13 px (22 sections at a 600 px window).
    Next (not built): saved searches / filter language, tooltip prices, scan-all snapshot, disenchant and vendor
    values, undercut check of your own auctions, bag clicks into the Sell tab, deposit shown. Tests: tests\auction.lua.
+   Phase 2 (15 Nov 2026, NOT seen in game; phase 1's window and searching confirmed in game the same day): AH.ParseQuery
+   (text, base) = "name/word/word; name/word" (exact, usable, uncommon / rare / epic, 20-30, max 1g 20s, a kind of item);
+   AH.Search's 4th argument = more queries run after the first into the same list (row.q = the query a row came
+   from, used to fetch its page again); q.silent = "Read every auction" (prices noted, nothing listed); saved
+   searches in Store().saved (UI.SearchMenu / SearchPick, one menu with recent); AH.Vendor (pfSellData) and
+   AH.Deposit (5% per 2 h: an "about" figure); AH.LowestOther + UI.CheckUndercuts on My auctions (one exact search
+   per item up, red = undercut); AH.TooltipLine via a frame shown with GameTooltip (libtooltip, as sellvalue.lua);
+   UseContainerItem wrapped: right-click a bag item while the window is up = UI.SellKey (C.auction.bagclick).
+   Still not built: disenchant values, a scan snapshot to browse offline, auto-buy rules.

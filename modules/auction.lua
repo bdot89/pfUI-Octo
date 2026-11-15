@@ -153,9 +153,73 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     if q.filter and not q.filter(row) then return false end
     return true
   end
-  function AH.Search(q, onPage, onDone)
+  -- Search text (phase 2, 15 Nov 2026): "name/word/word; another name/word". Words: exact, usable,
+  -- uncommon | rare | epic (and better), 20-30 (levels), max 1g 20s (price each), or a kind of item
+  -- (weapon, armor, trade goods... as the auction house names them). base = the window's own choices.
+  local QUALITY = { uncommon = 2, green = 2, rare = 3, blue = 3, epic = 4, purple = 4 }
+  local function Trim(s) return (string.gsub(s or "", "^%s*(.-)%s*$", "%1")) end
+  function AH.ParseQuery(text, base)
+    local list = {}
+    for part in string.gfind((text or "") .. ";", "(.-);") do
+      part = Trim(part)
+      if part ~= "" or table.getn(list) == 0 then
+        local q = {}
+        for k, v in pairs(base or {}) do q[k] = v end
+        local first = true
+        for word in string.gfind(part .. "/", "(.-)/") do
+          word = Trim(word)
+          local low = string.lower(word)
+          if first then
+            q.name = word
+            first = false
+          elseif low == "exact" then q.exact = true
+          elseif low == "usable" then q.usable = true
+          elseif QUALITY[low] then q.quality = QUALITY[low]
+          elseif string.find(low, "^%d+%s*%-%s*%d+$") then
+            local _, _, a, b = string.find(low, "^(%d+)%s*%-%s*(%d+)$")
+            q.minLevel, q.maxLevel = tonumber(a), tonumber(b)
+          elseif string.find(low, "^max%s") or string.find(low, "^[%d%.]+%s*[gsc]") then
+            q.maxUnit = AH.ParseMoney((string.gsub(low, "^max%s*", ""))) or q.maxUnit
+          elseif low ~= "" and GetAuctionItemClasses then
+            for i, name in ipairs({ GetAuctionItemClasses() }) do
+              if type(name) == "string" and string.find(string.lower(name), low, 1, true) == 1 then q.class = i break end
+            end
+          end
+        end
+        if q.exact and (not q.name or q.name == "") then q.exact = nil end
+        table.insert(list, q)
+      end
+    end
+    return list
+  end
+  -- vendor price each (pfUI's own table), and about what posting costs: 5% of it per 2 hours
+  function AH.Vendor(key)
+    local _, _, id = string.find(key or "", "^(%d+)")
+    local data = id and rawget(_G, "pfSellData")
+    local line = type(data) == "table" and data[tonumber(id)]
+    if type(line) ~= "string" then return nil end
+    local _, _, sell = string.find(line, "^(%-?%d+)")
+    sell = tonumber(sell)
+    if sell and sell > 0 then return sell end
+  end
+  function AH.Deposit(key, count, hours)
+    local v = AH.Vendor(key)
+    if not v then return nil end
+    return math.floor(v * (count or 1) * .05 * ((AH.HOURS[tonumber(hours) or 24] or 1440) / 120))
+  end
+  -- the cheapest buyout each among the rows held, others' only
+  function AH.LowestOther(key)
+    local low
+    local me = UnitName("player")
+    for _, r in ipairs(AH.rows) do
+      if r.key == key and r.unit and r.owner ~= me and (not low or r.unit < low) then low = r.unit end
+    end
+    return low
+  end
+  -- queue = more searches to run after q, their rows joining the same list
+  function AH.Search(q, onPage, onDone, queue)
     AH.rows, AH.total = {}, 0
-    AH.scan = { q = q or {}, page = (q and q.page) or 0, state = "wait", tries = 0, onPage = onPage, onDone = onDone, pages = 0 }
+    AH.scan = { q = q or {}, page = (q and q.page) or 0, state = "wait", tries = 0, onPage = onPage, onDone = onDone, pages = 0, queue = queue }
     AH.query = AH.scan.q
     return AH.scan
   end
@@ -191,7 +255,9 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       local row = AH.Read("list", i, s.page)
       if row then
         if row.unit then AH.Record(row.key, row.unit) end
-        if Fits(s.q, row) then table.insert(AH.rows, row) end
+        row.q = s.q
+        s.seen = (s.seen or 0) + 1
+        if not s.q.silent and Fits(s.q, row) then table.insert(AH.rows, row) end
       end
     end
     AH.total = total
@@ -199,8 +265,15 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     s.tries = 0
     if s.onPage then s.onPage(s) end
     if s.q.first or s.page + 1 >= s.pages or batch == 0 then
-      AH.scan = nil
-      if s.onDone then s.onDone("done", s) end
+      -- (several searches in a row: the next one starts, its rows join the others)
+      local nextq = s.queue and table.remove(s.queue, 1)
+      if nextq then
+        s.q, s.page, s.state, s.done = nextq, 0, "wait", (s.done or 0) + 1
+        AH.query = nextq
+      else
+        AH.scan = nil
+        if s.onDone then s.onDone("done", s) end
+      end
     else
       s.page, s.state = s.page + 1, "wait"
     end
@@ -245,7 +318,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
   function AH.Buy(row, how)
     local why = AH.CanBuy(row, how)
     if why ~= "ok" then return false, why end
-    if row.kind ~= "list" or (AH.listPage == row.page and AH.listQuery == AH.query and not AH.scan) then
+    if row.kind ~= "list" or (AH.listPage == row.page and AH.listQuery == (row.q or AH.query) and not AH.scan) then
       if Place(row, how) then return true end
       if row.kind ~= "list" then return false, "it is gone" end
     end
@@ -260,7 +333,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     if not f or not p then AH.fetch, AH.pending = nil, nil return end
     if f.state == "wait" then
       if CanSendAuctionQuery() then
-        local q = AH.query or {}
+        local q = p.row.q or AH.query or {}
         QueryAuctionItems(q.name or "", q.minLevel, q.maxLevel, q.slot, q.class, q.subclass, p.row.page, q.usable and 1 or nil, q.quality)
         f.state, f.sentAt = "sent", now
         AH.listPage, AH.listQuery = p.row.page, q
@@ -471,6 +544,30 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     f:UnregisterEvent("AUCTION_HOUSE_SHOW")
     f:SetScript("OnHide", nil)
   end
+  -- an item's usual auction price in its tooltip (as pfUI's vendor price is added: a frame that shows with the tooltip)
+  function AH.TooltipLine(link, count)
+    if S().tooltip == "0" then return nil end
+    local key = AH.ItemKey(link)
+    local value, days = AH.Value(key)
+    if not value then return nil end
+    count = math.max(1, tonumber(count) or 1)
+    return "Auction:", AH.Money(value) .. (count > 1 and ("|cff555555  //  |r" .. AH.Money(value * count)) or "")
+      .. "|cff777777  (" .. days .. (days == 1 and " day)" or " days)") .. "|r"
+  end
+  if GameTooltip and libtooltip and libtooltip.GetItemLink then
+    local tip = CreateFrame("Frame", nil, GameTooltip)
+    AH.tip = tip
+    tip:SetScript("OnShow", function()
+      local link = libtooltip:GetItemLink()
+      if not link then return end
+      local left, right = AH.TooltipLine(link, libtooltip.GetItemCount and libtooltip:GetItemCount())
+      if left then
+        GameTooltip:AddDoubleLine(left, right, .6, .8, 1, 1, 1, 1)
+        GameTooltip:Show()
+      end
+    end)
+  end
+
   local ev = CreateFrame("Frame")
   AH.ev = ev
   for _, e in ipairs({ "AUCTION_HOUSE_SHOW", "AUCTION_HOUSE_CLOSED", "AUCTION_ITEM_LIST_UPDATE", "AUCTION_OWNED_LIST_UPDATE",

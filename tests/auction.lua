@@ -225,6 +225,48 @@ table.remove(view, 1)
 ok(AH.Cancel(owned[2]) and cancelled == 1, "cancelling finds it where it is now")
 ok(AH.Cancel(owned[1]) == false, "one that is gone is not cancelled by mistake")
 
+-- phase 2: search words, several searches in a row, reading everything, deposit, tooltip
+do
+  local cw = rawget(_G, "GetAuctionItemClasses")
+  _G.GetAuctionItemClasses = function() return "Weapon", "Armor", "Container", "Consumable", "Trade Goods" end
+  local list = AH.ParseQuery("Linen Cloth/exact; silk cloth/max 2s 50c; /rare/40-50/weapon/usable", { quality = 2 })
+  ok(table.getn(list) == 3 and list[1].name == "Linen Cloth" and list[1].exact and list[1].quality == 2, "search words: three searches, the first exact (the window's quality kept)")
+  ok(list[2].name == "silk cloth" and list[2].maxUnit == 250 and not list[2].exact, "a price cap each")
+  ok(list[3].name == "" and list[3].quality == 3 and list[3].minLevel == 40 and list[3].maxLevel == 50 and list[3].class == 1 and list[3].usable,
+    "no name: rare and better, levels 40-50, weapons, usable")
+  ok(table.getn(AH.ParseQuery("")) == 1 and AH.ParseQuery("")[1].name == "", "an empty box is one search for everything")
+  _G.GetAuctionItemClasses = cw
+  -- two searches in a row join one list
+  local done
+  local q2 = AH.ParseQuery("Linen Cloth/exact; Linen Bandage/exact")
+  queries = 0
+  AH.Search(table.remove(q2, 1), nil, function() done = true end, q2)
+  for i = 1, 6 do AH.ScanTick(now) Answer() if not AH.Searching() then break end end
+  local bandage, cloth = 0, 0
+  for _, r in ipairs(AH.rows) do if r.name == "Linen Bandage" then bandage = bandage + 1 else cloth = cloth + 1 end end
+  ok(done and bandage == 1 and cloth > 100 and queries >= 4, "two searches run one after the other into one list (" .. cloth .. " + " .. bandage .. ")")
+  ok(AH.rows[1].q and AH.rows[1].q.name == "Linen Cloth", "each row knows the search it came from (to fetch its page again)")
+  local mineWas = view
+  ok(AH.LowestOther("2589") ~= nil and AH.LowestOther("nothing") == nil, "the cheapest other seller of an item")
+  -- reading everything: prices noted, nothing listed
+  local st
+  AH.Search({ silent = true }, nil, function(why, s) st = s end)
+  for i = 1, 4 do AH.ScanTick(now) Answer() if not AH.Searching() then break end end
+  ok(st and st.seen == table.getn(ALL) and table.getn(AH.rows) == 0, "reading every auction lists nothing and reads them all (" .. tostring(st and st.seen) .. ")")
+  -- deposit from the vendor price
+  local sellWas = rawget(_G, "pfSellData")
+  _G.pfSellData = { [2589] = "13,55" }
+  ok(AH.Vendor("2589") == 13 and AH.Vendor("1") == nil and AH.Deposit("2589", 20, 24) == math.floor(13 * 20 * .05 * 12) and AH.Deposit("2589", 20, 2) == 13,
+    "deposit: 5% of the vendor price per 2 hours (" .. tostring(AH.Deposit("2589", 20, 24)) .. ")")
+  _G.pfSellData = sellWas
+  -- the tooltip line
+  local left, right = AH.TooltipLine("|Hitem:2589:0:0:0|h[Linen Cloth]|h", 20)
+  ok(left == "Auction:" and string.find(right, "//", 1, true) and AH.TooltipLine("|Hitem:77:0:0:0|h[x]|h", 1) == nil, "an item's usual price for its tooltip, each and for the stack")
+  S.tooltip = "0"
+  ok(AH.TooltipLine("|Hitem:2589:0:0:0|h[Linen Cloth]|h", 20) == nil, "switched off: no line")
+  S.tooltip = "1"
+end
+
 -- another auction add-on on: ours stands aside
 _G.IsAddOnLoaded = function(n) return n == "aux-addon" and 1 or nil end
 ok(AH.Other() == "aux-addon" and AH.Active() == false, "with aux switched on ours stands aside")
@@ -260,6 +302,35 @@ do
   ok(okay2 and tostring(UI.pages.sell.size:GetText()) == "12" and AH.ParseMoney(UI.pages.sell.buyp:GetText()) == 90, "Sell: your last stack size and the usual price are filled in " .. tostring(err2 or "") .. " [" .. tostring(UI.pages.sell.size:GetText()) .. " / " .. tostring(UI.pages.sell.buyp:GetText()) .. " / " .. tostring(AH.Value("2589")) .. "]")
   local nums = UI.SellNumbers()
   ok(nums and nums.size == 12 and nums.stacks == 1 and nums.buy == 90 and nums.bid == 85, "the starting price follows the buyout (95%)")
+  -- saved searches
+  UI.pages.browse.name:SetText("linen cloth/exact")
+  UI.SearchPick("!save")
+  local st = AH.Store()
+  ok(st.saved[1] == "linen cloth/exact" and UI.SearchMenu()[3].key == "s:linen cloth/exact", "a search is saved and offered in the menu")
+  UI.SearchPick("!save")
+  ok(table.getn(st.saved) == 1, "not twice")
+  UI.forgetNext = true
+  UI.SearchPick("s:linen cloth/exact")
+  ok(table.getn(st.saved) == 0, "and removed again")
+  -- a bag item right-clicked goes to the Sell tab
+  UI.Open("browse")
+  AH.open = true
+  getglobal("pfAuction"):Show()
+  S.autolookup = "0"
+  ok(UI.SellKey("2589") == true and UI.tab == "sell" and UI.sell and UI.sell.key == "2589", "an item of your bags is put on the Sell tab")
+  ok(UI.SellKey("424242") == false, "one that is not there (soulbound) is refused")
+  S.autolookup = "1"
+  -- undercut check: your auctions against the others'
+  view = { { "Linen Cloth", 2589, 10, 900, 5000, 0, "Me" } }
+  local ownedView = view
+  local realNum, realInfo = _G.GetNumAuctionItems, _G.GetAuctionItemInfo
+  local okay3, err3 = pcall(function()
+    UI.Open("owner")
+    UI.CheckUndercuts()
+    for i = 1, 5 do AH.ScanTick(now) Answer() if not AH.Searching() then break end end
+  end)
+  ok(okay3 and UI.checked, "the undercut check runs a search per item you have up " .. tostring(err3 or ""))
+  ok(AH.LowestOther("2589") and AH.LowestOther("2589") < 500, "and knows the cheapest other seller (" .. tostring(AH.LowestOther("2589")) .. " each against your 500)")
   getglobal("pfAuction"):Hide()
 end
 

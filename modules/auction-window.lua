@@ -319,12 +319,14 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     return col .. math.floor(p + .5) .. "%|r"
   end
   local function Search(first)
-    local name = B.name:GetText()
-    local q = { name = name, minLevel = tonumber(B.min:GetText()), maxLevel = tonumber(B.max:GetText()), quality = UI.q.quality,
-      class = UI.q.class, usable = UI.q.usable, exact = UI.q.exact and name ~= "", first = first,
-      maxUnit = AH.ParseMoney(B.maxp:GetText()) }
-    UI.Recent(name)
-    AH.Search(q, function(s) UI.Status() end, function(why) UI.Status(why) end)
+    local text = B.name:GetText()
+    -- (the box may hold several searches and words: "linen cloth/exact; silk cloth/max 2s" - AH.ParseQuery;
+    -- the buttons and boxes beside it apply to each of them)
+    local list = AH.ParseQuery(text, { minLevel = tonumber(B.min:GetText()), maxLevel = tonumber(B.max:GetText()), quality = UI.q.quality,
+      class = UI.q.class, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first, maxUnit = AH.ParseMoney(B.maxp:GetText()) })
+    UI.Recent(text)
+    local q = table.remove(list, 1)
+    AH.Search(q, function(s) UI.Status() end, function(why) UI.Status(why) end, list)
     UI.Status()
   end
   UI.Search = Search
@@ -387,11 +389,15 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.buy:SetPoint("TOPRIGHT", B.list, "BOTTOMRIGHT", 0, -4)
   B.bid = Btn(B, "Bid", 190, function() UI.Buy("bid") end, "Bid on the picked auction. Ctrl + click a row does it in one go.")
   B.bid:SetPoint("RIGHT", B.buy, "LEFT", -6, 0)
+  B.allAt = B.bid
   function UI.Status(why)
     local s = AH.scan
     local n = table.getn(AH.rows)
     if s then
-      B.status:SetText("Searching: page " .. (s.page + 1) .. (s.pages > 0 and (" of " .. s.pages) or "") .. "   " .. n .. " found so far")
+      local more = s.queue and table.getn(s.queue) or 0
+      B.status:SetText((s.q.silent and "Reading every auction: page " or "Searching: page ") .. (s.page + 1) .. (s.pages > 0 and (" of " .. s.pages) or "")
+        .. (s.q.silent and ("   " .. (s.seen or 0) .. " read") or ("   " .. n .. " found so far"))
+        .. (more > 0 and ("   " .. more .. " more to search") or ""))
       B.go.text:SetText("Stop")
     else
       B.status:SetText((why and why ~= "done") and (n .. " found (" .. why .. ")") or (n .. " found" .. (AH.total > 0 and (" in " .. AH.total .. " auctions") or "")))
@@ -431,18 +437,65 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     table.insert(st.recent, 1, name)
     while table.getn(st.recent) > 15 do table.remove(st.recent) end
   end
-  B.recent = Btn(B, "Recent", 60, function(b)
-    local W = pfUI.octoui and pfUI.octoui.W
-    local list = AH.Store().recent or {}
-    if not W or not W.Menu or table.getn(list) == 0 then return end
+  -- saved and recent searches in one menu ("s:" / "r:" + the text; the two actions on top)
+  function UI.SearchMenu()
+    local st = AH.Store()
+    st.saved = st.saved or {}
     local opts = {}
-    for _, n in ipairs(list) do table.insert(opts, { key = n, label = n }) end
+    local text = B.name:GetText()
+    if text ~= "" then table.insert(opts, { key = "!save", label = "|cff40e060Save:|r " .. text }) end
+    if table.getn(st.saved) > 0 then
+      table.insert(opts, { key = "!forget", label = "|cffff7060Remove a saved search...|r" })
+      for _, n in ipairs(st.saved) do table.insert(opts, { key = "s:" .. n, label = "|cffffd24d*|r " .. n }) end
+    end
+    for _, n in ipairs(st.recent or {}) do table.insert(opts, { key = "r:" .. n, label = n }) end
+    return opts
+  end
+  function UI.SearchPick(key)
+    local st = AH.Store()
+    st.saved = st.saved or {}
+    if key == "!save" then
+      local text = B.name:GetText()
+      for _, n in ipairs(st.saved) do if n == text then return end end
+      table.insert(st.saved, text)
+      UI.Note("Saved: " .. text)
+    elseif key == "!forget" then
+      UI.forgetNext = true
+      UI.Note("Pick the saved search to remove from the menu.")
+      B.recent.fn(B.recent)
+    else
+      local text = string.sub(key, 3)
+      if UI.forgetNext and string.sub(key, 1, 2) == "s:" then
+        for i, n in ipairs(st.saved) do if n == text then table.remove(st.saved, i) break end end
+        UI.Note("Removed: " .. text)
+      else
+        B.name:SetText(text)
+        Search()
+      end
+      UI.forgetNext = nil
+    end
+  end
+  B.recent = Btn(B, "Saved", 60, function(b)
+    local W = pfUI.octoui and pfUI.octoui.W
+    local opts = UI.SearchMenu()
+    if not W or not W.Menu or table.getn(opts) == 0 then return end
     if W.CloseMenus then W.CloseMenus() end
-    local m = W.Menu(b, opts, 200, function(key) B.name:SetText(key) Search() end)
+    local m = W.Menu(b, opts, 260, UI.SearchPick)
     if m and m.Show then m:Show() end
-  end, "Your last searches.")
+  end, "Your saved and last searches; save the one in the box. A search can be several at once, with words: "
+    .. "linen cloth/exact; silk cloth/max 2s; /rare/40-50/weapon")
   B.recent:SetPoint("LEFT", B.go, "RIGHT", 6, 0)
+  B.all = Btn(B, "Read every auction", 150, function()
+    if AH.Searching() then AH.Stop() return end
+    AH.Search({ silent = true }, function() UI.Status() end, function(why, s)
+      UI.Status(why)
+      UI.Note("Read " .. ((s and s.seen) or 0) .. " auctions: " .. AH.Known() .. " items have a price now.")
+    end)
+    UI.Status()
+  end, "Goes through the whole auction house once to note what everything sells for (nothing is listed). "
+    .. "Fast with the AuctionQueryThrottle DLL; a page every 5 seconds without it.")
   UI.lists.browse = B.list
+  B.all:SetPoint("RIGHT", B.allAt, "LEFT", -6, 0)
 
   -- ---------------------------------------------------------------- Sell
 
@@ -593,7 +646,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     elseif n then
       P.sum:SetText(n.stacks .. (n.stacks == 1 and " stack of " or " stacks of ") .. n.size .. "   each stack: start " .. AH.Money(n.bid * n.size)
         .. (n.buy > 0 and ("   buyout " .. AH.Money(n.buy * n.size)) or "   no buyout")
-        .. (n.buy > 0 and ("   |cff9a9aa0all sold = " .. AH.Money(n.buy * n.size * n.stacks, true) .. "|r") or ""))
+        .. (n.buy > 0 and ("   |cff9a9aa0all sold = " .. AH.Money(n.buy * n.size * n.stacks, true) .. "|r") or "")
+        .. (function()
+          -- (from the vendor price: 5% per 2 hours at a faction auction house; the neutral ones and this server may differ)
+          local dep = AH.Deposit(d.key, n.size * n.stacks, UI.hours)
+          return dep and dep > 0 and ("   |cff9a9aa0deposit about " .. AH.Money(dep, true) .. "|r") or ""
+        end)())
       P.post.text:SetText("Post " .. n.stacks .. " x " .. n.size)
       P.post.Able(true)
     else
@@ -615,13 +673,17 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   -- ---------------------------------------------------------------- My auctions / My bids
 
   local O = UI.pages.owner
-  O.list = NewList(O, { { "Item", 320, "LEFT", "name" }, { "Time left", 90, "LEFT", "left" }, { "High bid", 120, "RIGHT", "bid" },
-    { "Starting", 110, "RIGHT", "minBid" }, { "Buyout", 120, "RIGHT", "buyout" } }, 23, function(r, d)
+  O.list = NewList(O, { { "Item", 270, "LEFT", "name" }, { "Time left", 86, "LEFT", "left" }, { "High bid", 104, "RIGHT", "bid" },
+    { "Buyout", 104, "RIGHT", "buyout" }, { "Each", 96, "RIGHT", "unit" }, { "Cheapest other", 130, "RIGHT", "other" } }, 23, function(r, d)
     ItemCell(r, d, d.count)
     r.cell[2]:SetText(AH.LEFT[d.left] or "")
     r.cell[3]:SetText(d.bid > 0 and AH.Money(d.bid) or "|cff808080no bid|r")
-    r.cell[4]:SetText(AH.Money(d.minBid))
-    r.cell[5]:SetText(d.buyout > 0 and AH.Money(d.buyout) or "|cff808080-|r")
+    r.cell[4]:SetText(d.buyout > 0 and AH.Money(d.buyout) or "|cff808080-|r")
+    r.cell[5]:SetText(d.unit and AH.Money(d.unit) or "")
+    -- (after "Check for undercuts": someone cheaper = red, you are the cheapest = green)
+    if not d.other then r.cell[6]:SetText(UI.checked and "|cff40e060none|r" or "")
+    elseif d.unit and d.other < d.unit then r.cell[6]:SetText("|cffff6050" .. AH.Money(d.other, true) .. "  undercut|r")
+    else r.cell[6]:SetText("|cff40e060" .. AH.Money(d.other, true) .. "|r") end
     r.cell[2]:SetTextColor(.8, .8, .84)
   end, function() UI.PaintOwner() end)
   O.list:SetPoint("TOPLEFT", O, "TOPLEFT", 0, 0)
@@ -636,6 +698,33 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   O.sumText:SetPoint("TOPLEFT", O.list, "BOTTOMLEFT", 4, -8)
   O.sumText:SetTextColor(.62, .62, .67)
   function UI.PaintOwner() O.cancel.Able(O.list.sel ~= nil) end
+  -- one exact search per different item you have up, then every row shows the cheapest other seller
+  function UI.CheckUndercuts()
+    if AH.Searching() then AH.Stop() return end
+    local list, seen = {}, {}
+    for _, r in ipairs(AH.Owned()) do
+      if not seen[r.name] then
+        seen[r.name] = true
+        table.insert(list, { name = r.name, exact = true })
+      end
+    end
+    if table.getn(list) == 0 then UI.Note("You have no auctions up.") return end
+    local n = table.getn(list)
+    local q = table.remove(list, 1)
+    AH.Search(q, function(s) UI.Note("Checking prices: " .. ((s.done or 0) + 1) .. " of " .. n .. "...") end, function()
+      UI.checked = true
+      local cut = 0
+      for _, r in ipairs(AH.Owned()) do
+        local other = AH.LowestOther(r.key)
+        if other and r.unit and other < r.unit then cut = cut + 1 end
+      end
+      UI.Note(cut == 0 and "Nobody is under your prices." or (cut .. (cut == 1 and " auction is" or " auctions are") .. " undercut (red)."))
+      UI.Refresh()
+    end, list)
+  end
+  O.check = Btn(O, "Check for undercuts", 190, function() UI.CheckUndercuts() end,
+    "Searches the auction house for each item you have up and shows the cheapest other seller beside it: red where someone is under you.")
+  O.check:SetPoint("RIGHT", O.cancel, "LEFT", -6, 0)
   UI.lists.owner = O.list
   local D = UI.pages.bidder
   D.list = NewList(D, { { "Item", 300, "LEFT", "name" }, { "Time left", 90, "LEFT", "left" }, { "Seller", 110, "LEFT", "owner" },
@@ -684,7 +773,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       for _, r in ipairs(rows) do
         total = total + r.buyout
         if r.bid > 0 then bids = bids + 1 end
+        r.other = UI.checked and AH.LowestOther(r.key) or nil
       end
+      O.list.Paint()
       O.sumText:SetText(table.getn(rows) .. " auctions   " .. bids .. " with a bid   all buyouts together: " .. AH.Money(total))
       UI.PaintOwner()
     elseif UI.tab == "bidder" then
@@ -714,6 +805,32 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     UI.Open(S().lasttab == "1" and UI.tab or "browse")
   end
   function AH.Hide() f:Hide() end
+  -- an item of your bags onto the Sell tab (by its key); false = it cannot be auctioned
+  function UI.SellKey(key)
+    UI.Open("sell")
+    for _, e in ipairs(UI.bagList or {}) do
+      if e.key == key then
+        P.items.sel = e
+        UI.PickSell(e)
+        P.items.Paint()
+        return true
+      end
+    end
+    UI.Note("That cannot be auctioned (soulbound).")
+    return false
+  end
+  -- right-click an item in your bags while the window is up: it goes to the Sell tab instead of being used
+  local use = _G.UseContainerItem
+  if type(use) == "function" and not UI.useWrapped then
+    UI.useWrapped = true
+    _G.UseContainerItem = function(bag, slot, onSelf)
+      if AH.open and f:IsShown() and S().bagclick ~= "0" then
+        local key = AH.ItemKey(GetContainerItemLink(bag, slot))
+        if key then UI.SellKey(key) return end
+      end
+      return use(bag, slot, onSelf)
+    end
+  end
   f:SetScript("OnHide", function()
     if AH.open then
       AH.open = false

@@ -48,6 +48,8 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
     W.Card(p, "Window", { icon = "Interface\\Icons\\INV_Misc_Note_01", tip = "Drag its title bar to move it; the place is kept." })
     O.PfSld(p, "Size", nil, .6, 1.4, .05, G, "scale", nil, Pct)
     O.PfChk(p, "Open on the tab I was on", "Off: it always opens on Browse.", G, "lasttab")
+    O.PfChk(p, "Right-click a bag item to sell it", "While the auction window is up, right-clicking an item in your bags puts it on the Sell tab.", G, "bagclick")
+    O.PfChk(p, "Auction price in item tooltips", "An item's usual auction price (each, and for the stack) in its tooltip, everywhere.", G, "tooltip")
     W.Buttons(p, { { "Back to its first place", function() G().x, G().y = "", "" end, 170, "Forget where you dragged the window." } })
 
     W.Card(p, "Speed", { icon = "Interface\\Icons\\Spell_Nature_TimeStop", tip = "Why a full search is fast or slow." })
@@ -67,6 +69,10 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
         DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r auction house: click Forget all prices again within 3 s.")
       end
     end, 150, "Click twice: the price history of this realm and faction is dropped.", role = "off" } })
+    W.Note(p, "Search words: the search box takes several searches at once, split by \";\", each with words after \"/\": "
+      .. "|cffffffffexact|r, |cffffffffusable|r, |cffffffffuncommon|r / |cffffffffrare|r / |cffffffffepic|r (and better), "
+      .. "|cffffffff20-30|r (levels), |cffffffffmax 1g 20s|r (price each), or a kind of item (|cffffffffweapon|r, |cffffffffarmor|r...). "
+      .. "Example: |cffffd24dlinen cloth/exact; silk cloth/max 2s; /rare/40-50/weapon|r. \"Saved\" keeps the ones you use often.")
     W.Note(p, "In the window: Alt + click a row buys it out at once, Ctrl + click bids, Shift + click links the item in chat. "
       .. "\"Game window\" in its title bar shows the game's own auction window beside it.")
   end
