@@ -328,7 +328,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     UI.Status()
   end
   UI.Search = Search
-  B.name = Edit(B, 220, function() Search() end, "Item name (Enter = search)")
+  B.name = Edit(B, 190, function() Search() end, "Item name (Enter = search)")
   B.name:SetPoint("TOPLEFT", B, "TOPLEFT", 0, 0)
   B.min = Edit(B, 34, function() Search() end, "lvl")
   B.min:SetPoint("LEFT", B.name, "RIGHT", 6, 0)
@@ -336,13 +336,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.max:SetPoint("LEFT", B.min, "RIGHT", 4, 0)
   B.maxp = Edit(B, 86, function() Search() end, "max each")
   B.maxp:SetPoint("LEFT", B.max, "RIGHT", 6, 0)
-  B.quality = Btn(B, "Any quality", 92, function(b)
+  B.quality = Btn(B, "Any quality", 88, function(b)
     UI.qi = math.mod(UI.qi or 1, table.getn(UI.QUALITY)) + 1
     UI.q.quality = UI.QUALITY[UI.qi][1]
     b.text:SetText(UI.QUALITY[UI.qi][2])
   end, "Click to step: any, uncommon and better, rare and better, epic and better.")
   B.quality:SetPoint("LEFT", B.maxp, "RIGHT", 6, 0)
-  B.class = Btn(B, "Any kind", 110, function(b)
+  B.class = Btn(B, "Any kind", 100, function(b)
     local W = pfUI.octoui and pfUI.octoui.W
     if not W or not W.Menu or not GetAuctionItemClasses then return end
     local opts = { { key = 0, label = "Any kind" } }
@@ -359,7 +359,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.usable:SetPoint("LEFT", B.class, "RIGHT", 6, 0)
   B.exact = Btn(B, "Exact", 54, function(b) UI.q.exact = not UI.q.exact b.Lit(UI.q.exact) end, "Only the item with exactly this name.")
   B.exact:SetPoint("LEFT", B.usable, "RIGHT", 6, 0)
-  B.go = Btn(B, "Search", 76, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop.")
+  B.go = Btn(B, "Search", 66, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop.")
   B.go:SetPoint("LEFT", B.exact, "RIGHT", 6, 0)
   B.list = NewList(B, { { "Item", 290, "LEFT", "name" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
     { "Seller", 100, "LEFT", "owner" }, { "Bid each", 104, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
@@ -431,7 +431,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     table.insert(st.recent, 1, name)
     while table.getn(st.recent) > 15 do table.remove(st.recent) end
   end
-  B.recent = Btn(B, "Recent", 66, function(b)
+  B.recent = Btn(B, "Recent", 60, function(b)
     local W = pfUI.octoui and pfUI.octoui.W
     local list = AH.Store().recent or {}
     if not W or not W.Menu or table.getn(list) == 0 then return end
