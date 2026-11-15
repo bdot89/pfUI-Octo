@@ -79,6 +79,8 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
     Chk(p, "Remember the nodes I pass", "Herbs, veins and pools the finder sees are kept with their place.", "record")
     Chk(p, "Show them on the world map", "A small flower, pick or fish where each one was seen; hover for its name.", "mappins",
       function() GF.pinsDirty = true end)
+    Chk(p, "Share with other pfUI Octo players", "Nodes you find go to your guild and your group, and theirs come to you, "
+      .. "so one player's walk fills the map for everyone. Hover a pin to see who found it.", "share")
     Sld(p, "Pin size", nil, 6, 24, 1, "pinsize", O.Px, function() GF.pinsDirty = true end)
     W.Live(p, function()
       local nodes, zones = GF.Count()
@@ -89,8 +91,12 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
         here = "   This zone: " .. table.getn(z.nodes) .. (z.fit and "" or "  |cffffcc00(walk about 40 yards each way so the map can place them)|r")
       end
       return "Remembered: |cffffffff" .. nodes .. "|r nodes in |cffffffff" .. zones .. "|r zones." .. here
+        .. ((GF.got or 0) > 0 and ("   From others this session: |cffffffff" .. GF.got .. "|r") or "")
     end)
     W.Buttons(p, {
+      { "Ask for this zone's", function()
+        if not GF.Ask(true) then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r gathering: sharing is off, or the world map is open.") end
+      end, 150, "Asks your guild and group for the nodes they remember in the zone you are in. It also asks by itself when you enter a zone." },
       { "Forget this zone's", function() GF.Forget() end, 150, "Drops the nodes remembered in the zone you are in.", role = "off" },
       { "Forget all", function()
         if GF.sureAt and GetTime() < GF.sureAt then GF.sureAt = nil GF.Forget(true)

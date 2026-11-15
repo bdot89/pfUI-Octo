@@ -706,7 +706,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   end
 
   -- a node seen at a world position: new, or one already kept
-  function GF.Remember(key, name, prof, wx, wy)
+  function GF.Remember(key, name, prof, wx, wy, from)
     local z = Zone(key)
     for _, n in ipairs(z.nodes) do
       if n[1] == name then
@@ -714,8 +714,9 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         if dx * dx + dy * dy < SAME * SAME then return false end
       end
     end
-    table.insert(z.nodes, { name, prof, wx, wy })
+    table.insert(z.nodes, { name, prof, wx, wy, from })
     GF.pinsDirty = true
+    if not from and GF.Tell then GF.Tell(key, name, prof, wx, wy) end
     return true
   end
   function GF.RecordFound(px, py)
@@ -757,7 +758,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     p:SetScript("OnEnter", function()
       WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
       WorldMapTooltip:AddLine(this.name)
-      WorldMapTooltip:AddLine("Seen here by pfUI's gathering finder", .7, .7, .7)
+      WorldMapTooltip:AddLine(this.from and ("Seen here by " .. this.from) or "Seen here by pfUI's gathering finder", .7, .7, .7)
       WorldMapTooltip:Show()
     end)
     p:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
@@ -777,7 +778,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         if mx > 0 and mx < 1 and my > 0 and my < 1 and shown < 400 then
           shown = shown + 1
           local p = Pin(shown)
-          p.name = n[1]
+          p.name, p.from = n[1], n[5]
           p.tex:SetTexture(PINICON[n[2]] or (GF.PROF[n[2]] and GF.PROF[n[2]].icon) or "Interface\\Icons\\INV_Misc_Bag_10")
           p:SetWidth(size)
           p:SetHeight(size)
@@ -807,7 +808,141 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   zoneWatch:RegisterEvent("PLAYER_ENTERING_WORLD")
   zoneWatch:SetScript("OnEvent", function()
     if On("record") and SetMapToCurrentZone and not (WorldMapFrame and WorldMapFrame:IsShown()) then SetMapToCurrentZone() end
+    GF.askAt = GetTime() + 8
   end)
+
+  -- ---------------------------------------------------------------- nodes shared
+  -- (15 Nov 2026; user: "share nodes" - no database has Moonwhisper's herbs, so one player's walk
+  -- should fill the map for the others.) Over the addon channel (guild, and raid or party), prefix pfGN:
+  --   N|locale|zone|name|prof|wx|wy            a node just found
+  --   Q|locale|zone|count|fit                  entering a zone: how many I have, 1 = I can place them
+  --   D|locale|zone|name~prof~wx~wy;...        an answer in parts, from one who has more (after 1-4 s,
+  --                                            dropped when someone else answers first)
+  --   F|locale|zone|xi|yi|ax|cx|ay|cy          the zone's fit, for one who has none yet
+  -- World positions are the same for everyone; zone numbers follow the client's language, so another
+  -- language is ignored. Everything received is checked (numbers, lengths, how many).
+  local PREFIX, GAP, ZONEMAX, ASKEVERY = "pfGN", .35, 1500, 600
+  local out, sendAt, replies = {}, 0, {}
+  GF.asked, GF.got = {}, 0
+  local function Split(text, sep)
+    local list = {}
+    for part in string.gfind(text .. sep, "(.-)" .. sep) do table.insert(list, part) end
+    return list
+  end
+  local function Channels()
+    local list = {}
+    if IsInGuild and IsInGuild() then table.insert(list, "GUILD") end
+    if GetNumRaidMembers and GetNumRaidMembers() > 0 then table.insert(list, "RAID")
+    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(list, "PARTY") end
+    return list
+  end
+  local function Sharing() return On("record") and On("share") and type(SendAddonMessage) == "function" end
+  local function Queue(msg)
+    if table.getn(out) < 400 then table.insert(out, msg) end
+  end
+  local function Locale() return GetLocale and GetLocale() or "enUS" end
+  local function NodeText(n) return n[1] .. "~" .. n[2] .. "~" .. string.format("%.0f", n[3]) .. "~" .. string.format("%.0f", n[4]) end
+  function GF.Tell(key, name, prof, wx, wy)
+    if not Sharing() then return end
+    Queue("N|" .. Locale() .. "|" .. key .. "|" .. NodeText({ name, prof, wx, wy }))
+  end
+  function GF.Ask(force)
+    if not Sharing() then return false end
+    local key = GF.ZoneKey()
+    if not key then return false end
+    local now = GetTime()
+    if not force and GF.asked[key] and now - GF.asked[key] < ASKEVERY then return true end
+    GF.asked[key] = now
+    local z = Store()[key]
+    Queue("Q|" .. Locale() .. "|" .. key .. "|" .. (z and table.getn(z.nodes) or 0) .. "|" .. ((z and z.fit) and 1 or 0))
+    return true
+  end
+  -- a zone's nodes (and fit) as messages
+  function GF.Pack(key, withFit)
+    local z = Store()[key]
+    local list = {}
+    if not z then return list end
+    local f = z.fit
+    if withFit and f then
+      table.insert(list, "F|" .. Locale() .. "|" .. key .. "|" .. f.xi .. "|" .. f.yi .. "|" .. f.ax .. "|" .. f.cx .. "|" .. f.ay .. "|" .. f.cy)
+    end
+    local head = "D|" .. Locale() .. "|" .. key .. "|"
+    local line = head
+    for i = 1, math.min(table.getn(z.nodes), 600) do
+      local t = NodeText(z.nodes[i])
+      if string.len(line) + string.len(t) + 1 > 240 and line ~= head then
+        table.insert(list, line)
+        line = head
+      end
+      line = line .. (line == head and "" or ";") .. t
+    end
+    if line ~= head then table.insert(list, line) end
+    return list
+  end
+  local function GoodNode(key, text, from)
+    local p = Split(text, "~")
+    local name, prof, wx, wy = p[1], p[2], tonumber(p[3]), tonumber(p[4])
+    if not name or string.len(name) < 1 or string.len(name) > 48 or string.find(name, "|", 1, true) then return false end
+    if not (GF.PROF[prof] or prof == FISH or prof == CHEST) then return false end
+    if not wx or not wy or math.abs(wx) > 20000 or math.abs(wy) > 20000 then return false end
+    local z = Store()[key]
+    if z and table.getn(z.nodes) >= ZONEMAX then return false end
+    if GF.Remember(key, name, prof, wx, wy, from) then GF.got = GF.got + 1 return true end
+    return false
+  end
+  function GF.Receive(msg, from)
+    if not Sharing() or not msg or not from or from == UnitName("player") then return end
+    local p = Split(msg, "|")
+    local kind, loc, key = p[1], p[2], p[3]
+    if loc ~= Locale() or not key or not string.find(key, "^%d+:%d+$") then return end
+    if kind == "N" then
+      GoodNode(key, p[4] or "", from)
+    elseif kind == "D" then
+      replies[key] = nil
+      for _, t in ipairs(Split(p[4] or "", ";")) do GoodNode(key, t, from) end
+    elseif kind == "F" then
+      local z = Store()[key]
+      local xi, yi, ax, cx, ay, cy = tonumber(p[4]), tonumber(p[5]), tonumber(p[6]), tonumber(p[7]), tonumber(p[8]), tonumber(p[9])
+      if (not z or not z.fit) and ax and cx and ay and cy and ax ~= 0 and ay ~= 0
+        and ((xi == 1 and yi == 2) or (xi == 2 and yi == 1)) and math.abs(ax) < 1 and math.abs(ay) < 1 then
+        Zone(key).fit = { xi = xi, yi = yi, ax = ax, cx = cx, ay = ay, cy = cy, miss = 0, shared = from }
+        GF.pinsDirty = true
+      end
+    elseif kind == "Q" then
+      local z = Store()[key]
+      if not z then return end
+      local theirs, fit = tonumber(p[4]) or 0, p[5] == "1"
+      local more = table.getn(z.nodes) > theirs
+      if more or (z.fit and not fit) then
+        replies[key] = { at = GetTime() + 1 + math.random() * 3, nodes = more, fit = z.fit and not fit }
+      end
+    end
+  end
+  function GF.ShareTick(now)
+    if GF.askAt and now >= GF.askAt then
+      GF.askAt = GF.Ask() and nil or (now + 5)
+      if not Sharing() then GF.askAt = nil end
+    end
+    for key, r in pairs(replies) do
+      if now >= r.at then
+        replies[key] = nil
+        local list = GF.Pack(key, r.fit)
+        for _, m in ipairs(list) do
+          if r.nodes or string.sub(m, 1, 1) == "F" then Queue(m) end
+        end
+        break
+      end
+    end
+    if out[1] and now >= sendAt then
+      sendAt = now + GAP
+      local msg = table.remove(out, 1)
+      for _, chan in ipairs(Channels()) do SendAddonMessage(PREFIX, msg, chan) end
+    end
+  end
+  local share = CreateFrame("Frame")
+  share:RegisterEvent("CHAT_MSG_ADDON")
+  share:SetScript("OnEvent", function() if arg1 == PREFIX then GF.Receive(arg2, arg4) end end)
+  share:SetScript("OnUpdate", function() GF.ShareTick(GetTime()) end)
 
   -- /gather probe: the raw answers, to check this client's call
   function GF.Probe()
