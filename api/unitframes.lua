@@ -1212,6 +1212,29 @@ function pfUI.uf.OnUpdate()
         this.incHeal:Hide()
         if this.overHeal then this.overHeal:Hide() end
       end
+
+      -- octo (15 Nov 2026, Sudlu on Discord): the incoming heal as a number, "+1.2k", on the bar
+      if this.config.o_healtext == "1" and heal > 0 then
+        local ht = this.healText
+        if not ht then
+          local holder = CreateFrame("Frame", nil, this.hp.bar)
+          holder:SetAllPoints(this.hp.bar)
+          ht = holder:CreateFontString(nil, "OVERLAY")
+          ht:SetPoint("RIGHT", holder, "RIGHT", -3, 0)
+          ht.holder = holder
+          this.healText = ht
+        end
+        ht.holder:SetFrameLevel(this.hp.bar:GetFrameLevel() + 4)
+        ht:SetFont(pfUI.font_unit or STANDARD_TEXT_FONT, tonumber(this.config.o_healtextsize) or 10, "OUTLINE")
+        local r, g, b = 0.3, 1, 0.4
+        local cr, cg, cb = pfUI.api.GetStringColor(this.config.healcolor or "")
+        if cr then r, g, b = math.min(1, cr + .3), math.min(1, cg + .3), math.min(1, cb + .3) end
+        ht:SetTextColor(r, g, b, 1)
+        ht:SetText("+" .. (heal >= 1000 and string.format("%.1fk", heal / 1000) or tostring(math.floor(heal + .5))))
+        ht.holder:Show()
+      elseif this.healText then
+        this.healText.holder:Hide()
+      end
     end
 
     -- update ressurections
