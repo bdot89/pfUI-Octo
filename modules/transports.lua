@@ -200,6 +200,49 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     end
   end
   -- a transport seen at x, y: once it is seen moving, fix its route
+  -- riding one (15 Nov 2026; user on the Undercity zeppelin, nothing picked up:
+  -- the object finder does not see transports on this client). You on a
+  -- route's line moving along it faster than any mount (15+ yd/s, 2 s running,
+  -- not on a taxi) = you are on that transport: that fixes it, and after 8 s
+  -- its speed is measured.
+  TR.ride = {}
+  function TR.Ride(now, clock)
+    local x, y = Pos()
+    local R = TR.ride
+    if not x or (UnitOnTaxi and UnitOnTaxi("player")) then TR.ride = {} return end
+    local r, t, len = TR.Match(nil, x, y)
+    if not r then TR.ride = {} return end
+    if R.id == r.id and R.len and clock > R.clock then
+      local sp = (len - R.len) / (clock - R.clock)
+      if sp > 15 and sp < 80 then
+        R.streak = (R.streak or 0) + (clock - R.clock)
+        R.start = R.start or R.clock
+        R.startLen = R.startLen or R.len
+        if R.streak >= 8 then
+          local m = (len - R.startLen) / (clock - R.start)
+          if m > 15 and m < 80 and math.abs(m - r.speed) > .3 then
+            local s = Store()
+            s[r.id] = s[r.id] or {}
+            s[r.id].speed = m
+            r = TR.Build(r.id, m)
+            r, t, len = TR.Match(nil, x, y)
+            if not r then TR.ride = {} return end
+            R.start, R.startLen = clock, len
+          end
+        end
+        if R.streak >= 2 and TR.Fix(r, t, now, nil, 0) then
+          TR.dirty = true
+          if not R.told or clock - R.told > 120 then R.told = clock TR.Tell(r.id) end
+        end
+      elseif math.abs(sp) > 1 then
+        R.streak, R.start, R.startLen = 0, nil, nil
+      end
+    else
+      R.streak, R.start, R.startLen = 0, nil, nil
+    end
+    R.id, R.len, R.clock = r.id, len, clock
+  end
+
   -- the dock stop nearest a point (within 50 yd): route, stop
   function TR.StopAt(x, y)
     local br, bs, bd
@@ -637,7 +680,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     end
     if clock >= lookAt then
       lookAt = clock + .5
-      if not TR.InTram() then TR.Look(time(), clock) end
+      if not TR.InTram() then TR.Look(time(), clock) TR.Ride(time(), clock) end
       TR.TramTick(time(), clock)
     end
     if WorldMapButton and WorldMapFrame and WorldMapFrame:IsShown() then

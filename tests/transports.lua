@@ -87,3 +87,21 @@ local _, _, _, _, zstop = TR.At(zr, zt)
 ok(ze and ze.docked and zstop == zs, "a transport seen standing at a dock is drawn there")
 pfUI_cache.transports = {}
 TR.watch = {}
+
+-- riding a zeppelin: you moving along its line fast fixes it
+pfUI_cache.transports = {}
+local rr = TR.routes[121]
+local leg
+for _, lg in ipairs(rr.legs) do if (lg[9] - lg[8]) > 200 then leg = lg break end end
+local savedPos = rawget(_G, "UnitPosition")
+local f0 = 0
+_G.UnitPosition = function() return leg[2] + (leg[4] - leg[2]) * f0, leg[3] + (leg[5] - leg[3]) * f0, 0 end
+TR.ride = {}
+for k = 0, 8 do
+  f0 = k * 15 / (leg[9] - leg[8])
+  TR.Ride(9000 + k * .5, 100 + k * .5)
+end
+ok(pfUI_cache.transports[121] and pfUI_cache.transports[121].t0, "riding the zeppelin fixes its route")
+_G.UnitPosition = savedPos
+pfUI_cache.transports = {}
+TR.ride = {}
