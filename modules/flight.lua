@@ -485,7 +485,10 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       if On("flyer") then f.flyer:Show() else f.flyer:Hide() end
       f.youText:ClearAllPoints()
       f.youText:SetPoint("BOTTOM", f, "LEFT", px, 7 + size + 2)
-      if On("you") then f.youText:Show() else f.youText:Hide() end
+      -- (seen in game 15 Nov: "You" stacked on top of an end's name while near it: it waits until clear)
+      local fw, tw = f.from:GetStringWidth() or 0, f.to:GetStringWidth() or 0
+      local clear = px > x0 + fw + 16 and px < x0 + w - tw - 16
+      if On("you") and clear then f.youText:Show() else f.youText:Hide() end
     else
       f.you:Hide() f.flyer:Hide() f.youText:Hide()
     end
