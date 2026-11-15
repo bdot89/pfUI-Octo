@@ -817,6 +817,12 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
      IsInInstance + kind, else raid group), listeners on change (+ 2 s poll). C.mapauto[zone] = "1": the
      minimap frame hides, parts outside it (minimap-style PARTS, addon buttons) go alpha 0 + no mouse, put
      back with map.ApplyStyle; card "Hide by itself" on the Minimap page.
+     Arenas (5 Nov 2026, tests only, NOT seen in game): this server's arenas have an active battlefield and
+     IsInInstance kind "pvp", never "arena" (92 matches in the user's Chronicle logs), so Zone() goes by X.ARENAS
+     (Blood Ring, Lordaeron Arena, Sunstrider Court; English names, another client language reads "bg") before
+     the battleground test. The name lags about .5 s on the way in, so listeners can get "bg" and then "arena"
+     (zone event or 2 s poll): different bg / arena layouts or map settings go through the bg ones first.
+     No other pfUI code tests for "arena"; gear-events' "In a battleground" still fires in arenas (no arena event).
    - modules/octo-layouts.lua: pfUI.layouts, C.layouts { current, auto, button, byzone[zone], saved[name] =
      { pos = copy of C.position, meters, gear } }. Switch saves the current layout first, swaps C.position,
      UpdateMovable for every movable, meters ShowAll, optional gear set; waits for combat to end. Button
@@ -1153,3 +1159,21 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    The bar, Putting them on again = W.KeyBind PFCONSUMENEXT). Tests: tests\consumes.lua. Unverified in game: the
    ClassicAPI aura returns, GetWeaponEnchantInfo times, SetHyperlink on items the client has not seen, the
    UseContainerItem / PickupContainerItem wraps next to other bag add-ons, every catalogue buff name on this server.
+28. Cooldown bars (15 Nov 2026, seen working in game the same day: bars, right-click menu, Add buttons, glows,
+   animations; user with EllesmereUI's Cooldown Manager - its licence reserves all rights: feature list only).
+   modules/cdm.lua (`pfUI.cdm` = CDM, module "cdm", /cdm, frames pfCDM1..6 = layout mode boxes) and
+   modules/cdm-options.lua (`pfUI.cdmOptions` = CP; section "Cooldowns" after Consumables, page cdmbars).
+   C.cdm.bars[i] = { name, auto short|long|all|none (3 min line), sort, size, spacing, per, vertical, center, alpha,
+   show, click, bg, spells = { { name, kind spell|item|aura, auto, + the icon's own options } } }; C.cdm.removed /
+   known (cooldown lengths learnt) / maxc (most stacks seen). CDM.ScanBook (highest rank, no passives, length from
+   the tooltip via CDM.ParseCD or learnt from a running cooldown) -> CDM.Fill puts new spells on the first bar that
+   takes their length, sorted by length. Times shown are always GetSpellCooldown's (live, talents included).
+   CDM.SPEC = ONE list of per-icon options behind both the right-click menu (CP.OpenMenu / CP.MenuLines: main panel
+   + sub panel, picks apply at once, lines in EllesmereUI's order, ours after a rule with `extra`) and the "picked
+   icon" card. CDM.Get(e, key) = the entry's choice or the default. Glows (CDM.GLOWLIST, 12) and animations
+   (CDM.LOOPS per state, CDM.SHOTS when it comes ready) are drawn every frame by CDM.Animate from what CDM.Paint
+   decided (b.lit, b.animLoop, b.animShot / shotAt); Layout stores b.host / bx / by / bsize so an icon moves back.
+   Proc glow / "usable now" = CDM.Usable (ClassicAPI C_Spell.IsSpellUsable, else the action button with the
+   spell's texture). kind "aura" = an effect followed by name alone (item procs), hidden until up.
+   W.Menu / W.LongMenu return their menu HIDDEN: call :Show() (CP.Pop) - the Add buttons "did nothing" at first.
+   Left out: anchor to cursor, custom icon shapes, drag-to-reorder. Tests: tests\cdm.lua.

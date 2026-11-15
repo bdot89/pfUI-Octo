@@ -18,18 +18,24 @@ pfUI:RegisterModule("octo-context", "vanilla", function ()
     return false
   end
 
+  -- This server's arenas have an active battlefield and IsInInstance kind "pvp", never "arena" (92 logged
+  -- matches, Chronicle ZONE_INFO), so only the zone name tells them from a battleground. On the way in the name
+  -- is still the old zone for about half a second: that reads "bg" until a zone event or the 2 s poll asks again.
+  X.ARENAS = { ["Blood Ring"] = true, ["Lordaeron Arena"] = true, ["Sunstrider Court"] = true }
+
   function X.Zone()
-    if InBattleground() then return "bg" end
-    if IsInInstance then
-      local inside, kind = IsInInstance()
-      if inside then
-        if kind == "arena" then return "arena" end
-        if kind == "pvp" then return "bg" end
-        if kind == "raid" then return "raid" end
-        if kind == "party" then return "dungeon" end
-        -- (a client that gives no kind: a raid group means a raid)
-        return (GetNumRaidMembers and GetNumRaidMembers() > 0) and "raid" or "dungeon"
-      end
+    local inside, kind
+    if IsInInstance then inside, kind = IsInInstance() end
+    local active = InBattleground()
+    if kind == "arena" then return "arena" end
+    if (active or kind == "pvp") and X.ARENAS[GetRealZoneText() or ""] then return "arena" end
+    if active then return "bg" end
+    if inside then
+      if kind == "pvp" then return "bg" end
+      if kind == "raid" then return "raid" end
+      if kind == "party" then return "dungeon" end
+      -- (a client that gives no kind: a raid group means a raid)
+      return (GetNumRaidMembers and GetNumRaidMembers() > 0) and "raid" or "dungeon"
     end
     return "world"
   end
@@ -45,6 +51,7 @@ pfUI:RegisterModule("octo-context", "vanilla", function ()
   X.Check = Check
 
   local ev = CreateFrame("Frame")
+  X.ev = ev
   for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA", "UPDATE_BATTLEFIELD_STATUS",
                        "RAID_ROSTER_UPDATE", "PARTY_MEMBERS_CHANGED" }) do pcall(ev.RegisterEvent, ev, e) end
   ev:SetScript("OnEvent", Check)
