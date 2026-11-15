@@ -424,6 +424,26 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       s.mhStart, s.ohStart = (s.mhStart or t) + took, (s.ohStart or t) + took
     end
   end
+  -- one of your own swings, seen by SuperWoW while ClassicAPI's PLAYER_SWING gives the exact time left.
+  -- The swing starts now; a timer reset that came up to .4 s before it (kept in s.swPend) gives its exact
+  -- end, one that comes up to .4 s after finds s.swSeen.
+  function ST.SeenSwing(hand)
+    local t = now()
+    s.swOwn = true
+    -- (nothing swings while you cast, and the cast's own hit is not a swing)
+    if s.casting or (s.castEnded and t - s.castEnded < .25) then return end
+    ST.Swing(hand)
+    local p = s.swPend
+    if p and p.hand == hand and t - p.t < .4 then
+      local speed = hand == "off" and s.ohSpeed or s.mhSpeed
+      if speed and speed > 0 and p.left > 0 then
+        if hand == "off" then s.ohStart = p.t + p.left - speed else s.mhStart = p.t + p.left - speed end
+      end
+      s.swPend, s.swSeen = nil, nil
+    else
+      s.swSeen = { t = t, hand = hand }
+    end
+  end
   function ST.TargetSwing() s.tgStart = now() s.tgSeen = now() end
   -- (wand: the Multi-Shot clip zone is for Auto Shot only)
   function ST.Shot(wand)
@@ -786,6 +806,27 @@ pfUI:RegisterModule("swing", "vanilla", function ()
         if s.casting and t > s.casting.start + s.casting.dur + .5 then ST.CastEnd(true) end
         if C.swing.castswing ~= "client" and (s.casting or (s.castEnded and t - s.castEnded < .25)) then return end
         local hand = kind == 1 and "off" or "main"
+        -- (16 Nov 2026, Bread: "still happening ... slam is being read as the main-hand swing") the two
+        -- windows above miss a reset that comes before the cast's start event, or late after its end. So:
+        --  * once SuperWoW has shown one of your own swings this session, a reset only counts with a swing
+        --    seen at the same moment (ST.SeenSwing pairs them, either order); alone it is kept .4 s for one.
+        --    A shorter time than the weapon's speed is a parry's haste, not a reset, and always counts.
+        --  * without SuperWoW the swing is taken, but what was there is kept .3 s: a cast starting right
+        --    after puts it back (SPELLCAST_START).
+        if C.swing.castswing ~= "client" then
+          local speed0 = hand == "off" and s.ohSpeed or s.mhSpeed
+          local full = not (speed0 and speed0 > 0 and left > 0 and left < speed0 * .9)
+          if s.swOwn and full then
+            local seen = s.swSeen
+            if not (seen and seen.hand == hand and t - seen.t < .4) then
+              s.swPend = { t = t, left = left, hand = hand }
+              return
+            end
+            s.swSeen = nil
+          elseif full then
+            s.swUndo = { t = t, mh = s.mhStart, oh = s.ohStart, last = s.lastSwing }
+          end
+        end
         ST.Swing(hand)
         -- (a parried hit can make it shorter than the weapon's speed)
         local speed = hand == "off" and s.ohSpeed or s.mhSpeed
@@ -833,7 +874,15 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       local kind = ST.CASTS[a1 or ""]
       if kind then s.cast = { name = a1, kind = kind, start = now(), dur = math.max(.1, (tonumber(a2) or 0) / 1000) } end
       -- any spell with a cast time holds your melee swing (Slam)
-      if (tonumber(a2) or 0) > 0 then s.casting = { start = now(), dur = tonumber(a2) / 1000 } end
+      if (tonumber(a2) or 0) > 0 then
+        s.casting = { start = now(), dur = tonumber(a2) / 1000 }
+        -- the client's timer reset for this cast came just before this event: it was not a swing
+        local u = s.swUndo
+        if u and C.swing.castswing ~= "client" and now() - u.t < .3 then
+          s.mhStart, s.ohStart, s.lastSwing = u.mh, u.oh, u.last
+        end
+        s.swUndo, s.swPend = nil, nil
+      end
       return
     end
     if evt == "SPELLCAST_DELAYED" then
@@ -857,6 +906,8 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       if caster == playerGUID then
         -- (ClassicAPI's PLAYER_SWING tells your own swings exactly: leave them to it)
         if s.cw and (kind == "MAINHAND" or kind == "OFFHAND" or (kind == "CAST" and ST.QUEUE_SPELLS[id])) then
+          -- (16 Nov 2026) a swing SuperWoW saw: the proof ClassicAPI's timer reset needs (see PLAYER_SWING)
+          if C.swing.castswing ~= "client" then ST.SeenSwing(kind == "OFFHAND" and "off" or "main") end
         elseif s.cwr and kind == "CAST" and (id == 75 or id == 5019) then
         elseif kind == "MAINHAND" then ST.Swing("main") s.sw = true
         elseif kind == "OFFHAND" then ST.Swing("off") s.sw = true

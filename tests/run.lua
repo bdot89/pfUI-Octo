@@ -5754,6 +5754,43 @@ do
       ok(math.abs(st.mhStart - GetTime()) < .01, "set to the client: its event decides, as before")
       ST.OnEvent("SPELLCAST_STOP")
       sw.castswing, st.casting, st.castEnded = was, nil, nil
+      -- (16 Nov 2026, Bread: "still happening") the reset can come BEFORE the cast's start event
+      sw.castswing = "pause"
+      st.swOwn, st.swPend, st.swSeen, st.swUndo = nil, nil, nil, nil
+      st.mhStart = GetTime() - 1
+      local b2 = st.mhStart
+      ST.OnEvent("PLAYER_SWING", 2.6, 0)
+      ok(math.abs(st.mhStart - GetTime()) < .01, "no SuperWoW: a reset is taken as a swing at first")
+      ST.OnEvent("SPELLCAST_START", "Slam", 1500)
+      ok(st.mhStart == b2, "and put back when a cast starts right after it (it was the cast's reset)")
+      st.casting, st.castEnded = nil, nil
+      -- with SuperWoW showing your own swings, a reset alone is never a swing
+      ok(ST.SeenSwing ~= nil, "swing: SuperWoW's own swings pair with ClassicAPI's resets")
+      if ST.SeenSwing then
+        st.mhStart = GetTime() - 1
+        ST.SeenSwing("main")
+        ok(st.swOwn and math.abs(st.mhStart - GetTime()) < .01, "a swing SuperWoW saw starts the bar")
+        ST.OnEvent("PLAYER_SWING", 2.0, 0)
+        ok(math.abs((st.mhStart + st.mhSpeed) - (GetTime() + 2.0)) < .01, "the reset that follows gives its exact end")
+        st.mhStart = GetTime() - 1
+        local b3 = st.mhStart
+        st.swSeen, st.swPend = nil, nil
+        ST.OnEvent("PLAYER_SWING", 2.6, 0)
+        ok(st.mhStart == b3 and st.swPend ~= nil, "a full reset with no swing seen (Slam) does not restart the bar")
+        ST.SeenSwing("main")
+        ok(math.abs(st.mhStart - GetTime()) < .01 and st.swPend == nil, "unless the swing shows up right after it")
+        st.mhStart = GetTime() - 1
+        st.swSeen, st.swPend = nil, nil
+        ST.OnEvent("PLAYER_SWING", 1.0, 0)
+        ok(math.abs((st.mhStart + st.mhSpeed) - (GetTime() + 1.0)) < .01, "a shorter time (parry haste) always counts")
+        st.castEnded = GetTime()
+        st.mhStart = GetTime() - 1
+        local b4 = st.mhStart
+        ST.SeenSwing("main")
+        ok(st.mhStart == b4, "a hit in the moment a cast ends is the cast's, not a swing")
+      end
+      sw.castswing, st.casting, st.castEnded = was, nil, nil
+      st.swOwn, st.swPend, st.swSeen, st.swUndo = nil, nil, nil, nil
     end
     ST.OnEvent("PLAYER_SWING_RANGE_UPDATE", 0, nil, 1)
     ok(st.outMelee == true, "out of reach dims the bar")
