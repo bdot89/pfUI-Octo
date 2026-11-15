@@ -1177,3 +1177,26 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    spell's texture). kind "aura" = an effect followed by name alone (item procs), hidden until up.
    W.Menu / W.LongMenu return their menu HIDDEN: call :Show() (CP.Pop) - the Add buttons "did nothing" at first.
    Left out: anchor to cursor, custom icon shapes, drag-to-reorder. Tests: tests\cdm.lua.
+29. Flight timer (15 Nov 2026, NOT seen in game; NEW FILES = full client restart; user's screenshot of another
+   client's bar: "yes build it all"). modules/flight.lua (`pfUI.flight` = FL, frame pfFlightBar, /flight) and
+   modules/flight-options.lua (page "flight" = tab "Flight Timer" under Quality of Life). TakeTaxiNode is wrapped
+   (FL.Capture -> FL.Plan(slot) while the map is open): ClassicAPI C_TaxiMap.GetTaxiRoute + GetTaxiPaths +
+   GetTaxiPathWaypoints = names, each stop's place, the path's length (32 yd/s, FL.Cut = learnt corner-cut share
+   for chains) and your place on it from UnitPosition (FL.Along tries both x / y orders); plain 1.12 =
+   GetNumRoutes / TaxiGetDestX,Y matched to TaxiNodePosition, time a guess from pfUI_cache.flightrate until flown.
+   FL.Tick: pending -> FL.Start when UnitOnTaxi, FL.Land times it into pfUI_cache.flighttimes["From>To"] (dropped
+   when far off the expected time) and tells guild / group (prefix pfFT); pfUI_cache.flightnow + time() carry a
+   flight over a /reload. FL.NewBar / FL.Paint(bar, view) are shared by the screen bar and the preview.
+   Landing early at a stop is NOT possible: no client call for it (checked WoW.exe, ClassicAPI, SuperWoW, nampower).
+   Icons checked in the MPQs: INV_Feather_01, Ability_Mount_Gryphon_01, TaxiFrame UI-Taxi-Icon-White exist;
+   Ability_Mount_Wyvern_01 does not. Tests: tests\flight.lua.
+30. Boats, zeppelins and the tram on the world map (15 Nov 2026, NOT seen in game; NEW FILES = full client restart).
+   modules/transports.lua (`pfUI.transports` = TR, /transports on|off|forget) + transports-data.lua (14 routes from
+   patch-5 TaxiPathNode.dbc, flag 2 = dock with its delay, map change = jump; WorldMapArea boxes). Time = route
+   length / speed (30 yd/s until a watch of 8 s+ measures it) + dock waits; ClassicAPI ClosestGameObjectPosition on
+   TR.OBJECTS seen MOVING fixes the loop start (pfUI_cache.transports, time() based), shared as "S|route|loop s|age|
+   speed" (prefix pfOctoTR, "Q" asks). Deeprun Tram (TransportAnimation.dbc: 143.3 s loop, 13 s at each end): door
+   icons on Stormwind / Ironforge maps (spot learnt from UnitPosition just before going in), a line at the top of the
+   screen inside, departures seen leaving your platform time it ("T|city|since|gap"). Icons = white glyph on a dark
+   disc + coloured ring (tools\mktransport.c -> img\transports), 34 px zone / 28 px continent. Switch: QoL > Map and
+   tooltips (C.appearance.worldmap.transports). Not on the whole-world view (no coordinates for it). Tests: tests\transports.lua.
