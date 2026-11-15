@@ -1,0 +1,58 @@
+-- pfUI Octo: boats and zeppelins on the world map (modules/transports.lua), run by tests\run.lua.
+local ok = octo_ok
+local TR = pfUI.transports
+ok(TR and TR.routes and TR.At and TR.Match, "transports loaded (pfUI.transports)")
+if not TR or not TR.routes[72] then return end
+ok(pfUI_config.appearance.worldmap.transports == "1", "transports default on")
+local n = 0
+for id, r in pairs(TR.routes) do
+  n = n + 1
+  ok(r.period > 120 and table.getn(r.stops) >= 2 and table.getn(r.legs) > 3, "route " .. id .. " has stops, legs and a loop time")
+end
+ok(n == 14, "14 transport routes (" .. n .. ")")
+local r = TR.routes[72]
+ok(r.docks[1] == "Ratchet" and r.docks[2] == "Booty Bay", "Ratchet - Booty Bay dock names")
+-- at a stop for its delay, then moving
+local s = r.stops[1]
+local map, x, y, moving, stop = TR.At(r, s.t1 + 10)
+ok(stop == s and not moving and map == 1, "docked at Ratchet during its stop")
+map, x, y, moving = TR.At(r, s.t2 + 5)
+ok(moving and map == 1, "moving after the stop")
+local nx, wait = TR.Next(r, s.t2 + 5)
+ok(nx == r.stops[2] and wait > 0 and wait < r.period, "next stop is Booty Bay")
+-- the same spot seen again matches that loop time
+local mr, mt = TR.Match(map, x, y)
+ok(mr == r and math.abs(mt - (s.t2 + 5)) < 1, "a seen point matches its route and loop time")
+-- a sighting fixes the loop; a share moves another player's map
+pfUI_cache.transports = {}
+TR.Fix(r, 100, 5000, nil, 0)
+local t, e = TR.Now(r, 5010)
+ok(e and math.abs(t - 110) < .01, "after a sighting the loop time follows the clock")
+local msg = TR.Message(72, 5010)
+ok(msg and string.find(msg, "^S|72|110%.0|10|"), "share message: route, loop time, age (" .. tostring(msg) .. ")")
+pfUI_cache.transports = {}
+TR.Receive(msg, "Friend", 6000)
+t, e = TR.Now(r, 6000)
+ok(e and e.from == "Friend" and math.abs(t - 110) < .01 and e.seen == 5990, "a shared sighting is taken")
+TR.Receive("S|72|5.0|30000|30.00", "Old", 6000)
+ok(pfUI_cache.transports[72].from == "Friend", "sightings older than 6 h are ignored")
+TR.Receive("S|72|5.0|100|30.00", "Older", 6000)
+ok(pfUI_cache.transports[72].from == "Friend", "an older sighting does not replace a newer one")
+-- tooltip lines
+local lines = TR.Lines(r, 6000)
+ok(lines[1] == "Ratchet - Booty Bay" and table.getn(lines) >= 3, "tooltip lines")
+-- map spots
+local area
+for _, a in ipairs(pfUI.transportData.areas) do if a[1] == "Kalimdor" then area = a end end
+local u, v = TR.MapSpot(area, 1, s.x, s.y)
+ok(u and v and u > .5 and u < 1 and v > .4 and v < .8, "Ratchet lies east-centre on the Kalimdor map")
+ok(TR.MapSpot(area, 0, s.x, s.y) == nil, "no spot on the other continent")
+-- seeing an object move fixes its route
+pfUI_cache.transports = {}
+TR.watch = {}
+local l = r.legs[3]
+TR.Seen(20808, l[2], l[3], 7000, 1)
+TR.Seen(20808, l[2] + (l[4] - l[2]) * .1, l[3] + (l[5] - l[3]) * .1, 7001, 2)
+ok(pfUI_cache.transports[72] and pfUI_cache.transports[72].t0, "a transport seen moving fixes its route")
+pfUI_cache.transports = {}
+TR.BuildAll()

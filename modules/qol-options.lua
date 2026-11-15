@@ -51,6 +51,8 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     W.Card(p, "Map and tooltips")
     Chk(p, "Reveal the whole map", "Areas you have not been to show on the world map.", "appearance", "worldmap", "mapreveal")
     Chk(p, "Map exploration points", "Marks the spots that count for exploration.", "appearance", "worldmap", "mapexploration")
+    Chk(p, "Boats and zeppelins on the map", "Where each boat and zeppelin is right now, worked out from its route. "
+      .. "It gets exact once you or a guild / group member with pfUI Octo sees one move (ClassicAPI).", "appearance", "worldmap", "transports", function() end)
     Chk(p, "Item IDs in tooltips", "The item's number in its tooltip (and the spell's on auras).", "tooltip", nil, "itemid")
     Chk(p, "How many you have", "Bags, bank and worn counts in item tooltips.", "tooltip", nil, "itemcount")
     Chk(p, "Vendor price always", "The sell price in every item tooltip, not only at a vendor.", "tooltip", "vendor", "showalways")
