@@ -68,7 +68,31 @@ static void save(const char *name) {
   memset(M, 0, sizeof(M));
 }
 
+/* plain shape, no outline: for the badge parts */
+static void savePlain(const char *name) {
+  FILE *f = fopen(name, "wb");
+  unsigned char h[18];
+  memset(h, 0, 18);
+  h[2] = 2; h[12] = N; h[14] = N; h[16] = 32; h[17] = 8;
+  fwrite(h, 1, 18, f);
+  for (int y = N - 1; y >= 0; y--) for (int x = 0; x < N; x++) {
+    unsigned char px[4] = { 255, 255, 255, (unsigned char)(M[y][x] * 255 + .5f) };
+    fwrite(px, 1, 4, f);
+  }
+  fclose(f);
+  memset(M, 0, sizeof(M));
+}
+
 int main(void) {
+  /* badge: a full disc (drawn dark), ring: its edge (drawn in the colour) */
+  ellipse(32, 32, 30, 30);
+  savePlain("badge.tga");
+  ellipse(32, 32, 30, 30);
+  for (int y = 0; y < N; y++) for (int x = 0; x < N; x++) {
+    float dx = x + .5f - 32, dy = y + .5f - 32, d = sqrtf(dx * dx + dy * dy);
+    M[y][x] *= clamp01(d - 24.5f);
+  }
+  savePlain("ring.tga");
   /* ship: hull, mast, two sails, flag (y grows down) */
   { float hull[8] = { 8, 40, 56, 40, 48, 52, 16, 52 }; poly(hull, 4); }
   rect(30.5f, 8, 33.5f, 41);

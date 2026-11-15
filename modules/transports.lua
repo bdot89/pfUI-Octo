@@ -359,9 +359,21 @@ pfUI:RegisterModule("transports", "vanilla", function ()
   local function Pin(i)
     if TR.pins[i] then return TR.pins[i] end
     local b = CreateFrame("Button", nil, layer)
-    b:SetWidth(22) b:SetHeight(22)
+    -- a dark disc, a ring in the route's colour, the white picture on top:
+    -- reads on any map colour (the first tinted pictures vanished on Durotar)
+    local IMG = "Interface\\AddOns\\pfUI\\img\\transports\\"
+    b.badge = b:CreateTexture(nil, "BACKGROUND")
+    b.badge:SetTexture(IMG .. "badge")
+    b.badge:SetAllPoints(b)
+    b.badge:SetVertexColor(.05, .05, .07, .9)
+    b.ring = b:CreateTexture(nil, "BORDER")
+    b.ring:SetTexture(IMG .. "ring")
+    b.ring:SetAllPoints(b)
     b.tex = b:CreateTexture(nil, "OVERLAY")
-    b.tex:SetAllPoints(b)
+    b.tex:SetPoint("TOPLEFT", b, "TOPLEFT", 4, -4)
+    b.tex:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 4)
+    -- the colour goes on the ring; the picture stays white
+    b.Paint = function(self, c) self.ring:SetVertexColor(c[1], c[2], c[3]) self.tex:SetVertexColor(1, 1, 1) end
     b:SetScript("OnEnter", function()
       local r = this.route or (this.tramCity and TR.TRAMROUTE)
       if not r then return end
@@ -381,6 +393,8 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     local a = TR.On() and TR.ShownArea()
     local w, h = WorldMapButton:GetWidth(), WorldMapButton:GetHeight()
     local now, i = time(), 0
+    -- bigger on a zone map; still clear on a whole continent
+    local size = a and (a[1] == "Kalimdor" or a[1] == "Azeroth") and 28 or 34
     if a then
       for _, r in pairs(TR.routes) do
         local t, e = TR.Now(r, now)
@@ -392,11 +406,12 @@ pfUI:RegisterModule("transports", "vanilla", function ()
           b.route, b.tramCity = r, nil
           b:ClearAllPoints()
           b:SetPoint("CENTER", layer, "TOPLEFT", u * w, -v * h)
+          b:SetWidth(size) b:SetHeight(size)
           b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\transports\\" .. r.kind)
           -- the pictures face left; a route heading east (world y falling) flips them
           if dir and dir < 0 then b.tex:SetTexCoord(1, 0, 0, 1) else b.tex:SetTexCoord(0, 1, 0, 1) end
-          b.tex:SetVertexColor(r.color[1], r.color[2], r.color[3])
-          b:SetAlpha(e and 1 or .45)
+          b:Paint(r.color)
+          b:SetAlpha(e and 1 or .7)
           b:Show()
         end
       end
@@ -409,10 +424,11 @@ pfUI:RegisterModule("transports", "vanilla", function ()
           b.route, b.tramCity = nil, city
           b:ClearAllPoints()
           b:SetPoint("CENTER", layer, "TOPLEFT", u * w, -v * h)
+          b:SetWidth(size) b:SetHeight(size)
           b.tex:SetTexture("Interface\\AddOns\\pfUI\\img\\transports\\tram")
           b.tex:SetTexCoord(0, 1, 0, 1)
-          b.tex:SetVertexColor(A[1], A[2], A[3])
-          b:SetAlpha(TR.TramNext(city) and 1 or .45)
+          b:Paint(A)
+          b:SetAlpha(TR.TramNext(city) and 1 or .7)
           b:Show()
         end
       end
@@ -598,7 +614,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       if not layer then
         layer = CreateFrame("Frame", "pfTransportPins", WorldMapButton)
         layer:SetAllPoints(WorldMapButton)
-        layer:SetFrameLevel(WorldMapButton:GetFrameLevel() + 3)
+        layer:SetFrameLevel(WorldMapButton:GetFrameLevel() + 12)
       end
       if not layer:IsShown() then layer:Show() end
       if clock >= drawAt or TR.dirty then
