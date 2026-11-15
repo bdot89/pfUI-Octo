@@ -271,10 +271,15 @@ pfUI:RegisterModule("keymap", "vanilla", function ()
   end
 
   -- a free action slot on a bar (for a dropped spell on an unbound key)
+  -- (15 Nov 2026, user's friend: War Stomp dropped on X went on button 1, so X and 1 both pressed it.)
+  -- Only an empty button that NO key presses yet: one already on a key would be pressed by both.
+  -- Main bar (0) last: its buttons usually have keys 1 - =.
   local function FreeSlot()
-    for _, base in ipairs({ 0, 60, 48, 24, 36 }) do
+    for _, base in ipairs({ 60, 48, 24, 36, 0 }) do
       for n = 1, 12 do
-        if not HasAction(base + n) then return base + n end
+        local slot = base + n
+        local cmd = KM.CommandOf(slot)
+        if not HasAction(slot) and not (cmd and GetBindingKey(cmd)) then return slot end
       end
     end
     return nil
@@ -283,15 +288,9 @@ pfUI:RegisterModule("keymap", "vanilla", function ()
   -- whatever is on the cursor goes onto this key
   function KM.Drop(key)
     key = Full(key)
-    local action = GetBindingAction(key)
-    local slot = KM.SlotOf(action)
-    if slot then
-      -- an action button key: the spell goes on its button (what was there
-      -- comes back onto the cursor, as dragging between buttons does)
-      PlaceAction(slot)
-      Save()
-      return true
-    end
+    -- (15 Nov 2026) A spell / item / macro is bound to the key ITSELF when the client can
+    -- (ClassicAPI's SetBinding*), even on a key that pressed an action button: the key stops
+    -- pressing that button, and the button keeps its spell and its other key.
     if GetCursorInfo then
       local kind, a, b = GetCursorInfo()
       local done
@@ -312,7 +311,17 @@ pfUI:RegisterModule("keymap", "vanilla", function ()
         return true
       end
     end
-    -- no ClassicAPI: put it on a free action button and bind the key to it
+    local action = GetBindingAction(key)
+    local slot = KM.SlotOf(action)
+    local _, other = GetBindingKey(action or "")
+    if slot and not HasAction(slot) and not other then
+      -- an empty action button only this key presses: the spell goes on it
+      PlaceAction(slot)
+      Save()
+      return true
+    end
+    -- no ClassicAPI: put it on a free action button no other key presses, and bind this key to it
+    -- (the key's old action button keeps its spell)
     local free = FreeSlot()
     if free then
       PlaceAction(free)
