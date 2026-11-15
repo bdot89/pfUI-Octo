@@ -74,6 +74,7 @@ pfUI:RegisterModule("flight-options", "vanilla", function ()
     Chk(p, "A flyer on the marker", nil, "flyer")
     Chk(p, "Short names", "\"Crossroads\" instead of \"Crossroads, The Barrens\".", "short")
     Chk(p, "The picture at the end", nil, "picture")
+    Chk(p, "Dark panel behind", "A soft dark panel behind the whole bar, for bright places.", "panel")
     Chk(p, "Flight times on the flight map", "Hovering a flight point on the flight master's map shows how long the flight takes and how many stops it has.", "tooltip")
     Chk(p, "Share flight times", "The times you fly go to your guild and group, and theirs come to you for routes you have not flown.", "share")
 

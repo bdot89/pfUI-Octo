@@ -340,6 +340,10 @@ pfUI:RegisterModule("flight", "vanilla", function ()
   -- ---------------------------------------------------------------- the bar
 
   local WHITE = "Interface\\Buttons\\WHITE8X8"
+  -- (15 Nov 2026, user on the first version: "could look better") round flight-point marks as on the flight
+  -- map, a dark edge under the line, a glow at the tip of the flown part and round the flyer, the
+  -- destination's name in its mark's colour, a bigger time
+  local NODE = "Interface\\TaxiFrame\\UI-Taxi-Icon-White"
   local function Col(key, r, g, b, a)
     local _, _, cr, cg, cb, ca = string.find(S()[key] or "", "([%d%.]+),([%d%.]+),([%d%.]+),?([%d%.]*)")
     return tonumber(cr) or r, tonumber(cg) or g, tonumber(cb) or b, tonumber(ca) or a or 1
@@ -358,9 +362,9 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     f.done = f:CreateTexture(nil, "OVERLAY")
     f.done:SetTexture(WHITE)
     f.endL = f:CreateTexture(nil, "OVERLAY")
-    f.endL:SetTexture(WHITE)
+    f.endL:SetTexture(NODE)
     f.endR = f:CreateTexture(nil, "OVERLAY")
-    f.endR:SetTexture(WHITE)
+    f.endR:SetTexture(NODE)
     f.you = f:CreateTexture(nil, "OVERLAY")
     f.you:SetTexture(WHITE)
     f.youText = Text(f, 12)
@@ -374,6 +378,16 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     f.pic:SetTexCoord(.07, .93, .07, .93)
     f.picEdge = f:CreateTexture(nil, "BACKGROUND")
     f.picEdge:SetTexture(0, 0, 0, 1)
+    f.outline = f:CreateTexture(nil, "BACKGROUND")
+    f.outline:SetTexture(0, 0, 0, .85)
+    f.spark = f:CreateTexture(nil, "OVERLAY")
+    f.spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    f.spark:SetBlendMode("ADD")
+    f.flyglow = f:CreateTexture(nil, "ARTWORK")
+    f.flyglow:SetTexture("Interface\\AddOns\\pfUI\\img\\plates\\cp-glow")
+    f.flyglow:SetBlendMode("ADD")
+    f.panel = f:CreateTexture(nil, "BACKGROUND")
+    f.panel:SetTexture(0, 0, 0, .45)
     f.ticks = {}
     return f
   end
@@ -381,7 +395,7 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     local t = f.ticks[i]
     if t then return t end
     t = { mark = f:CreateTexture(nil, "OVERLAY"), text = Text(f, 12) }
-    t.mark:SetTexture(WHITE)
+    t.mark:SetTexture(NODE)
     f.ticks[i] = t
     return t
   end
@@ -395,7 +409,8 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     local er, eg, eb, ea = Col("endcolor", .86, .6, .42, 1)
     local tr, tg, tb = Col("textcolor", 1, 1, 1, 1)
     local dr, dg, db, da = Col("donecolor", .35, .8, 1, 1)
-    local timeW = On("showtime") and 44 or 0
+    local node = thick + 12
+    local timeW = On("showtime") and 50 or 0
     f:SetWidth(timeW + w + (pic > 0 and (pic + 12) or 0))
     f:SetHeight(math.max(pic, 2 * size + 22))
     local x0 = timeW
@@ -404,6 +419,14 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     f.line:SetWidth(w)
     f.line:SetHeight(thick)
     f.line:SetVertexColor(lr, lg, lb, la)
+    f.outline:ClearAllPoints()
+    f.outline:SetPoint("LEFT", f, "LEFT", x0 - 1, 0)
+    f.outline:SetWidth(w + 2)
+    f.outline:SetHeight(thick + 2)
+    f.panel:ClearAllPoints()
+    f.panel:SetPoint("TOPLEFT", f, "TOPLEFT", -8, 8)
+    f.panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 8, -8)
+    if On("panel") then f.panel:Show() else f.panel:Hide() end
     local prog = view.prog
     local px = x0 + w * math.max(0, math.min(1, prog or 0))
     if prog and prog > 0 then
@@ -413,15 +436,21 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       f.done:SetHeight(thick)
       f.done:SetVertexColor(dr, dg, db, da)
       f.done:Show()
+      f.spark:ClearAllPoints()
+      f.spark:SetPoint("CENTER", f, "LEFT", px, 0)
+      f.spark:SetWidth(22)
+      f.spark:SetHeight(thick * 8 + 14)
+      f.spark:SetVertexColor(dr, dg, db, .9)
+      f.spark:Show()
     else
-      f.done:Hide()
+      f.done:Hide() f.spark:Hide()
     end
-    for _, e in ipairs({ { f.endL, x0 }, { f.endR, x0 + w } }) do
+    for _, e in ipairs({ { f.endL, x0, dr, dg, db }, { f.endR, x0 + w, er, eg, eb } }) do
       e[1]:ClearAllPoints()
       e[1]:SetPoint("CENTER", f, "LEFT", e[2], 0)
-      e[1]:SetWidth(thick + 6)
-      e[1]:SetHeight(thick + 6)
-      e[1]:SetVertexColor(er, eg, eb, ea)
+      e[1]:SetWidth(node + 2)
+      e[1]:SetHeight(node + 2)
+      e[1]:SetVertexColor(e[3], e[4], e[5], 1)
     end
     for _, t in ipairs({ f.time, f.from, f.to, f.youText }) do
       t:SetFont(pfUI.font_default, size, "OUTLINE")
@@ -435,8 +464,10 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     f.to:ClearAllPoints()
     f.to:SetPoint("BOTTOMRIGHT", f, "LEFT", x0 + w, 7)
     f.to:SetText(FL.Short(names[n]) or "")
+    f.to:SetTextColor(math.min(1, er + .12), math.min(1, eg + .12), math.min(1, eb + .12))
+    f.time:SetFont(pfUI.font_default, size + 3, "OUTLINE")
     f.time:ClearAllPoints()
-    f.time:SetPoint("RIGHT", f, "LEFT", x0 - 8, 0)
+    f.time:SetPoint("RIGHT", f, "LEFT", x0 - 12, 0)
     if On("showtime") then
       f.time:SetText(view.left and ((view.guess and "~" or "") .. FL.Clock(view.left)) or (view.flown and FL.Clock(view.flown) or ""))
     else
@@ -452,8 +483,8 @@ pfUI:RegisterModule("flight", "vanilla", function ()
         local x = x0 + w * (view.fracs[i] or (i - 1) / (n - 1))
         t.mark:ClearAllPoints()
         t.mark:SetPoint("CENTER", f, "LEFT", x, 0)
-        t.mark:SetWidth(2)
-        t.mark:SetHeight(thick + 8)
+        t.mark:SetWidth(node)
+        t.mark:SetHeight(node)
         local passed = prog and (view.fracs[i] or 0) <= prog
         if passed then t.mark:SetVertexColor(dr, dg, db, da) else t.mark:SetVertexColor(er, eg, eb, ea) end
         t.mark:Show()
@@ -482,6 +513,13 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       f.flyer:SetWidth(Num("flyersize", 16))
       f.flyer:SetHeight(Num("flyersize", 16))
       f.flyer:SetVertexColor(dr, dg, db, 1)
+      f.flyglow:ClearAllPoints()
+      f.flyglow:SetPoint("CENTER", f, "LEFT", px, 0)
+      local gs = Num("flyersize", 16) * (2.1 + .35 * math.sin(GetTime() * 4))
+      f.flyglow:SetWidth(gs)
+      f.flyglow:SetHeight(gs)
+      f.flyglow:SetVertexColor(dr, dg, db, .8)
+      if On("flyer") then f.flyglow:Show() else f.flyglow:Hide() end
       if On("flyer") then f.flyer:Show() else f.flyer:Hide() end
       f.youText:ClearAllPoints()
       f.youText:SetPoint("BOTTOM", f, "LEFT", px, 7 + size + 2)
@@ -490,7 +528,7 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       local clear = px > x0 + fw + 16 and px < x0 + w - tw - 16
       if On("you") and clear then f.youText:Show() else f.youText:Hide() end
     else
-      f.you:Hide() f.flyer:Hide() f.youText:Hide()
+      f.you:Hide() f.flyer:Hide() f.youText:Hide() f.flyglow:Hide()
     end
     if pic > 0 then
       f.pic:ClearAllPoints()

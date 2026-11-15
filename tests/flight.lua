@@ -75,7 +75,7 @@ FL.Paint(bar, view)
 ok(bar.time:GetText() == "0:58" and bar.from:GetText() == "Orgrimmar, Durotar" and bar.to:GetText() == "Ratchet, The Barrens"
   and bar.ticks[1] and bar.ticks[1].text:GetText() == "Crossroads, The Barrens" and bar.you:IsShown(), "the bar: time, both ends, the stop, you (" .. tostring(bar.time:GetText()) .. ")")
 local _, _, _, yx = bar.you:GetPoint(1)
-ok(math.abs(yx - (44 + 420 * .25)) < .01, "the marker a quarter along the line (" .. tostring(yx) .. ")")
+ok(math.abs(yx - (50 + 420 * .25)) < .01, "the marker a quarter along the line (" .. tostring(yx) .. ")")
 S.short, S.stops = "1", "0"
 FL.Paint(bar, view)
 ok(bar.to:GetText() == "Ratchet" and not bar.ticks[1].mark:IsShown(), "short names; stops off")
