@@ -14,7 +14,17 @@
 > **It's in the ZIP.** After unzipping, double-click **`Install pfUI Octo DLLs.bat`** in the pfUI folder (game closed). Every time you run it, it fetches the **latest releases** of **ClassicAPI, SuperWoW, nampower and UnitXP_SP3** straight from their authors' GitHub, installs what's missing and updates what's out of date. 🚀
 > Run it again any time to stay current. It backs up the old DLLs, adds them to `dlls.txt` for you, and never swaps a newer build you already have for an older one.
 
-**pfUI Octo** is a free all-in-one interface for WoW 1.12 (OctoWoW), **version 1.0.0**, made by **Bdot89**: unit frames, action bars, nameplates, meters, threat, combat text, a swing timer, gear sets, a key map and whole UI layouts, all set up from **one options window** with a live preview on every page. 🎛️
+**pfUI Octo** is a free all-in-one interface for WoW 1.12 (OctoWoW), **version 1.1.6**, made by **Bdot89**. It replaces a whole folder of addons: unit frames, action bars, nameplates, **a built-in quest helper**, **auto loot**, **cooldown bars**, **a consumables tracker**, meters, threat, combat text, a swing timer, gear sets, a key map and whole UI layouts. Everything is set up from **one options window** with a live preview on every page. 🎛️
+
+### 🔥 New in 1.1
+- 🧭 **Quest helper built in:** pfQuest's map pins, quest tracker and `/db` database with OctoWoW's own quests. No Questie or pfQuest to install.
+- 💰 **Auto Loot + loot filter:** take what you want, leave the junk, with rules you click together.
+- ⏳ **Cooldown bars:** your cooldowns fill the bars by themselves, with 12 glow kinds and animations when they come ready.
+- 🧪 **Consumables tracker:** a list per character and raid. It warns you when a flask or buff is missing or running out, and one key puts the next one on.
+- 🎒 **Bag categories:** Bagshui-style groups (gear, potions, herbs, junk...) inside one bag window.
+- 🛠️ **Quality of Life section + Raid Tools:** ready check, pull timer and raid markers in one bar.
+- ⛏️ **Gathering finder:** the nearest herbs, ore, fish and chests with an arrow.
+- ⚡ **Smoother raids:** meter windows and nameplates redraw far less often.
 
 > 🧩 **Built on [pfUI](https://github.com/shagu/pfUI) by Shagu:** pfQuest, Clickcast, your profiles and your settings all keep working.
 
@@ -36,6 +46,11 @@
 
 | | |
 |---|---|
+| 🧭 **Questing** | pfQuest built in: quest givers and objectives on the map, tracker, `/db` item and NPC search |
+| 💰 **Auto Loot** | Loot filter rules: always take quest items, leave greys, keep only what you pick |
+| ⏳ **Cooldown bars** | Fill themselves from your spell book, live times, glows and animations, item procs |
+| 🧪 **Consumables** | Lists per character, raid or spec; warns when missing or running low; one-key reapply |
+| 🛠️ **Quality of Life** | Raid Tools bar, auto sell greys, auto repair, screenshots, gathering finder, all on one page |
 | 🗺️ **UI layouts** | Normal, Raid, PvP or your own, each with its own frames, meters, gear and spells; switches by itself by zone |
 | 🧍 **Unit frames** | Player to raid, with fading health, combat flash, class icons, elite marks, dispel colours, buff timers |
 | ⚔️ **Action bars** | 14 button looks, proc glows, cooldown swipes, hover and press effects, fading, end-cap art |
@@ -45,23 +60,36 @@
 | ⏱️ **Swing timer** | Main hand, off hand and ranged, parry haste, queued attacks, Slam and Seal-twist marks |
 | 🛡️ **Gear** | Instant set swaps, a trinket queue, slot buttons, automatic swaps, talent specs at the Brainwashing Device |
 | ⌨️ **Key Map** | Your keyboard on screen: drag any spell, item or macro onto a key, pick the rank, see every layer |
-| 🎒 **Bags, chat, minimap** | Instant sorting, new-item glows, chat with class colours, a SexyMap-style minimap, loot roll history |
+| 🎒 **Bags, chat, minimap** | Bag categories, instant sorting, new-item glows, chat with class colours, a SexyMap-style minimap, loot roll history |
 | 🧭 **Layout mode** | Drag and snap frames, mirrored guide lines, match sizes, lock frames together, hide what you don't need |
 | 🔁 **Octo or Blizzard** | A switch on every page: back to Blizzard's frames for that part at once, no reload |
 
 ## 📸 Screenshots
 
-<img src="docs/keymap.jpg" alt="Key Map" width="100%">
+<img src="docs/new-layoutmode.jpg" alt="Layout mode" width="100%">
 
-**⌨️ Key Map:** your whole keyboard on screen with the mouse buttons and wheel. **Spell book** lists every spell you know (click one, pick its rank, click a key, or drag it onto a key), **Unbound** the spells on your bars with no key, **All bindings** the game's whole list. Shift / Ctrl / Alt show each layer.
+**🧭 Layout mode (`/moveui`):** every frame gets a labelled box. Drag and snap them, resize with the wheel, lock frames together, right-click a box for its options.
 
-| | | |
-|---|---|---|
-| <img src="docs/layouts.jpg" alt="UI layouts"><br>🗺️ **UI layouts**: one click to switch | <img src="docs/unitframes.jpg" alt="Unit frames"><br>🧍 **Unit frames**: click any part to change it | <img src="docs/actionbars.jpg" alt="Action bars"><br>⚔️ **Action bars**: 14 looks, every effect |
-| <img src="docs/nameplates.jpg" alt="Nameplates"><br>🎯 **Nameplates**: four live sample plates | <img src="docs/meters.jpg" alt="Meters"><br>📊 **Meters**: a test fight to style them | <img src="docs/combattext.jpg" alt="Combat text"><br>💥 **Combat text**: drag the areas |
-| <img src="docs/gear.jpg" alt="Gear sets"><br>🛡️ **Gear sets**: like the character window | <img src="docs/trinkets.jpg" alt="Trinket queue"><br>💍 **Trinket queue**: the next ready one goes on | <img src="docs/specs.jpg" alt="Talent specs"><br>🧠 **Talent specs**: gear, layout and spells per spec |
-| <img src="docs/autoswap.jpg" alt="Automatic swaps"><br>🔄 **Automatic swaps**: mount, swim, battleground... | <img src="docs/swing.jpg" alt="Swing timer"><br>⏱️ **Swing timer**: with Slam and twist marks | <img src="docs/slots.jpg" alt="Slot buttons"><br>🎚️ **Slot buttons**: use or swap any slot |
-| <img src="docs/chat.jpg" alt="Chat"><br>💬 **Chat**: timestamps and class colours | <img src="docs/minimap.jpg" alt="Minimap"><br>🧭 **Minimap**: shapes, art, a clock | <img src="docs/bags.jpg" alt="Bags"><br>🎒 **Bags**: one window, one-click sorting |
+| | |
+|---|---|
+| <img src="docs/new-questing.jpg" alt="Questing"><br>🧭 **Quest helper built in**: pfQuest's map, tracker and database, no extra addon | <img src="docs/new-autoloot.jpg" alt="Loot filter"><br>💰 **Auto Loot + loot filter**: rules for what you take and what you leave |
+| <img src="docs/new-cooldowns.jpg" alt="Cooldown bars"><br>⏳ **Cooldown bars**: fill themselves, glow when ready | <img src="docs/new-consumables.jpg" alt="Consumables"><br>🧪 **Consumables**: never pull without your flask again |
+| <img src="docs/new-nameplates.jpg" alt="Nameplates"><br>🎯 **Nameplates**: Plater-style, live sample plates | <img src="docs/new-meters.jpg" alt="Meters"><br>📊 **Meters**: Details!-style windows and breakdowns |
+| <img src="docs/new-gear.jpg" alt="Gear sets"><br>🛡️ **Gear sets**: instant swaps, trinket queue, specs | <img src="docs/new-bags.jpg" alt="Bags"><br>🎒 **Bags**: one window, categories, one-click sorting |
+| <img src="docs/new-layouts.jpg" alt="UI layouts"><br>🗺️ **UI layouts**: Normal, Raid, PvP, switching by zone | <img src="docs/keymap.jpg" alt="Key Map"><br>⌨️ **Key Map**: drag spells onto your keyboard |
+
+## 📜 Release notes
+
+- **1.1.6** 🎯 Nameplate target glow: size, pulse and a bright glow that stands out in smoke.
+- **1.1.5** 💤 AFK / DND marks on unit frames, instant weapon-oil tracking, cooldown bar glows and animations.
+- **1.1.4** ⚡ Smoother raids: meters redraw 3 times a second instead of every frame, less nameplate garbage.
+- **1.1.3** 🧊 Fixed freezes with macros (Pick Pocket and SuperCleveRoidMacros).
+- **1.1.2** ➕ Incoming heals as a number on unit frames.
+- **1.1.1** 🤝 Gathering nodes shared with your group.
+- **1.1.0** 🔥 pfQuest built in, gathering finder, consumables tracker, bag categories, loot filter and Auto Loot, Quality of Life + Raid Tools, CustomMedia, translations, your own proc glows, instant threat, many crash fixes.
+- **1.0.0** 🐙 First release (26 Oct 2026).
+
+[All releases with download links](https://github.com/bdot89/pfUI-Octo/releases)
 
 ## ⚡ The DLLs: what they add
 
