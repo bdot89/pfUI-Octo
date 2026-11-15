@@ -29,14 +29,14 @@ TR.Fix(r, 100, 5000, nil, 0)
 local t, e = TR.Now(r, 5010)
 ok(e and math.abs(t - 110) < .01, "after a sighting the loop time follows the clock")
 local msg = TR.Message(72, 5010)
-ok(msg and string.find(msg, "^S|72|110%.0|10|"), "share message: route, loop time, age (" .. tostring(msg) .. ")")
+ok(msg and string.find(msg, "^S%^72%^110%.0%^10%^"), "share message: route, loop time, age (" .. tostring(msg) .. ")")
 pfUI_cache.transports = {}
 TR.Receive(msg, "Friend", 6000)
 t, e = TR.Now(r, 6000)
 ok(e and e.from == "Friend" and math.abs(t - 110) < .01 and e.seen == 5990, "a shared sighting is taken")
-TR.Receive("S|72|5.0|30000|30.00", "Old", 6000)
+TR.Receive("S^72^5.0^30000^30.00", "Old", 6000)
 ok(pfUI_cache.transports[72].from == "Friend", "sightings older than 6 h are ignored")
-TR.Receive("S|72|5.0|100|30.00", "Older", 6000)
+TR.Receive("S^72^5.0^100^30.00", "Older", 6000)
 ok(pfUI_cache.transports[72].from == "Friend", "an older sighting does not replace a newer one")
 -- tooltip lines
 local lines = TR.Lines(r, 6000)
@@ -68,7 +68,7 @@ ok(gap == 48 and w2 == 36, "tram gap learnt from two departures, next car in 36 
 local tl = TR.TramLines("Ironforge", 1050)
 ok(tl[1] == "Deeprun Tram to Stormwind" and string.find(tl[2], "at the platform"), "tram tooltip says a car is waiting")
 pfUI_cache.transports = {}
-TR.Receive("T|Stormwind|10|47.5", "Friend", 2000)
+TR.Receive("T^Stormwind^10^47.5", "Friend", 2000)
 local w3, g3, e3 = TR.TramNext("Stormwind", 2000)
 ok(e3 and e3.from == "Friend" and g3 == 47.5 and math.abs(w3 - 37.5) < .01, "shared tram timing taken")
 local u3 = TR.TramSpot("Ironforge")
@@ -105,3 +105,9 @@ ok(pfUI_cache.transports[121] and pfUI_cache.transports[121].t0, "riding the zep
 _G.UnitPosition = savedPos
 pfUI_cache.transports = {}
 TR.ride = {}
+
+-- nothing shared may hold "|": the server rejects it ("Invalid escape code", 15 Nov 2026)
+pfUI_cache.transports = {}
+TR.Fix(TR.routes[72], 100, 5000, nil, 0)
+ok(not string.find(TR.Message(72, 5010), "|", 1, true), "transport messages have no |")
+pfUI_cache.transports = {}

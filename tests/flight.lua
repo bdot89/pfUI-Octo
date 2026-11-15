@@ -98,13 +98,13 @@ now = now + 56
 flying = false
 FL.Tick(now)
 ok(not FL.now and pfUI_cache.flightnow == nil and pfUI_cache.flighttimes[plan.key] == 76, "landed: the flight took 76 s and is remembered (" .. tostring(pfUI_cache.flighttimes[plan.key]) .. ")")
-ok(sent[1] and sent[1][1] == "pfFT" and sent[1][2] == plan.key .. "|76" and sent[1][3] == "GUILD", "and told to the guild")
+ok(sent[1] and sent[1][1] == "pfFT" and sent[1][2] == plan.key .. "^76" and sent[1][3] == "GUILD", "and told to the guild")
 local again = FL.Plan(3)
 ok(again.learned == 76 and again.total == 76, "the timed flight beats the estimate")
-ok(FL.Receive("Auberdine, Darkshore>Rut'theran Village, Teldrassil|94.5", "Khijazi") == true and pfUI_cache.flighttimes["Auberdine, Darkshore>Rut'theran Village, Teldrassil"] == 94.5,
+ok(FL.Receive("Auberdine, Darkshore>Rut'theran Village, Teldrassil^94.5", "Khijazi") == true and pfUI_cache.flighttimes["Auberdine, Darkshore>Rut'theran Village, Teldrassil"] == 94.5,
   "another player's time is taken for a route you have not flown")
-ok(FL.Receive(plan.key .. "|10", "Khijazi") == false and pfUI_cache.flighttimes[plan.key] == 76 and FL.Receive("rubbish", "Khijazi") == false
-  and FL.Receive("A>B|99999", "Khijazi") == false, "not over your own, and nothing malformed")
+ok(FL.Receive(plan.key .. "^10", "Khijazi") == false and pfUI_cache.flighttimes[plan.key] == 76 and FL.Receive("rubbish", "Khijazi") == false
+  and FL.Receive("A>B^99999", "Khijazi") == false, "not over your own, and nothing malformed")
 -- a wrong-looking flight (logged out half way) is not kept
 FL.Capture(2)
 flying = true

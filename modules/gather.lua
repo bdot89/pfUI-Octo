@@ -845,7 +845,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   local function NodeText(n) return n[1] .. "~" .. n[2] .. "~" .. string.format("%.0f", n[3]) .. "~" .. string.format("%.0f", n[4]) end
   function GF.Tell(key, name, prof, wx, wy)
     if not Sharing() then return end
-    Queue("N|" .. Locale() .. "|" .. key .. "|" .. NodeText({ name, prof, wx, wy }))
+    Queue("N^" .. Locale() .. "^" .. key .. "^" .. NodeText({ name, prof, wx, wy }))
   end
   function GF.Ask(force)
     if not Sharing() then return false end
@@ -855,7 +855,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     if not force and GF.asked[key] and now - GF.asked[key] < ASKEVERY then return true end
     GF.asked[key] = now
     local z = Store()[key]
-    Queue("Q|" .. Locale() .. "|" .. key .. "|" .. (z and table.getn(z.nodes) or 0) .. "|" .. ((z and z.fit) and 1 or 0))
+    Queue("Q^" .. Locale() .. "^" .. key .. "^" .. (z and table.getn(z.nodes) or 0) .. "^" .. ((z and z.fit) and 1 or 0))
     return true
   end
   -- a zone's nodes (and fit) as messages
@@ -865,9 +865,9 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     if not z then return list end
     local f = z.fit
     if withFit and f then
-      table.insert(list, "F|" .. Locale() .. "|" .. key .. "|" .. f.xi .. "|" .. f.yi .. "|" .. f.ax .. "|" .. f.cx .. "|" .. f.ay .. "|" .. f.cy)
+      table.insert(list, "F^" .. Locale() .. "^" .. key .. "^" .. f.xi .. "^" .. f.yi .. "^" .. f.ax .. "^" .. f.cx .. "^" .. f.ay .. "^" .. f.cy)
     end
-    local head = "D|" .. Locale() .. "|" .. key .. "|"
+    local head = "D^" .. Locale() .. "^" .. key .. "^"
     local line = head
     for i = 1, math.min(table.getn(z.nodes), 600) do
       local t = NodeText(z.nodes[i])
@@ -883,7 +883,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   local function GoodNode(key, text, from)
     local p = Split(text, "~")
     local name, prof, wx, wy = p[1], p[2], tonumber(p[3]), tonumber(p[4])
-    if not name or string.len(name) < 1 or string.len(name) > 48 or string.find(name, "|", 1, true) then return false end
+    if not name or string.len(name) < 1 or string.len(name) > 48 or (string.find(name, "|", 1, true) or string.find(name, "^", 1, true)) then return false end
     if not (GF.PROF[prof] or prof == FISH or prof == CHEST) then return false end
     if not wx or not wy or math.abs(wx) > 20000 or math.abs(wy) > 20000 then return false end
     local z = Store()[key]
@@ -893,7 +893,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   end
   function GF.Receive(msg, from)
     if not Sharing() or not msg or not from or from == UnitName("player") then return end
-    local p = Split(msg, "|")
+    local p = Split(msg, "^")
     local kind, loc, key = p[1], p[2], p[3]
     if loc ~= Locale() or not key or not string.find(key, "^%d+:%d+$") then return end
     if kind == "N" then

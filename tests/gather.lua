@@ -291,34 +291,34 @@ do
     sent = {}
     GF.Remember("9:9", "Dreamfoil", "Herbalism", 2300, 900)
     Drain()
-    ok(sent[1] and sent[1][1] == "pfGN" and sent[1][3] == "GUILD" and sent[1][2] == "N|" .. loc .. "|9:9|Dreamfoil~Herbalism~2300~900",
+    ok(sent[1] and sent[1][1] == "pfGN" and sent[1][3] == "GUILD" and sent[1][2] == "N^" .. loc .. "^9:9^Dreamfoil~Herbalism~2300~900",
       "a node you find is told to the guild (" .. tostring(sent[1] and sent[1][2]) .. ")")
     local before = GF.Count()
-    GF.Receive("N|" .. loc .. "|9:9|Plaguebloom~Herbalism~2500~700", "Khijazi")
-    GF.Receive("D|" .. loc .. "|9:9|Dreamfoil~Herbalism~2300~901;Icecap~Herbalism~2600~650;Bad~Hacking~1~1;Far~Mining~999999~1", "Khijazi")
-    GF.Receive("N|xxXX|9:9|Sungrass~Herbalism~2700~700", "Khijazi")
-    GF.Receive("N|" .. loc .. "|9:9|Sungrass~Herbalism~2700~700", UnitName("player"))
+    GF.Receive("N^" .. loc .. "^9:9^Plaguebloom~Herbalism~2500~700", "Khijazi")
+    GF.Receive("D^" .. loc .. "^9:9^Dreamfoil~Herbalism~2300~901;Icecap~Herbalism~2600~650;Bad~Hacking~1~1;Far~Mining~999999~1", "Khijazi")
+    GF.Receive("N^xxXX^9:9^Sungrass~Herbalism~2700~700", "Khijazi")
+    GF.Receive("N^" .. loc .. "^9:9^Sungrass~Herbalism~2700~700", UnitName("player"))
     ok(GF.Count() == before + 2, "others' nodes are taken once; wrong ones, another language and your own echo are not (" .. (GF.Count() - before) .. ")")
     local list = pfUI_cache.gathernodes["9:9"].nodes
     ok(list[table.getn(list)][5] == "Khijazi", "a shared node keeps who found it")
     Drain()
     ok(table.getn(sent) == 1, "a received node is not sent on again (" .. table.getn(sent) .. ")")
     -- a zone asked for: the one with more answers, in parts, with the fit
-    GF.Receive("Q|" .. loc .. "|9:9|1|0", "Khijazi")
+    GF.Receive("Q^" .. loc .. "^9:9^1^0", "Khijazi")
     Drain()
     local d, f = 0, 0
     for _, s in ipairs(sent) do
-      if string.sub(s[2], 1, 2) == "D|" then d = d + 1 end
-      if string.sub(s[2], 1, 2) == "F|" then f = f + 1 end
+      if string.sub(s[2], 1, 2) == "D^" then d = d + 1 end
+      if string.sub(s[2], 1, 2) == "F^" then f = f + 1 end
     end
     ok(d >= 1 and f == 1, "asked for a zone: its nodes and its fit are sent (" .. d .. " + " .. f .. ")")
     pfUI_cache.gathernodes["8:8"] = nil
-    GF.Receive("F|" .. loc .. "|8:8|2|1|-0.00025|0.75|-0.00033|1.16", "Khijazi")
+    GF.Receive("F^" .. loc .. "^8:8^2^1^-0.00025^0.75^-0.00033^1.16", "Khijazi")
     ok(pfUI_cache.gathernodes["8:8"] and pfUI_cache.gathernodes["8:8"].fit and pfUI_cache.gathernodes["8:8"].fit.xi == 2, "a zone's fit is taken when you have none")
     pfUI_config.gather.share = "0"
     local n = table.getn(sent)
     GF.Remember("9:9", "Dreamfoil", "Herbalism", 2900, 900)
-    GF.Receive("N|" .. loc .. "|9:9|Icecap~Herbalism~3000~650", "Khijazi")
+    GF.Receive("N^" .. loc .. "^9:9^Icecap~Herbalism~3000~650", "Khijazi")
     Drain()
     ok(table.getn(sent) == n and GF.Count() == before + 3, "sharing off: nothing sent, nothing taken")
     _G.SendAddonMessage, _G.IsInGuild, pfUI_config.gather.share, pfUI_config.gather.record = sam, guild, wasShare, wasRec

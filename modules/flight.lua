@@ -314,7 +314,7 @@ pfUI:RegisterModule("flight", "vanilla", function ()
   local PREFIX = "pfFT"
   function FL.Tell(key, secs)
     if not On("share") or type(SendAddonMessage) ~= "function" or not secs then return end
-    local msg = key .. "|" .. secs
+    local msg = key .. "^" .. secs
     if string.len(msg) > 240 then return end
     if IsInGuild and IsInGuild() then SendAddonMessage(PREFIX, msg, "GUILD") end
     if GetNumRaidMembers and GetNumRaidMembers() > 0 then SendAddonMessage(PREFIX, msg, "RAID")
@@ -323,7 +323,7 @@ pfUI:RegisterModule("flight", "vanilla", function ()
   -- another player's time for a route: kept when you have none of your own
   function FL.Receive(msg, from)
     if not On("share") or type(msg) ~= "string" or from == UnitName("player") then return false end
-    local _, _, key, secs = string.find(msg, "^(.+)|([%d%.]+)$")
+    local _, _, key, secs = string.find(msg, "^(.+)%^([%d%.]+)$")
     secs = tonumber(secs)
     if not key or not secs or secs < 8 or secs > 3600 or string.len(key) > 200 or not string.find(key, ">", 1, true) then return false end
     if Times()[key] then return false end

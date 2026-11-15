@@ -316,13 +316,13 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(list, "PARTY") end
     return list
   end
-  -- "S|route|loop seconds now|age of the sighting|speed"
+  -- "S^route^loop seconds now^age of the sighting^speed (no "|": the server refuses it)"
   function TR.Message(id, now)
     local r, e = TR.routes[id], Store()[id]
     if not r or not e or not e.t0 then return end
     now = now or time()
-    return "S|" .. id .. "|" .. string.format("%.1f", math.mod(now - e.t0, r.period))
-      .. "|" .. math.floor(now - (e.seen or now)) .. "|" .. string.format("%.2f", r.speed)
+    return "S^" .. id .. "^" .. string.format("%.1f", math.mod(now - e.t0, r.period))
+      .. "^" .. math.floor(now - (e.seen or now)) .. "^" .. string.format("%.2f", r.speed)
   end
   function TR.Tell(id)
     local m = TR.Message(id)
@@ -337,7 +337,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       TR.replyAt = GetTime() + 2 + math.random() * 4
       return
     end
-    local _, _, city, since, gap = string.find(msg, "^T|(%a+)|(%d+)|([%d%.]+)$")
+    local _, _, city, since, gap = string.find(msg, "^T%^(%a+)%^(%d+)%^([%d%.]+)$")
     if city then
       since, gap = tonumber(since), tonumber(gap)
       local e = TR.TRAM and TR.TRAM[city] and TR.Tram()[city]
@@ -346,7 +346,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       TR.TramDeparted(city, now - since, from, gap)
       return
     end
-    local _, _, id, t, age, sp = string.find(msg, "^S|(%d+)|([%d%.]+)|(%d+)|([%d%.]+)$")
+    local _, _, id, t, age, sp = string.find(msg, "^S%^(%d+)%^([%d%.]+)%^(%d+)%^([%d%.]+)$")
     id, t, age, sp = tonumber(id), tonumber(t), tonumber(age), tonumber(sp)
     if not id or not TR.routes[id] or age > 6 * 3600 or sp < 5 or sp > 80 then return end
     if from == UnitName("player") then return end
@@ -514,7 +514,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
   -- 176080-176085, TransportAnimation.dbc) take 143.3 s for a whole loop and
   -- wait 13 s at each end. Inside, ClassicAPI shows the cars: one near you
   -- that starts moving = a departure from your platform (kept per city, the
-  -- gap between departures learnt, shared as "T|city|seconds since|gap").
+  -- gap between departures learnt, shared as "T^city^seconds since^gap").
   -- Your platform = the city you came in from while you stay near where you
   -- came in, else the other one. The map door spot is learnt from where you
   -- stood just before going in (UnitPosition), else a guess.
@@ -654,7 +654,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
   function TR.TellTram(city)
     local wait, gap, e = TR.TramNext(city)
     if not wait or e.from or table.getn(out) >= 40 then return end
-    table.insert(out, "T|" .. city .. "|" .. math.floor(time() - e.dep) .. "|" .. string.format("%.1f", gap))
+    table.insert(out, "T^" .. city .. "^" .. math.floor(time() - e.dep) .. "^" .. string.format("%.1f", gap))
   end
 
   TR.BuildAll()
