@@ -85,9 +85,9 @@ CDM.ReadBuffs()
 local _, _, inner = CDM.Where("Inner Fire")
 st = CDM.State(inner, now)
 ok(st.state == "active" and st.count == 20 and math.abs(st.aleft - 540) < .01, "active: the buff's time and its 20 charges")
-inner.active = "0"
+inner.act = "off"
 ok(CDM.State(inner, now).state == "ready", "\"show while active\" off: plain")
-inner.active = nil
+inner.act = nil
 -- ClassicAPI's auras
 _G.C_UnitAuras = { UnitAura = function(unit, i)
   if i == 1 then return "Power Infusion", "Interface\\Icons\\Spell_Holy_PowerInfusion", 0, nil, 15, now + 12 end
@@ -105,7 +105,7 @@ CDM.buffs = {}
 -- hiding: only-on-cooldown icons leave, the rest stay; the frame keeps its room
 bars[1].sort = "1"
 CDM.Sort(bars[1])
-for _, e in ipairs(bars[1].spells) do e.when = "cd" end
+for _, e in ipairs(bars[1].spells) do e.idle = "hide" end
 running = { ["Silence"] = { now - 5, 45 } }
 local rows, known = CDM.Rows(1, now)
 ok(table.getn(rows) == 1 and rows[1].e.name == "Silence" and known == 5, "only-while-on-cooldown: 1 of 5 shown (" .. table.getn(rows) .. " of " .. known .. ")")
@@ -115,12 +115,12 @@ local n = CDM.Layout(frame, frame.buttons, bars[1], rows, known, function() retu
 local _, _, _, x = frame.buttons[1]:GetPoint(1)
 ok(n == 1 and frame:GetWidth() == 5 * 30 + 4 * 2 and math.abs(x - (158 - 30) / 2) < .01, "the bar keeps its width; the one icon sits in the middle (" .. tostring(x) .. ")")
 ok(frame.buttons[1].state == "cd" and frame.buttons[1].time:GetText() == "40", "the icon shows 40 s")
-for _, e in ipairs(bars[1].spells) do e.when = nil end
+for _, e in ipairs(bars[1].spells) do e.idle = nil end
 
 -- coming ready: a glow for a few seconds
 CDM.rt = {}
 local _, _, sil = CDM.Where("Silence")
-sil.glow = "flash"
+sil.flash = "1"
 CDM.Rows(1, now)
 running = {}
 now = now + 41
@@ -139,6 +139,102 @@ ok(CDM.MoveTo("Silence", 2) and CDM.Where("Silence") == 2, "moved to another bar
 ok(CDM.Remove("Silence") and not CDM.Where("Silence") and CDM.Fill() == 0, "removed: it does not fill in again")
 S.removed = {}
 ok(CDM.Fill() == 1, "until asked to fill again")
+
+-- the icon's own options (its right-click menu)
+do
+  local _, _, fade = CDM.Where("Fade")
+  local btn = CDM.NewButton(getglobal("pfCDM1"), true)
+  local function Lit() local st = CDM.State(fade, now) CDM.Paint(btn, fade, st, 30, false, now) return btn.lit, st end
+  running, CDM.buffs = {}, {}
+  ok(CDM.Get(fade, "proc") == "off" and CDM.Get(fade, "thresh") == "3" and CDM.Get(fade, "flash") == "0", "an option not set gives its usual choice")
+  -- Proc Glow: only while it can be used
+  local usable = true
+  local csWas = rawget(_G, "C_Spell")
+  _G.C_Spell = { IsSpellUsable = function() return usable end }
+  fade.proc = "pulse"
+  ok(Lit() == "pulse", "Proc Glow: lit while ready and usable")
+  usable = false
+  ok(Lit() == "off", "not while it cannot be used")
+  running = { ["Fade"] = { now - 1, 30 } }
+  usable = true
+  ok(Lit() == "off", "nor on cooldown")
+  _G.C_Spell = csWas
+  -- Cooldown State Effect / Non Active State
+  fade.cdfx = "dim"
+  Lit()
+  ok(btn.icon:GetAlpha() == .4, "Cooldown State Effect: dimmed on cooldown")
+  fade.cdfx = "hide"
+  ok(CDM.Wanted(fade, CDM.State(fade, now)) == false, "or hidden")
+  running, fade.cdfx, fade.proc = {}, nil, nil
+  fade.idle = "dim"
+  Lit()
+  ok(btn.icon:GetAlpha() == .4, "Non Active State: dimmed while ready")
+  fade.idle = nil
+  -- Active State Glow and Max Charges Glow
+  local _, _, inner = CDM.Where("Inner Fire")
+  inner.actglow, inner.maxglow = "soft", "border"
+  S.maxc = {}
+  CDM.buffs = { ["inner fire"] = { name = "Inner Fire", count = 20, ends = now + 500 } }
+  local st = CDM.State(inner, now)
+  CDM.Paint(btn, inner, st, 30, false, now)
+  ok(st.maxed and btn.lit == "border" and btn.rim:IsShown() and not btn.glow:IsShown(), "Max Charges Glow: all 20 charges")
+  CDM.buffs["inner fire"].count = 12
+  st = CDM.State(inner, now)
+  CDM.Paint(btn, inner, st, 30, false, now)
+  ok(not st.maxed and btn.lit == "soft" and btn.glow:IsShown() and st.count == 12, "charges used: the Active State Glow instead, 12 shown")
+  inner.act = "time"
+  CDM.Paint(btn, inner, st, 30, false, now)
+  ok(btn.edged == false, "Active State \"time only\": no coloured edge")
+  inner.act, inner.actglow, inner.maxglow = nil, nil, nil
+  CDM.buffs = {}
+  -- Glow Effect Color
+  fade.gcolor = "red"
+  local gr, gg = CDM.GlowColor(fade)
+  ok(gr == 1 and gg == .25, "Glow Effect Color: the icon's own")
+  fade.gcolor = nil
+  -- Talent Conditions
+  local tk = {}
+  for _, k in ipairs({ "GetNumTalentTabs", "GetNumTalents", "GetTalentInfo" }) do tk[k] = rawget(_G, k) end
+  local rank = 0
+  _G.GetNumTalentTabs = function() return 1 end
+  _G.GetNumTalents = function() return 2 end
+  _G.GetTalentInfo = function(tab, i) if i == 1 then return "Improved Fade", "tex", 1, 1, rank, 2 end return "Silent Resolve", "tex", 1, 2, 5, 5 end
+  CDM.talents = nil
+  fade.talent = "Improved Fade"
+  ok(CDM.TalentOK(fade) == false and CDM.Wanted(fade, CDM.State(fade, now)) == false, "Talent Conditions: hidden without the talent")
+  rank = 2
+  CDM.talents = nil
+  ok(CDM.TalentOK(fade) == true, "shown with it")
+  fade.talentnot = "1"
+  ok(CDM.TalentOK(fade) == false, "\"lacks\" turns it round")
+  fade.talent, fade.talentnot = nil, nil
+  -- the menu itself: every line of the model, in its order
+  local CPO = pfUI.cdmOptions
+  if CPO and CPO.MenuLines then
+    local want = { "Remove Spell", "Proc Glow", "Active State", "Active State Glow", "Max Charges Glow", "Non Active State",
+      "Cooldown Saturation", "Cooldown State Effect", "Threshold Text", "Cooldown Swipe", "Audio Effect on CD Ready",
+      "Glow Effect Color", "Replace with Buff: None", "Talent Conditions: None", "Add Custom Icon" }
+    local got = {}
+    for _, d in ipairs(CPO.MenuLines("Fade")) do if not d.rule then table.insert(got, d.label) end end
+    local same = true
+    for i, w in ipairs(want) do if got[i] ~= w then same = false end end
+    ok(same, "the right-click menu's lines, in order (" .. table.concat(got, " | ") .. ")")
+    local sub
+    for _, d in ipairs(CPO.MenuLines("Fade")) do if d.label == "Cooldown State Effect" then sub = d.sub() end end
+    ok(sub and table.getn(sub) == 6 and sub[1].on == true and sub[4].head, "a sub-menu lists its choices, the one in use marked")
+    if sub then sub[2].fn() end
+    ok(fade.cdfx == "dim", "picking one sets it")
+    fade.cdfx = nil
+    local good, err = pcall(function()
+      local m = CPO.OpenMenu(UIParent, "Fade")
+      m.rows[3].enter(m.rows[3])
+      m:Hide()
+    end)
+    ok(good, "the menu opens with a sub-menu " .. tostring(err or ""))
+  end
+  for k, v in pairs(tk) do _G[k] = v end
+  CDM.talents = nil
+end
 
 -- the page builds with a picked icon too
 if O and O.Rebuild and pfUI.cdmOptions then

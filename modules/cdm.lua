@@ -28,11 +28,59 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   CDM.MAXBARS, CDM.SHORT, CDM.GCD = 6, 180, 1.5
   CDM.AUTO = { { key = "short", label = "Cooldowns up to 3 minutes" }, { key = "long", label = "Cooldowns over 3 minutes" },
                { key = "all", label = "Every cooldown" }, { key = "none", label = "Nothing (only what I add)" } }
-  CDM.WHEN = { { key = "always", label = "Always" }, { key = "cd", label = "Only while on cooldown or active" },
-               { key = "ready", label = "Only when it is ready" } }
-  CDM.GLOWS = { { key = "off", label = "No glow" }, { key = "flash", label = "A few seconds when it comes ready" },
-                { key = "ready", label = "The whole time it is ready" }, { key = "active", label = "While its effect is on you" },
-                { key = "both", label = "When it comes ready, and while active" } }
+  -- an icon's own options, in the order of its right-click menu (user, 15 Nov 2026, of
+  -- EllesmereUI's menu: "add all the options ... everything identical"). Each: the entry's
+  -- key, the menu line, the choices, the choice when nothing is set; `more` = a second
+  -- group in the same sub-menu.
+  local GLOW = { { key = "off", label = "Off" }, { key = "soft", label = "Soft outer glow" }, { key = "pulse", label = "Pulsing fill" },
+                 { key = "border", label = "Bright border" } }
+  local ONOFF = { { key = "1", label = "On" }, { key = "0", label = "Off" } }
+  CDM.GLOWCOLORS = {
+    { key = "", label = "The shared glow colour" }, { key = "gold", label = "Gold", c = { 1, .82, .2 } },
+    { key = "white", label = "White", c = { 1, 1, 1 } }, { key = "red", label = "Red", c = { 1, .25, .2 } },
+    { key = "orange", label = "Orange", c = { 1, .55, .1 } }, { key = "green", label = "Green", c = { .3, 1, .4 } },
+    { key = "blue", label = "Blue", c = { .3, .65, 1 } }, { key = "purple", label = "Purple", c = { .75, .4, 1 } },
+    { key = "class", label = "My class colour" },
+  }
+  CDM.SPEC = {
+    { key = "proc", label = "Proc Glow", def = "off", opts = GLOW,
+      tip = "Glows while the spell is ready AND can be used right now: Overpower after a dodge, Execute under 20%, Revenge..." },
+    { key = "act", label = "Active State", def = "full", tip = "What the icon does while the spell's effect is on you.",
+      opts = { { key = "full", label = "Its time left and a coloured edge" }, { key = "time", label = "Its time left only" },
+               { key = "off", label = "Nothing (the cooldown as always)" } } },
+    { key = "actglow", label = "Active State Glow", def = "off", opts = GLOW, tip = "Glows while the spell's effect is on you." },
+    { key = "maxglow", label = "Max Charges Glow", def = "off", opts = GLOW,
+      tip = "Glows while its effect has all its charges or stacks (the most seen on you: Inner Fire's 20)." },
+    { key = "idle", label = "Non Active State", def = "normal", tip = "How the icon looks while it is ready and nothing is running.",
+      opts = { { key = "normal", label = "Normal" }, { key = "dim", label = "Dimmed" }, { key = "grey", label = "Grey" },
+               { key = "hide", label = "Hidden" } } },
+    { key = "desat", label = "Cooldown Saturation", def = "1",
+      opts = { { key = "1", label = "Grey while on cooldown" }, { key = "0", label = "Keeps its colours" } } },
+    { key = "cdfx", label = "Cooldown State Effect", def = "normal", tip = "How the icon looks while on cooldown, and when it comes off it.",
+      opts = { { key = "normal", label = "Normal" }, { key = "dim", label = "Dimmed" }, { key = "hide", label = "Hidden" } },
+      more = { key = "flash", head = "When it comes ready", def = "0",
+               opts = { { key = "1", label = "Flashes for a few seconds" }, { key = "0", label = "No flash" } } } },
+    { key = "thresh", label = "Threshold Text", def = "3", tip = "The cooldown's time turns red in its last seconds.",
+      opts = { { key = "0", label = "Off" }, { key = "3", label = "Red under 3 seconds" }, { key = "5", label = "Red under 5 seconds" },
+               { key = "10", label = "Red under 10 seconds" } } },
+    { key = "swipe", label = "Cooldown Swipe", def = "1", opts = ONOFF, tip = "The dark shade that shrinks away as the cooldown runs.",
+      more = { key = "text", head = "Time left as a number", def = "1", opts = ONOFF } },
+    { key = "sound", label = "Audio Effect on CD Ready", def = "", opts = "SOUNDS" },
+    { key = "gcolor", label = "Glow Effect Color", def = "", opts = "GLOWCOLORS" },
+  }
+  function CDM.Opts(spec)
+    if type(spec.opts) == "string" then return CDM[spec.opts] end
+    return spec.opts
+  end
+  -- an entry's choice for a key (its own, else the usual one)
+  function CDM.Get(e, key)
+    local v = e[key]
+    if v ~= nil and v ~= "" then return v end
+    for _, s in ipairs(CDM.SPEC) do
+      if s.key == key then return s.def end
+      if s.more and s.more.key == key then return s.more.def end
+    end
+  end
   CDM.SHOW = { { key = "always", label = "Always" }, { key = "combat", label = "In combat" },
                { key = "target", label = "With a target or in combat" }, { key = "never", label = "Never" } }
   CDM.SOUNDS = { { key = "", label = "No sound" }, { key = "ping", label = "Map ping" }, { key = "bell", label = "Bell" },
@@ -62,6 +110,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     end
     if type(s.removed) ~= "table" then s.removed = {} end
     if type(s.known) ~= "table" then s.known = {} end
+    if type(s.maxc) ~= "table" then s.maxc = {} end
     return s.bars
   end
   -- where a name is: bar index, entry index, entry
@@ -255,7 +304,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         local ok, name, tex, count, _, _, expires = pcall(ui, "player", i, "HELPFUL")
         if not ok then good = false break end
         if not name then break end
-        out[Lower(name)] = { ends = (type(expires) == "number" and expires > 0) and expires or nil,
+        out[Lower(name)] = { name = name, ends = (type(expires) == "number" and expires > 0) and expires or nil,
           count = tonumber(count) or 0, tex = type(tex) == "string" and tex or nil }
       end
       if good then CDM.buffs = out return out end
@@ -278,7 +327,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         end
         if name then
           local left = GetPlayerBuffTimeLeft and GetPlayerBuffTimeLeft(bid)
-          out[Lower(name)] = { ends = (type(left) == "number" and left > 0) and (now + left) or nil,
+          out[Lower(name)] = { name = name, ends = (type(left) == "number" and left > 0) and (now + left) or nil,
             count = (GetPlayerBuffApplications and tonumber(GetPlayerBuffApplications(bid))) or 0, tex = tex }
         end
       end
@@ -344,24 +393,97 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       st.start, st.dur, st.left = start, dur, math.max(0, start + dur - now)
       if st.left <= 0 then st.start, st.dur, st.left = nil, nil, nil end
     end
-    if e.active ~= "0" then
+    if CDM.Get(e, "act") ~= "off" then
       local a = CDM.buffs[(e.buff and e.buff ~= "") and Lower(e.buff) or k]
       if a then
         st.active = true
         st.aleft = a.ends and math.max(0, a.ends - now) or nil
-        if a.count and a.count > 1 then st.count = a.count end
+        if a.count and a.count > 1 then
+          st.count = a.count
+          -- (all its charges: the most ever seen on you)
+          local top = S().maxc[k] or 0
+          if a.count > top then top = a.count S().maxc[k] = top end
+          st.maxed = a.count >= top
+        end
         if not st.tex then st.tex = a.tex end
       end
     end
     st.state = st.active and "active" or (st.left and "cd" or "ready")
+    if st.known and st.state == "ready" and CDM.Get(e, "proc") ~= "off" then st.usable = CDM.Usable(e) end
     return st
   end
-  -- is it drawn now (its "show" choice)
+  -- is it drawn now: known, its talent condition met, not hidden in this state
   function CDM.Wanted(e, st)
-    if not st.known then return false end
-    if e.when == "cd" then return st.state ~= "ready" end
-    if e.when == "ready" then return st.state == "ready" end
+    if not st.known or not CDM.TalentOK(e) then return false end
+    if st.state == "ready" then return CDM.Get(e, "idle") ~= "hide" end
+    if st.state == "cd" then return CDM.Get(e, "cdfx") ~= "hide" end
     return true
+  end
+
+  -- can the spell be used right now (reactive ones: Overpower, Execute...): ClassicAPI when it
+  -- answers, else the action button that holds the spell; no button = yes
+  CDM.slots = {}
+  function CDM.Usable(e)
+    if e.kind == "item" then return true end
+    local b = CDM.book[Lower(e.name)]
+    if not b then return false end
+    local cs = rawget(_G, "C_Spell")
+    if type(cs) == "table" and type(cs.IsSpellUsable) == "function" then
+      local ok, usable = pcall(cs.IsSpellUsable, e.name)
+      if ok and usable ~= nil then return usable and true or false end
+    end
+    if not (HasAction and GetActionTexture and IsUsableAction) then return true end
+    local now = GetTime()
+    if not CDM.slotsAt or now - CDM.slotsAt > 5 then
+      CDM.slotsAt, CDM.slots = now, {}
+      for slot = 1, 120 do
+        if HasAction(slot) and not (GetActionText and GetActionText(slot)) then
+          local tex = GetActionTexture(slot)
+          if tex and not CDM.slots[tex] then CDM.slots[tex] = slot end
+        end
+      end
+    end
+    local slot = b.tex and CDM.slots[b.tex]
+    if not slot then return true end
+    return IsUsableAction(slot) and true or false
+  end
+
+  -- talents: name (lower) -> points in it
+  function CDM.Talents()
+    if CDM.talents then return CDM.talents end
+    local out, list = {}, {}
+    if GetNumTalentTabs and GetNumTalents and GetTalentInfo then
+      for tab = 1, GetNumTalentTabs() do
+        for i = 1, GetNumTalents(tab) do
+          local name, tex, _, _, rank = GetTalentInfo(tab, i)
+          if name then
+            out[Lower(name)] = tonumber(rank) or 0
+            table.insert(list, { name = name, tex = tex, rank = tonumber(rank) or 0 })
+          end
+        end
+      end
+    end
+    CDM.talents, CDM.talentList = out, list
+    return out
+  end
+  -- e.talent = a talent's name; e.talentnot = "1": only WITHOUT it
+  function CDM.TalentOK(e)
+    if not e.talent or e.talent == "" then return true end
+    local has = (CDM.Talents()[Lower(e.talent)] or 0) > 0
+    if e.talentnot == "1" then return not has end
+    return has
+  end
+  function CDM.GlowColor(e)
+    local key = e.gcolor
+    if key == "class" then
+      local _, class = UnitClass("player")
+      local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
+      if c then return c.r, c.g, c.b end
+    end
+    for _, o in ipairs(CDM.GLOWCOLORS) do
+      if o.key == key and o.c then return o.c[1], o.c[2], o.c[3] end
+    end
+    return CDM.Color("glowcolor", 1, .82, .2, 1)
   end
   function CDM.Time(left)
     if not left then return "" end
@@ -406,6 +528,18 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b.glow:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 5, -5)
     b.glow:SetBackdrop({ edgeFile = pfUI.media and pfUI.media["img:glow"] or WHITE, edgeSize = 7 })
     b.glow:Hide()
+    b.fill = b.over:CreateTexture(nil, "ARTWORK")
+    b.fill:SetPoint("TOPLEFT", b, "TOPLEFT", 1, -1)
+    b.fill:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+    b.fill:SetTexture(WHITE)
+    b.fill:SetBlendMode("ADD")
+    b.fill:Hide()
+    b.rim = CreateFrame("Frame", nil, b)
+    b.rim:SetPoint("TOPLEFT", b, "TOPLEFT", -1, 1)
+    b.rim:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 1, -1)
+    b.rim:SetFrameLevel(b:GetFrameLevel() + 3)
+    b.rim:SetBackdrop({ edgeFile = WHITE, edgeSize = 2 })
+    b.rim:Hide()
     if preview then return b end
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:SetScript("OnClick", function()
@@ -441,10 +575,13 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b.icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
     b.icon:SetTexture((e.icon and e.icon ~= "" and e.icon) or st.tex or "Interface\\Icons\\INV_Misc_QuestionMark")
     local r, g, bl, a = CDM.Color("bordercolor", .2, .2, .24, 1)
-    if st.state == "active" then r, g, bl, a = CDM.Color("activecolor", .3, .9, .4, 1) end
+    if st.state == "active" and CDM.Get(e, "act") == "full" then r, g, bl, a = CDM.Color("activecolor", .3, .9, .4, 1) end
+    b.edged = st.state == "active" and CDM.Get(e, "act") == "full"
     b:SetBackdropBorderColor(r, g, bl, a)
     local oncd = st.state == "cd"
-    if b.icon.SetDesaturated then b.icon:SetDesaturated(oncd and e.desat ~= "0") end
+    local idle = st.state == "ready" and CDM.Get(e, "idle") or "normal"
+    if b.icon.SetDesaturated then b.icon:SetDesaturated((oncd and e.desat ~= "0") or idle == "grey") end
+    b.icon:SetAlpha(((oncd and CDM.Get(e, "cdfx") == "dim") or idle == "dim") and .4 or 1)
     if oncd and e.swipe ~= "0" and st.dur and st.dur > 0 then
       b.shade:SetHeight(math.max(1, (size - 2) * math.min(1, st.left / st.dur)))
       b.shade:Show()
@@ -457,7 +594,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       b.time:SetFont(pfUI.font_default, fsize, "OUTLINE")
       b.count:SetFont(pfUI.font_default, math.max(8, fsize - 2), "OUTLINE")
     end
-    if S().timers == "0" then
+    if S().timers == "0" or e.text == "0" then
       b.time:SetText("")
     elseif st.state == "active" then
       b.time:SetText(CDM.Time(st.aleft))
@@ -470,16 +607,18 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       b.time:SetText("")
     end
     b.count:SetText(st.count and tostring(st.count) or "")
-    local glow = e.glow or "off"
-    local lit = (st.state == "active" and (glow == "active" or glow == "both"))
-      or (st.state == "ready" and (glow == "ready" or (flash and (glow == "flash" or glow == "both"))))
-    if lit then
-      local gr, gg, gb = CDM.Color("glowcolor", 1, .82, .2, 1)
-      b.glow:SetBackdropBorderColor(gr, gg, gb, .45 + .55 * math.abs(math.sin((now or GetTime()) * 4)))
-      b.glow:Show()
-    else
-      b.glow:Hide()
-    end
+    -- one glow at a time: all charges, then active, then usable now, then the ready flash
+    local style = "off"
+    if st.state == "active" and st.maxed then style = CDM.Get(e, "maxglow") end
+    if style == "off" and st.state == "active" then style = CDM.Get(e, "actglow") end
+    if style == "off" and st.state == "ready" and st.usable then style = CDM.Get(e, "proc") end
+    if style == "off" and st.state == "ready" and flash and CDM.Get(e, "flash") == "1" then style = "soft" end
+    b.lit = style
+    local gr, gg, gb = CDM.GlowColor(e)
+    local wave = math.abs(math.sin((now or GetTime()) * 4))
+    if style == "soft" then b.glow:SetBackdropBorderColor(gr, gg, gb, .45 + .55 * wave) b.glow:Show() else b.glow:Hide() end
+    if style == "pulse" then b.fill:SetVertexColor(gr, gg, gb, .12 + .33 * wave) b.fill:Show() else b.fill:Hide() end
+    if style == "border" then b.rim:SetBackdropBorderColor(gr, gg, gb, 1) b.rim:Show() else b.rim:Hide() end
   end
 
   -- place the shown icons; the frame keeps the size of `room` icons so its box does not jump
@@ -554,9 +693,18 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         local kind = kinds[math.mod(i - 1, 5) + 1]
         local span = 20 + i * 7
         local left = span - math.mod(now + i * 5, span)
-        local s = { known = true, tex = st.tex, state = kind, count = st.count }
+        local s = { known = true, tex = st.tex, state = kind, count = st.count, usable = kind == "ready", maxed = kind == "active" }
         if kind == "cd" then s.left, s.dur = left, span elseif kind == "active" then s.aleft = left end
-        table.insert(rows, { e = e, st = s, flash = kind == "ready" and math.mod(i, 2) == 0 })
+        -- (the picked icon runs through all three states so each choice shows)
+        if CDM.demo == e.name then
+          local step = math.mod(math.floor(now / 3), 3)
+          s.state = (step == 0) and "ready" or (step == 1 and "cd" or "active")
+          s.usable, s.maxed = s.state == "ready", s.state == "active"
+          s.left, s.dur, s.aleft = nil, nil, nil
+          local t = 3 - math.mod(now, 3)
+          if s.state == "cd" then s.left, s.dur = t, 3 elseif s.state == "active" then s.aleft = t end
+        end
+        table.insert(rows, { e = e, st = s, flash = s.state == "ready" })
       end
     end
     if table.getn(rows) == 0 then
@@ -565,7 +713,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         local kind = kinds[i]
         local s = { known = true, tex = "Interface\\Icons\\" .. tex[i], state = kind }
         if kind == "cd" then s.left, s.dur = 12, 30 elseif kind == "active" then s.aleft = 8 end
-        table.insert(rows, { e = { name = "Sample " .. i, glow = "both" }, st = s })
+        table.insert(rows, { e = { name = "Sample " .. i, actglow = "soft" }, st = s })
       end
     end
     return rows
@@ -643,7 +791,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     if event == "PLAYER_AURAS_CHANGED" then CDM.names = {} this.auras = true
     elseif event == "BAG_UPDATE" then CDM.itemsDirty = true
     elseif event == "UNIT_INVENTORY_CHANGED" then if arg1 == "player" then CDM.itemsDirty = true end
-    else this.book = GetTime() + .5 end
+    else this.book = GetTime() + .5 CDM.talents = nil CDM.slotsAt = nil end
   end)
   ev:SetScript("OnUpdate", function()
     local now = GetTime()

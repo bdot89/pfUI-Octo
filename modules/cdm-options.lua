@@ -36,27 +36,246 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
 
   -- the quick menu of an icon (preview and list)
   function CP.IconMenu(anchor, name)
-    local cd = CD()
-    local _, bars = CP.Bar()
-    local opts = {
-      { key = "pick", label = "Its settings" },
-      { key = "left", label = "Move earlier" }, { key = "right", label = "Move later" },
-    }
-    for i, b in ipairs(bars) do
-      if i ~= CP.bar then table.insert(opts, { key = "bar" .. i, label = "Move to " .. (b.name or ("Bar " .. i)) }) end
-    end
-    table.insert(opts, { key = "remove", label = "|cffff6060Remove|r" })
-    W.Menu(anchor, opts, 190, function(key)
-      if key == "pick" then CP.pick = name
-      elseif key == "left" then cd.Shift(name, -1)
-      elseif key == "right" then cd.Shift(name, 1)
-      elseif key == "remove" then cd.Remove(name) if CP.pick == name then CP.pick = nil end
-      else
-        local _, _, n = string.find(key, "^bar(%d+)$")
-        if n then cd.MoveTo(name, tonumber(n)) end
-      end
-      Up() Again()
+    return CP.OpenMenu(anchor, name)
+  end
+
+  -- An icon's right-click menu (15 Nov 2026; user, of EllesmereUI's: "add all the options ...
+  -- a drop down box this should do all the same everything identical"): Remove Spell, then a
+  -- line per option of pfUI.cdm.SPEC that opens its choices beside it, Replace with Buff,
+  -- Talent Conditions, Add Custom Icon; under a rule, moving it. Picks apply at once and the
+  -- menu stays open; the preview runs that icon through ready / cooldown / active meanwhile.
+  local ROW, MW, SW = 20, 216, 236
+  local function Panel(w)
+    local f = CreateFrame("Frame", nil, UIParent)
+    f:SetFrameStrata("FULLSCREEN_DIALOG")
+    f:SetWidth(w)
+    f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    f:SetBackdropColor(.07, .07, .09, .98)
+    f:SetBackdropBorderColor(.28, .28, .33, 1)
+    f:EnableMouse(true)
+    f.rows = {}
+    f:Hide()
+    return f
+  end
+  local function Line(f, i)
+    local r = f.rows[i]
+    if r then return r end
+    r = CreateFrame("Button", nil, f)
+    r:SetHeight(ROW)
+    r:SetPoint("TOPLEFT", f, "TOPLEFT", 1, -3 - (i - 1) * ROW)
+    r:SetPoint("RIGHT", f, "RIGHT", -1, 0)
+    r.hl = r:CreateTexture(nil, "BACKGROUND")
+    r.hl:SetAllPoints(r)
+    r.hl:SetTexture(1, 1, 1, .09)
+    r.hl:Hide()
+    r.text = r:CreateFontString(nil, "OVERLAY")
+    r.text:SetFont(W.UIFont(), 12, "")
+    r.text:SetPoint("LEFT", r, "LEFT", 10, 0)
+    r.text:SetPoint("RIGHT", r, "RIGHT", -22, 0)
+    r.text:SetJustifyH("LEFT")
+    r.mark = r:CreateFontString(nil, "OVERLAY")
+    r.mark:SetFont(W.UIFont(), 12, "")
+    r.mark:SetPoint("RIGHT", r, "RIGHT", -8, 0)
+    r.rule = r:CreateTexture(nil, "ARTWORK")
+    r.rule:SetTexture(1, 1, 1, .12)
+    r.rule:SetHeight(1)
+    r.rule:SetPoint("LEFT", r, "LEFT", 8, 0)
+    r.rule:SetPoint("RIGHT", r, "RIGHT", -8, 0)
+    r:SetScript("OnEnter", function()
+      if this.d and not this.d.head and not this.d.rule then this.hl:Show() end
+      if this.enter then this.enter(this) end
     end)
+    r:SetScript("OnLeave", function() this.hl:Hide() GameTooltip:Hide() end)
+    r:SetScript("OnClick", function() if this.d and this.d.fn then this.d.fn(this) end end)
+    f.rows[i] = r
+    return r
+  end
+  -- fill a panel with { label, fn, sub (function -> lines), on, head, rule, red, tip }
+  local function Fill(f, lines, enter)
+    for i, d in ipairs(lines) do
+      local r = Line(f, i)
+      r.d, r.enter = d, enter
+      r.text:SetText(d.rule and "" or d.label)
+      if d.head then r.text:SetTextColor(.55, .55, .6) elseif d.red then r.text:SetTextColor(1, .4, .4)
+      elseif d.on then r.text:SetTextColor(1, .82, .2) else r.text:SetTextColor(.9, .9, .92) end
+      r.mark:SetText(d.sub and ">" or (d.on and "|cffffd24dx|r" or ""))
+      if d.rule then r.rule:Show() else r.rule:Hide() end
+      r:Show()
+    end
+    for i = table.getn(lines) + 1, table.getn(f.rows) do f.rows[i]:Hide() end
+    f:SetHeight(table.getn(lines) * ROW + 6)
+  end
+  function CP.MenuLines(name)
+    local cd = CD()
+    local _, _, e = cd.Where(name)
+    if not e then return {} end
+    local m = CP.menu
+    local function Changed() if m then m.changed = true end Up() end
+    local function Choices(spec)
+      return function()
+        local out = {}
+        local function Group(s)
+          for _, o in ipairs(cd.Opts(s)) do
+            local opt, key = o, s.key
+            table.insert(out, { label = opt.label, on = cd.Get(e, key) == opt.key, fn = function()
+              e[key] = opt.key
+              if key == "sound" then cd.PlaySound(opt.key) end
+              Changed()
+            end })
+          end
+        end
+        Group(spec)
+        if spec.more then
+          table.insert(out, { label = spec.more.head, head = true })
+          Group(spec.more)
+        end
+        return out
+      end
+    end
+    local lines = { { label = "Remove Spell", red = true, fn = function()
+      cd.Remove(name)
+      if CP.pick == name then CP.pick = nil end
+      Changed()
+      if m then m:Hide() end
+    end } }
+    table.insert(lines, { rule = true })
+    for _, s in ipairs(cd.SPEC) do
+      table.insert(lines, { label = s.label, sub = Choices(s), tip = s.tip })
+    end
+    local buff = (e.buff and e.buff ~= "") and e.buff or "None"
+    table.insert(lines, { label = "Replace with Buff: " .. buff, tip = "Watch another effect than the one with the spell's own name: a trinket's, a proc's.",
+      sub = function()
+        local out = { { label = "None (the spell's own name)", on = buff == "None", fn = function() e.buff = "" Changed() end } }
+        local names = {}
+        for _, a in pairs(cd.buffs) do if a.name then table.insert(names, a.name) end end
+        table.sort(names)
+        if buff ~= "None" then
+          local had
+          for _, n in ipairs(names) do if n == buff then had = true end end
+          if not had then table.insert(names, 1, buff) end
+        end
+        if table.getn(names) > 0 then table.insert(out, { label = "The effects on you now", head = true }) end
+        for i = 1, math.min(table.getn(names), 16) do
+          local n = names[i]
+          table.insert(out, { label = n, on = n == buff, fn = function() e.buff = n Changed() end })
+        end
+        table.insert(out, { label = "Another: type it under \"The picked icon\"", head = true })
+        return out
+      end })
+    local cond = (e.talent and e.talent ~= "") and ((e.talentnot == "1" and "Lacks " or "Has ") .. e.talent) or "None"
+    table.insert(lines, { label = "Talent Conditions: " .. cond, tip = "Only show this icon with - or without - one of your talents.",
+      fn = function(row)
+        cd.Talents()
+        local opts = { { key = "", label = "None (always)" } }
+        for _, t in ipairs(cd.talentList or {}) do
+          table.insert(opts, { key = "+" .. t.name, label = "Has: " .. t.name .. (t.rank > 0 and "  |cff40e060(you do)|r" or ""), icon = t.tex })
+        end
+        for _, t in ipairs(cd.talentList or {}) do
+          table.insert(opts, { key = "-" .. t.name, label = "Lacks: " .. t.name, icon = t.tex })
+        end
+        local anchor = (m and m.anchor) or row
+        if m then m:Hide() end
+        local menu = W.LongMenu or W.Menu
+        menu(anchor, opts, 270, function(key)
+          if key == "" then e.talent, e.talentnot = nil, nil
+          else e.talent, e.talentnot = string.sub(key, 2), (string.sub(key, 1, 1) == "-") and "1" or nil end
+          Up() Again()
+        end)
+      end })
+    local custom = e.icon and e.icon ~= ""
+    table.insert(lines, { label = custom and "Custom Icon: change" or "Add Custom Icon", sub = function()
+      return {
+        { label = "Pick a picture...", fn = function()
+          local GO = pfUI.gearOcto
+          local anchor = (m and m.anchor) or UIParent
+          if m then m:Hide() end
+          if GO and GO.IconPicker then
+            GO.IconPicker(anchor, e.icon, {}, function(path) e.icon = path Up() Again() end)
+          end
+        end },
+        { label = "The spell's own picture", on = not custom, fn = function() e.icon = "" Changed() end },
+      }
+    end })
+    table.insert(lines, { rule = true })
+    table.insert(lines, { label = "Move earlier", fn = function() cd.Shift(name, -1) Changed() end })
+    table.insert(lines, { label = "Move later", fn = function() cd.Shift(name, 1) Changed() end })
+    local _, bars = CP.Bar()
+    if table.getn(bars) > 1 then
+      table.insert(lines, { label = "Move to bar", sub = function()
+        local out = {}
+        for ii, b in ipairs(bars) do
+          local i = ii
+          table.insert(out, { label = b.name or ("Bar " .. i), on = i == CP.bar, fn = function()
+            if cd.MoveTo(name, i) then Changed() if m then m:Hide() end end
+          end })
+        end
+        return out
+      end })
+    end
+    return lines
+  end
+  function CP.OpenMenu(anchor, name)
+    local cd = CD()
+    if not cd.Where(name) then return end
+    local m = CP.menu
+    if not m then
+      m = Panel(MW)
+      m.sub = Panel(SW)
+      m.sub:SetFrameLevel(m:GetFrameLevel() + 5)
+      m:SetScript("OnUpdate", function()
+        if MouseIsOver(this) or (this.sub:IsShown() and MouseIsOver(this.sub)) then this.away = 0 return end
+        this.away = (this.away or 0) + (arg1 or 0)
+        if this.away > 1.2 then this:Hide() end
+      end)
+      m:SetScript("OnHide", function()
+        this.sub:Hide()
+        CD().demo = CP.pick
+        if this.changed then this.changed = nil Again() end
+      end)
+      CP.menu = m
+    end
+    m.name, m.anchor, m.away, m.changed = name, anchor, 0, nil
+    cd.demo = name
+    local function Enter(row)
+      local d = row.d
+      if d.tip then
+        GameTooltip:SetOwner(row, "ANCHOR_LEFT")
+        GameTooltip:AddLine(d.label, 1, 1, 1)
+        GameTooltip:AddLine(d.tip, .75, .75, .78, 1)
+        GameTooltip:Show()
+      end
+      if d.head or d.rule then return end
+      if not d.sub then m.sub:Hide() return end
+      m.subOf = d
+      Fill(m.sub, d.sub(), nil)
+      m.sub:ClearAllPoints()
+      m.sub:SetPoint("TOPLEFT", row, "TOPRIGHT", 2, 3)
+      m.sub:Show()
+    end
+    Fill(m, CP.MenuLines(name), Enter)
+    m:ClearAllPoints()
+    m:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+    m:Show()
+    return m
+  end
+  -- after a pick in the sub-menu: its marks and the menu's own lines follow
+  local upWas = Up
+  Up = function()
+    upWas()
+    local m = CP.menu
+    if m and m:IsShown() and CD().Where(m.name) then
+      local sub = m.subOf
+      Fill(m, CP.MenuLines(m.name), m.rows[1] and m.rows[1].enter)
+      if m.sub:IsShown() and sub then
+        -- the same line of the fresh list (found by its place)
+        for _, r in ipairs(m.rows) do
+          if r.d and r.d.sub and string.sub(r.d.label, 1, 12) == string.sub(sub.label, 1, 12) then
+            m.subOf = r.d
+            Fill(m.sub, r.d.sub(), nil)
+          end
+        end
+      end
+    end
   end
 
   local function Preview(p)
@@ -197,6 +416,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
       return
     end
     local bar, bars = CP.Bar()
+    cd.demo = CP.pick
     W.Heading(p, "Cooldown bars", { on = O.ModuleSwitch("cdm", "Cooldown bars"),
       about = "Bars of your cooldowns, apart from the action bars: each icon shows ready, on cooldown, or active while its "
         .. "effect is on you. They fill by themselves from your spell book - a new spell with a cooldown finds its "
@@ -351,21 +571,26 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
       W.Note(p, "No icon picked: click one in the preview at the top.")
     else
       W.Note(p, "|cffffffff" .. e.name .. "|r", nil, true)
-      W.Dropdown(p, "Shows", "Hidden icons leave no hole: the others close up.", cd.WHEN,
-        function() return e.when or "always" end, function(v) e.when = v Up() end)
-      W.Dropdown(p, "Glow", "In the glow colour of \"Look of all icons\".", cd.GLOWS,
-        function() return e.glow or "off" end, function(v) e.glow = v Up() end)
-      W.Dropdown(p, "Sound when it comes ready", nil, cd.SOUNDS, function() return e.sound or "" end,
-        function(v) e.sound = v cd.PlaySound(v) end)
-      W.Check(p, "Grey while on cooldown", nil, function() return e.desat ~= "0" end, function(v) e.desat = v and "1" or "0" Up() end)
-      W.Check(p, "Cooldown shade", "The dark part that shrinks away as the cooldown runs.", function() return e.swipe ~= "0" end,
-        function(v) e.swipe = v and "1" or "0" Up() end)
-      W.Check(p, "Show while its effect is on me", "Green edge, the effect's time left and its stacks instead of the cooldown.",
-        function() return e.active ~= "0" end, function(v) e.active = v and "1" or "0" Up() end)
-      W.Edit(p, "Effect to watch", "Empty = the buff with the spell's own name. Fill in another buff's exact name when it is called differently "
+      W.Note(p, "The same choices as the icon's right-click menu in the preview. The preview runs the picked icon through ready, on cooldown and active.")
+      for _, sp in ipairs(cd.SPEC) do
+        local s = sp
+        W.Dropdown(p, s.label, s.tip, cd.Opts(s), function() return cd.Get(e, s.key) end, function(v)
+          e[s.key] = v
+          if s.key == "sound" then cd.PlaySound(v) end
+          Up()
+        end)
+        if s.more then
+          local m = s.more
+          W.Dropdown(p, m.head, nil, m.opts, function() return cd.Get(e, m.key) end, function(v) e[m.key] = v Up() end)
+        end
+      end
+      W.Edit(p, "Replace with Buff", "Empty = the buff with the spell's own name. Fill in another buff's exact name when it is called differently "
         .. "(a trinket's effect, a proc).", function() return e.buff or "" end, function(v) e.buff = v or "" Up() end, 220)
-      W.Slider(p, "Red numbers under", "The cooldown's time turns red in its last seconds. 0 = never.", 0, 15, 1,
-        function() return tonumber(e.thresh) or 3 end, function(v) e.thresh = tostring(v) Up() end, function(v) return v .. " s" end)
+      W.Live(p, function()
+        if not e.talent or e.talent == "" then return "Talent Conditions: |cffffffffnone|r (set from the right-click menu)" end
+        return "Talent Conditions: |cffffffff" .. (e.talentnot == "1" and "lacks " or "has ") .. e.talent .. "|r"
+          .. (cd.TalentOK(e) and "  |cff40e060met|r" or "  |cffff6060not met: hidden|r")
+      end)
       W.Edit(p, "Own picture", "Empty = the spell's. Else a texture path, for example Interface\\Icons\\Spell_Holy_InnerFire.",
         function() return e.icon or "" end, function(v) e.icon = v or "" Up() end, 300)
       local moves = {}
