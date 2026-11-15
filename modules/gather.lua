@@ -759,7 +759,7 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
       WorldMapTooltip:AddLine(this.name)
       WorldMapTooltip:AddLine(this.from and ("Seen here by " .. this.from) or "Seen here by pfUI's gathering finder", .7, .7, .7)
-      WorldMapTooltip:AddLine("Hide these: the Marks button at the map's bottom left", .45, .7, 1)
+      WorldMapTooltip:AddLine("Hide these: Show / hide map icons, at the map's top right", .45, .7, 1)
       WorldMapTooltip:Show()
     end)
     p:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
@@ -1079,10 +1079,19 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   if WorldMapButton then
     local btn = CreateFrame("Button", "pfMapMarksButton", WorldMapButton)
     GF.marksButton = btn
-    btn:SetWidth(64)
+    btn:SetWidth(200)
     btn:SetHeight(20)
-    -- (bottom left: the top left has Zoom Out, the top right pfQuest's menus, the bottom right the coordinates)
-    btn:SetPoint("BOTTOMLEFT", WorldMapButton, "BOTTOMLEFT", 8, 8)
+    -- (15 Nov 2026, user: "put it in the top right make it clear what this is") under pfQuest's two menus there
+    function GF.PlaceMarks()
+      local under = rawget(_G, "pfQuestMapLevelDropdown") or rawget(_G, "pfQuestMapDropdown")
+      btn:ClearAllPoints()
+      if under and under.IsShown and under:IsShown() and under.GetBottom and under:GetBottom() then
+        btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, 0)
+      else
+        btn:SetPoint("TOPRIGHT", WorldMapButton, "TOPRIGHT", -12, -12)
+      end
+    end
+    GF.PlaceMarks()
     btn:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 20)
     btn:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     btn:SetBackdropColor(0, 0, 0, .7)
@@ -1090,12 +1099,18 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     btn.text = btn:CreateFontString(nil, "OVERLAY")
     btn.text:SetFont(pfUI.font_default, 11, "OUTLINE")
     btn.text:SetPoint("CENTER", btn, "CENTER", 0, 0)
-    btn.text:SetText("Marks")
+    btn.text:SetText("Show / hide map icons")
+    btn.text:SetTextColor(1, .82, 0)
+    btn.arrow = btn:CreateFontString(nil, "OVERLAY")
+    btn.arrow:SetFont(pfUI.font_default, 11, "OUTLINE")
+    btn.arrow:SetPoint("RIGHT", btn, "RIGHT", -8, 0)
+    btn.arrow:SetText("v")
+    btn.arrow:SetTextColor(1, .82, 0)
     marks = CreateFrame("Frame", "pfMapMarks", btn)
     GF.marks = marks
     marks.rows = {}
-    marks:SetWidth(190)
-    marks:SetPoint("BOTTOMLEFT", btn, "TOPLEFT", 0, 2)
+    marks:SetWidth(200)
+    marks:SetPoint("TOPRIGHT", btn, "BOTTOMRIGHT", 0, -2)
     marks:SetFrameLevel(btn:GetFrameLevel() + 2)
     marks:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     marks:SetBackdropColor(0, 0, 0, .85)
@@ -1113,6 +1128,11 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     end)
     btn:SetScript("OnLeave", function() WorldMapTooltip:Hide() end)
     btn:SetScript("OnUpdate", function()
+      -- (pfQuest's menus are made and shown after us: look again twice a second)
+      if (this.placeAt or 0) <= GetTime() then
+        this.placeAt = GetTime() + .5
+        GF.PlaceMarks()
+      end
       local want = G().mapbutton ~= "0"
       if want ~= this.shownAs then
         this.shownAs = want
