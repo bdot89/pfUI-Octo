@@ -232,6 +232,93 @@ do
     end)
     ok(good, "the menu opens with a sub-menu " .. tostring(err or ""))
   end
+  -- the Add card's lists come up shown (they did nothing in game: the menu was made, never shown)
+  if CPO and CPO.Pop and CPO.SpellMenu then
+    local opts = CPO.SpellMenu()
+    local picked
+    local m1 = CPO.Pop(UIParent, opts, 260, true, function(key) picked = key end)
+    local m2 = CPO.Pop(UIParent, { { key = "a", label = "A" } }, 260, false, function() end)
+    ok(table.getn(opts) > 0 and m2 and m2:IsShown() and m1 and not m1:IsShown(), "a spell / item list is shown, and closes the one before (" .. table.getn(opts) .. " spells)")
+    m2:Hide()
+  end
+  -- every glow kind and every animation draws, and the icon comes back to its place
+  do
+    local host = getglobal("pfCDM1")
+    local b2 = CDM.NewButton(host, true)
+    b2.host, b2.bx, b2.by, b2.bsize = host, 40, 0, 30
+    b2:SetWidth(30) b2:SetHeight(30)
+    b2:SetPoint("TOPLEFT", host, "TOPLEFT", 40, 0)
+    local good, err, n = true, nil, 0
+    for _, gl in ipairs(CDM.GLOWLIST) do
+      fade.proc = gl.key
+      local okay, e2 = pcall(function()
+        local st2 = CDM.State(fade, now)
+        st2.usable = true
+        CDM.Paint(b2, fade, st2, 30, false, now)
+        CDM.Animate(b2, now + .37)
+      end)
+      if not okay then good, err = false, gl.key .. ": " .. tostring(e2) end
+      if b2.lit == gl.key then n = n + 1 end
+    end
+    ok(good and n == table.getn(CDM.GLOWLIST) and n >= 12, "every glow kind draws (" .. n .. ") " .. tostring(err or ""))
+    fade.proc = "ants"
+    local st2 = CDM.State(fade, now)
+    st2.usable = true
+    CDM.Paint(b2, fade, st2, 30, false, now)
+    ok(b2.fx and b2.fx.dash[1]:IsShown() and b2.fx.dash[8]:IsShown() and not b2.fx.ring:IsShown(), "marching lines: eight dashes round the edge")
+    fade.proc = nil
+    local x1, y1 = CDM.Edge(30, 30, 45)
+    local x2, y2 = CDM.Edge(30, 30, 100)
+    ok(x1 == 30 and y1 == 15 and x2 == 0 and y2 == 20, "a place along the edge, clockwise")
+    good, err = true, nil
+    for _, a in ipairs(CDM.LOOPS) do
+      fade.anim_proc = a.key
+      local okay, e2 = pcall(function()
+        local st3 = CDM.State(fade, now)
+        st3.usable = true
+        CDM.Paint(b2, fade, st3, 30, false, now + .21)
+      end)
+      if not okay then good, err = false, a.key .. ": " .. tostring(e2) end
+    end
+    ok(good and table.getn(CDM.LOOPS) >= 9, "every running animation draws " .. tostring(err or ""))
+    fade.anim_proc = "bounce"
+    local st3 = CDM.State(fade, now)
+    st3.usable = true
+    CDM.Paint(b2, fade, st3, 30, false, now + .2)
+    local _, _, _, bx, by = b2:GetPoint(1)
+    ok(bx == 40 and by > 0, "bounce lifts the icon (" .. tostring(by) .. ")")
+    fade.anim_proc = nil
+    CDM.Paint(b2, fade, CDM.State(fade, now), 30, false, now + .2)
+    _, _, _, bx, by = b2:GetPoint(1)
+    ok(bx == 40 and by == 0 and b2:GetWidth() == 30 and not b2.busy, "animation off: back at its place and size")
+    good, err = true, nil
+    for _, a in ipairs(CDM.SHOTS) do
+      fade.anim_ready = a.key
+      local okay, e2 = pcall(function() CDM.Paint(b2, fade, CDM.State(fade, now), 30, false, now + .2, now) end)
+      if not okay then good, err = false, a.key .. ": " .. tostring(e2) end
+    end
+    ok(good and table.getn(CDM.SHOTS) >= 7, "every comes-ready animation draws " .. tostring(err or ""))
+    fade.anim_ready = "pop"
+    CDM.Paint(b2, fade, CDM.State(fade, now), 30, false, now + .2, now)
+    ok(b2:GetWidth() > 30 and b2.busy, "pop: bigger just after it came ready")
+    CDM.Paint(b2, fade, CDM.State(fade, now), 30, false, now + 2, now)
+    ok(b2:GetWidth() == 30 and not b2.busy, "and its own size again after")
+    fade.anim_ready = nil
+    b2:Hide()
+  end
+  -- an item's proc, followed by its name alone
+  local proc = CDM.Add(2, "Unstable Power", "aura")
+  proc.idle = "hide"
+  CDM.buffs = {}
+  local ps = CDM.State(proc, now)
+  ok(ps.known and ps.state == "ready" and CDM.Wanted(proc, ps) == false, "a proc is on the bar but hidden while it is not up")
+  CDM.buffs = { ["unstable power"] = { name = "Unstable Power", count = 8, ends = now + 15, tex = "Interface\\Icons\\Spell_Lightning_LightningBolt01" } }
+  ps = CDM.State(proc, now)
+  ok(ps.state == "active" and ps.count == 8 and math.abs(ps.aleft - 15) < .01 and CDM.Wanted(proc, ps) and proc.tex == "Interface\\Icons\\Spell_Lightning_LightningBolt01",
+    "up: its time, stacks and picture show")
+  CDM.buffs = {}
+  ok(CDM.State(proc, now).tex == "Interface\\Icons\\Spell_Lightning_LightningBolt01", "its picture is kept for next time")
+  CDM.Remove("Unstable Power")
   for k, v in pairs(tk) do _G[k] = v end
   CDM.talents = nil
 end

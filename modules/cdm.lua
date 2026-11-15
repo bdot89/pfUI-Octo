@@ -32,8 +32,20 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   -- EllesmereUI's menu: "add all the options ... everything identical"). Each: the entry's
   -- key, the menu line, the choices, the choice when nothing is set; `more` = a second
   -- group in the same sub-menu.
+  -- (user, 15 Nov 2026: "as many animations and glow options as you can ... the more like WA the better")
   local GLOW = { { key = "off", label = "Off" }, { key = "soft", label = "Soft outer glow" }, { key = "pulse", label = "Pulsing fill" },
-                 { key = "border", label = "Bright border" } }
+                 { key = "border", label = "Bright border" }, { key = "ants", label = "Marching lines (pixel glow)" },
+                 { key = "sparks", label = "Circling sparks (autocast shine)" }, { key = "button", label = "Action button glow" },
+                 { key = "ring", label = "Expanding rings" }, { key = "corners", label = "Corner brackets" },
+                 { key = "blink", label = "Blinking border" }, { key = "rainbow", label = "Rainbow border" },
+                 { key = "double", label = "Border and outer glow" } }
+  local LOOP = { { key = "none", label = "None" }, { key = "pulse", label = "Pulse (grows and shrinks)" }, { key = "bounce", label = "Bounce" },
+                 { key = "float", label = "Float up and down" }, { key = "shake", label = "Shake" }, { key = "wobble", label = "Wobble" },
+                 { key = "spin", label = "Spin" }, { key = "blink", label = "Blink" }, { key = "breathe", label = "Fade in and out" } }
+  local SHOT = { { key = "none", label = "None" }, { key = "pop", label = "Pop (big, then settles)" }, { key = "grow", label = "Grow in" },
+                 { key = "drop", label = "Drop in" }, { key = "spin", label = "One spin" }, { key = "shake", label = "Shake" },
+                 { key = "white", label = "White flash" } }
+  CDM.GLOWLIST, CDM.LOOPS, CDM.SHOTS = GLOW, LOOP, SHOT
   local ONOFF = { { key = "1", label = "On" }, { key = "0", label = "Off" } }
   CDM.GLOWCOLORS = {
     { key = "", label = "The shared glow colour" }, { key = "gold", label = "Gold", c = { 1, .82, .2 } },
@@ -67,6 +79,14 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       more = { key = "text", head = "Time left as a number", def = "1", opts = ONOFF } },
     { key = "sound", label = "Audio Effect on CD Ready", def = "", opts = "SOUNDS" },
     { key = "gcolor", label = "Glow Effect Color", def = "", opts = "GLOWCOLORS" },
+    -- more than the model has (extra = under their own rule in the menu)
+    { key = "gspeed", label = "Glow Speed", def = "1", extra = true,
+      opts = { { key = ".5", label = "Slow" }, { key = "1", label = "Normal" }, { key = "2", label = "Fast" } } },
+    { key = "anim_ready", label = "Animation: Comes Ready", def = "none", opts = SHOT, extra = true, tip = "Plays once when the cooldown ends." },
+    { key = "anim_proc", label = "Animation: Usable Now", def = "none", opts = LOOP, extra = true,
+      tip = "Runs while the spell is ready and can be used right now (Overpower, Execute...)." },
+    { key = "anim_act", label = "Animation: Active", def = "none", opts = LOOP, extra = true, tip = "Runs while its effect is on you." },
+    { key = "anim_cd", label = "Animation: On Cooldown", def = "none", opts = LOOP, extra = true },
   }
   function CDM.Opts(spec)
     if type(spec.opts) == "string" then return CDM[spec.opts] end
@@ -374,7 +394,10 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     local st = { known = false }
     local k = Lower(e.name)
     local start, dur
-    if e.kind == "item" then
+    if e.kind == "aura" then
+      -- (an effect or proc followed by its name alone: always "known"; its picture is kept once seen)
+      st.known, st.tex = true, e.tex
+    elseif e.kind == "item" then
       local it = CDM.Items()[k]
       if it then
         st.known, st.tex = true, it.tex
@@ -405,11 +428,14 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
           if a.count > top then top = a.count S().maxc[k] = top end
           st.maxed = a.count >= top
         end
+        if e.kind == "aura" and a.tex then e.tex = a.tex st.tex = a.tex end
         if not st.tex then st.tex = a.tex end
       end
     end
     st.state = st.active and "active" or (st.left and "cd" or "ready")
-    if st.known and st.state == "ready" and CDM.Get(e, "proc") ~= "off" then st.usable = CDM.Usable(e) end
+    if st.known and st.state == "ready" and (CDM.Get(e, "proc") ~= "off" or CDM.Get(e, "anim_proc") ~= "none") then
+      st.usable = CDM.Usable(e)
+    end
     return st
   end
   -- is it drawn now: known, its talent condition met, not hidden in this state
@@ -540,6 +566,15 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b.rim:SetFrameLevel(b:GetFrameLevel() + 3)
     b.rim:SetBackdrop({ edgeFile = WHITE, edgeSize = 2 })
     b.rim:Hide()
+    b.white = b.over:CreateTexture(nil, "OVERLAY")
+    b.white:SetAllPoints(b.icon)
+    b.white:SetTexture(WHITE)
+    b.white:SetBlendMode("ADD")
+    b.white:Hide()
+    -- glows and animations move every frame (nothing to do = one test)
+    b:SetScript("OnUpdate", function()
+      if this.busy or this.moved or this.turned then CDM.Animate(this, GetTime()) end
+    end)
     if preview then return b end
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:SetScript("OnClick", function()
@@ -569,7 +604,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     end
   end
   -- paint a button for an entry in a state; flash = glowing because it just came ready
-  function CDM.Paint(b, e, st, size, flash, now)
+  function CDM.Paint(b, e, st, size, flash, now, at)
     b.e, b.state = e, st.state
     local zoom = Num(S().zoom, .08)
     b.icon:SetTexCoord(zoom, 1 - zoom, zoom, 1 - zoom)
@@ -581,7 +616,8 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     local oncd = st.state == "cd"
     local idle = st.state == "ready" and CDM.Get(e, "idle") or "normal"
     if b.icon.SetDesaturated then b.icon:SetDesaturated((oncd and e.desat ~= "0") or idle == "grey") end
-    b.icon:SetAlpha(((oncd and CDM.Get(e, "cdfx") == "dim") or idle == "dim") and .4 or 1)
+    b.baseAlpha = ((oncd and CDM.Get(e, "cdfx") == "dim") or idle == "dim") and .4 or 1
+    b.zoom = zoom
     if oncd and e.swipe ~= "0" and st.dur and st.dur > 0 then
       b.shade:SetHeight(math.max(1, (size - 2) * math.min(1, st.left / st.dur)))
       b.shade:Show()
@@ -614,11 +650,217 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     if style == "off" and st.state == "ready" and st.usable then style = CDM.Get(e, "proc") end
     if style == "off" and st.state == "ready" and flash and CDM.Get(e, "flash") == "1" then style = "soft" end
     b.lit = style
-    local gr, gg, gb = CDM.GlowColor(e)
-    local wave = math.abs(math.sin((now or GetTime()) * 4))
-    if style == "soft" then b.glow:SetBackdropBorderColor(gr, gg, gb, .45 + .55 * wave) b.glow:Show() else b.glow:Hide() end
-    if style == "pulse" then b.fill:SetVertexColor(gr, gg, gb, .12 + .33 * wave) b.fill:Show() else b.fill:Hide() end
-    if style == "border" then b.rim:SetBackdropBorderColor(gr, gg, gb, 1) b.rim:Show() else b.rim:Hide() end
+    b.gr, b.gg, b.gb = CDM.GlowColor(e)
+    b.gspeed = Num(CDM.Get(e, "gspeed"), 1)
+    -- the animation of the state it is in, and the one-off when it came ready (at)
+    local loop = "none"
+    if st.state == "active" then loop = CDM.Get(e, "anim_act")
+    elseif st.state == "cd" then loop = CDM.Get(e, "anim_cd")
+    elseif st.usable then loop = CDM.Get(e, "anim_proc") end
+    b.animLoop = loop
+    b.animShot, b.shotAt = CDM.Get(e, "anim_ready"), (st.state == "ready") and at or nil
+    CDM.Animate(b, now or GetTime())
+  end
+
+  -- ---------------------------------------------------------------- glows and animations
+  -- Drawn every frame from what Paint decided (b.lit, b.animLoop, b.animShot / shotAt). Our own
+  -- drawing with the game's textures and pfUI's art; the ideas are WeakAuras' glow kinds and
+  -- animations (pixel glow, autocast shine, button glow; pulse, bounce, shake, spin...).
+  local ART = "Interface\\AddOns\\pfUI\\img\\"
+  local SHOTLEN = .6
+  local function Fx(b)
+    if b.fx then return b.fx end
+    local g = CreateFrame("Frame", nil, b)
+    g:SetAllPoints(b)
+    g:SetFrameLevel(b:GetFrameLevel() + 4)
+    g.dash, g.spark, g.corner = {}, {}, {}
+    for i = 1, 8 do
+      g.dash[i] = g:CreateTexture(nil, "OVERLAY")
+      g.dash[i]:SetTexture(WHITE)
+      g.dash[i]:Hide()
+    end
+    for i = 1, 4 do
+      g.spark[i] = g:CreateTexture(nil, "OVERLAY")
+      g.spark[i]:SetTexture(ART .. "plates\\cp-glow")
+      g.spark[i]:SetBlendMode("ADD")
+      g.spark[i]:Hide()
+    end
+    for i = 1, 8 do
+      g.corner[i] = g:CreateTexture(nil, "OVERLAY")
+      g.corner[i]:SetTexture(WHITE)
+      g.corner[i]:Hide()
+    end
+    g.button = g:CreateTexture(nil, "OVERLAY")
+    g.button:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+    g.button:SetBlendMode("ADD")
+    g.button:SetPoint("CENTER", b, "CENTER", 0, 0)
+    g.button:Hide()
+    g.ring = g:CreateTexture(nil, "OVERLAY")
+    g.ring:SetTexture(ART .. "bars\\btn-ring")
+    g.ring:SetBlendMode("ADD")
+    g.ring:SetPoint("CENTER", b, "CENTER", 0, 0)
+    g.ring:Hide()
+    b.fx = g
+    return g
+  end
+  -- a place p along the edge of a w x h box, clockwise from the top left: x, y (down), side
+  local function Edge(w, h, p)
+    p = math.mod(p, 2 * (w + h))
+    if p < w then return p, 0, 1 end
+    if p < w + h then return w, p - w, 2 end
+    if p < 2 * w + h then return w - (p - w - h), h, 3 end
+    return 0, h - (p - 2 * w - h), 4
+  end
+  CDM.Edge = Edge
+  local function Rainbow(t)
+    local h = math.mod(t, 1) * 6
+    local x = 1 - math.abs(math.mod(h, 2) - 1)
+    if h < 1 then return 1, x, 0 elseif h < 2 then return x, 1, 0 elseif h < 3 then return 0, 1, x
+    elseif h < 4 then return 0, x, 1 elseif h < 5 then return x, 0, 1 end
+    return 1, 0, x
+  end
+  function CDM.Animate(b, now)
+    local style = b.lit or "off"
+    local r, g, bl = b.gr or 1, b.gg or .82, b.gb or .2
+    local t = now * (b.gspeed or 1)
+    local wave = math.abs(math.sin(t * 4))
+    local size = b.bsize or b:GetWidth() or 36
+    if style == "soft" or style == "double" then b.glow:SetBackdropBorderColor(r, g, bl, .45 + .55 * wave) b.glow:Show() else b.glow:Hide() end
+    if style == "pulse" then b.fill:SetVertexColor(r, g, bl, .12 + .33 * wave) b.fill:Show() else b.fill:Hide() end
+    if style == "border" or style == "double" then
+      b.rim:SetBackdropBorderColor(r, g, bl, 1) b.rim:Show()
+    elseif style == "blink" then
+      b.rim:SetBackdropBorderColor(r, g, bl, math.mod(t * 3, 1) < .5 and 1 or 0) b.rim:Show()
+    elseif style == "rainbow" then
+      local rr, rg, rb = Rainbow(t * .5)
+      b.rim:SetBackdropBorderColor(rr, rg, rb, 1) b.rim:Show()
+    else
+      b.rim:Hide()
+    end
+    local fx = b.fx
+    local need = style == "ants" or style == "sparks" or style == "button" or style == "ring" or style == "corners"
+    if need then fx = Fx(b) end
+    if fx then
+      local per = 4 * size
+      for i = 1, 8 do
+        local d = fx.dash[i]
+        if style == "ants" then
+          local len = per / 16
+          local x, y, side = Edge(size, size, t * 22 + (i - 1) * per / 8)
+          d:ClearAllPoints()
+          if side == 1 or side == 3 then
+            d:SetWidth(len) d:SetHeight(2)
+            d:SetPoint("CENTER", b, "TOPLEFT", math.max(len / 2, math.min(size - len / 2, x)), -y)
+          else
+            d:SetWidth(2) d:SetHeight(len)
+            d:SetPoint("CENTER", b, "TOPLEFT", x, -math.max(len / 2, math.min(size - len / 2, y)))
+          end
+          d:SetVertexColor(r, g, bl, 1)
+          d:Show()
+        else
+          d:Hide()
+        end
+      end
+      for i = 1, 4 do
+        local s = fx.spark[i]
+        if style == "sparks" then
+          local x, y = Edge(size, size, t * 40 + (i - 1) * per / 4)
+          s:ClearAllPoints()
+          s:SetWidth(size * .42) s:SetHeight(size * .42)
+          s:SetPoint("CENTER", b, "TOPLEFT", x, -y)
+          s:SetVertexColor(r, g, bl, 1)
+          s:Show()
+        else
+          s:Hide()
+        end
+      end
+      if style == "button" then
+        fx.button:SetWidth(size * 1.75) fx.button:SetHeight(size * 1.75)
+        fx.button:SetVertexColor(r, g, bl, .55 + .45 * wave)
+        fx.button:Show()
+      else
+        fx.button:Hide()
+      end
+      if style == "ring" then
+        local k = math.mod(t, 1)
+        fx.ring:SetWidth(size * (1 + k * .9)) fx.ring:SetHeight(size * (1 + k * .9))
+        fx.ring:SetVertexColor(r, g, bl, 1 - k)
+        fx.ring:Show()
+      else
+        fx.ring:Hide()
+      end
+      for i = 1, 8 do
+        local c = fx.corner[i]
+        if style == "corners" then
+          -- two bars per corner, sliding in and out
+          local corner = math.floor((i - 1) / 2)
+          local horiz = math.mod(i, 2) == 1
+          local out = 1 + 3 * wave
+          local len = size * .32
+          local px = (corner == 0 or corner == 3) and "LEFT" or "RIGHT"
+          local py = (corner < 2) and "TOP" or "BOTTOM"
+          local sx = (px == "LEFT") and -out or out
+          local sy = (py == "TOP") and out or -out
+          c:ClearAllPoints()
+          c:SetWidth(horiz and len or 2) c:SetHeight(horiz and 2 or len)
+          c:SetPoint(py .. px, b, py .. px, sx, sy)
+          c:SetVertexColor(r, g, bl, 1)
+          c:Show()
+        else
+          c:Hide()
+        end
+      end
+    end
+
+    -- the icon's own movement
+    local dx, dy, grow, alpha, rot, white = 0, 0, 0, 1, 0, 0
+    local loop = b.animLoop
+    if loop == "pulse" then grow = 2.5 * math.sin(now * 6)
+    elseif loop == "bounce" then dy = math.abs(math.sin(now * 6)) * size * .16
+    elseif loop == "float" then dy = math.sin(now * 3) * size * .07
+    elseif loop == "shake" then dx = math.sin(now * 45) * 1.6
+    elseif loop == "wobble" then rot = math.sin(now * 7) * .22
+    elseif loop == "spin" then rot = now * 3
+    elseif loop == "blink" then alpha = math.mod(now * 2.5, 1) < .5 and 1 or .25
+    elseif loop == "breathe" then alpha = .6 + .4 * math.abs(math.sin(now * 2.5)) end
+    local shot = b.animShot
+    if shot and shot ~= "none" and b.shotAt and now >= b.shotAt and now - b.shotAt < SHOTLEN then
+      local k = (now - b.shotAt) / SHOTLEN
+      if shot == "pop" then grow = grow + size * .22 * (1 - k)
+      elseif shot == "grow" then grow = grow - size * .3 * (1 - k)
+      elseif shot == "drop" then dy = dy + size * .6 * (1 - k) * math.abs(math.cos(k * 4.7))
+      elseif shot == "spin" then rot = rot + (1 - k) * 6.2832
+      elseif shot == "shake" then dx = dx + math.sin(now * 60) * 3 * (1 - k)
+      elseif shot == "white" then white = 1 - k end
+    end
+    b.icon:SetAlpha((b.baseAlpha or 1) * alpha)
+    if white > 0 then b.white:SetVertexColor(1, 1, 1, white * .8) b.white:Show() elseif b.white then b.white:Hide() end
+    local z = b.zoom or .08
+    if rot ~= 0 then
+      local c, s = math.cos(rot), math.sin(rot)
+      local h = (.5 - z) / (math.abs(c) + math.abs(s))
+      local function P(x, y) return .5 + (x * c - y * s) * h, .5 + (x * s + y * c) * h end
+      local ulx, uly = P(-1, -1)
+      local llx, lly = P(-1, 1)
+      local urx, ury = P(1, -1)
+      local lrx, lry = P(1, 1)
+      b.icon:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+      b.turned = true
+    elseif b.turned then
+      b.turned = nil
+      b.icon:SetTexCoord(z, 1 - z, z, 1 - z)
+    end
+    if b.bx and b.host then
+      local moved = dx ~= 0 or dy ~= 0 or grow ~= 0
+      if moved or b.moved then
+        b.moved = moved
+        b:SetWidth(size + 2 * grow)
+        b:SetHeight(size + 2 * grow)
+        b:ClearAllPoints()
+        b:SetPoint("TOPLEFT", b.host, "TOPLEFT", b.bx - grow + dx, -(b.by - grow) + dy)
+      end
+    end
+    b.busy = style ~= "off" or (loop and loop ~= "none") or (shot and shot ~= "none" and b.shotAt and now - b.shotAt < SHOTLEN) or false
   end
 
   -- place the shown icons; the frame keeps the size of `room` icons so its box does not jump
@@ -648,7 +890,8 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       b:SetHeight(size)
       b:ClearAllPoints()
       b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -y)
-      CDM.Paint(b, rows[i].e, rows[i].st, size, rows[i].flash, now)
+      b.host, b.bx, b.by, b.bsize = frame, x, y, size
+      CDM.Paint(b, rows[i].e, rows[i].st, size, rows[i].flash, now, rows[i].at)
       b:Show()
     end
     for i = n + 1, table.getn(buttons) do buttons[i]:Hide() end
@@ -670,13 +913,13 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         local rt = CDM.rt[key]
         if not rt then rt = {} CDM.rt[key] = rt end
         if rt.was == "cd" and st.state ~= "cd" and (rt.dur or 0) >= 2 then
-          rt.flash = now + 4
+          rt.flash, rt.readyAt = now + 4, now
           if e.sound and e.sound ~= "" and now >= (CDM.quietUntil or 0) then CDM.PlaySound(e.sound) end
         end
         rt.was, rt.dur = st.state, st.dur or rt.dur
         if st.state == "cd" then rt.flash = nil end
         if CDM.Wanted(e, st) then
-          table.insert(rows, { e = e, st = st, flash = rt.flash and rt.flash > now })
+          table.insert(rows, { e = e, st = st, flash = rt.flash and rt.flash > now, at = rt.readyAt })
         end
       end
     end
@@ -704,7 +947,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
           local t = 3 - math.mod(now, 3)
           if s.state == "cd" then s.left, s.dur = t, 3 elseif s.state == "active" then s.aleft = t end
         end
-        table.insert(rows, { e = e, st = s, flash = s.state == "ready" })
+        table.insert(rows, { e = e, st = s, flash = s.state == "ready", at = (CDM.demo == e.name) and (math.floor(now / 9) * 9) or nil })
       end
     end
     if table.getn(rows) == 0 then

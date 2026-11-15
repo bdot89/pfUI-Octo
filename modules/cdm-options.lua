@@ -28,6 +28,15 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
       if e.name == CP.pick then return e end
     end
   end
+  -- a list menu under a button, SHOWN (W.Menu / W.LongMenu hand it back hidden: 15 Nov 2026, user:
+  -- "these buttons do nothing"); long = with the filter box and scroll bar
+  function CP.Pop(anchor, opts, width, long, onPick)
+    if W.CloseMenus then W.CloseMenus() end
+    local make = (long and W.LongMenu) or W.Menu
+    local m = make(anchor, opts, width, onPick)
+    if m and m.Show then m:Show() end
+    return m
+  end
   local function Length(cd)
     if not cd then return "" end
     if cd >= 60 then return math.floor(cd / 60 * 10 + .5) / 10 .. " min" end
@@ -48,6 +57,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
   local function Panel(w)
     local f = CreateFrame("Frame", nil, UIParent)
     f:SetFrameStrata("FULLSCREEN_DIALOG")
+    if f.SetClampedToScreen then f:SetClampedToScreen(true) end
     f:SetWidth(w)
     f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
     f:SetBackdropColor(.07, .07, .09, .98)
@@ -140,7 +150,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     end } }
     table.insert(lines, { rule = true })
     for _, s in ipairs(cd.SPEC) do
-      table.insert(lines, { label = s.label, sub = Choices(s), tip = s.tip })
+      if not s.extra then table.insert(lines, { label = s.label, sub = Choices(s), tip = s.tip }) end
     end
     local buff = (e.buff and e.buff ~= "") and e.buff or "None"
     table.insert(lines, { label = "Replace with Buff: " .. buff, tip = "Watch another effect than the one with the spell's own name: a trinket's, a proc's.",
@@ -175,8 +185,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
         end
         local anchor = (m and m.anchor) or row
         if m then m:Hide() end
-        local menu = W.LongMenu or W.Menu
-        menu(anchor, opts, 270, function(key)
+        CP.Pop(anchor, opts, 270, true, function(key)
           if key == "" then e.talent, e.talentnot = nil, nil
           else e.talent, e.talentnot = string.sub(key, 2), (string.sub(key, 1, 1) == "-") and "1" or nil end
           Up() Again()
@@ -196,6 +205,11 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
         { label = "The spell's own picture", on = not custom, fn = function() e.icon = "" Changed() end },
       }
     end })
+    -- ours, beyond the model: glow speed and the animations
+    table.insert(lines, { rule = true })
+    for _, s in ipairs(cd.SPEC) do
+      if s.extra then table.insert(lines, { label = s.label, sub = Choices(s), tip = s.tip }) end
+    end
     table.insert(lines, { rule = true })
     table.insert(lines, { label = "Move earlier", fn = function() cd.Shift(name, -1) Changed() end })
     table.insert(lines, { label = "Move later", fn = function() cd.Shift(name, 1) Changed() end })
@@ -505,7 +519,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
       what:SetJustifyH("LEFT")
       what:SetTextColor(.6, .6, .63)
       what:SetText((not st.known) and (en.kind == "item" and "not in your bags" or "not learned") or
-        ((en.kind == "item" and "item" or Length(cd.BaseCD(en.name))) .. (en.auto and "   filled in" or "")))
+        ((en.kind == "item" and "item" or (en.kind == "aura" and "effect" or Length(cd.BaseCD(en.name)))) .. (en.auto and "   filled in" or "")))
       local del = W.Button(r, "X", 24, 20)
       del:SetPoint("RIGHT", r, "RIGHT", -4, 0)
       if W.Tint then W.Tint(del, "danger") end
@@ -534,8 +548,7 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     spell:SetScript("OnClick", function()
       local opts = CP.SpellMenu()
       if table.getn(opts) == 0 then return end
-      local menu = W.LongMenu or W.Menu
-      menu(this, opts, 260, function(key)
+      CP.Pop(this, opts, 260, true, function(key)
         cd.Add(CP.bar, key, "spell")
         CP.pick = key
         Up() Again()
@@ -548,19 +561,51 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     item:SetScript("OnClick", function()
       local opts = CP.ItemMenu()
       if table.getn(opts) == 0 then return end
-      W.Menu(this, opts, 260, function(key)
+      CP.Pop(this, opts, 260, false, function(key)
         cd.Add(CP.bar, key, "item")
         CP.pick = key
         Up() Again()
       end)
     end)
     W.Tip(item, "A trinket or item", "Your worn trinkets and the usable items in your bags. It is followed by name, wherever it is.")
-    W.Edit(p, "By name", "A spell's or item's exact name; Enter adds it. An item if it is in your bags or worn, else a spell.",
+    local aura = W.Button(addrow, "An effect or proc...", 150, 22)
+    aura:SetPoint("LEFT", item, "RIGHT", 8, 0)
+    if W.Tint then W.Tint(aura, "pick") end
+    aura:SetScript("OnClick", function()
+      cd.ReadBuffs()
+      local opts = {}
+      for _, a in pairs(cd.buffs) do
+        if a.name and not cd.Where(a.name) then table.insert(opts, { key = a.name, label = a.name, icon = a.tex }) end
+      end
+      table.sort(opts, function(a, b) return a.key < b.key end)
+      if table.getn(opts) == 0 then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r cooldowns: no effect on you now that is not on a bar. Type its name in \"By name\" instead.")
+        return
+      end
+      CP.Pop(this, opts, 260, false, function(key)
+        local e = cd.Add(CP.bar, key, "aura")
+        if e then e.idle = "hide" end
+        CP.pick = key
+        Up() Again()
+      end)
+    end)
+    W.Tip(aura, "An effect or proc", "Any effect that is on you now - an item's proc, a trinket's effect, a buff from a talent. "
+      .. "Its icon shows its time and stacks while it is up and hides otherwise (change that with its Non Active State). "
+      .. "Not up right now? Type its exact name in \"By name\".")
+    W.Edit(p, "By name", "The exact name of a spell, an item or an effect; Enter adds it. An item if you carry or wear it, a spell if it is in your spell book, else an effect (a proc) followed by its name.",
       function() return "" end, function(v)
         if not v or v == "" then return end
         cd.itemsDirty = true
-        local kind = cd.Items()[cd.Lower(v)] and "item" or "spell"
-        if cd.Add(CP.bar, v, kind) then CP.pick = v Up() Again() end
+        local key = cd.Lower(v)
+        local kind = cd.Items()[key] and "item" or (cd.book[key] and "spell" or "aura")
+        if kind == "spell" then v = cd.book[key].name end
+        local e = cd.Add(CP.bar, v, kind)
+        if e then
+          -- (a proc only shows while it is up, unless you change its Non Active State)
+          if kind == "aura" then e.idle = "hide" end
+          CP.pick = v
+          Up() Again()
+        end
       end, 220)
 
     -- the picked icon
