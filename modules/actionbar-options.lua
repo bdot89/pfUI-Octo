@@ -1300,12 +1300,15 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     Sld(p, "Lines", "For Marching lines.", 2, 16, 1, G, "glow_lines")
     Sld(p, "Thickness", nil, 1, 6, 1, G, "glow_thick", Px, function() AB.GlowRepaint() U() end)
     Grid(p, 3, {
-      Tick("Reactive abilities", "Overpower, Revenge, Execute, Riposte, Counterattack, Mongoose Bite and Hammer of Wrath while usable.", G, "glow_reactive"),
+      Tick("Reactive abilities", "Overpower, Revenge, Execute, Riposte, Counterattack, Mongoose Bite, Hammer of Wrath and Arcane Surge while usable.", G, "glow_reactive"),
       Tick("Procs", "Shadow Bolt during Shadow Trance (Nightfall).", G, "glow_procs"),
       Tick("Burst as it starts", "A ring grows out of the button when the glow begins.", G, "glow_burst", function() AB.GlowRepaint() U() end),
       KeyColour("Glow colour", nil, G, "glow_color", nil, function() AB.GlowRepaint() U() end),
       Tick("Glow: class colour", nil, G, "glow_color_class", function() AB.GlowRepaint() U() end),
     })
+    W.Edit(p, "Your own spells", "Spell names that glow while usable, separated by commas (for example: Arcane Surge, Victory Rush).",
+      function() return C.bars.glow_names or "" end,
+      function(v) C.bars.glow_names = v or "" U() end, 300)
 
     W.Card(p, "Highlights", { icon = ICON .. "Spell_Frost_Stun", tip = "The icon changes colour when the action cannot be used right now." })
     Grid(p, 3, {

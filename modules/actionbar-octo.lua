@@ -583,7 +583,45 @@ pfUI:RegisterModule("actionbar-octo", "vanilla:tbc", function ()
       local usable = IsUsableAction(f.id)
       return usable and true or false
     end
+    if C.bars.glow_reactive == "1" or (C.bars.glow_names or "") ~= "" then
+      local name = AB.SlotName(f.id, f.texture)
+      if name and ((C.bars.glow_reactive == "1" and AB.REACTIVE_NAMES[name]) or AB.OwnNames()[name]) then
+        local usable = IsUsableAction(f.id)
+        return usable and true or false
+      end
+    end
     return false
+  end
+
+  -- reactive spells found by name (their icon is shared with other spells)
+  AB.REACTIVE_NAMES = {
+    ["arcane surge"] = true, -- usable after an enemy resists your spell
+  }
+  -- the player's own list: C.bars.glow_names = "Name, Name"
+  local ownText, ownSet = nil, {}
+  function AB.OwnNames()
+    local t = C.bars.glow_names or ""
+    if t ~= ownText then
+      ownText, ownSet = t, {}
+      for n in string.gfind(t, "[^,;]+") do
+        n = string.lower(string.gsub(string.gsub(n, "^%s+", ""), "%s+$", ""))
+        if n ~= "" then ownSet[n] = true end
+      end
+    end
+    return ownSet
+  end
+  -- spell name on an action slot, read once per slot + icon
+  local nameOf = {}
+  function AB.SlotName(slot, tex)
+    local c = nameOf[slot]
+    if c and c.tex == tex then return c.name end
+    local name
+    if pfUI.keymap and pfUI.keymap.ActionSpell then
+      name = pfUI.keymap.ActionSpell(slot)
+    end
+    name = name and string.lower(name) or nil
+    nameOf[slot] = { tex = tex, name = name }
+    return name
   end
 
   -- ------------------------------------------------ cooldown swipe
