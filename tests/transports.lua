@@ -129,3 +129,14 @@ TR.swap = nil
 pfUI_cache.transportswap = nil
 pfUI_cache.transports = {}
 TR.ride = {}
+
+-- threat rows hold their order while players are close (meters-window M.SteadyOrder)
+local MM = pfUI.meters
+if MM and MM.SteadyOrder then
+  MM.threatOrder = { "A", "B", "C" }
+  local o = MM.SteadyOrder({ { name = "B", perc = 61 }, { name = "A", perc = 60 }, { name = "C", perc = 30 } }, 100)
+  ok(o[1].name == "A" and o[2].name == "B", "threat: a 1% lead does not swap rows")
+  o = MM.SteadyOrder({ { name = "B", perc = 70 }, { name = "A", perc = 60 }, { name = "C", perc = 30 } }, 100)
+  ok(o[1].name == "B", "threat: a clear lead moves up")
+  MM.threatOrder = {}
+end

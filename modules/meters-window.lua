@@ -365,6 +365,37 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   for _, m in ipairs(MODES) do MODE[m.key] = m end
   M.MODES = MODES
 
+  -- (15 Nov 2026, user: threat "jumping ... it should look stable") players close
+  -- together kept swapping places every update. Start from the last order and
+  -- only move someone up when they lead the one above by 3% of the top.
+  M.threatOrder = {}
+  function M.SteadyOrder(list, top)
+    local rank = {}
+    for i, name in ipairs(M.threatOrder) do rank[name] = i end
+    local out = {}
+    for _, e in ipairs(list) do table.insert(out, e) end
+    table.sort(out, function(a, b)
+      local ra, rb = rank[a.name] or 1000, rank[b.name] or 1000
+      if ra ~= rb then return ra < rb end
+      return a.perc > b.perc
+    end)
+    local n, margin = table.getn(out), (top or 100) * .03
+    for pass = 1, n do
+      local moved
+      for i = 1, n - 1 do
+        local b, a = out[i + 1], out[i]
+        if b.perc > a.perc + margin or (b.perc >= 100 and b.perc > a.perc) then
+          out[i], out[i + 1] = out[i + 1], out[i]
+          moved = true
+        end
+      end
+      if not moved then break end
+    end
+    M.threatOrder = {}
+    for i, e in ipairs(out) do M.threatOrder[i] = e.name end
+    return out
+  end
+
   -- the rows a window shows: { name, value, class, text, actor }
   function M.Rows(modekey, segkey)
     local rows = {}
@@ -389,7 +420,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
                                extra = Num(math.abs(a)), text = "", gap = a })
         end
       end
-      for _, e in ipairs(TH.list) do
+      for _, e in ipairs(M.SteadyOrder(TH.list, top)) do
         local w = M.Who(e.name)
         table.insert(rows, { name = e.name, value = Shown(e), max = top, class = w and w.class,
                              text = floor(e.perc) .. "%", extra = Num(e.threat), tank = e.tank })
@@ -1010,6 +1041,12 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     else b.mid:SetTextColor(1, 1, 1) end
     b.pct:SetTextColor(Col(s.subcolor, "0.67,0.67,0.67,1"))
     if row.pullrow then
+      -- (15 Nov 2026, user: "you cant see the threat you pull aggro at") the name and the number share
+      -- the left side, the gap gets the room of both right columns, so nothing is cut off
+      b.left:SetPoint("RIGHT", b.pct, "LEFT", -4, 0)
+      b.pct:SetWidth(floor(vsize * 5))
+      b.left:SetText(row.name .. "  |cffffffff" .. (row.extra or "") .. "|r")
+      row = { pullrow = row.pullrow, gap = row.gap, at = row.at, text = row.text, extra = "" }
       b.left:SetTextColor(1, .82, 0)
       b.mid:SetTextColor(.8, .8, .8)
       local gap = row.gap or 0
