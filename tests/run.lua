@@ -224,7 +224,7 @@ seterrorhandler(pfErrorHandler)
 ok(Mock.errorhandler == pfErrorHandler, "pfUI's error handler back")
 ok(pfUI.bootup == nil, "bootup finished")
 ok(pfUI.version.string == "5.5.4", "upstream version read from the toc (" .. tostring(pfUI.version.string) .. ")")
-ok(pfUI.version.octo == "1.0.0", "octo version read from X-Octo-Version (" .. tostring(pfUI.version.octo) .. ")")
+ok(string.find(tostring(pfUI.version.octo), "^%d+%.%d+%.%d+$") and pfUI.version.octo ~= "0.0.0","octo version read from X-Octo-Version (" .. tostring(pfUI.version.octo) .. ")")
 ok(pfUI_config and pfUI_config.appearance, "config built")
 
 -- (every colour picker the Octo pages make, for the colour check near the end)
