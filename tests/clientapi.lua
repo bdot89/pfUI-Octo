@@ -450,3 +450,27 @@ C_UnitAuras, C_Spell = nil, nil
 for k, v in pairs(savedG) do rawset(_G, k, v) end
 Mock.units[TGT] = nil
 Mock.target = savedTarget
+
+-- (16 Nov 2026, Lobo: "libpredict.lua:860: bad argument #2 to 'insert'") with ClassicAPI, UnitName returns the
+-- realm too: a bare UnitName(...) as the last argument of table.insert adds a third argument. Wrap it: (UnitName(u)).
+do
+  local bad = {}
+  for _, dir in ipairs({ "modules", "libs", "api" }) do
+    local p = io.popen and io.popen('dir /b "' .. string.gsub(DIR, "/", "\\") .. '\\' .. dir .. '\\*.lua"')
+    if p then
+      for name in p:lines() do
+        local fh = io.open(DIR .. "/" .. dir .. "/" .. name, "r")
+        if fh then
+          local n = 0
+          for line in fh:lines() do
+            n = n + 1
+            if string.find(line, "insert%([^%(%)]*,%s*UnitName%(") then table.insert(bad, dir .. "/" .. name .. ":" .. n) end
+          end
+          fh:close()
+        end
+      end
+      p:close()
+    end
+  end
+  octo_ok(table.getn(bad) == 0, "no table.insert(..., UnitName(...)) without brackets" .. (bad[1] and (": " .. table.concat(bad, ", ")) or ""))
+end

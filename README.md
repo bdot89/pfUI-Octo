@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.29
+
+- 🐛 **Heal prediction:** fixed the "libpredict.lua:860: bad argument #2 to 'insert'" error with ClassicAPI when a priest casts Prayer of Healing in a 5-player group.
+
 ## 📜 New in 1.1.28
 
 - 🏦 **Auctions:** a **Total** column on Browse and Deals - what the whole stack costs to buy out, sortable.

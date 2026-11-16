@@ -25,6 +25,10 @@ see "Roadmap" below.
   so a reused list fills after a run of holes and table.sort hands the order function nil (16 Nov 2026,
   Wolfahrt: "dots.lua:513: attempt to index local `a'"). Empty reused lists with table.setn(t, 0) too
   (dots.lua Wipe), or make a new table. The test host (LuaJIT) cannot show this.
+- With ClassicAPI, UnitName (and other calls) return more values than on plain 1.12 (UnitName gives the realm).
+  Passed as the LAST argument they all go along: table.insert(t, UnitName("player")) became insert(t, name,
+  realm) - "bad argument #2 to 'insert'" (16 Nov 2026, Lobo, libpredict Prayer of Healing). Wrap in brackets:
+  (UnitName(u)). tests\clientapi.lua scans for the insert case.
 - SetScript with a handler the 1.12 client lacks raises an error and stops the rest of that file / module (16 Nov
   2026: OnArrowPressed - not in WoW.exe - left the mail window unbuilt; the mailbox did nothing). The test mock takes
   any name: check new handler names with `grep -c -a <name> C:\Games\OctoWoW\WoW.exe`; tests\mail.lua scans modules

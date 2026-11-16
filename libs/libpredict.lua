@@ -857,7 +857,10 @@ do
       end
     else
       table.insert(out, caster)
-      if UnitName("player") ~= caster then table.insert(out, UnitName("player")) end
+      -- (16 Nov 2026, Lobo in BRD: "libpredict.lua:860: bad argument #2 to 'insert' (number expected, got
+      -- string)") with ClassicAPI UnitName gives the realm too, so table.insert got a third argument and took
+      -- the name for a position. The brackets keep only the first value.
+      if UnitName("player") ~= caster then table.insert(out, (UnitName("player"))) end
       for i = 1, 4 do
         local n = UnitName("party" .. i)
         if n and n ~= caster then table.insert(out, n) end
