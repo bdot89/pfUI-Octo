@@ -641,9 +641,11 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.exact:SetPoint("LEFT", B.usable, "RIGHT", 6, 0)
   B.go = Role(Btn(B, "Search", 66, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop."), "go")
   B.go:SetPoint("LEFT", B.exact, "RIGHT", 6, 0)
-  B.list = NewList(B, { { "Item", 300, "LEFT", "name", "count" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
-    { "Seller", 96, "LEFT", "owner" }, { "Bid each", 100, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
-    { "Of usual", 60, "RIGHT", "ofusual" } }, 22, function(r, d)
+  -- (16 Nov 2026, Lobo on Discord: "add to the auctions the total of each item") Total = what the whole stack
+  -- costs to buy out, beside the price each; sortable like the rest
+  B.list = NewList(B, { { "Item", 236, "LEFT", "name", "count" }, { "Lvl", 28, "RIGHT", "level" }, { "Time left", 80, "LEFT", "left" },
+    { "Seller", 86, "LEFT", "owner" }, { "Bid each", 92, "RIGHT", "bidunit" }, { "Buyout each", 96, "RIGHT", "unit" },
+    { "Total", 100, "RIGHT", "buyout" }, { "Of usual", 52, "RIGHT", "ofusual" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
     -- (a level above yours in red, as the game marks what you cannot use yet)
     local mine = UnitLevel and UnitLevel("player") or 60
@@ -652,7 +654,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.cell[4]:SetText(UI.Seller(d.owner))
     r.cell[5]:SetText(AH.Money(d.bidunit) .. (d.high and " |cff40e060*|r" or ""))
     r.cell[6]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
-    r.cell[7]:SetText(PctCell(d))
+    r.cell[7]:SetText((d.buyout or 0) > 0 and AH.Money(d.buyout) or ("|cff808080bid|r " .. AH.Money(d.next or 0)))
+    r.cell[8]:SetText(PctCell(d))
     for i = 2, 4 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)
     UI.PaintBuy()
@@ -1403,16 +1406,17 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     .. "Only items whose price has been seen on several days count, so run \"Read every auction\" on a few days first.")
   K.go:SetPoint("LEFT", kl4, "RIGHT", 12, 0)
   Role(K.go, "go")
-  K.list = NewList(K, { { "Item", 330, "LEFT", "name", "count" }, { "Seller", 100, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
-    { "Buyout each", 100, "RIGHT", "unit" }, { "Usual", 100, "RIGHT", "value" }, { "Of usual", 62, "RIGHT", "share" },
-    { "Profit a stack", 120, "RIGHT", "profit" } }, 22, function(r, d)
+  K.list = NewList(K, { { "Item", 260, "LEFT", "name", "count" }, { "Seller", 100, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
+    { "Buyout each", 100, "RIGHT", "unit" }, { "Total", 100, "RIGHT", "buyout" }, { "Usual", 100, "RIGHT", "value" },
+    { "Of usual", 62, "RIGHT", "share" }, { "Profit a stack", 120, "RIGHT", "profit" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
     r.cell[2]:SetText(UI.Seller(d.owner))
     r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "")
-    r.cell[5]:SetText(d.value and AH.Money(d.value) or "")
-    r.cell[6]:SetText(d.share and ("|cff40e060" .. math.floor(d.share * 100 + .5) .. "%|r") or "")
-    r.cell[7]:SetText(d.profit and ("|cff40e060+|r" .. AH.Money(d.profit)) or "")
+    r.cell[5]:SetText((d.buyout or 0) > 0 and AH.Money(d.buyout) or "")
+    r.cell[6]:SetText(d.value and AH.Money(d.value) or "")
+    r.cell[7]:SetText(d.share and ("|cff40e060" .. math.floor(d.share * 100 + .5) .. "%|r") or "")
+    r.cell[8]:SetText(d.profit and ("|cff40e060+|r" .. AH.Money(d.profit)) or "")
     for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)
     UI.PaintBuy()

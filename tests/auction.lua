@@ -10,6 +10,16 @@ ok(O and O.BUILD and O.BUILD.auction, "options page Auctions registered")
 local S = pfUI_config.auction
 ok(S and S.undercut == "1" and S.hours == "24" and S.bidshare == "95", "defaults (C.auction)")
 ok(getglobal("pfAuction") and AH.ui and AH.Show, "the window exists")
+-- (16 Nov 2026, Lobo) Browse and Deals show the whole stack's buyout as "Total"
+do
+  local function HasTotal(list)
+    for _, c in ipairs(list and list.cols or {}) do if c[1] == "Total" and c[4] == "buyout" then return true end end
+  end
+  local B = AH.ui and AH.ui.pages and AH.ui.pages.browse
+  local K = AH.ui and AH.ui.pages and AH.ui.pages.deals
+  ok(B and HasTotal(B.list), "Browse has a Total column (whole stack buyout)")
+  ok(not K or HasTotal(K.list), "Deals has a Total column")
+end
 
 -- money
 ok(AH.Money(12345, true) == "1g 23s 45c" and AH.Money(500000, true) == "50g" and AH.Money(0, true) == "0c" and AH.Money(1020000, true) == "102g",

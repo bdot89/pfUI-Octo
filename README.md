@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.28
+
+- 🏦 **Auctions:** a **Total** column on Browse and Deals - what the whole stack costs to buy out, sortable.
+
 ## 📜 New in 1.1.27
 
 - 📬 **Mail:** sending items no longer gets stuck. The Send tab looks like the game's (parchment letter, gold / silver / copper, Send money or C.O.D.), and the To box suggests your alts and the people you mail first, then group, friends, guild and people you've seen.
