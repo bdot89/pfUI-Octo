@@ -312,3 +312,52 @@ do
   ok(_G.AuctionFrameAuctions_OnEvent() == "AuctionFrameAuctions" and calls == 1, "a shown one works as ever")
   for _, k in ipairs(names) do _G[k] = was[k] end
 end
+
+-- categories on Browse and the rarity drop-down (16 Nov 2026)
+do
+  local AH = pfUI.auction
+  local UI = AH.ui
+  local names = { "GetAuctionItemClasses", "GetAuctionItemSubClasses", "GetAuctionInvTypes", "INVTYPE_HEAD", "INVTYPE_CHEST", "ITEM_QUALITY2_DESC" }
+  local was = {}
+  for _, k in ipairs(names) do was[k] = rawget(_G, k) end
+  _G.GetAuctionItemClasses = function() return "Weapon", "Armor", "Container" end
+  _G.GetAuctionItemSubClasses = function(c) if c == 2 then return "Cloth", "Leather" end if c == 1 then return "One-Handed Axes" end end
+  -- (1.12 gives the slots one by one; later clients in pairs with a "shown" flag)
+  _G.GetAuctionInvTypes = function(c, s) if c == 2 and s == 1 then return "INVTYPE_HEAD", 1, "INVTYPE_CHEST", 1 end end
+  _G.INVTYPE_HEAD, _G.INVTYPE_CHEST, _G.ITEM_QUALITY2_DESC = "Head", "Chest", "Uncommon"
+  UI.cat = {}
+  local lines = UI.TreeLines()
+  ok(table.getn(lines) == 3 and lines[1].text == "Weapon" and lines[1].kind == "class", "the categories: three kinds, folded")
+  local searched = 0
+  local realSearch = AH.Search
+  AH.Search = function(q) searched = searched + 1 UI.lastQ = q end
+  AH.open = true
+  UI.PickCategory(lines[2])
+  lines = UI.TreeLines()
+  ok(table.getn(lines) == 5 and lines[3].text == "Cloth" and lines[3].kind == "sub", "picking Armor opens its sorts")
+  ok(searched == 1 and UI.lastQ.class == 2 and not UI.lastQ.subclass, "and searches all armour")
+  UI.PickCategory(lines[3])
+  lines = UI.TreeLines()
+  ok(table.getn(lines) == 7 and lines[4].text == "Head" and lines[5].text == "Chest" and lines[4].kind == "slot", "Cloth opens its slots (pairs read right)")
+  UI.PickCategory(lines[5])
+  ok(UI.lastQ.class == 2 and UI.lastQ.subclass == 1 and UI.lastQ.slot == 2, "a slot searches kind, sort and slot together")
+  UI.PickCategory(UI.TreeLines()[5])
+  ok(UI.cat.slot == nil and UI.cat.sub == 1, "picking it again lets it go")
+  UI.PickCategory(UI.TreeLines()[2])
+  UI.PickCategory(UI.TreeLines()[2])
+  ok(UI.cat.class == nil and table.getn(UI.TreeLines()) == 3 and UI.q.class == nil, "and the kind folds again")
+  local good, err = pcall(UI.PaintTree)
+  ok(good, "the list draws " .. tostring(err or ""))
+  pfUI_config.auction.tree = "0"
+  UI.PlaceTree()
+  ok(not UI.pages.browse.tree:IsShown(), "it can be hidden")
+  pfUI_config.auction.tree = "1"
+  UI.PlaceTree()
+  ok(UI.pages.browse.tree:IsShown(), "and shown")
+  ok(string.find(UI.QualityText(2), "Uncommon +", 1, true) and string.find(UI.QualityText(2), "|c", 1, true) and UI.QualityText(nil) == "Any rarity",
+    "rarities named in their own colours")
+  AH.Search = realSearch
+  AH.open = false
+  UI.cat, UI.q.class, UI.q.subclass, UI.q.slot = {}, nil, nil, nil
+  for _, k in ipairs(names) do _G[k] = was[k] end
+end

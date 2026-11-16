@@ -302,7 +302,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
 
   local f = CreateFrame("Frame", "pfAuction", UIParent)
   UI.frame = f
-  f:SetWidth(1000)
+  f:SetWidth(1040)
   f:SetHeight(610)
   f:SetPoint("LEFT", UIParent, "LEFT", 40, 30)
   f:SetFrameStrata("HIGH")
@@ -392,7 +392,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     -- (the box may hold several searches and words: "linen cloth/exact; silk cloth/max 2s" - AH.ParseQuery;
     -- the buttons and boxes beside it apply to each of them)
     local list = AH.ParseQuery(text, { minLevel = tonumber(B.min:GetText()), maxLevel = tonumber(B.max:GetText()), quality = UI.q.quality,
-      class = UI.q.class, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first, maxUnit = AH.ParseMoney(B.maxp:GetText()) })
+      class = UI.q.class, subclass = UI.q.subclass, slot = UI.q.slot, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first,
+      maxUnit = AH.ParseMoney(B.maxp:GetText()) })
     UI.Recent(text)
     UI.only = nil
     local q = table.remove(list, 1)
@@ -539,24 +540,33 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.max:SetPoint("LEFT", B.min, "RIGHT", 4, 0)
   B.maxp = Edit(B, 86, function() Search() end, "max each")
   B.maxp:SetPoint("LEFT", B.max, "RIGHT", 6, 0)
-  B.quality = Btn(B, "Any quality", 88, function(b)
-    UI.qi = math.mod(UI.qi or 1, table.getn(UI.QUALITY)) + 1
-    UI.q.quality = UI.QUALITY[UI.qi][1]
-    b.text:SetText(UI.QUALITY[UI.qi][2])
-  end, "Click to step: any, uncommon and better, rare and better, epic and better.")
-  B.quality:SetPoint("LEFT", B.maxp, "RIGHT", 6, 0)
-  B.class = Btn(B, "Any kind", 100, function(b)
+  -- rarity: a drop-down in the rarities' own colours (16 Nov 2026, user: "the uncommon should be a drop down
+  -- and coloured like the rarity"); the game's search takes "this rarity and better"
+  function UI.QualityText(q)
+    if q == nil then return "Any rarity" end
+    local name = rawget(_G, "ITEM_QUALITY" .. q .. "_DESC") or ({ "Poor", "Common", "Uncommon", "Rare", "Epic", "Legendary" })[q + 1] or "?"
+    local c = ITEM_QUALITY_COLORS and ITEM_QUALITY_COLORS[q]
+    local hex = c and c.hex or ({ "|cff9d9d9d", "|cffffffff", "|cff1eff00", "|cff0070dd", "|cffa335ee", "|cffff8000" })[q + 1] or ""
+    return hex .. name .. (q > 0 and " +" or "") .. "|r"
+  end
+  B.quality = Btn(B, UI.QualityText(nil) .. "  |cff808088v|r", 112, function(b)
     local W = pfUI.octoui and pfUI.octoui.W
-    if not W or not W.Menu or not GetAuctionItemClasses then return end
-    local opts = { { key = 0, label = "Any kind" } }
-    for i, name in ipairs({ GetAuctionItemClasses() }) do table.insert(opts, { key = i, label = name }) end
+    if not W or not W.Menu then return end
+    local opts = { { key = -1, label = UI.QualityText(nil) } }
+    for q = 0, 5 do table.insert(opts, { key = q, label = UI.QualityText(q) }) end
     if W.CloseMenus then W.CloseMenus() end
-    local m = W.Menu(b, opts, 150, function(key)
-      UI.q.class = (key ~= 0) and key or nil
-      b.text:SetText(key == 0 and "Any kind" or opts[key + 1].label)
+    local m = W.Menu(b, opts, 140, function(key)
+      UI.q.quality = (key ~= -1) and key or nil
+      b.text:SetText(UI.QualityText(UI.q.quality) .. "  |cff808088v|r")
+      if S().treesearch ~= "0" and AH.open then Search() end
     end)
     if m and m.Show then m:Show() end
-  end, "Weapons, armour, trade goods...")
+  end, "Only this rarity and better.")
+  B.quality:SetPoint("LEFT", B.maxp, "RIGHT", 6, 0)
+  B.class = Btn(B, "Categories", 100, function(b)
+    S().tree = (S().tree == "0") and "1" or "0"
+    UI.PlaceTree()
+  end, "Show or hide the list of categories on the left, as on the game's own auction window.")
   B.class:SetPoint("LEFT", B.quality, "RIGHT", 6, 0)
   B.usable = Btn(B, "Usable", 62, function(b) UI.q.usable = not UI.q.usable b.Lit(UI.q.usable) end, "Only what this character can use.")
   B.usable:SetPoint("LEFT", B.class, "RIGHT", 6, 0)
@@ -564,11 +574,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.exact:SetPoint("LEFT", B.usable, "RIGHT", 6, 0)
   B.go = Role(Btn(B, "Search", 66, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop."), "go")
   B.go:SetPoint("LEFT", B.exact, "RIGHT", 6, 0)
-  B.list = NewList(B, { { "Item", 360, "LEFT", "name", "count" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
-    { "Seller", 100, "LEFT", "owner" }, { "Bid each", 104, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
+  B.list = NewList(B, { { "Item", 300, "LEFT", "name", "count" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
+    { "Seller", 96, "LEFT", "owner" }, { "Bid each", 100, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
     { "Of usual", 60, "RIGHT" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
-    r.cell[2]:SetText(d.level > 0 and d.level or "")
+    -- (a level above yours in red, as the game marks what you cannot use yet)
+    local mine = UnitLevel and UnitLevel("player") or 60
+    r.cell[2]:SetText(d.level > 0 and ((d.level > mine and "|cffff5a4a" or "") .. d.level .. (d.level > mine and "|r" or "")) or "")
     r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(UI.Seller(d.owner))
     r.cell[5]:SetText(AH.Money(d.bidunit) .. (d.high and " |cff40e060*|r" or ""))
@@ -588,9 +600,149 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if ChatFrameEditBox and ChatFrameEditBox:IsVisible() then ChatFrameEditBox:Insert(line)
     else DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r auctions: " .. line) end
   end
-  B.list:SetPoint("TOPLEFT", B, "TOPLEFT", 0, -28)
-  B.list:SetPoint("RIGHT", B, "RIGHT", 0, 0)
   B.list.sortBy = "unit"
+
+  -- Categories on the left, the game's own way to browse (16 Nov 2026, user: "a menu like this so people can
+  -- browse the oldschool way"): kinds (gold), their sorts, armour's slots. Picking one searches at once
+  -- (C.auction.treesearch) with what else is set; picking it again folds it.
+  local TREE_W, TREE_ROWS = 178, 23
+  UI.cat = {}
+  local T = CreateFrame("Frame", nil, B)
+  B.tree = T
+  T:SetWidth(TREE_W)
+  T:SetPoint("TOPLEFT", B, "TOPLEFT", 0, -28)
+  Flat(T, .6)
+  T.offset, T.rows = 0, {}
+  T.head = Text(T, 11)
+  T.head:SetPoint("TOPLEFT", T, "TOPLEFT", 8, -5)
+  T.head:SetTextColor(Accent())
+  T.head:SetText("Categories")
+  T.rule = T:CreateTexture(nil, "ARTWORK")
+  T.rule:SetHeight(1)
+  T.rule:SetPoint("TOPLEFT", T, "TOPLEFT", 4, -21)
+  T.rule:SetPoint("TOPRIGHT", T, "TOPRIGHT", -4, -21)
+  do local ar, ag, ab = Accent() T.rule:SetTexture(ar, ag, ab, .55) end
+  -- strings only: 1.12 gives inventory types one by one, later clients in pairs (name, shown)
+  local function Strings(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24)
+    local out = {}
+    for _, v in ipairs({ a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24 }) do
+      if type(v) == "string" then table.insert(out, v) end
+    end
+    return out
+  end
+  -- the lines shown now: { text, kind = class | sub | slot, class, sub, slot }
+  function UI.TreeLines()
+    local lines = {}
+    if not GetAuctionItemClasses then return lines end
+    local c = UI.cat
+    for ci, cname in ipairs(Strings(GetAuctionItemClasses())) do
+      table.insert(lines, { text = cname, kind = "class", class = ci })
+      if c.class == ci and GetAuctionItemSubClasses then
+        for si, sname in ipairs(Strings(GetAuctionItemSubClasses(ci))) do
+          table.insert(lines, { text = sname, kind = "sub", class = ci, sub = si })
+          if c.sub == si and GetAuctionInvTypes then
+            for ti, tkey in ipairs(Strings(GetAuctionInvTypes(ci, si))) do
+              table.insert(lines, { text = rawget(_G, tkey) or tkey, kind = "slot", class = ci, sub = si, slot = ti })
+            end
+          end
+        end
+      end
+    end
+    return lines
+  end
+  function UI.PickCategory(d)
+    local c = UI.cat
+    if d.kind == "class" then
+      if c.class == d.class and not c.sub then UI.cat = {} else UI.cat = { class = d.class } end
+    elseif d.kind == "sub" then
+      if c.sub == d.sub and not c.slot then UI.cat = { class = d.class } else UI.cat = { class = d.class, sub = d.sub } end
+    else
+      if c.slot == d.slot then UI.cat = { class = d.class, sub = d.sub } else UI.cat = { class = d.class, sub = d.sub, slot = d.slot } end
+    end
+    UI.q.class, UI.q.subclass, UI.q.slot = UI.cat.class, UI.cat.sub, UI.cat.slot
+    UI.PaintTree()
+    if S().treesearch ~= "0" and AH.open then Search() end
+  end
+  for ii = 1, TREE_ROWS do
+    local i = ii
+    local r = CreateFrame("Button", nil, T)
+    r:SetHeight(20)
+    r:SetPoint("TOPLEFT", T, "TOPLEFT", 2, -24 - (i - 1) * 20)
+    r:SetPoint("RIGHT", T, "RIGHT", -2, 0)
+    r.pick = r:CreateTexture(nil, "BACKGROUND")
+    r.pick:SetAllPoints(r)
+    r.pick:Hide()
+    r.bar = r:CreateTexture(nil, "ARTWORK")
+    r.bar:SetWidth(2)
+    r.bar:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+    r.bar:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+    r.bar:Hide()
+    r.hl = r:CreateTexture(nil, "BACKGROUND")
+    r.hl:SetAllPoints(r)
+    r.hl:SetTexture(1, 1, 1, .08)
+    r.hl:Hide()
+    r.mark = Text(r, 11)
+    r.mark:SetPoint("RIGHT", r, "RIGHT", -6, 0)
+    r.text = Text(r, 12)
+    r:SetScript("OnEnter", function() this.hl:Show() end)
+    r:SetScript("OnLeave", function() this.hl:Hide() end)
+    r:SetScript("OnClick", function() if this.d then UI.PickCategory(this.d) end end)
+    T.rows[i] = r
+  end
+  T:EnableMouseWheel(true)
+  T:SetScript("OnMouseWheel", function()
+    local n = table.getn(UI.TreeLines())
+    T.offset = math.max(0, math.min(math.max(0, n - TREE_ROWS), T.offset - (arg1 or 0) * 3))
+    UI.PaintTree()
+  end)
+  function UI.PaintTree()
+    local lines = UI.TreeLines()
+    local n = table.getn(lines)
+    if T.offset > math.max(0, n - TREE_ROWS) then T.offset = math.max(0, n - TREE_ROWS) end
+    local ar, ag, ab = Accent()
+    local c = UI.cat
+    for i = 1, TREE_ROWS do
+      local r, d = T.rows[i], lines[i + T.offset]
+      r.d = d
+      if d then
+        local picked = (d.kind == "class" and c.class == d.class and not c.sub) or (d.kind == "sub" and c.sub == d.sub and c.class == d.class and not c.slot)
+          or (d.kind == "slot" and c.slot == d.slot and c.sub == d.sub and c.class == d.class)
+        local open = (d.kind == "class" and c.class == d.class) or (d.kind == "sub" and c.sub == d.sub and c.class == d.class)
+        r.text:ClearAllPoints()
+        r.text:SetPoint("LEFT", r, "LEFT", (d.kind == "class" and 8) or (d.kind == "sub" and 20) or 32, 0)
+        r.text:SetText(d.text)
+        if d.kind == "class" then r.text:SetTextColor(1, .82, .1) elseif d.kind == "sub" then r.text:SetTextColor(.95, .95, .97)
+        else r.text:SetTextColor(.7, .7, .75) end
+        local hasMore = d.kind == "class" or (d.kind == "sub" and d.class == 2)
+        r.mark:SetText(hasMore and (open and "|cff808088-|r" or "|cff808088+|r") or "")
+        if picked then
+          r.pick:SetTexture(ar, ag, ab, .22) r.pick:Show()
+          r.bar:SetTexture(ar, ag, ab, 1) r.bar:Show()
+        else
+          r.pick:Hide() r.bar:Hide()
+        end
+        r:Show()
+      else
+        r:Hide()
+      end
+    end
+  end
+  -- the list beside the categories, or the whole width when they are hidden
+  function UI.PlaceTree()
+    B.list:ClearAllPoints()
+    if S().tree ~= "0" then
+      T:Show()
+      B.list:SetPoint("TOPLEFT", B, "TOPLEFT", TREE_W + 8, -28)
+      UI.PaintTree()
+    else
+      T:Hide()
+      B.list:SetPoint("TOPLEFT", B, "TOPLEFT", 0, -28)
+    end
+    B.list:SetPoint("RIGHT", B, "RIGHT", 0, 0)
+    if B.class.Lit then B.class.Lit(S().tree ~= "0") end
+  end
+  UI.PlaceTree()
+  T:SetPoint("BOTTOM", B.list, "BOTTOM", 0, 0)
   B.status = Text(B, 11)
   B.status:SetPoint("TOPLEFT", B.list, "BOTTOMLEFT", 4, -8)
   B.status:SetTextColor(.62, .62, .67)
