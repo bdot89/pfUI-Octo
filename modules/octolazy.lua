@@ -474,12 +474,20 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
       end
     end
     if hasQuest then return end
+    -- skip only when the NPC offers ONE service: a trainer who also sells (Survival, cooking...)
+    -- used to go straight to the shop when trainers were off, and training could not be reached
+    -- (Barbeque_Squirrel on Discord, 16 Nov 2026). Plain "gossip" chat lines do not count, nor an
+    -- innkeeper's "binder" line (the hearthstone is never picked; their shop is).
     local pick, count = nil, 0
     for x = 1, table.getn(o), 2 do
-      local key = LZ.KINDS[o[x + 1] or ""]
-      if key and On(key) then pick, count = (x + 1) / 2, count + 1 end
+      local kind = o[x + 1] or ""
+      if kind ~= "gossip" and kind ~= "binder" then
+        count = count + 1
+        local key = LZ.KINDS[kind]
+        if key and On(key) then pick = (x + 1) / 2 end
+      end
     end
-    if count == 1 then _G.SelectGossipOption(pick) return "skip" end
+    if count == 1 and pick then _G.SelectGossipOption(pick) return "skip" end
   end
 
   function LZ.OnGreeting()

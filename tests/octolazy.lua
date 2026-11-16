@@ -221,6 +221,9 @@ _G.GetGossipOptions = function() return "Teleport me to the Molten Core", "gossi
 ok(LZ.OnGossip() == "line" and picked == 1, "your own lines: picked")
 _G.GetGossipOptions = function() return "Buy", "vendor", "Bind here", "binder" end
 ok(LZ.OnGossip() == "skip" and picked == 1, "an innkeeper: the vendor, never the hearthstone")
+picked = nil
+_G.GetGossipOptions = function() return "Train me", "trainer", "Let me browse your goods", "vendor" end
+ok(LZ.OnGossip() == nil and picked == nil, "a trainer who also sells: the menu stays (training reachable)")
 -- quests with Shift: a done quest first, then a new one, the last repeated
 local qa, qv
 _G.SelectGossipActiveQuest = function(i) qa = i end

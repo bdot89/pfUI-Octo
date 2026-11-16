@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.25
+
+- 🐛 **OctoLazy:** NPCs who train and sell (Survival, Cooking...) no longer jump straight to the shop; their menu stays so you can train.
+
 ## 📜 New in 1.1.24
 
 - 🐛 **OctoDoTs:** the "dots.lua:513: attempt to index local `a'" error with several mobs around is fixed.
