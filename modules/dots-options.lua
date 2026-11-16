@@ -1,5 +1,5 @@
 pfUI:RegisterModule("dots-options", "vanilla", function ()
-  -- pfUI Octo :: the DoT Tracker section (16 Nov 2026, modules/dots.lua). The user sent screenshots of
+  -- pfUI Octo :: the OctoDoTs section (16 Nov 2026, modules/dots.lua). The user sent screenshots of
   -- Cursive-Raid's six tabs: "im sure we can do alot better but these should still be there". So the pages
   -- are Cursive's tabs - General, Raid, Class, Display, Filter, Profiles - with every one of its options,
   -- in our cards, plus a live preview drawn by the real row code (click a row for its settings).
@@ -28,9 +28,9 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
   local ICON = "Interface\\Icons\\"
 
   local function Off(p)
-    W.Heading(p, "DoT Tracker", { on = O.ModuleSwitch("dots", "DoT Tracker"), about = "The DoT Tracker is off. Switch it on "
+    W.Heading(p, "OctoDoTs", { on = O.ModuleSwitch("dots", "OctoDoTs"), about = "OctoDoTs is off. Switch it on "
       .. "here (it takes a reload), then its pages fill in." })
-    W.Note(p, "The DoT Tracker is switched off. Click the switch above, close the options and reload.")
+    W.Note(p, "OctoDoTs is switched off. Click the switch above, close the options and reload.")
   end
 
   -- the borders, timer and stack colour words
@@ -123,7 +123,7 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
   -- ---------------------------------------------------------------- General
 
   local function General(p)
-    W.Heading(p, "DoT Tracker", { on = O.ModuleSwitch("dots", "DoT Tracker"), about = "One row for each enemy: its health, raid mark "
+    W.Heading(p, "OctoDoTs", { on = O.ModuleSwitch("dots", "OctoDoTs"), about = "One row for each enemy: its health, raid mark "
       .. "and every debuff on it - yours and the raid's - with real timers. Cursive Raid, built in and faster. With ClassicAPI the "
       .. "timers are the server's (talents and haste included); with SuperWoW alone they are counted from the casts it sees; "
       .. "without either it shows your target only. /dot cast <spell> spreads a DoT to the best enemy without it." })
@@ -144,7 +144,7 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
     Chk(p, "CC / reflect transparency", "Crowd-controlled enemies (Polymorph, Banish, Sap...) and ones with a spell reflect fade, so you leave them alone.", "ccfade")
     Chk(p, "Out-of-range / line-of-sight stripes", "Stripes over enemies too far away or out of sight to cast at.", "stripes")
     Sld(p, "Stripes from", "How far away an enemy gets its stripes.", 5, 60, 1, "striperange", function(v) return v .. " yd" end)
-    Chk(p, "Title", "\"DoT Tracker\" over the rows.", "title")
+    Chk(p, "Title", "\"OctoDoTs\" over the rows.", "title")
     Chk(p, "Backdrop", "A dark panel behind the rows.", "backdrop")
     Chk(p, "Click to target", "Click a row to target it (SuperWoW, no target swap needed to see it), right-click for the next raid mark.", "clicks")
     Drop(p, "When it shows", nil, { { key = "rows", label = "When there are enemies" }, { key = "combat", label = "Only in combat" },
@@ -228,7 +228,7 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
   function SO.MakeMacro(name)
     local body = "/dot cast " .. name
     local ok = pcall(CreateMacro, string.sub(name, 1, 16), 1, body, 1, 1)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffDoT Tracker|r: " .. (ok and ("macro made: " .. body) or "no room for another macro"))
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: " .. (ok and ("macro made: " .. body) or "no room for another macro"))
   end
 
   -- ---------------------------------------------------------------- Raid
@@ -522,17 +522,17 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
       { "Export", function() eb:SetText(P.Export()) eb:HighlightText() eb:SetFocus() end },
       { "Import", function()
         local ok = P.Import(eb:GetText())
-        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffDoT Tracker|r: " .. (ok and "settings imported" or "that is not a DoT Tracker string"))
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: " .. (ok and "settings imported" or "that is not an OctoDoTs string"))
         Up()
         O:Refresh()
       end },
     })
   end
 
-  O:AddPage("DoT Tracker", "dotgeneral", "General", General)
-  O:AddPage("DoT Tracker", "dotraid", "Raid", Raid)
-  O:AddPage("DoT Tracker", "dotclass", "Class", Class)
-  O:AddPage("DoT Tracker", "dotdisplay", "Display", Display)
-  O:AddPage("DoT Tracker", "dotfilter", "Filter", Filter)
-  O:AddPage("DoT Tracker", "dotprofiles", "Profiles", Profiles)
+  O:AddPage("OctoDoTs", "dotgeneral", "General", General)
+  O:AddPage("OctoDoTs", "dotraid", "Raid", Raid)
+  O:AddPage("OctoDoTs", "dotclass", "Class", Class)
+  O:AddPage("OctoDoTs", "dotdisplay", "Display", Display)
+  O:AddPage("OctoDoTs", "dotfilter", "Filter", Filter)
+  O:AddPage("OctoDoTs", "dotprofiles", "Profiles", Profiles)
 end)

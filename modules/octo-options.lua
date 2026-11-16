@@ -67,8 +67,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Combat Text", { "Combat Text" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
     { "Swing Timer", { "Swing Timer" } },
-    -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called DoT Tracker") dots-options.lua
-    { "DoT Tracker", { "DoT Tracker" } },
+    -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called OctoDoTs") dots-options.lua
+    { "OctoDoTs", { "OctoDoTs" } },
     { "Tooltip", { "Tooltip" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
@@ -86,12 +86,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   O.NAVGROUPS = {
     { "General", { "Settings", "Auctions", "Blizzard UI", "UI layouts", "Quality of Life", "Questing", "OctoLazy" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "DoT Tracker", "Gear", "Consumables", "Tooltip" } },
+    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "OctoDoTs", "Gear", "Consumables", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["DoT Tracker"] = { "dots", "DoT Tracker" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
+  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -110,7 +110,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
-    ["DoT Tracker"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
+    ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
     ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["Consumables"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
     ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect all your mail at once.",

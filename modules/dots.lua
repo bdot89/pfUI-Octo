@@ -1,7 +1,7 @@
 pfUI:RegisterModule("dots", "vanilla", function ()
-  -- pfUI Octo :: DoT Tracker (16 Nov 2026; user: "merge cursive into our pfui make our own version ...
+  -- pfUI Octo :: OctoDoTs (16 Nov 2026; user: "merge cursive into our pfui make our own version ...
   -- better faster stronger use any DLLs needed ... standalone and enabled/disabled inside pfUI ... its own
-  -- section on the left called DoT Tracker", then with screenshots of Cursive's six tabs: "im sure we can
+  -- section on the left called OctoDoTs", then with screenshots of Cursive's six tabs: "im sure we can
   -- do alot better but these should still be there"). Cursive-Raid (MIT: Kirchlive / Teto, after Shagu's
   -- Cursive) is the model: one row per enemy with its health and the debuffs on it - yours and the
   -- raid's - and a multi-DoT command. Written fresh on pfUI's frames; Cursive's spell tables are turned
@@ -999,7 +999,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     frame:SetScale(Num("scale", 1))
     frame:SetAlpha(Num("alpha", 1))
     frame.title:SetFont(Font(), FS("fontsize", 9) + 1, "OUTLINE")
-    frame.title:SetText(s.title == "1" and "DoT Tracker" or "")
+    frame.title:SetText(s.title == "1" and "OctoDoTs" or "")
     frame.back:SetVertexColor(0, 0, 0, s.backdrop == "1" and .45 or 0)
     local rows, cols = Num("rows", 8), math.max(1, Num("cols", 1))
     local gap = Num("spacing", 3)
@@ -1363,7 +1363,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
         pfUI.gui:Show()
         O:Open("dotgeneral")
       end
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffDoT Tracker|r: /dot cast <spell>[|marks|hp|lowhp][|minhp=N,refresh=S]  /dot target <spell>  /dot test  /dot ignore [name]  /dot profile list|load|save|delete <name>")
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: /dot cast <spell>[|marks|hp|lowhp][|minhp=N,refresh=S]  /dot target <spell>  /dot test  /dot ignore [name]  /dot profile list|load|save|delete <name>")
     end
   end
   _G.SLASH_PFDOTS1, _G.SLASH_PFDOTS2 = "/dot", "/dots"
@@ -1526,7 +1526,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   end
   function P.Slash(how, name)
     how = string.lower(how or "")
-    local say = function(t) DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffDoT Tracker|r: " .. t) end
+    local say = function(t) DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: " .. t) end
     if how == "list" then say(table.concat(P.Names(), ", "))
     elseif how == "save" then if P.Save(name) then say("saved " .. name) end
     elseif how == "load" then if P.Load(name) then say("loaded " .. name) else say("no profile " .. (name or "")) end
