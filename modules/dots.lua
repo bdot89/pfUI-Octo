@@ -65,6 +65,16 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     local ok, r = pcall(fn, a, b)
     if ok then return r end
   end
+  -- empty a list for reuse. Lua 5.0 (the game) keeps the length table.insert set even after
+  -- every entry is nil'd, so the next inserts went after a run of holes and table.sort read
+  -- them ("dots.lua: attempt to index local `a'", 16 Nov 2026). table.setn puts it back to 0;
+  -- 5.1 has no working setn, and there the nil'd list is already empty.
+  local SETN = table.setn and pcall(table.setn, {}, 0) and table.setn
+  local function Wipe(t)
+    for i = table.getn(t), 1, -1 do t[i] = nil end
+    if SETN then SETN(t, 0) end
+  end
+  D.Wipe = Wipe
 
   -- raid debuffs by spell id
   D.RAIDID, D.RAIDKEY = {}, {}
@@ -409,9 +419,9 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   local BUCK = { ownclass = {}, ownraid = {}, otherclass = {}, otherraid = {} }
   -- the auras of a mob to draw: main = the icons beside the bar, other = the "other side" group
   function D.Shown(u, main, other)
-    for i = table.getn(main), 1, -1 do main[i] = nil end
-    for i = table.getn(other), 1, -1 do other[i] = nil end
-    for _, b in pairs(BUCK) do for i = table.getn(b), 1, -1 do b[i] = nil end end
+    Wipe(main)
+    Wipe(other)
+    for _, b in pairs(BUCK) do Wipe(b) end
     local s = S()
     local present = {}
     for i = 1, u.na do
@@ -546,8 +556,8 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   function D.Scan()
     local now = GetTime()
     local list = D.list
-    for i = table.getn(list), 1, -1 do list[i] = nil end
-    for i = table.getn(POOL), 1, -1 do POOL[i] = nil end
+    Wipe(list)
+    Wipe(POOL)
     if D.SuperWoW() then TG = Guid("target") else D.Plain() TG = "target" end
     for _, u in pairs(D.units) do
       D.Info(u)

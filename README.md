@@ -119,6 +119,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.24
+
+- 🐛 **OctoDoTs:** the "dots.lua:513: attempt to index local `a'" error with several mobs around is fixed.
+- 🏦 **Auctions:** own sub-categories under Consumable and Trade Goods (food, potions, flasks, herbs, ore...).
+- ⚡ **Performance:** raid graphics can be set to Nowhere (off).
+
 ## 📜 New in 1.1.23
 
 - 🎲 **OctoLazy**: _LazyPig rebuilt with roll rules per item and dungeon, invites, summons, battlegrounds, NPC chat and bags.

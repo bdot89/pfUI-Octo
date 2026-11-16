@@ -21,6 +21,10 @@ see "Roadmap" below.
   host (LuaJIT) gives each its own, so tests pass and the game breaks. Copy it first:
   `for tt = 1, n do local t = tt ... function() use(t) end end` (23 Oct 2026: the meter test fight
   only ever recorded Melee in game).
+- Lua 5.0 (the game): a list filled with table.insert keeps its length after its entries are set to nil,
+  so a reused list fills after a run of holes and table.sort hands the order function nil (16 Nov 2026,
+  Wolfahrt: "dots.lua:513: attempt to index local `a'"). Empty reused lists with table.setn(t, 0) too
+  (dots.lua Wipe), or make a new table. The test host (LuaJIT) cannot show this.
 - Never assign a client global like `this`, `event` or `arg1` from pfUI code: modules run in
   pfUI's environment, so `this = f` creates a pfUI-only `this` that hides the real one from every
   pfUI script afterwards. Use `_G.this` (22 Oct 2026: broke every pfUI script and blanked the
