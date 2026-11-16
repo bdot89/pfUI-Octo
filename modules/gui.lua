@@ -1961,9 +1961,11 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
 
       -- links: copied into a box to paste in your browser
       local LINKY = TOP - 176 - GAP - (34 + ROWS * 20 + 8) - GAP
-      local function Link(text, url, x, blue)
+      -- (16 Nov 2026, user: "make sure our links are all up to date and clear ... which link is what, launcher etc,
+      -- our home page should be on the about") four links, each tooltip says what it is for
+      local function Link(text, url, x, blue, what)
         local b = CreateFrame("Button", nil, page)
-        b:SetWidth((GRID - 2 * GAP) / 3)
+        b:SetWidth((GRID - 3 * GAP) / 4)
         b:SetHeight(26)
         b:SetPoint("TOPLEFT", grid, "TOPLEFT", x, LINKY)
         b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
@@ -1979,6 +1981,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
           this:SetBackdropColor(r * .4, g * .4, bl * .4, 1)
           GameTooltip:SetOwner(this, "ANCHOR_TOP")
           GameTooltip:SetText(text, 1, 1, 1)
+          if what then GameTooltip:AddLine(what, 1, 1, 1, 1) end
           GameTooltip:AddLine(url, r, g, bl)
           GameTooltip:AddLine(T["Click: copy the link"], .6, .61, .65)
           GameTooltip:Show()
@@ -1990,10 +1993,15 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         b:SetScript("OnClick", function() pfUI.chat.urlcopy.CopyText(url) end)
         return b
       end
-      local LW = (GRID - 2 * GAP) / 3
-      Link(T["Web page"], "https://bdot89.github.io/pfUI-Octo/", 0, true)
-      Link("GitHub", "https://github.com/bdot89/pfUI-Octo", LW + GAP, true)
-      Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 2 * (LW + GAP))
+      local LW = (GRID - 3 * GAP) / 4
+      Link("Home page", "https://bdot89.github.io/pfUI-Octo/", 0, true,
+        "pfUI Octo's home page: every feature with pictures, the add-ons you can drop, how to install.")
+      Link("Download (ZIP)", "https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip", LW + GAP, true,
+        "The newest version as a ZIP. Unzip it into Interface\\AddOns: the folder must be called pfUI.")
+      Link("OctoLauncher link", "https://github.com/bdot89/pfUI", 2 * (LW + GAP), true,
+        "For OctoLauncher: Addons > Add custom git addon, paste this. It installs and updates pfUI Octo for you.")
+      Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 3 * (LW + GAP), nil,
+        "Shagu's pfUI, which pfUI Octo is built on.")
 
       local thanks = Text(page, C.global.font_size - 1, .5, .52, .56)
       thanks:SetPoint("TOP", grid, "TOP", 0, LINKY - 36)

@@ -1,106 +1,108 @@
-<p align="center"><img src="docs/banner.png" alt="pfUI Octo by Bdot89" width="100%"></p>
+<p align="center"><img src="docs/banner.png" alt="pfUI Octo by Bdot89: one addon for your whole interface" width="100%"></p>
 
-# 🐙 pfUI Octo for OctoWoW
+<h1 align="center">🐙 pfUI Octo for OctoWoW</h1>
+<p align="center"><b>One addon. Everything.</b> Your whole interface, 25 add-ons' worth, in one window that runs smooth in every raid. ✨</p>
 
-**Your whole interface. One addon.** ✨
+<p align="center">
+<a href="https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip"><b>⬇️ Download pfUI Octo (ZIP)</b></a> &nbsp;·&nbsp;
+<a href="https://bdot89.github.io/pfUI-Octo/"><b>🏠 Home page with pictures</b></a> &nbsp;·&nbsp;
+<a href="https://github.com/bdot89/pfUI-Octo/releases"><b>📜 What's new</b></a> &nbsp;·&nbsp;
+💬 Discord: <b>benito9295</b>
+</p>
 
 > [!CAUTION]
-> ## 📁 THE FOLDER MUST BE CALLED `pfUI` - NOTHING ELSE!
-> If your folder is called **`pfUI-Octo`**, **`pfUI-octo`**, **`pfUI-Octo-octo`** or **`pfUI-master`**, **DELETE the `-Octo` / `-octo` / `-master` part on the end** so it reads exactly **`pfUI`**.
-> ✅ `Interface\AddOns\pfUI` &nbsp;&nbsp; ❌ `Interface\AddOns\pfUI-Octo-octo`
-> With the wrong name the game won't load it (OctoLauncher says "Missing .toc file").
+> ## 📁 The folder must be called `pfUI` - nothing else!
+> ✅ `Interface\AddOns\pfUI` &nbsp;&nbsp; ❌ `Interface\AddOns\pfUI-Octo-octo` / `pfUI-master`
+> GitHub's green **Code → Download ZIP** names it `pfUI-Octo-octo`: rename it to **`pfUI`**, or the game won't load it (OctoLauncher says "Missing .toc file"). The ZIP from **Releases** is already right.
 
-> ## 🔌 One-click DLL installer: always the newest versions!
-> **It's in the ZIP.** After unzipping, double-click **`Install pfUI Octo DLLs.bat`** in the pfUI folder (game closed). Every time you run it, it fetches the **latest releases** of **ClassicAPI, SuperWoW, nampower and UnitXP_SP3** straight from their authors' GitHub, installs what's missing and updates what's out of date. 🚀
-> Run it again any time to stay current. It backs up the old DLLs, adds them to `dlls.txt` for you, and never swaps a newer build you already have for an older one.
+## 🔗 Which link is which
 
-**pfUI Octo** is a free all-in-one interface for WoW 1.12 (OctoWoW), **version 1.1.6**, made by **Bdot89**. It replaces a whole folder of addons: unit frames, action bars, nameplates, **a built-in quest helper**, **auto loot**, **cooldown bars**, **a consumables tracker**, meters, threat, combat text, a swing timer, gear sets, a key map and whole UI layouts. Everything is set up from **one options window** with a live preview on every page. 🎛️
+| | Link | What it's for |
+|---|---|---|
+| ⬇️ **Download (ZIP)** | [pfUI.zip](https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip) | The newest version. Unzip, put the **pfUI** folder in `Interface\AddOns`. |
+| 🚀 **OctoLauncher link** | `https://github.com/bdot89/pfUI` | Paste it in OctoLauncher: **Addons → Add custom git addon**. It installs **and updates** pfUI Octo for you. |
+| 🏠 **Home page** | [bdot89.github.io/pfUI-Octo](https://bdot89.github.io/pfUI-Octo/) | Every feature with pictures. Also on the **About** page in game. |
+| 📜 **What's new** | [Releases](https://github.com/bdot89/pfUI-Octo/releases) | Every version and what changed. |
+| 🐙 **This page** | [github.com/bdot89/pfUI-Octo](https://github.com/bdot89/pfUI-Octo) | Source code and this guide. |
+| 🧩 **Original pfUI** | [github.com/shagu/pfUI](https://github.com/shagu/pfUI) | Shagu's pfUI, which pfUI Octo is built on. Your pfUI settings keep working. |
 
-### 🔥 New in 1.1
-- 🧭 **Quest helper built in:** pfQuest's map pins, quest tracker and `/db` database with OctoWoW's own quests. No Questie or pfQuest to install.
-- 💰 **Auto Loot + loot filter:** take what you want, leave the junk, with rules you click together.
-- ⏳ **Cooldown bars:** your cooldowns fill the bars by themselves, with 12 glow kinds and animations when they come ready.
-- 🧪 **Consumables tracker:** a list per character and raid. It warns you when a flask or buff is missing or running out, and one key puts the next one on.
-- 🎒 **Bag categories:** Bagshui-style groups (gear, potions, herbs, junk...) inside one bag window.
-- 🛠️ **Quality of Life section + Raid Tools:** ready check, pull timer and raid markers in one bar.
-- ⛏️ **Gathering finder:** the nearest herbs, ore, fish and chests with an arrow.
-- ⚡ **Smoother raids:** meter windows and nameplates redraw far less often.
+## 🗑️ Drop these add-ons: pfUI Octo does it all
 
-> 🧩 **Built on [pfUI](https://github.com/shagu/pfUI) by Shagu:** pfQuest, Clickcast, your profiles and your settings all keep working.
+Fewer add-ons = fewer clashes and more frames. Everything below is **built in**, in one options window (`/pfui`), and each part has an **on/off switch** - switched off, it isn't even loaded. The **About** page in game lists the ones you still have on, with a "turn off" link beside each.
 
-**[⬇️ Download pfUI Octo (ZIP)](https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip)** · **[🌐 Web page with screenshots](https://bdot89.github.io/pfUI-Octo/)** · **[📜 What's new](https://github.com/bdot89/pfUI-Octo/releases)** · 💬 Discord: **benito9295**
+| pfUI Octo part | Replaces | |
+|---|---|---|
+| 🎲 **OctoLazy** | _LazyPig | Need / Greed / Pass **by your own rules**, invites, summons, battlegrounds, NPC chat skipped |
+| 💰 **Auto Loot + Loot filter** | AutoAreaLoot | Loots every corpse around you, takes what you want, leaves the junk |
+| ⛏️ **Gathering** | gathering finders | The nearest herbs, ore, fish and chests with **arrows and distances** |
+| 🚢 **Boats & zeppelins** | transport timers | Every boat, zeppelin and the tram **on the world map**, with arrival times |
+| 🦅 **Flight timer** | flight timer add-ons | How long every flight takes, learned and shared |
+| 🏦 **Auctions** | aux, Auctionator | Search every page at once, sell at the going price, price history, deals, ledger |
+| 📬 **Mail** | TurtleMail, Postal | Whole inbox in one list, **Collect all** that never stalls, send many items at once |
+| 🩸 **OctoDoTs** | Cursive | Every enemy with its DoTs and real timers, multi-DoT macros |
+| ⏳ **CoolDownManager** | cooldown bars | Your cooldowns fill the bars by themselves, glows when ready |
+| 🧪 **OctoConsumes** | consume trackers | Flasks, elixirs, food: what's missing, one key to put it on |
+| 🧭 **pfQuest built in** | pfQuest, Questie | Quest givers and objectives on the map, tracker, `/db` search |
+| 📊 **Meters + Threat** | Details!, DPSMate, ShaguDPS, KTM, TWThreat | Up to 6 windows, every spell, target and death |
+| 💥 **Combat Text** | SCT, MSBT | Five areas you place yourself, crits, sounds, alerts |
+| 🎯 **Nameplates** | ShaguPlates | Plater-style plates: auras, casts, threat colours, quest marks |
+| 🛡️ **ItemRack** | ItemRack, Outfitter | Instant gear swaps, trinket queue, talent specs |
+| ⏱️ **Swing Timer** | SP_SwingTimer | Main hand, off hand, ranged, parry haste |
+| 🎒 **Bags** | Bagnon, OneBag, Bagshui | One window, categories, one-click sorting |
+| 📈 **Character stats** | BetterCharacterStats | Every stat on the character window |
+| 🎨 **Custom media** | pfUI-CustomMedia | 400+ bar textures, 70+ fonts, gryphons, button backgrounds |
+
+## 🌟 Everything inside
+
+<img src="docs/s-layoutmode.jpg" alt="Layout mode" width="100%">
+
+**🧭 Layout mode (`/moveui`):** every frame gets a labelled box. Drag and snap, resize with the wheel, lock frames together, **right-click a box for its options**.
+
+| | |
+|---|---|
+| <img src="docs/s-octolazy.jpg" alt="OctoLazy"><br>🎲 **OctoLazy**: one rule per item and dungeon - Zul'Gurub bijous, Black Morass sand, Necrotic Runes. Click a roll to change it | <img src="docs/s-autoloot.jpg" alt="Auto Loot"><br>💰 **Auto Loot**: every corpse around you, the moment the fight ends |
+| <img src="docs/s-gathering.jpg" alt="Gathering"><br>⛏️ **Gathering**: the nearest nodes with arrows, shared with your group | <img src="docs/s-flight.jpg" alt="Flight timer"><br>🦅 **Flight timer**: a bar with every stop, how long is left |
+| <img src="docs/s-auctions.jpg" alt="Auctions"><br>🏦 **Auctions**: our own auction window, every page at once | <img src="docs/s-mail.jpg" alt="Mail"><br>📬 **Mail**: the whole inbox in one list, Collect all |
+| <img src="docs/s-octodots.jpg" alt="OctoDoTs"><br>🩸 **OctoDoTs**: every enemy and its debuffs, real timers | <img src="docs/s-cooldowns.jpg" alt="CoolDownManager"><br>⏳ **CoolDownManager**: bars that fill themselves |
+| <img src="docs/s-consumes.jpg" alt="OctoConsumes"><br>🧪 **OctoConsumes**: never pull without your flask | <img src="docs/s-questing.jpg" alt="pfQuest"><br>🧭 **pfQuest built in**: map pins, tracker, database |
+| <img src="docs/s-unitframes.jpg" alt="Unit frames"><br>🧍 **Unit frames**: player to raid, live preview | <img src="docs/s-clickcast.jpg" alt="Click casting"><br>🖱️ **Click casting** on every frame |
+| <img src="docs/s-nameplates.jpg" alt="Nameplates"><br>🎯 **Nameplates**: sample plates you click to change | <img src="docs/s-actionbars.jpg" alt="Action bars"><br>⚔️ **Action bars**: button looks, proc glows, fading |
+| <img src="docs/s-meters.jpg" alt="Meters"><br>📊 **Meters & threat**: Details!-deep breakdowns | <img src="docs/s-combattext.jpg" alt="Combat text"><br>💥 **Combat text**: place every area yourself |
+| <img src="docs/s-itemrack.jpg" alt="ItemRack"><br>🛡️ **ItemRack**: gear sets, trinkets, specs | <img src="docs/s-swing.jpg" alt="Swing timer"><br>⏱️ **Swing timer**: every hand, every haste |
+| <img src="docs/s-bags.jpg" alt="Bags"><br>🎒 **Bags**: categories inside one window | <img src="docs/s-minimap.jpg" alt="Minimap"><br>🗺️ **Minimap & buffs**: shapes, buttons, timers |
+| <img src="docs/s-layouts.jpg" alt="UI layouts"><br>🗺️ **UI layouts**: Normal, Raid, PvP - switch by zone | <img src="docs/s-blizzard.jpg" alt="Blizzard UI"><br>🔁 **Octo or Blizzard**: a switch for every part |
+| <img src="docs/s-qol.jpg" alt="Quality of Life"><br>🛠️ **Quality of Life**: raid tools, vendor, screenshots | <img src="docs/s-about.jpg" alt="About"><br>📋 **About**: your client mods and the add-ons you can drop |
+
+And more: 🚢 boats, zeppelins and the tram on the world map with arrival times, 🎨 106 elite crests and 7 raid mark sets, ⌨️ a Key Map of your keyboard, 💬 whisper windows, 🌍 the map revealed, 🔔 sale alerts and a gold ledger.
+
+## ⚡ Smooth in every raid
+
+- 🧹 **No hitch mid-pull:** the game's memory clean-up is held until the fight is over (**Settings → Performance**).
+- 🎆 **Raid graphics:** inside raids the costliest effects (full-screen glow, weather, particles) go down, and your own settings come back when you leave.
+- 📉 **Measure it yourself:** `/pfperf` shows the CPU time of every add-on and the busiest frames (with ClassicAPI).
+- 🔇 Everything you switch off isn't loaded at all.
 
 ## 🛠️ Install in 4 steps
 
-1. **Close the game.** Addons and DLLs are only read when the game starts.
-2. **Unzip into AddOns.** [Download pfUI.zip](https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip), right-click it, **Extract All**, and put the **pfUI** folder in `OctoWoW\Interface\AddOns`. Replace an old pfUI folder: your settings stay.
-   > 🚀 **Or let OctoLauncher do it (and keep it updated):** in OctoLauncher open **Addons**, click **Add custom git addon** and paste `https://github.com/bdot89/pfUI` (that copy is named pfUI so the folder comes out right). **Check for updates** then updates it with one click.
-   >
-   > ❗ **Remove your old pfUI first** (in OctoLauncher's **Addons** list, or delete the `Interface\AddOns\pfUI` folder; your settings live in `WTF` and stay). OctoLauncher's own list has a different pfUI under the same name. It "updates" any pfUI folder that isn't a git copy of ours (an old pfUI, or pfUI Octo from the ZIP) to that one. So don't press **Update** on a ZIP install: remove it and add the link above instead.
+1. **Close the game.** Add-ons and DLLs are only read when the game starts.
+2. **Get pfUI Octo**, one of two ways:
+   - 🚀 **OctoLauncher (easiest, updates itself):** **Addons → Add custom git addon** → paste `https://github.com/bdot89/pfUI` → **Check for updates** keeps it current.
+     > ❗ Remove an old pfUI first (OctoLauncher's Addons list, or delete `Interface\AddOns\pfUI`; your settings live in `WTF` and stay). OctoLauncher's own list has a *different* pfUI under the same name: don't press **Update** on a ZIP install.
+   - ⬇️ **ZIP:** [download pfUI.zip](https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip), **Extract All**, put the **pfUI** folder in `OctoWoW\Interface\AddOns` (replace the old one: your settings stay).
+3. **Run the DLL installer** *(optional)*: in the pfUI folder double-click **`Install pfUI Octo DLLs.bat`**. "Windows protected your PC": **More info → Run anyway**. It fetches the newest ClassicAPI, SuperWoW, nampower and UnitXP_SP3 from their authors, backs up the old ones and updates `dlls.txt`.
+4. **Play!** 🎮 Start the game from **OctoLauncher**. A short wizard picks your look; `/pfui` opens the options, `/moveui` moves frames.
 
-   > ⚠️ The folder must be called exactly **pfUI**. Used GitHub's green **Code → Download ZIP** instead? That folder is called **pfUI-Octo-octo**: rename it to **pfUI** (else OctoLauncher says "Missing .toc file" and the game won't load it).
-3. **Run the DLL installer** *(optional)*. In that pfUI folder, double-click **Install pfUI Octo DLLs.bat**. "Windows protected your PC": **More info**, then **Run anyway**.
-4. **Play!** 🎮 Start the game from **OctoLauncher**. A short setup wizard picks your look and layout. `/pfui` opens the options, `/moveui` moves frames.
+## 🔌 The DLLs: what they add
 
-## 🌟 What you get
-
-| | |
-|---|---|
-| 🧭 **Questing** | pfQuest built in: quest givers and objectives on the map, tracker, `/db` item and NPC search |
-| 💰 **Auto Loot** | Loot filter rules: always take quest items, leave greys, keep only what you pick |
-| ⏳ **Cooldown bars** | Fill themselves from your spell book, live times, glows and animations, item procs |
-| 🧪 **Consumables** | Lists per character, raid or spec; warns when missing or running low; one-key reapply |
-| 🛠️ **Quality of Life** | Raid Tools bar, auto sell greys, auto repair, screenshots, gathering finder, all on one page |
-| 🗺️ **UI layouts** | Normal, Raid, PvP or your own, each with its own frames, meters, gear and spells; switches by itself by zone |
-| 🧍 **Unit frames** | Player to raid, with fading health, combat flash, class icons, elite marks, dispel colours, buff timers |
-| ⚔️ **Action bars** | 14 button looks, proc glows, cooldown swipes, hover and press effects, fading, end-cap art |
-| 🎯 **Nameplates** | Plater-style: 8 looks, auras, cast bars, threat colours, quest marks, range fading, your own rules |
-| 📊 **Meters & threat** | Up to 6 windows, full breakdowns of every spell, target and death; a pull warning on your target |
-| 💥 **Combat text** | Five areas you place yourself, with looks, crits, sounds and alerts |
-| ⏱️ **Swing timer** | Main hand, off hand and ranged, parry haste, queued attacks, Slam and Seal-twist marks |
-| 🛡️ **Gear** | Instant set swaps, a trinket queue, slot buttons, automatic swaps, talent specs at the Brainwashing Device |
-| ⌨️ **Key Map** | Your keyboard on screen: drag any spell, item or macro onto a key, pick the rank, see every layer |
-| 🎒 **Bags, chat, minimap** | Bag categories, instant sorting, new-item glows, chat with class colours, a SexyMap-style minimap, loot roll history |
-| 🧭 **Layout mode** | Drag and snap frames, mirrored guide lines, match sizes, lock frames together, hide what you don't need |
-| 🔁 **Octo or Blizzard** | A switch on every page: back to Blizzard's frames for that part at once, no reload |
-
-## 📸 Screenshots
-
-<img src="docs/new-layoutmode.jpg" alt="Layout mode" width="100%">
-
-**🧭 Layout mode (`/moveui`):** every frame gets a labelled box. Drag and snap them, resize with the wheel, lock frames together, right-click a box for its options.
-
-| | |
-|---|---|
-| <img src="docs/new-questing.jpg" alt="Questing"><br>🧭 **Quest helper built in**: pfQuest's map, tracker and database, no extra addon | <img src="docs/new-autoloot.jpg" alt="Loot filter"><br>💰 **Auto Loot + loot filter**: rules for what you take and what you leave |
-| <img src="docs/new-cooldowns.jpg" alt="Cooldown bars"><br>⏳ **Cooldown bars**: fill themselves, glow when ready | <img src="docs/new-consumables.jpg" alt="Consumables"><br>🧪 **Consumables**: never pull without your flask again |
-| <img src="docs/new-nameplates.jpg" alt="Nameplates"><br>🎯 **Nameplates**: Plater-style, live sample plates | <img src="docs/new-meters.jpg" alt="Meters"><br>📊 **Meters**: Details!-style windows and breakdowns |
-| <img src="docs/new-gear.jpg" alt="Gear sets"><br>🛡️ **Gear sets**: instant swaps, trinket queue, specs | <img src="docs/new-bags.jpg" alt="Bags"><br>🎒 **Bags**: one window, categories, one-click sorting |
-| <img src="docs/new-layouts.jpg" alt="UI layouts"><br>🗺️ **UI layouts**: Normal, Raid, PvP, switching by zone | <img src="docs/keymap.jpg" alt="Key Map"><br>⌨️ **Key Map**: drag spells onto your keyboard |
-
-## 📜 Release notes
-
-- **1.1.6** 🎯 Nameplate target glow: size, pulse and a bright glow that stands out in smoke.
-- **1.1.5** 💤 AFK / DND marks on unit frames, instant weapon-oil tracking, cooldown bar glows and animations.
-- **1.1.4** ⚡ Smoother raids: meters redraw 3 times a second instead of every frame, less nameplate garbage.
-- **1.1.3** 🧊 Fixed freezes with macros (Pick Pocket and SuperCleveRoidMacros).
-- **1.1.2** ➕ Incoming heals as a number on unit frames.
-- **1.1.1** 🤝 Gathering nodes shared with your group.
-- **1.1.0** 🔥 pfQuest built in, gathering finder, consumables tracker, bag categories, loot filter and Auto Loot, Quality of Life + Raid Tools, CustomMedia, translations, your own proc glows, instant threat, many crash fixes.
-- **1.0.0** 🐙 First release (26 Oct 2026).
-
-[All releases with download links](https://github.com/bdot89/pfUI-Octo/releases)
-
-## ⚡ The DLLs: what they add
-
-All optional: pfUI Octo works without them, and nobody loses a feature. The installer gets all four, or tick **nampower** and **unitXp** in OctoLauncher's mod list.
+All optional: pfUI Octo works without them.
 
 | DLL | What it adds |
 |---|---|
-| 🧬 **ClassicAPI** | Instant gear swaps and bag sorting, a real focus, "can't interrupt" cast bars, the combat log for meters, map reveal for OctoWoW's zones, item counts, loot history |
-| 🦸 **SuperWoW** | Focus by GUID, `/pfcast` mouseover casting, enemy cast bars, real casts for the swing timer and meters |
-| 🚀 **nampower** | Your queued spell on the cast bar, spell casts for combat text and meters |
-| 📏 **UnitXP_SP3** | Exact distances and line of sight for range fading on plates and frames |
+| 🧬 **ClassicAPI** | Instant gear swaps and sorting, real focus, "can't interrupt" cast bars, DoT timers, Auto Loot, the profiler, item counts |
+| 🦸 **SuperWoW** | Focus by GUID, `/pfcast` mouseover casting, enemy cast bars, real casts for meters and the swing timer |
+| 🚀 **nampower** | Your queued spell on the cast bar, casts for combat text and meters |
+| 📏 **UnitXP_SP3** | Exact distances and line of sight for range fading |
+| 🏦 **AuctionQueryThrottle** *(optional extra)* | Auction searches without the game's 5-second wait |
 
 ## ⌨️ Commands
 
@@ -108,14 +110,27 @@ All optional: pfUI Octo works without them, and nobody loses a feature. The inst
 |---|---|
 | `/pfui` | the options window |
 | `/moveui` | layout mode: move, size, snap, hide |
+| `/lazy` | OctoLazy (roll rules, invites, battlegrounds) |
+| `/dot` | OctoDoTs (`/dot cast <spell>` for multi-DoT macros) |
+| `/autoloot`, `/gather`, `/flight`, `/transports` | Auto Loot, gathering, flight timer, boats & zeppelins |
+| `/cdm`, `/consumes`, `/gear` | cooldown bars, consumables, gear sets |
 | `/layout [name]` | next UI layout, or the one you name |
-| `/gear` | gear sets (`naked`, `queue`, `specs`) |
-| `/keymap` | the Key Map |
-| `/sct` | combat text pages |
-| `/loothistory` | who rolled what (ClassicAPI) |
+| `/keymap`, `/sct` | the Key Map, combat text |
+| `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
+
+## 📜 New in 1.1.23
+
+- 🎲 **OctoLazy**: _LazyPig rebuilt with roll rules per item and dungeon, invites, summons, battlegrounds, NPC chat and bags.
+- 📬 **Mail**: our own mailbox window with a Collect all that never stalls.
+- 🩸 **OctoDoTs** (was DoT Tracker): a macro maker with drop-downs; right-click it in layout mode for its options.
+- 🎨 **106 new elite crests** and two raid mark sets (icons from game-icons.net).
+- ⚡ **Performance** page: no memory hitch in fights, raid graphics, `/pfperf`.
+- 🧭 Tidier sidebar, **About** page with clear links and the add-ons you can drop; Blizzard chat's General tab fixed.
+
+[All releases with download links](https://github.com/bdot89/pfUI-Octo/releases)
 
 ---
 
-Made with 💙 for the OctoWoW community by **Bdot89** · Discord: **benito9295**
-Based on [pfUI](https://github.com/shagu/pfUI) by Shagu (MIT licence). Made for the OctoWoW 1.12.1 client. Not affiliated with Blizzard Entertainment.
+Made with 💙 for the OctoWoW community by **Bdot89** (aka Upsi) · Discord: **benito9295**
+Built on [pfUI](https://github.com/shagu/pfUI) by Shagu (MIT). Built in: pfQuest by Shagu, [pfUI-CustomMedia](https://github.com/mr-rosh/pfUI-CustomMedia) by Mr_Rosh (MIT), Cursive-Raid's spell lists (MIT, Kirchlive / Teto). Crest and mark icons from [game-icons.net](https://game-icons.net) (CC BY 3.0) by Lorc, Delapouite, Skoll, sbed, Faithtoken, DarkZaitzev, Caro Asercion and Carl Olsen. Made for the OctoWoW 1.12.1 client. Not affiliated with Blizzard Entertainment.

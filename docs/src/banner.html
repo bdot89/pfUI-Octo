@@ -1,119 +1,117 @@
 <!doctype html>
-<!-- Source of docs/banner.png (1280x640, GitHub's / Discord's link preview size), in the style of DMorph's banner.
+<!-- Source of docs/banner.png (1280x640, GitHub's / Discord's link preview size).
      Render (from this folder):
        msedge --headless=new --hide-scrollbars --force-device-scale-factor=1 --window-size=1280,640 --allow-file-access-from-files --screenshot=..\banner.png banner.html
-     Pictures: crops of the options windows in docs\ (addon windows only: no chat, no names) and docs\logo.png
-     (tools\MakeOctoLogo.ps1). Front cards are zoomed parts of gear.jpg, meters.jpg and keymap.jpg (.crop: a box with
-     the picture moved and scaled inside it); behind them a mosaic of six more windows.
-     Colours: pfUI teal #33ffcc, the options window's blue #33b3ff, violet #9a6bff.
-     Keep the left column inside 400 px and every card right of the slanted edge (x 580 at the top, 470 at the bottom):
-     check a zoomed render of x 440-700 before using it. -->
+     Pictures: crops of the options windows in docs\s-*.jpg (tools: the window only, no chat, no names; 16 Nov 2026
+     screenshots, 1450 px wide) and docs\logo.png (tools\MakeOctoLogo.ps1). Front cards are zoomed parts (.crop: a box
+     with the picture moved and scaled inside it); behind them a mosaic of nine more windows.
+     Colours (16 Nov 2026, new): electric cyan #22e0ff, hot pink #ff4fb8, gold #ffcc40.
+     Keep the left column inside 410 px and every card right of the slanted edge (x 580 at the top, 470 at the bottom). -->
 <html><head><meta charset="utf-8">
 <style>
 @font-face{font-family:Fira;src:url(../../fonts/FiraSansCondensed-Regular.ttf);font-weight:400}
 @font-face{font-family:Fira;src:url(../../fonts/FiraSansCondensed-SemiBold.ttf);font-weight:600}
-:root{--teal:#33ffcc;--teal2:#8affe3;--blue:#33b3ff;--blue2:#7ccdff;--vio:#9a6bff;--vio2:#c3a6ff;--gold:#ffc840}
+:root{--cy:#22e0ff;--cy2:#9cf3ff;--pk:#ff4fb8;--pk2:#ff9bd6;--gold:#ffcc40;--gold2:#ffe39a}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:1280px;height:640px;overflow:hidden}
-body{font-family:Fira,sans-serif;color:#eef3fa;position:relative;
+body{font-family:Fira,sans-serif;color:#f2f5fb;position:relative;
  background:
-  radial-gradient(ellipse 430px 330px at 70px 60px,rgba(51,255,204,.22),transparent 70%),
-  radial-gradient(ellipse 520px 420px at 250px 640px,rgba(154,107,255,.40),transparent 70%),
-  radial-gradient(ellipse 320px 260px at 420px 300px,rgba(51,179,255,.14),transparent 70%),
-  linear-gradient(170deg,#0a1714 0%,#0b0e14 42%,#130d24 100%)}
-/* right side: a mosaic of windows behind, three zoomed cards in front */
-.pic{position:absolute;left:463px;top:0;width:817px;height:640px;clip-path:polygon(117px 0,100% 0,100% 100%,0 100%);overflow:hidden;background:#0b0e14}
-.mosaic{position:absolute;left:-40px;top:-30px;display:grid;grid-template-columns:repeat(3,320px);gap:10px;transform:rotate(-6deg);
- filter:brightness(.42) saturate(1.25) blur(.6px)}
-.mosaic img{width:320px;height:auto;border-radius:6px;border:1px solid #2a3344}
+  radial-gradient(ellipse 430px 330px at 60px 40px,rgba(34,224,255,.26),transparent 70%),
+  radial-gradient(ellipse 540px 420px at 260px 660px,rgba(255,79,184,.36),transparent 70%),
+  radial-gradient(ellipse 300px 240px at 430px 320px,rgba(255,204,64,.10),transparent 70%),
+  linear-gradient(165deg,#06141b 0%,#0a0b14 45%,#1b0a1d 100%)}
+.pic{position:absolute;left:463px;top:0;width:817px;height:640px;clip-path:polygon(117px 0,100% 0,100% 100%,0 100%);overflow:hidden;background:#0a0b14}
+.mosaic{position:absolute;left:-30px;top:-40px;display:grid;grid-template-columns:repeat(3,330px);gap:10px;transform:rotate(-6deg);
+ filter:brightness(.42) saturate(1.3) blur(.5px)}
+.mosaic img{width:330px;height:auto;border-radius:6px;border:1px solid #2b2f44}
 .pic:after{content:"";position:absolute;inset:0;background:
-  linear-gradient(90deg,rgba(11,14,20,.85),transparent 28%),
-  radial-gradient(ellipse 420px 320px at 40% 35%,rgba(51,179,255,.18),transparent 70%),
-  radial-gradient(ellipse 420px 320px at 80% 65%,rgba(154,107,255,.2),transparent 70%)}
+  linear-gradient(90deg,rgba(10,11,20,.85),transparent 28%),
+  radial-gradient(ellipse 420px 320px at 40% 30%,rgba(34,224,255,.16),transparent 70%),
+  radial-gradient(ellipse 420px 320px at 85% 70%,rgba(255,79,184,.20),transparent 70%)}
 .card{position:absolute;border-radius:9px;padding:2px;z-index:2;
- background:linear-gradient(135deg,var(--teal),var(--blue) 45%,var(--vio));
- box-shadow:0 0 26px rgba(51,179,255,.6),0 18px 40px rgba(0,0,0,.8)}
+ background:linear-gradient(135deg,var(--cy),var(--pk) 60%,var(--gold));
+ box-shadow:0 0 26px rgba(34,224,255,.5),0 0 30px rgba(255,79,184,.35),0 18px 40px rgba(0,0,0,.8)}
 .crop{position:relative;overflow:hidden;border-radius:7px;background:#111317}
 .crop img{position:absolute;display:block}
 .label{position:absolute;left:10px;bottom:8px;font-size:15px;font-weight:600;color:#fff;padding:2px 9px;border-radius:999px;
- background:rgba(10,12,22,.85);border:1px solid rgba(124,205,255,.6);text-shadow:0 0 6px rgba(51,179,255,.6)}
-.gear{left:604px;top:66px;transform:rotate(-3deg)}
-.meters{left:962px;top:96px;transform:rotate(3.5deg)}
-.keys{left:632px;top:300px;transform:rotate(-1.5deg)}
+ background:rgba(10,11,20,.88);border:1px solid rgba(255,155,214,.7);text-shadow:0 0 6px rgba(255,79,184,.7)}
+.c1{left:612px;top:52px;transform:rotate(-2.5deg)}
+.c2{left:900px;top:270px;transform:rotate(3deg)}
+.c3{left:600px;top:300px;transform:rotate(-1.5deg)}
 .edge{position:absolute;left:463px;top:0;width:124px;height:640px;z-index:3;
- background:linear-gradient(var(--teal2),var(--teal) 28%,var(--blue) 50%,var(--vio2) 70%,var(--vio));
- clip-path:polygon(117px 0,124px 0,7px 100%,0 100%);filter:drop-shadow(0 0 12px rgba(154,107,255,.9)) drop-shadow(0 0 6px rgba(51,255,204,.6))}
-.left{position:absolute;left:38px;top:24px;width:400px;z-index:4}
-.kicker{font-size:15px;letter-spacing:4px;color:var(--teal);font-weight:600;text-shadow:0 0 10px rgba(51,255,204,.6)}
-.logo{display:block;width:350px;height:auto;margin:2px 0 0 -6px;filter:drop-shadow(0 0 14px rgba(51,179,255,.35))}
-.sub{font-size:27px;font-weight:600;color:#fff;line-height:1.1;margin-top:0;text-shadow:0 0 12px rgba(51,179,255,.45)}
-.sub b{color:var(--teal);text-shadow:0 0 12px rgba(51,255,204,.6)}
-ul{list-style:none;margin-top:12px;display:grid;gap:6px}
-li{font-size:19.5px;font-weight:600;white-space:nowrap}
-li span{color:#a9b6cf;font-weight:400}
-li b{color:var(--teal);text-shadow:0 0 10px rgba(51,255,204,.5)}
-.dll{margin-top:13px;padding:8px 13px;border-radius:7px;border:2px solid var(--blue);width:390px;
- background:linear-gradient(135deg,rgba(51,179,255,.38),rgba(20,30,70,.7) 60%,rgba(154,107,255,.25));
- box-shadow:0 0 22px rgba(51,179,255,.6),inset 0 0 22px rgba(0,0,0,.35)}
-.dll .h{font-size:13px;letter-spacing:2px;color:var(--blue2);font-weight:600}
-.dll .n{font-size:18px;font-weight:600;color:#eaf4ff;margin-top:2px;line-height:1.3}
-.dll .n b{color:var(--teal)}
-.url{position:absolute;left:40px;bottom:16px;font-size:16px;color:#8f9db6;z-index:4}
-.url b{color:var(--blue2)}
+ background:linear-gradient(var(--cy2),var(--cy) 30%,var(--pk) 65%,var(--gold));
+ clip-path:polygon(117px 0,124px 0,7px 100%,0 100%);filter:drop-shadow(0 0 12px rgba(255,79,184,.9)) drop-shadow(0 0 6px rgba(34,224,255,.7))}
+.left{position:absolute;left:38px;top:22px;width:410px;z-index:4}
+.kicker{font-size:15px;letter-spacing:4px;color:var(--cy);font-weight:600;text-shadow:0 0 10px rgba(34,224,255,.7)}
+.logo{display:block;width:340px;height:auto;margin:2px 0 0 -6px;filter:drop-shadow(0 0 14px rgba(34,224,255,.35))}
+.sub{font-size:28px;font-weight:600;color:#fff;line-height:1.1;text-shadow:0 0 12px rgba(255,79,184,.45)}
+.sub b{color:var(--gold);text-shadow:0 0 12px rgba(255,204,64,.6)}
+ul{list-style:none;margin-top:9px;display:grid;gap:3px}
+li{font-size:18.5px;font-weight:600;white-space:nowrap}
+li span{color:#b6bdd2;font-weight:400}
+li b{color:var(--cy);text-shadow:0 0 10px rgba(34,224,255,.55)}
+.dll{margin-top:12px;padding:8px 13px;border-radius:7px;border:2px solid var(--pk);width:400px;
+ background:linear-gradient(135deg,rgba(255,79,184,.32),rgba(30,16,50,.75) 60%,rgba(34,224,255,.22));
+ box-shadow:0 0 22px rgba(255,79,184,.55),inset 0 0 22px rgba(0,0,0,.35)}
+.dll .h{font-size:13px;letter-spacing:2px;color:var(--pk2);font-weight:600}
+.dll .n{font-size:17.5px;font-weight:600;color:#fdf2fa;margin-top:2px;line-height:1.3}
+.dll .n b{color:var(--cy)}
+.url{position:absolute;left:40px;bottom:14px;font-size:16px;color:#9aa3bb;z-index:4}
+.url b{color:var(--cy2)}
 .ground{position:absolute;left:463px;bottom:0;width:817px;height:170px;z-index:2;clip-path:polygon(34px 0,100% 0,100% 100%,0 100%);
- background:linear-gradient(0deg,rgba(9,10,18,.96) 0%,rgba(9,10,18,.72) 50%,transparent 100%)}
+ background:linear-gradient(0deg,rgba(9,9,18,.97) 0%,rgba(9,9,18,.74) 50%,transparent 100%)}
 .slogan{position:absolute;left:575px;bottom:14px;width:600px;text-align:center;padding:4px 18px 8px;border-radius:12px;border:2px solid transparent;z-index:4;
- background:linear-gradient(rgba(10,12,22,.88),rgba(10,12,22,.92)) padding-box,
-            linear-gradient(90deg,var(--teal),var(--blue) 45%,var(--vio2) 75%,var(--vio)) border-box;
- box-shadow:-14px 0 26px -6px rgba(51,255,204,.5),14px 0 26px -6px rgba(154,107,255,.7),0 8px 24px rgba(0,0,0,.6)}
+ background:linear-gradient(rgba(10,11,20,.9),rgba(10,11,20,.94)) padding-box,
+            linear-gradient(90deg,var(--cy),var(--pk) 60%,var(--gold)) border-box;
+ box-shadow:-14px 0 26px -6px rgba(34,224,255,.5),14px 0 26px -6px rgba(255,79,184,.7),0 8px 24px rgba(0,0,0,.6)}
 .slogan .big{font-family:"Segoe UI Black","Segoe UI",sans-serif;font-weight:900;font-size:40px;line-height:1.1;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;
- background-image:linear-gradient(90deg,var(--teal2) 0%,var(--teal) 18%,var(--blue) 50%,var(--vio2) 75%,var(--vio) 100%);
+ background-image:linear-gradient(90deg,var(--cy2) 0%,var(--cy) 22%,var(--pk) 62%,var(--gold) 100%);
  -webkit-background-clip:text;background-clip:text;color:transparent;
- filter:drop-shadow(0 0 12px rgba(51,179,255,.45)) drop-shadow(0 0 18px rgba(154,107,255,.4))}
-.slogan .small{font-size:18px;font-weight:600;color:#e6eefa;letter-spacing:.3px;margin-top:1px}
-.slogan .small b{color:var(--teal);font-weight:600}
-.slogan .small i{font-style:normal;color:var(--vio2)}
-.badge{position:absolute;right:22px;top:16px;display:flex;align-items:center;gap:9px;padding:6px 16px 7px 12px;border-radius:10px;border:2px solid transparent;z-index:4;
- background:linear-gradient(rgba(10,12,22,.88),rgba(10,12,22,.92)) padding-box,
-            linear-gradient(90deg,var(--teal),var(--blue) 45%,var(--vio2) 75%,var(--vio)) border-box;
- box-shadow:-10px 0 20px -6px rgba(51,255,204,.55),10px 0 20px -6px rgba(154,107,255,.75),0 6px 18px rgba(0,0,0,.6)}
-.badge .ico{font-size:18px}
+ filter:drop-shadow(0 0 12px rgba(34,224,255,.4)) drop-shadow(0 0 18px rgba(255,79,184,.4))}
+.slogan .small{font-size:18px;font-weight:600;color:#eef1fa;letter-spacing:.3px;margin-top:1px}
+.slogan .small b{color:var(--gold)}
+.slogan .small i{font-style:normal;color:var(--pk2)}
+.badge{position:absolute;right:22px;top:14px;display:flex;align-items:center;gap:9px;padding:6px 16px 7px 12px;border-radius:10px;border:2px solid transparent;z-index:4;
+ background:linear-gradient(rgba(10,11,20,.9),rgba(10,11,20,.94)) padding-box,
+            linear-gradient(90deg,var(--cy),var(--pk) 60%,var(--gold)) border-box;
+ box-shadow:-10px 0 20px -6px rgba(34,224,255,.55),10px 0 20px -6px rgba(255,79,184,.75),0 6px 18px rgba(0,0,0,.6)}
 .badge .txt{font-family:"Segoe UI Black","Segoe UI",sans-serif;font-weight:900;font-size:19px;letter-spacing:1px;text-transform:uppercase;line-height:1;
- background-image:linear-gradient(90deg,var(--teal2) 0%,var(--teal) 20%,var(--blue) 50%,var(--vio2) 75%,var(--vio) 100%);
+ background-image:linear-gradient(90deg,var(--cy2),var(--cy) 25%,var(--pk) 65%,var(--gold));
  -webkit-background-clip:text;background-clip:text;color:transparent}
 </style></head><body>
 <div class="pic">
   <div class="mosaic">
-    <img src="../layouts.jpg"><img src="../unitframes.jpg"><img src="../nameplates.jpg">
-    <img src="../actionbars.jpg"><img src="../combattext.jpg"><img src="../minimap.jpg">
-    <img src="../trinkets.jpg"><img src="../chat.jpg"><img src="../bags.jpg">
+    <img src="../s-auctions.jpg"><img src="../s-unitframes.jpg"><img src="../s-meters.jpg">
+    <img src="../s-itemrack.jpg"><img src="../s-consumes.jpg"><img src="../s-cooldowns.jpg">
+    <img src="../s-actionbars.jpg"><img src="../s-questing.jpg"><img src="../s-bags.jpg">
   </div>
 </div>
-<!-- gear.jpg x 300-1330, y 175-645 at .3689 -->
-<div class="card gear"><div class="crop" style="width:380px;height:173px"><img src="../gear.jpg" style="width:519.5px;left:-110.7px;top:-64.6px"><span class="label">🛡️ Gear sets</span></div></div>
-<!-- meters.jpg x 570-1040, y 350-640 at .6383 -->
-<div class="card meters"><div class="crop" style="width:300px;height:185px"><img src="../meters.jpg" style="width:898.7px;left:-363.8px;top:-223.4px"><span class="label">📊 Meters</span></div></div>
-<!-- keymap.jpg x 0-1225, y 180-470 at .4245 -->
-<div class="card keys"><div class="crop" style="width:520px;height:123px"><img src="../keymap.jpg" style="width:742px;left:0;top:-76.4px"><span class="label">⌨️ Key Map</span></div></div>
+<!-- s-octolazy.jpg x 330-1380, y 280-800 at .36 -->
+<div class="card c1"><div class="crop" style="width:378px;height:187px"><img src="../s-octolazy.jpg" style="width:522px;left:-119px;top:-101px"><span class="label">🎲 OctoLazy: your roll rules</span></div></div>
+<!-- s-octodots.jpg preview at .40 -->
+<div class="card c2"><div class="crop" style="width:300px;height:150px"><img id="dots" src="../s-octodots.jpg" style="width:580px;left:-130px;top:-84px"><span class="label">🩸 OctoDoTs</span></div></div>
+<!-- s-gathering.jpg: the gathering arrows box over the world, x 680-980, y 0-100 at 1.1 -->
+<div class="card c3"><div class="crop" style="width:290px;height:112px"><img src="../s-gathering.jpg" style="width:1595px;left:-752px;top:-2px"><span class="label">⛏️ Gathering arrows</span></div></div>
 <div class="ground"></div>
 <div class="edge"></div>
-<div class="slogan"><div class="big">Your UI, levelled up!</div>
-  <div class="small">⬇️ <b>Free</b> · 2-minute install · <i>keeps your pfUI settings</i></div></div>
-<div class="badge"><span class="ico">⬇️</span><span class="txt">Free on GitHub</span></div>
+<div class="slogan"><div class="big">One addon. Everything.</div>
+  <div class="small">⬇️ <b>Free</b> · replaces <b>25 add-ons</b> · <i>keeps your pfUI settings</i></div></div>
+<div class="badge"><span>⬇️</span><span class="txt">Free on GitHub</span></div>
 <div class="left">
-  <div class="kicker">UI ADDON · WOW 1.12 · OCTOWOW</div>
+  <div class="kicker">ALL-IN-ONE UI · WOW 1.12 · OCTOWOW</div>
   <img class="logo" src="../logo.png">
-  <div class="sub"><b>10+ addons</b> in one window,<br>all set up by clicking</div>
+  <div class="sub"><b>25 add-ons</b> in one window,<br>smooth in every raid</div>
   <ul>
-    <li>🔁 Replaces <span>Bartender · Plater · Details · ItemRack</span></li>
-    <li>🎛️ <b>Live previews</b> <span>click a part to change it</span></li>
-    <li>🛡️ <b>Instant</b> gear swaps <span>· trinket queue</span></li>
-    <li>📊 Meters, threat <span>&amp; scrolling combat text</span></li>
-    <li>🗺️ Raid / PvP layouts <span>switch by zone</span></li>
-    <li>⚡ <b>Faster</b> than plain pfUI <span>in big pulls</span></li>
+    <li>🎲 <b>OctoLazy</b> <span>need / greed / pass by your rules</span></li>
+    <li>💰 <b>Auto Loot</b> <span>· loot filter · gathering arrows</span></li>
+    <li>🚢 <b>Boats &amp; zeppelins</b> <span>on the map · flight timer</span></li>
+    <li>🏦 <b>Auctions &amp; Mail</b> <span>every page · collect all</span></li>
+    <li>🩸 <b>OctoDoTs</b> <span>· cooldown bars · consumables</span></li>
+    <li>🧭 <b>pfQuest built in</b> <span>· meters · combat text</span></li>
+    <li>⚡ <b>No stutter</b> <span>in raid fights</span></li>
   </ul>
   <div class="dll"><div class="h">🔌 ONE-CLICK DLL INSTALLER INCLUDED</div>
     <div class="n"><b>ClassicAPI</b> · <b>SuperWoW</b> · <b>nampower</b> · <b>UnitXP</b><br>newest versions, all optional</div></div>
 </div>
-<div class="url"><b>github.com/bdot89/pfUI-Octo</b> · v1.0</div>
+<div class="url"><b>bdot89.github.io/pfUI-Octo</b> · v1.1.23</div>
 </body></html>
