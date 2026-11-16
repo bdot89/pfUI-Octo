@@ -47,7 +47,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer" } },
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
-    { "Questing", { "Questing" } },
+    -- (16 Nov 2026, user: "Call Questing pfQuest")
+    { "pfQuest", { "pfQuest" } },
     { "Blizzard UI", { "Blizzard UI" } },
     -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
     -- same day: named CoolDownManager, under Interface
@@ -90,14 +91,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "getting very full ... make the important ones be top of order dots are high up the
     -- combat list ... make important ones stand out") most used first in each group; O.FEATURED stand out
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
-    { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "Questing", "Blizzard UI" } },
+    { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
     { "Combat & Items", { "OctoDoTs", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
+    ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -121,7 +122,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Minimap & Buffs"] = "The minimap, its buttons, and your buffs and debuffs.",
     ["Bags & Loot"] = "Bags, bank and loot rolls.",
     ["Quality of Life"] = "Small helpers in one place: vendor, loot, raid tools, screenshots and auto loot.",
-    ["Questing"] = "pfQuest's map pins, tracker and database, and the quest helpers.",
+    ["pfQuest"] = "pfQuest's map pins, tracker and database, and the quest helpers.",
     ["OctoLazy"] = "Rolls by your rules, invites, summons, battlegrounds, NPCs and bags - done for you.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",

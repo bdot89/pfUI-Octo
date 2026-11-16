@@ -92,7 +92,7 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
     CreateQuestionDialog(T["pfQuest has been updated to the version the OctoWoW launcher installs."] .. "\n\n"
       .. T["It can put its own quest icons on nameplates, but pfUI Octo's nameplates already mark quest mobs, so "
       .. "pfQuest's icons have been switched off to stop two marks showing on the same mob."] .. "\n\n"
-      .. "|cffaaaaaa" .. T["You can change this at any time: Questing > pfQuest > Show Quest Icons on Nameplates."] .. "|r",
+      .. "|cffaaaaaa" .. T["You can change this at any time: pfQuest > Quests & map > Show Quest Icons on Nameplates."] .. "|r",
       { T["OK"], function() end },
       { T["Use pfQuest's icons"], function()
         if _G.pfQuest_config then _G.pfQuest_config.nameplatesEnabled = "1" end

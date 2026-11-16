@@ -64,7 +64,7 @@ pfUI:RegisterModule("addoncompat", function ()
     end
   end
   local octoconflict = {
-    ["pfquest"] = { always, nil, "Questing (pfQuest is built in; pfUI's copy stays off while this one is on)" },
+    ["pfquest"] = { always, nil, "pfQuest (built in; pfUI's copy stays off while this one is on)" },
     ["shagudps"] = { has("meters"), nil, "Meters (damage, healing and more)" },
     ["twthreat"] = { has("meters"), nil, "Threat meter and threat label" },
     ["sct"] = { has("sct"), nil, "Combat Text" },

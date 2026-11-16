@@ -1898,7 +1898,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         { "Meters", "Details!, DPSMate, ShaguDPS", { "Details", "DPSMate", "ShaguDPS" } },
         { "Threat", "KTM, TWThreat", { "KLHThreatMeter", "TWThreat", "TWT" } },
         { "ItemRack", "ItemRack, Outfitter", { "ItemRack", "Outfitter", "ClosetGnome" } },
-        { "Questing", "pfQuest, Questie", { "pfQuest", "pfQuest-turtle", "Questie" } },
+        { "pfQuest", "pfQuest, Questie", { "pfQuest", "pfQuest-turtle", "Questie" } },
         { "OctoDoTs", "Cursive", { "Cursive", "Cursive-Raid" } },
         { "OctoLazy", "LazyPig", { "_LazyPig", "LazyPig" } },
         { "Auctions", "aux, Auctionator", { "aux-addon", "aux", "Auctionator", "Auctioneer" } },

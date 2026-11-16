@@ -1,5 +1,5 @@
 pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
-  -- pfUI Octo :: the Questing section (9 Nov 2026; user: "add a tab at the side for
+  -- pfUI Octo :: the pfQuest section (was Questing) (9 Nov 2026; user: "add a tab at the side for
   -- questing and pfquest should be in there with an option to turn it off any other
   -- questing stuff can be put in here also").
   --   pfQuest        on / off (modules\questing.lua), its windows, and every setting
@@ -99,7 +99,7 @@ pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
       end
     end
   end
-  O:AddPage("Questing", "qstpfquest", "pfQuest", BuildPfQuest)
+  O:AddPage("pfQuest", "qstpfquest", "Quests & map", BuildPfQuest)
 
   -- ---------------------------------------------------------------- Quest helpers
   local function BuildHelpers(p)
@@ -119,5 +119,5 @@ pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
     Chk(p, "Quest of a quest item", "Quest items name their quest in the tooltip.", "tooltip", "questitem", "showquest")
     Chk(p, "Quest item count", "How many a quest wants, in the item's tooltip.", "tooltip", "questitem", "showcount")
   end
-  O:AddPage("Questing", "qsthelpers", "Quest helpers", BuildHelpers)
+  O:AddPage("pfQuest", "qsthelpers", "Quest helpers", BuildHelpers)
 end)
