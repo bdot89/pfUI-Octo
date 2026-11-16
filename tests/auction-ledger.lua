@@ -164,7 +164,7 @@ do
   ok(table.getn(list) == 4 and list[1] == "Deviate Fish", "typing \"deviate\" offers four names, the one seen on the auction house first (" .. table.concat(list, ", ") .. ")")
   ok(list[2] == "Deviate Scale" and list[3] == "Deviate Delight Recipe" and list[4] == "Perfect Deviate Scale", "then names starting with it (shortest first), then names holding it")
   ok(table.getn(AH.Complete("d", 10)) == 0 and table.getn(AH.Complete("zzz", 10)) == 0, "one letter or no match: nothing offered")
-  ok(table.getn(AH.Complete("scale", 2)) == 2 and AH.Complete("scale", 2)[1] == "Deviate Scale", "a word of the name counts as a start; the list is capped")
+  ok(table.getn(AH.Complete("scale", 2)) == 2 and AH.Complete("scale", 2)[1] == "Scale of Onyxia" and AH.Complete("scale", 2)[2] == "Deviate Scale", "a name starting with it, then a later word starting with it; the list is capped")
   local UI = AH.ui
   local B = UI.pages.browse
   ok(B.sug and UI.Suggest and UI.TakeSuggest, "the Browse box has its name list")
