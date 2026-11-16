@@ -1,34 +1,39 @@
 pfUI:RegisterModule("share", "vanilla:tbc", function ()
-  local function serialize(tbl, comp, name, ignored, spacing)
-    local spacing = spacing or ""
+  -- (16 Nov 2026) written into one table of lines and joined once: adding to one
+  -- long string line after line copied it every time (the export froze the game)
+  local function write(out, tbl, comp, name, ignored, spacing)
+    local start = table.getn(out)
     local match = nil
     local tname = ( spacing == "" and "" or "[\"" ) .. name .. ( spacing == "" and "" or "\"]" )
-    local str = spacing .. tname .. " = {\n"
-
+    table.insert(out, spacing .. tname .. " = {\n")
     for k, v in pairs(tbl) do
       if not ( ignored[k] and spacing == "" ) and ( not comp or not comp[k] or comp[k] ~= tbl[k] ) then
         if type(v) == "table" then
-          local result = serialize(tbl[k], comp and comp[k], k, ignored, spacing .. "  ")
-          if result then
-            match = true
-            str = str .. result
-          end
+          if write(out, tbl[k], comp and comp[k], k, ignored, spacing .. "  ") then match = true end
         elseif type(v) == "string" then
           match = true
-          str = str .. spacing .. "  [\""..k.."\"] = \"".. string.gsub(v, "\\", "\\\\") .."\",\n"
+          table.insert(out, spacing .. "  [\""..k.."\"] = \"".. string.gsub(v, "\\", "\\\\") .."\",\n")
         elseif type(v) == "number" then
           match = true
-          str = str .. spacing .. "  [\""..k.."\"] = ".. string.gsub(v, "\\", "\\\\") ..",\n"
+          table.insert(out, spacing .. "  [\""..k.."\"] = ".. string.gsub(v, "\\", "\\\\") ..",\n")
         elseif type(v) == "boolean" then
           -- octo: the combat text keeps on / off settings as true / false
           match = true
-          str = str .. spacing .. "  [\""..k.."\"] = ".. (v and "true" or "false") ..",\n"
+          table.insert(out, spacing .. "  [\""..k.."\"] = ".. (v and "true" or "false") ..",\n")
         end
       end
     end
-
-    str = str .. spacing .. "}" .. ( spacing == "" and "" or "," ) .. "\n"
-    return match and str or nil
+    if not match then
+      for i = table.getn(out), start + 1, -1 do table.remove(out, i) end
+      return nil
+    end
+    table.insert(out, spacing .. "}" .. ( spacing == "" and "" or "," ) .. "\n")
+    return true
+  end
+  local function serialize(tbl, comp, name, ignored, spacing)
+    local out = {}
+    if not write(out, tbl, comp, name, ignored, spacing or "") then return nil end
+    return table.concat(out)
   end
 
   -- octo: reads the text serialize() writes WITHOUT running it. pfUI used
@@ -228,8 +233,10 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
   -- the tick list: every section that would change, all ticked; Apply hands the
   -- ticked ones to onApply (then the UI reloads)
   local pick
-  local function Pick(title, imported, onApply)
-    local list = sections(imported, pfUI_config)
+  -- opts (export, 16 Nov 2026): list = the rows, info = the line under the title, apply = the button, empty = what to say when nothing is listed
+  local function Pick(title, imported, onApply, opts)
+    opts = opts or {}
+    local list = opts.list or sections(imported, pfUI_config)
     if not pick then
       pick = CreateFrame("Frame", "pfSharePick", UIParent)
       pick:SetWidth(360)
@@ -321,6 +328,8 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
     end
 
     pick.title:SetText(title)
+    pick.info:SetText(opts.info or T["Only the ticked features are applied; everything else stays as it is on this character."])
+    pick.apply.text:SetText(opts.apply or T["Apply"])
     pick.onApply = onApply
     pick.shown = table.getn(list)
     for i = 1, math.max(pick.shown, table.getn(pick.rows)) do
@@ -368,7 +377,7 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
     pick.scroll:SetVerticalScroll(0)
     pick.Update()
     if pick.shown == 0 then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r: " .. T["Nothing differs from your settings."])
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r: " .. (opts.empty or T["Nothing differs from your settings."]))
       return
     end
     pick:Show()
@@ -507,96 +516,67 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
     return table.concat(result)
   end
 
+  -- (16 Nov 2026, Wolfahrt on Discord: the game stops responding while exporting / importing)
+  -- base64 by arithmetic, three bytes to four letters, built in a table. pfUI's version
+  -- built a string of 0s and 1s one character at a time (each step copies the whole string),
+  -- which took many seconds on a full profile. Same output: 92 letters a line, = padding.
+  local B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+  local B64CHAR, B64VAL = {}, {}
+  for i = 1, 64 do
+    local c = string.sub(B64, i, i)
+    B64CHAR[i - 1] = c
+    B64VAL[c] = i - 1
+  end
+  local floor = math.floor
+
   local function enc(to_encode)
-    local index_table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    local bit_pattern = ''
-    local encoded = ''
-    local trailing = ''
-
-    for i = 1, string.len(to_encode) do
-      local remaining = tonumber(string.byte(string.sub(to_encode, i, i)))
-      local bin_bits = ''
-      for i = 7, 0, -1 do
-        local current_power = math.pow(2, i)
-        if remaining >= current_power then
-          bin_bits = bin_bits .. '1'
-          remaining = remaining - current_power
-        else
-          bin_bits = bin_bits .. '0'
-        end
-      end
-      bit_pattern = bit_pattern .. bin_bits
+    local len = string.len(to_encode)
+    local out, n, line = {}, 0, 0
+    local function put(c)
+      n = n + 1
+      out[n] = c
+      line = line + 1
+      if line >= 92 then n = n + 1 out[n] = "\n" line = 0 end
     end
-
-    if mod(string.len(bit_pattern), 3) == 2 then
-      trailing = '=='
-      bit_pattern = bit_pattern .. '0000000000000000'
-    elseif mod(string.len(bit_pattern), 3) == 1 then
-      trailing = '='
-      bit_pattern = bit_pattern .. '00000000'
+    for i = 1, len, 3 do
+      -- (Lua 5.0's string.byte gives one byte a call)
+      local a = string.byte(to_encode, i)
+      local b = i + 1 <= len and string.byte(to_encode, i + 1) or nil
+      local c = i + 2 <= len and string.byte(to_encode, i + 2) or nil
+      local v = a * 65536 + (b or 0) * 256 + (c or 0)
+      put(B64CHAR[floor(v / 262144)])
+      put(B64CHAR[mod(floor(v / 4096), 64)])
+      put(b and B64CHAR[mod(floor(v / 64), 64)] or "=")
+      put(c and B64CHAR[mod(v, 64)] or "=")
     end
-
-    local count = 0
-    for i = 1, string.len(bit_pattern), 6 do
-      local byte = string.sub(bit_pattern, i, i+5)
-      local offset = tonumber(tonumber(byte, 2))
-      encoded = encoded .. string.sub(index_table, offset+1, offset+1)
-      count = count + 1
-      if count >= 92 then
-        encoded = encoded .. "\n"
-        count = 0
-      end
-    end
-
-    -- octo: a line break right at the end made the padding cut one real
-    -- character instead (exports of 92*n characters failed to import)
-    encoded = string.gsub(encoded, "\n$", "")
-    return string.sub(encoded, 1, -1 - string.len(trailing)) .. trailing
+    -- octo: no line break right at the end (exports of 92*n letters failed to import)
+    if out[n] == "\n" then out[n] = nil end
+    return table.concat(out)
   end
 
+  -- the other way (fast, see enc): nil when the text holds anything but base64
   local function dec(to_decode)
-    local index_table = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-    local padded = gsub(to_decode,"%s", "")
-    local unpadded = gsub(padded,"=", "")
-    local bit_pattern = ''
-    local decoded = ''
-
-    to_decode = gsub(to_decode,"\n", "")
-    to_decode = gsub(to_decode," ", "")
-
-    for i = 1, string.len(unpadded) do
-      local char = string.sub(to_decode, i, i)
-      -- octo: plain find; "(" or "[" in the box raised a pattern error
-      local offset, _ = string.find(index_table, char, 1, true)
-      if offset == nil then return nil end
-
-      local remaining = tonumber(offset-1)
-      local bin_bits = ''
-      for i = 7, 0, -1 do
-        local current_power = math.pow(2, i)
-        if remaining >= current_power then
-          bin_bits = bin_bits .. '1'
-          remaining = remaining - current_power
-        else
-          bin_bits = bin_bits .. '0'
+    local text = gsub(to_decode, "[%s=]", "")
+    local len = string.len(text)
+    local out, n = {}, 0
+    for i = 1, len, 4 do
+      local v, got = 0, 0
+      for j = i, i + 3 do
+        v = v * 64
+        if j <= len then
+          local d = B64VAL[string.sub(text, j, j)]
+          if not d then return nil end
+          v = v + d
+          got = got + 1
         end
       end
-
-      bit_pattern = bit_pattern .. string.sub(bin_bits, 3)
+      -- got letters carry floor(got * 6 / 8) whole bytes
+      local a, b, c = floor(v / 65536), mod(floor(v / 256), 256), mod(v, 256)
+      n = n + 1 out[n] = strchar(a)
+      if got >= 3 then n = n + 1 out[n] = strchar(b) end
+      if got >= 4 then n = n + 1 out[n] = strchar(c) end
     end
-
-    for i = 1, string.len(bit_pattern), 8 do
-      local byte = string.sub(bit_pattern, i, i+7)
-      decoded = decoded .. strchar(tonumber(byte, 2))
-    end
-
-    local padding_length = string.len(padded)-string.len(unpadded)
-
-    if (padding_length == 1 or padding_length == 2) then
-      decoded = string.sub(decoded,1,-2)
-    end
-
-    return decoded
+    return table.concat(out)
   end
 
   do -- Window
@@ -808,15 +788,43 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
         C = original
         pfUI.env.C = original
 
-        local ignored = {}
-        ignored["position"] = f.ignorePosition:GetChecked()
-        ignored["disabled"] = f.ignorePosition:GetChecked()
+        local skip = {}
+        skip["position"] = f.ignorePosition:GetChecked()
+        skip["disabled"] = f.ignorePosition:GetChecked()
         -- octo (29 Oct 2026, "pressing profiles ... crashing the game"): the UI layouts keep a
         -- copy of every setting per layout (500 KB and more) - too big for the text box, and they
         -- are this character's screens, not a look to share
-        ignored["layouts"] = true
+        skip["layouts"] = true
 
-        local compressed = enc(compress(serialize(myconfig, defconfig, "pfUI_config", ignored)))
+        -- (16 Nov 2026, Wolfahrt on Discord: "select the features we want to import when we choose
+        -- the export feature") the same tick list as Import: every part you changed from the
+        -- defaults, all ticked; only the ticked ones go into the string
+        local list = {}
+        for section, v in pairs(myconfig) do
+          if not skip[section] and type(v) == "table" then
+            local n = differ(v, defconfig[section])
+            if n > 0 then table.insert(list, { section, n }) end
+          end
+        end
+        table.sort(list, function(a, b) return label(a[1]) < label(b[1]) end)
+        Pick(T["Export: pick the features to share"], nil, function(picked)
+          local ignored = {}
+          for section in pairs(myconfig) do
+            if not picked[section] then ignored[section] = true end
+          end
+          f.DoExport(myconfig, defconfig, ignored)
+        end, { list = list, apply = T["Export"],
+               info = T["Only the ticked features go into the string. Fewer features = a shorter string."],
+               empty = T["You have not changed anything from the defaults yet."] })
+      end)
+      -- the string itself, once the features are picked
+      function f.DoExport(myconfig, defconfig, ignored)
+        local text = serialize(myconfig, defconfig, "pfUI_config", ignored)
+        if not text then
+          DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r profile: " .. T["nothing to export."])
+          return
+        end
+        local compressed = enc(compress(text))
         -- (a text box with megabytes in it takes the client down: such a string only goes to the clipboard)
         if string.len(compressed) > 120000 then
           f.scroll.text:SetText("")
@@ -832,7 +840,7 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
         if LC and LC.Copy and LC.Copy(compressed) then
           DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r profile: copied to your clipboard - paste it anywhere with Ctrl+V.")
         end
-      end)
+      end
     end
 
     -- for tests\run.lua and other modules

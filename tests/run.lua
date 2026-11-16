@@ -430,6 +430,18 @@ if S then
   local decoded = S.decompress(S.dec(encoded))
   ok(S.decompress(S.compress(text)) == text, "compress round trip")
   ok(S.dec(S.enc("hello world, pfUI!")) == "hello world, pfUI!", "base64 round trip")
+  -- (16 Nov 2026) the fast base64 writes what pfUI's old one did: strings shared before still import
+  ok(S.enc("Man") == "TWFu" and S.enc("Ma") == "TWE=" and S.enc("M") == "TQ==", "base64 is the standard one")
+  ok(S.dec("TWFu") == "Man" and S.dec("TWE=") == "Ma" and S.dec("TQ==") == "M" and S.dec("T(Fu") == nil, "base64 reads back, refuses junk")
+  do
+    local big = string.rep("pfUI Octo profile line \1\200\255 ", 6000)
+    local e = S.enc(big)
+    local lines, longest = 0, 0
+    for l in string.gfind(e .. "\n", "([^\n]*)\n") do lines = lines + 1 if string.len(l) > longest then longest = string.len(l) end end
+    ok(longest == 92 and S.dec(e) == big, "base64: 92 letters a line, a 170 KB round trip")
+    local e69 = S.enc(string.rep("x", 69))
+    ok(string.len(e69) == 92 and not string.find(e69, "\n"), "no line break after the last full line")
+  end
   ok(decoded == text, "compress + base64 round trip")
   if decoded ~= text and os.getenv("PFUI_TEST_VERBOSE") then
     local c = S.compress(text)
@@ -530,6 +542,25 @@ if S then
     ok(t and t.unitframes.player.width == "250", "window reads a pasted encoded string: " .. tostring(e))
     pfShare.scroll.text:SetText("print('hi')")
     ok(pfShare.GetImport() == nil, "window refuses Lua code")
+    -- (16 Nov 2026) Export first lists the changed features; only the ticked ones go into the string
+    local oldTip = pfUI_config.tooltip.position
+    pfUI_config.tooltip.position = "cursor"
+    pfShare.exportButton:GetScript("OnClick")()
+    local pw = _G.pfSharePick
+    ok(pw and pw:IsShown() and string.find(pw.apply.text:GetText() or "", "Export"), "Export opens the feature list")
+    if pw and pw:IsShown() then
+      pw.none:GetScript("OnClick")()
+      local tip
+      for i = 1, pw.shown do if pw.rows[i].section == "tooltip" then tip = pw.rows[i] end end
+      if tip then _G.this = tip tip:GetScript("OnClick")() end
+      pw.apply:GetScript("OnClick")()
+      local out = pfShare.scroll.text.value
+      local back = out and S.parse(S.decompress(S.dec(out)))
+      local n = 0
+      for k in pairs(back or {}) do n = n + 1 end
+      ok(back and back.tooltip and back.tooltip.position == "cursor" and n == 1, "Export holds only the ticked feature (" .. n .. ")")
+    end
+    pfUI_config.tooltip.position = oldTip
     pfShare:Hide()
   end
 end
