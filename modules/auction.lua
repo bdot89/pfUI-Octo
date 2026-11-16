@@ -151,6 +151,102 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     if q.exact and q.name and string.lower(row.name) ~= string.lower(q.name) then return false end
     if q.maxUnit and (not row.unit or row.unit > q.maxUnit) then return false end
     if q.filter and not q.filter(row) then return false end
+    if q.tag and not AH.InKind(q.tag, row) then return false end
+    return true
+  end
+
+  -- Our own sub-categories (16 Nov 2026; user: "add further options for these in the drop down" - the
+  -- game gives Consumable no sub-categories and Trade Goods only a few). They are filters: the search asks
+  -- the server for the whole class and keeps the auctions that fit. name = patterns on the item's name,
+  -- tip = patterns on its tooltip (lower case), rest = whatever no other entry of that class takes.
+  -- Keyed by the class name in lower case (English client names).
+  local HERBS = { "Peacebloom", "Silverleaf", "Earthroot", "Mageroyal", "Briarthorn", "Stranglekelp", "Bruiseweed",
+    "Wild Steelbloom", "Grave Moss", "Kingsblood", "Liferoot", "Fadeleaf", "Goldthorn", "Khadgar's Whisker", "Wintersbite",
+    "Firebloom", "Purple Lotus", "Arthas' Tears", "Sungrass", "Blindweed", "Ghost Mushroom", "Gromsblood", "Golden Sansam",
+    "Dreamfoil", "Mountain Silversage", "Plaguebloom", "Icecap", "Black Lotus", "Swiftthistle", "Wildvine", "Bloodvine" }
+  local GEMS = { "Malachite", "Tigerseye", "Shadowgem", "Moss Agate", "Lesser Moonstone", "Jade", "Citrine", "Aquamarine",
+    "Star Ruby", "Large Opal", "Blue Sapphire", "Huge Emerald", "Azerothian Diamond", "Arcane Crystal", "Pearl", "Souldarite" }
+  AH.KINDS = {
+    ["consumable"] = {
+      { name = "Food", tip = { "while eating", "seconds eating" } },
+      { name = "Drink", tip = { "while drinking", "seconds drinking" } },
+      { name = "Potions", name_ = { "Potion", "Draught", "Rejuvenation" } },
+      { name = "Elixirs", name_ = { "Elixir" } },
+      { name = "Flasks", name_ = { "^Flask" } },
+      { name = "Juju, Zanza & more", name_ = { "^Juju", "Zanza", "^Mojo", "Gordok Green Grog", "Rumsey Rum", "Firewater",
+        "Blasted Lands", "Spirit of", "Sheen of", "Swiftness of", "Ground Scorpok", "R.O.I.D.S.", "Lung Juice", "Cerebral Cortex", "Gizzard Gum" } },
+      { name = "Scrolls", name_ = { "^Scroll of" } },
+      { name = "Bandages", name_ = { "Bandage" } },
+      { name = "Oils & stones", name_ = { "Oil$", "Sharpening Stone", "Weightstone", "Whetstone" } },
+      { name = "Poisons", name_ = { "Poison" } },
+      { name = "Everything else", rest = true },
+    },
+    ["trade goods"] = {
+      { name = "Cloth", name_ = { "Cloth$", "^Bolt of", "Spider's Silk", "Silk$" } },
+      { name = "Leather & scales", name_ = { "Leather$", "Hide$", "Scale$", "Scales$", "Dragonscale", "Pelt$", "Fur$" } },
+      { name = "Ore, bars & stone", name_ = { " Ore$", " Bar$", "^Rough Stone", "^Coarse Stone", "^Heavy Stone",
+        "^Solid Stone", "^Dense Stone", "Flux$", "^Mithril Casing" } },
+      { name = "Herbs", name_ = HERBS },
+      { name = "Gems", name_ = GEMS },
+      { name = "Enchanting", name_ = { "Dust$", " Essence$", "Shard$", "^Nexus Crystal" } },
+      { name = "Elemental", name_ = { "^Essence of", "^Elemental ", "^Heart of Fire", "^Core of Earth", "^Breath of Wind",
+        "^Globe of Water", "^Ichor of Undeath", "^Living Essence", "^Righteous Orb", "^Heart of the Wild" } },
+      { name = "Cooking", name_ = { "^Raw ", " Meat$", " Flesh$", " Egg$", "^Chunk of", "Rib$", "Steak$", " Leg$", " Tail$",
+        "Spices$", "^Soothing Spices" } },
+      { name = "Everything else", rest = true },
+    },
+  }
+  function AH.KindsFor(className)
+    local list = className and AH.KINDS[string.lower(className)]
+    if list then
+      for _, k in ipairs(list) do k.list = list end
+    end
+    return list
+  end
+  -- one tooltip read per item, kept (lower case, all lines joined)
+  local tipCache, kindScan = {}, nil
+  local function TipOf(row)
+    local key = row.key or row.name
+    if tipCache[key] then return tipCache[key] end
+    if not kindScan and libtipscan and libtipscan.GetScanner then kindScan = libtipscan:GetScanner("auctionkind") end
+    local text = ""
+    if kindScan then
+      local ok = false
+      if row.kind and row.index and kindScan.SetAuctionItem then ok = pcall(kindScan.SetAuctionItem, kindScan, row.kind, row.index) end
+      if not ok and row.link and kindScan.SetHyperlink then
+        local _, _, item = string.find(row.link, "(item:[%-%d:]+)")
+        if item then pcall(kindScan.SetHyperlink, kindScan, item) end
+      end
+      local ok2, lines = pcall(kindScan.Text, kindScan)
+      if ok2 and type(lines) == "table" then
+        for _, l in pairs(lines) do
+          text = text .. " " .. (l[1] or "") .. " " .. (l[2] or "")
+        end
+      end
+    end
+    text = string.lower(text)
+    tipCache[key] = text
+    return text
+  end
+  local function Matches(k, row)
+    if k.name_ then
+      for _, p in ipairs(k.name_) do
+        if string.find(row.name or "", p) then return true end
+      end
+    end
+    if k.tip then
+      local text = TipOf(row)
+      for _, p in ipairs(k.tip) do
+        if string.find(text, p, 1, true) then return true end
+      end
+    end
+    return false
+  end
+  function AH.InKind(k, row)
+    if not k.rest then return Matches(k, row) end
+    for _, o in ipairs(k.list or {}) do
+      if o ~= k and not o.rest and Matches(o, row) then return false end
+    end
     return true
   end
   -- Search text (phase 2, 15 Nov 2026): "name/word/word; another name/word". Words: exact, usable,

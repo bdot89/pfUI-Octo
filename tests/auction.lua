@@ -236,6 +236,17 @@ do
     "no name: rare and better, levels 40-50, weapons, usable")
   ok(table.getn(AH.ParseQuery("")) == 1 and AH.ParseQuery("")[1].name == "", "an empty box is one search for everything")
   _G.GetAuctionItemClasses = cw
+  -- our own sub-categories (filters on the whole class)
+  local cons, tg = AH.KindsFor("Consumable"), AH.KindsFor("Trade Goods")
+  ok(cons and tg and not AH.KindsFor("Weapon"), "own sub-categories for Consumable and Trade Goods only")
+  local function K(list, name) for _, k in ipairs(list) do if k.name == name then return k end end end
+  ok(AH.InKind(K(cons, "Flasks"), { name = "Flask of the Titans" }) and not AH.InKind(K(cons, "Flasks"), { name = "Elixir of the Mongoose" }), "Flasks takes flasks only")
+  ok(AH.InKind(K(cons, "Everything else"), { name = "Gnomish Battle Chicken" }) and not AH.InKind(K(cons, "Everything else"), { name = "Major Healing Potion" }),
+    "Everything else = what no other one takes")
+  ok(AH.InKind(K(tg, "Herbs"), { name = "Black Lotus" }) and AH.InKind(K(tg, "Ore, bars & stone"), { name = "Thorium Bar" })
+    and not AH.InKind(K(tg, "Cloth"), { name = "Thorium Bar" }), "Trade Goods: herbs, bars, cloth")
+  ok(table.getn(AH.ParseQuery("", { tag = K(cons, "Food") }) ) == 1 and AH.ParseQuery("", { tag = K(cons, "Food") })[1].tag == K(cons, "Food"),
+    "the picked sub-category rides along with the search")
   -- two searches in a row join one list
   local done
   local q2 = AH.ParseQuery("Linen Cloth/exact; Linen Bandage/exact")

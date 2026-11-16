@@ -459,7 +459,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     -- (the box may hold several searches and words: "linen cloth/exact; silk cloth/max 2s" - AH.ParseQuery;
     -- the buttons and boxes beside it apply to each of them)
     local list = AH.ParseQuery(text, { minLevel = tonumber(B.min:GetText()), maxLevel = tonumber(B.max:GetText()), quality = UI.q.quality,
-      class = UI.q.class, subclass = UI.q.subclass, slot = UI.q.slot, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first,
+      class = UI.q.class, subclass = UI.q.subclass, slot = UI.q.slot, tag = UI.q.tag, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first,
       maxUnit = AH.ParseMoney(B.maxp:GetText()) })
     UI.Recent(text)
     UI.only = nil
@@ -713,6 +713,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
             end
           end
         end
+        -- our own sub-categories (filters on the whole class: AH.KINDS)
+        for ki, k in ipairs(AH.KindsFor(cname) or {}) do
+          table.insert(lines, { text = k.name, kind = "tag", class = ci, tag = ki, kindDef = k })
+        end
       end
     end
     return lines
@@ -720,13 +724,16 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   function UI.PickCategory(d)
     local c = UI.cat
     if d.kind == "class" then
-      if c.class == d.class and not c.sub then UI.cat = {} else UI.cat = { class = d.class } end
+      if c.class == d.class and not c.sub and not c.tag then UI.cat = {} else UI.cat = { class = d.class } end
+    elseif d.kind == "tag" then
+      if c.tag == d.tag then UI.cat = { class = d.class } else UI.cat = { class = d.class, tag = d.tag, kindDef = d.kindDef } end
     elseif d.kind == "sub" then
       if c.sub == d.sub and not c.slot then UI.cat = { class = d.class } else UI.cat = { class = d.class, sub = d.sub } end
     else
       if c.slot == d.slot then UI.cat = { class = d.class, sub = d.sub } else UI.cat = { class = d.class, sub = d.sub, slot = d.slot } end
     end
     UI.q.class, UI.q.subclass, UI.q.slot = UI.cat.class, UI.cat.sub, UI.cat.slot
+    UI.q.tag = UI.cat.kindDef
     UI.PaintTree()
     if S().treesearch ~= "0" and AH.open then Search() end
   end
@@ -772,13 +779,14 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       local r, d = T.rows[i], lines[i + T.offset]
       r.d = d
       if d then
-        local picked = (d.kind == "class" and c.class == d.class and not c.sub) or (d.kind == "sub" and c.sub == d.sub and c.class == d.class and not c.slot)
+        local picked = (d.kind == "class" and c.class == d.class and not c.sub and not c.tag)
+          or (d.kind == "tag" and c.class == d.class and c.tag == d.tag) or (d.kind == "sub" and c.sub == d.sub and c.class == d.class and not c.slot)
           or (d.kind == "slot" and c.slot == d.slot and c.sub == d.sub and c.class == d.class)
         local open = (d.kind == "class" and c.class == d.class) or (d.kind == "sub" and c.sub == d.sub and c.class == d.class)
         r.text:ClearAllPoints()
-        r.text:SetPoint("LEFT", r, "LEFT", (d.kind == "class" and 8) or (d.kind == "sub" and 20) or 32, 0)
+        r.text:SetPoint("LEFT", r, "LEFT", (d.kind == "class" and 8) or ((d.kind == "sub" or d.kind == "tag") and 20) or 32, 0)
         r.text:SetText(d.text)
-        if d.kind == "class" then r.text:SetTextColor(1, .82, .1) elseif d.kind == "sub" then r.text:SetTextColor(.95, .95, .97)
+        if d.kind == "class" then r.text:SetTextColor(1, .82, .1) elseif d.kind == "sub" or d.kind == "tag" then r.text:SetTextColor(.95, .95, .97)
         else r.text:SetTextColor(.7, .7, .75) end
         local hasMore = d.kind == "class" or (d.kind == "sub" and d.class == 2)
         r.mark:SetText(hasMore and (open and "|cff808088-|r" or "|cff808088+|r") or "")
