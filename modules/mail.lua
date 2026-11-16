@@ -154,8 +154,7 @@ pfUI:RegisterModule("mail", "vanilla", function ()
     M.skip = {}
     if M.onChange then M.onChange() end
   end
-  local function Report()
-    local j = M.job
+  local function Report(j)
     local parts = {}
     if j.gold > 0 then table.insert(parts, M.Money(j.gold)) end
     if j.items > 0 then table.insert(parts, j.items .. (j.items == 1 and " item" or " items")) end
@@ -171,7 +170,7 @@ pfUI:RegisterModule("mail", "vanilla", function ()
     local j = M.job
     M.job, M.pending = nil, nil
     if j and S().report ~= "0" then
-      local text = note or Report()
+      local text = note or Report(j)
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r mail: " .. text)
       if M.onNote then M.onNote(text) end
     end
