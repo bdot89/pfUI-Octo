@@ -1262,3 +1262,20 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    column heads + rule, a Stack column (a list's first column with a 5th field: r.stack; "Have" for bags), time left
    coloured (UI.Left), your own name green (UI.Seller), Role(button, go | buy | danger). Tooltip: "Cheapest today"
    under "Auction:" when it differs from the usual price.
+- DoT Tracker (16 Nov 2026, NOT seen in game; user: merge Cursive-Raid into pfUI "better faster stronger use any DLLs
+  ... enabled/disabled inside pfUI ... its own section on the left called DoT Tracker", then screenshots of Cursive's six
+  tabs: "these should still be there"). Cursive-Raid is MIT (Kirchlive / Teto, after Shagu): its spell tables become
+  modules\dots-data.lua via tools\Make-DotsData.ps1 (reads ..\Cursive-Raid), its sounds + stripe texture are img\dots.
+  modules\dots.lua (module "dots", pfUI.dots, frame pfDotTracker = layout-mode box): rows of mobs (mark, health bar,
+  name, hp %, armour, icons). Timers: ClassicAPI C_UnitAuras.GetUnitAuras(guid,"HARMFUL") expirationTime + sourceGUID
+  (mine = my GUID), else SuperWoW UnitDebuff(guid) + UNIT_CASTEVENT casts + data durations (Guess), else target only via
+  libdebuff (key "target", D.Plain). Mobs from target / mouseover / nameplates / UNIT_COMBAT / casts / raidNtarget;
+  evicted when dead, gone, 300 yd. D.Scan reads auras only for the rows shown. Icon groups ownclass / ownraid /
+  otherclass / otherraid (D.CatOf) in order1-4 + an otherside group; borders per group; raid order C.dots.raidorder.
+  /dot cast|target <spell>[|marks|hp|lowhp][|refresh=,minhp=,range=,ooc] (D.Pick / D.Cast, CastSpellByName(spell, guid)),
+  /cursive alias while Cursive is not loaded. Profiles per account pfUI_cache.dotprofiles, export text
+  "pfUI-DoTTracker-1" key=value lines (D.Profiles), 7 ready-made looks. Options dots-options.lua: General / Raid / Class /
+  Display / Filter / Profiles (Cursive's tabs), live preview on General + Display. Section power dot = O.POWERMOD.
+  Tests: tests\dots.lua. Unverified: GetUnitAuras taking a raw GUID, SuperWoW UnitResistance(guid, 0) / SetRaidTarget(guid),
+  CreateMacro args; not ported: Expose Armor combo-point guessing, Dark Harvest / Conflagrate timer rules (ClassicAPI's
+  timers make them moot when it runs).

@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "transports", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "autoattack" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "autoattack" }
 
 -- ---------------------------------------------------------------- load
 
@@ -6324,6 +6324,7 @@ dofile(DIR .. "/tests/bagcats.lua")
 -- the consumables tracker (11 Nov 2026)
 dofile(DIR .. "/tests/consumes.lua")
 dofile(DIR .. "/tests/cdm.lua")
+dofile(DIR .. "/tests/dots.lua")
 dofile(DIR .. "/tests/flight.lua")
 dofile(DIR .. "/tests/auction.lua")
 dofile(DIR .. "/tests/auction-ledger.lua")

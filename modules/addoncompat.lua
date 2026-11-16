@@ -77,6 +77,8 @@ pfUI:RegisterModule("addoncompat", function ()
     ["trinketmenu"] = { has("gear"), nil, "Gear: trinket bar and trinket queue" },
     ["weaponswingtimer"] = { has("swing"), nil, "Swing Timer" },
     ["spswingtimer"] = { has("swing"), nil, "Swing Timer" },
+    ["cursive"] = { has("dots"), nil, "DoT Tracker (Cursive built in)" },
+    ["cursiveraid"] = { has("dots"), nil, "DoT Tracker (Cursive Raid built in)" },
     ["brainwasherpro"] = { has("gear.specs"), nil, "Gear: talent specs at the Brainwashing Device" },
     ["bettercharacterstats"] = { always, nil, "Character stats in the character window" },
     ["evenbettercharacterstats"] = { always, nil, "Character stats in the character window" },

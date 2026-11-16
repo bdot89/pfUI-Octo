@@ -653,6 +653,35 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("cdm",        nil,           "bordercolor",      ".2,.2,.24,1")
   pfUI:UpdateConfig("cdm",        nil,           "activecolor",      ".3,.9,.4,1")
   pfUI:UpdateConfig("cdm",        nil,           "glowcolor",        "1,.82,.2,1")
+  -- DoT Tracker (modules/dots.lua, 16 Nov 2026; Cursive-Raid's options, in its tab order)
+  for k, v in pairs({
+    -- general: display
+    healthbar = "1", name = "1", hp = "1", marks = "1", invert = "0", grow = "DOWN", alwaystarget = "1", targettop = "1",
+    highlight = "1", ccfade = "1", stripes = "1", striperange = "30", title = "0", backdrop = "0", clicks = "1", show = "rows",
+    -- general: borders by group (off green red black classcolor), order of the groups
+    border_ownclass = "green", border_ownraid = "green", border_otherclass = "off", border_otherraid = "classcolor",
+    bordersize = "1", borderalpha = "1",
+    order1 = "ownclass", order2 = "ownraid", order3 = "otherclass", order4 = "otherraid", otherside = "none", mineorder = "expire",
+    -- general: timers, stacks, armour, sounds
+    timers = "1", timercolor = "white", decimals = "3", decimalcolor = "red", warn = "3", stackcolor = "yellow",
+    armor = "0", armorcolor = "1", armorshow = "total+removed", armorpos = "center", armoricon = "left", armorsize = "9", armoroffset = "0",
+    sound = "0", resist = "1", resistsound = "0",
+    -- raid / class
+    showmine = "1", showraid = "1", showother = "0", missing = "0", includeown = "0", hide = "",
+    -- display
+    scale = "1", alpha = "1", fontscale = "1", texture = "Interface\\AddOns\\pfUI\\img\\bar_elvui", barcolor = "reaction", color = ".8,.2,.2,1",
+    icons = "14", rows = "8", cols = "1", spacing = "3", iconspacing = "1", width = "120", rowh = "18", marksize = "18", iconsize = "18",
+    fontsize = "9", namesize = "9", namelen = "0", timersize = "10", timerx = "0", timery = "0", stacksize = "9", stackx = "0", stacky = "0",
+    order = "marks", rate = ".2",
+    -- filter
+    incombat = "1", hostile = "0", onlytarget = "0", attackable = "1", onlyplayers = "0", onlynpcs = "0", withinrange = "1", rangeyards = "120",
+    markedonly = "0", mineonly = "0", ignored = "1", regex = "0",
+    -- profiles
+    profpos = "1", profile = "", preset = "default",
+  }) do pfUI:UpdateConfig("dots", nil, k, v) end
+  pfUI:UpdateConfig("dots",       nil,           "raid",             {})
+  pfUI:UpdateConfig("dots",       nil,           "raidorder",        {})
+  pfUI:UpdateConfig("dots",       nil,           "ignore",           {})
   -- flight timer (modules/flight.lua, 15 Nov 2026)
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")
