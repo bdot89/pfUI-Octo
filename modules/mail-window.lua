@@ -178,7 +178,7 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   IN.count:SetPoint("TOPLEFT", IN, "TOPLEFT", 2, -6)
   IN.collect = Btn(IN, "Collect all", 100, function()
     if M.job then M.Stop("stopped.") else M.Collect(UI.kind or "all") end
-  end, "Takes the gold and items out of every mail, from the bottom of the list up, and throws away the emptied letters. "
+  end, "Takes the gold and items out of every mail, top of the list down, and throws away the emptied letters. "
     .. "A mail that cannot be taken (marks you hold the most of, full bags, cash on delivery) is left and the rest still come.")
   IN.collect:SetPoint("TOPRIGHT", IN, "TOPRIGHT", 0, -2)
   UI.KINDS = { { "all", "Everything" }, { "gold", "Gold only" }, { "ah", "Auction house" }, { "system", "Not from players" } }

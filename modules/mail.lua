@@ -9,7 +9,9 @@ pfUI:RegisterModule("mail", "vanilla", function ()
   -- MAIL_INBOX_UPDATE. A mail the game refuses (marks you hold the most of, full bags, a locked item)
   -- gets no answer, or the one error it knows, and the walk stops. Here every step has a time limit: a
   -- mail that does not change in time, or that the game says no to, is put aside and the next one goes.
-  -- The walk runs from the bottom of the list up, so a deleted letter never moves the ones still to do.
+  -- The walk goes down the list in order; every step looks again from the top (mails put aside are known by
+  -- what they are, not where), so a deleted letter never makes it miss one. (16 Nov 2026, user: "the next
+  -- item it should take behind the arathi basin marks is the next pearl not random" - it went bottom-up before)
   --
   --   M.Collect(kind)  kind = "all" | "gold" | "ah" | "system"; M.Stop()
   --   M.Send(to, subject, body, money, cod, items)  items = { { bag, slot, link }... }: one mail each
@@ -185,7 +187,7 @@ pfUI:RegisterModule("mail", "vanilla", function ()
     end
   end
   M.SkipMail = Skip
-  -- one step: the bottom-most wanted mail gets its gold, then its item, then (empty) is deleted
+  -- one step: the top-most wanted mail gets its gold, then its item, then (empty) is deleted
   function M.Step()
     local j = M.job
     if not j or not M.open then return end
@@ -207,7 +209,7 @@ pfUI:RegisterModule("mail", "vanilla", function ()
     end
     if M.waitUntil and now < M.waitUntil then return end
     local n = GetInboxNumItems() or 0
-    for i = n, 1, -1 do
+    for i = 1, n do
       local m = M.Header(i)
       if m and not M.skip[m.sig] then
         if m.cod > 0 then Skip(m, "cash on delivery")
