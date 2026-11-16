@@ -153,6 +153,8 @@
   <Include file="..\modules\mail.lua"/>
   <Include file="..\modules\mail-window.lua"/>
   <Include file="..\modules\mail-options.lua"/>
+  <Include file="..\modules\octolazy.lua"/>
+  <Include file="..\modules\octolazy-options.lua"/>
   <Include file="..\modules\minimap-options.lua"/>
   <Include file="..\modules\buffs-options.lua"/>
   <Include file="..\modules\afkcam.lua"/>

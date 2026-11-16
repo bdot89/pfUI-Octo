@@ -738,6 +738,24 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("auction",    nil,           "treesearch",       "1")
   pfUI:UpdateConfig("auction",    nil,           "x",                "")
   pfUI:UpdateConfig("auction",    nil,           "y",                "")
+  -- (16 Nov 2026) OctoLazy (modules/octolazy.lua): _LazyPig's helpers, rules for loot rolls
+  for k, v in pairs({
+    rolls = "1", rollshift = "1", rolldelay = "0", rollconfirm = "1", rollchat = "1", rollmax = "4", needsafe = "1",
+    lootbind = "0", greenkey = "1", greenroll = "greed",
+    invguild = "1", invfriend = "1", invstranger = "0", invdecline = "0", invbg = "1", guildinv = "0",
+    summon = "1", summonmode = "late", summonwait = "5", summoncombat = "1",
+    rez = "1", rezwhere = "instance", rezcombat = "1", duel = "0", duelfriends = "1",
+    bgenter = "0", bgentermode = "late", bgwait = "5", bgafk = "1", bgleave = "0", bgleavewait = "5", bgrelease = "0",
+    bgqueue = "0", bgannounce = "0", bgquest = "1",
+    gossip = "1", gtaxi = "1", gvendor = "1", gbank = "1", gbattle = "1", gtrainer = "0", gtext = "Teleport me to the Molten Core",
+    quests = "shift", questaccept = "1", questchoice = "ask", questrepeat = "1",
+    rightclick = "1", split = "1", splitsize = "1",
+    chatrolls = "0", chatjunk = "0", chatmoney = "0",
+    worldmute = "0", worldname = "World", worldraid = "1", worlddungeon = "1", worldbg = "1", worldalways = "0",
+    salva = "off", camera = "0", cameradist = "50", keys = "0", keylogout = "0",
+  }) do
+    pfUI:UpdateConfig("octolazy", nil, k, v)
+  end
   pfUI:UpdateConfig("bagsocto",   nil,           "enable",           "1")
   pfUI:UpdateConfig("bagsocto",   nil,           "columns",          "10")
   pfUI:UpdateConfig("bagsocto",   nil,           "bankcolumns",      "14")

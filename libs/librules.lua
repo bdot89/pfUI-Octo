@@ -95,10 +95,18 @@ local function Lines(info)
   local scan = lib and lib:GetScanner("rules")
   if scan then
     local ok
-    if info.bag and info.slot then
+    if info.roll and scan.SetLootRollItem then
+      -- (16 Nov 2026, OctoLazy) an item up for a roll: its own tooltip, red where you cannot use it
+      ok = pcall(scan.SetLootRollItem, scan, info.roll)
+    elseif info.bag and info.slot then
       ok = pcall(scan.SetBagItem, scan, info.bag, info.slot)
     elseif info.id then
       ok = pcall(scan.SetHyperlink, scan, "item:" .. info.id .. ":0:0:0")
+    end
+    if ok and scan.Color and _G.RED_FONT_COLOR then
+      local red = scan:Color(_G.RED_FONT_COLOR)
+      -- line 1 is the name (a red name is never the reason); a red line = you cannot use it
+      info.red = red and red > 1 and true or false
     end
     if ok then
       local text = scan:Text()
@@ -207,6 +215,87 @@ end
 function env.Quest()
   if Has(cur.type, { "Quest" }) or TipHas({ lower(_G.ITEM_BIND_QUEST or "Quest Item"), "quest item" }) then return true end
   return cur.name and R.QuestLogItems()[lower(cur.name)] and true or false
+end
+-- ---------------------------------------------------------------- (16 Nov 2026, OctoLazy's roll rules)
+-- Usable()     no red line in its tooltip: your class, skill and level can use it
+-- Known()      a recipe / book you already know ("Already known")
+-- Upgrade()    something you wear, with a higher item level (ClassicAPI) or else a higher
+--              level needed than what you wear there now; an empty slot is an upgrade
+-- Owned(n)     you carry at least n of it (bags)
+-- Zone(...)    the zone or sub zone you are in
+-- Instance(...) "raid" "dungeon" "pvp" "arena" "world" ("none" = the open world)
+-- InRaid()  InGroup()  Class(...)  your class (any case, English or the game's word)
+function env.Usable()
+  Lines(cur)
+  return not cur.red
+end
+function env.Known()
+  return TipHas({ lower(_G.ITEM_SPELL_KNOWN or "Already known") })
+end
+-- an item's equip slot -> the inventory slots it can go in
+R.SLOTS = {
+  INVTYPE_HEAD = { 1 }, INVTYPE_NECK = { 2 }, INVTYPE_SHOULDER = { 3 }, INVTYPE_BODY = { 4 }, INVTYPE_CHEST = { 5 },
+  INVTYPE_ROBE = { 5 }, INVTYPE_WAIST = { 6 }, INVTYPE_LEGS = { 7 }, INVTYPE_FEET = { 8 }, INVTYPE_WRIST = { 9 },
+  INVTYPE_HAND = { 10 }, INVTYPE_FINGER = { 11, 12 }, INVTYPE_TRINKET = { 13, 14 }, INVTYPE_CLOAK = { 15 },
+  INVTYPE_WEAPON = { 16, 17 }, INVTYPE_2HWEAPON = { 16 }, INVTYPE_WEAPONMAINHAND = { 16 }, INVTYPE_WEAPONOFFHAND = { 17 },
+  INVTYPE_SHIELD = { 17 }, INVTYPE_HOLDABLE = { 17 }, INVTYPE_RANGED = { 18 }, INVTYPE_RANGEDRIGHT = { 18 },
+  INVTYPE_THROWN = { 18 }, INVTYPE_RELIC = { 18 }, INVTYPE_TABARD = { 19 },
+}
+local function Worn(slot)
+  local link = _G.GetInventoryItemLink and _G.GetInventoryItemLink("player", slot)
+  if not link then return nil end
+  return R.ItemInfo(R.IdOf(link)) or {}
+end
+function env.Upgrade()
+  local slots = cur.equip and R.SLOTS[cur.equip]
+  if not slots then return false end
+  local mine = cur.ilvl or cur.level or 0
+  for i = 1, table.getn(slots) do
+    local w = Worn(slots[i])
+    if not w then return true end
+    local theirs = (cur.ilvl and w.ilvl) or w.level or 0
+    if mine > theirs then return true end
+  end
+  return false
+end
+function env.Owned(n)
+  if not cur.id or type(_G.GetContainerNumSlots) ~= "function" then return false end
+  local have = 0
+  for bag = 0, 4 do
+    for slot = 1, (_G.GetContainerNumSlots(bag) or 0) do
+      local link = _G.GetContainerItemLink(bag, slot)
+      if link and R.IdOf(link) == cur.id then
+        local _, c = _G.GetContainerItemInfo(bag, slot)
+        have = have + (tonumber(c) or 1)
+      end
+    end
+  end
+  return have >= (tonumber(n) or 1)
+end
+function env.Zone(a, b, c, d, e, f, g, h, i, j, k, l)
+  local list = L(a, b, c, d, e, f, g, h, i, j, k, l)
+  return Has(_G.GetRealZoneText and _G.GetRealZoneText(), list) or Has(_G.GetSubZoneText and _G.GetSubZoneText(), list)
+end
+function R.InstanceType()
+  local inside, kind = false, nil
+  if type(_G.IsInInstance) == "function" then inside, kind = _G.IsInInstance() end
+  if not inside then return "world" end
+  if kind == "party" then return "dungeon" end
+  return kind or "dungeon"
+end
+function env.Instance(a, b, c, d, e, f, g, h, i, j, k, l)
+  local here, list = R.InstanceType(), L(a, b, c, d, e, f, g, h, i, j, k, l)
+  for x = 1, table.getn(list) do
+    local w = lower(tostring(list[x]))
+    if w == here or (w == "none" and here == "world") or (w == "party" and here == "dungeon") or (w == "bg" and here == "pvp") then return true end
+  end
+  return false
+end
+function env.InRaid() return (_G.GetNumRaidMembers and _G.GetNumRaidMembers() or 0) > 0 end
+function env.InGroup() return env.InRaid() or (_G.GetNumPartyMembers and _G.GetNumPartyMembers() or 0) > 0 end
+function env.Class(a, b, c, d, e, f, g, h, i, j, k, l)
+  local name, file = _G.UnitClass and _G.UnitClass("player")
+  return Has(name, L(a, b, c, d, e, f, g, h, i, j, k, l)) or Has(file, L(a, b, c, d, e, f, g, h, i, j, k, l))
 end
 function env.Stackable() return (cur.stack or 1) > 1 end
 function env.Count(n) return (cur.count or 1) >= (tonumber(n) or 1) end

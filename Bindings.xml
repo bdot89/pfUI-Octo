@@ -103,4 +103,9 @@
   <Binding name="PFGEARNAKED">if pfUI and pfUI.gear then pfUI.gear.ToggleNaked() end</Binding>
   <Binding name="PFCONSUMENEXT" header="PFCONSUMES">if pfUI and pfUI.consumes then pfUI.consumes.UseNext() end</Binding>
   <Binding name="PFAUTOATTACK" header="PFAUTOATTACK">if pfUI and pfUI.autoattack then pfUI.autoattack.Toggle() end</Binding>
+  <Binding name="PFLAZYEFC" header="PFLAZY">if pfUI and pfUI.octolazy then pfUI.octolazy.Bind("efc") end</Binding>
+  <Binding name="PFLAZYDROP">if pfUI and pfUI.octolazy then pfUI.octolazy.Bind("drop") end</Binding>
+  <Binding name="PFLAZYDUEL">if pfUI and pfUI.octolazy then pfUI.octolazy.Bind("duel") end</Binding>
+  <Binding name="PFLAZYRELOAD">ReloadUI()</Binding>
+  <Binding name="PFLAZYLOGOUT">Logout()</Binding>
 </Bindings>

@@ -47,6 +47,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     { "Questing", { "Questing" } },
+    -- (16 Nov 2026, user: _LazyPig "call it octolazy in our tabs make it user friendly") octolazy-options.lua
+    { "OctoLazy", { "OctoLazy" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Nameplates", { "Nameplates" } },
@@ -82,14 +84,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
-    { "General", { "Settings", "Auctions", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
+    { "General", { "Settings", "Auctions", "Blizzard UI", "UI layouts", "Quality of Life", "Questing", "OctoLazy" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
     { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "DoT Tracker", "Gear", "Consumables", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["DoT Tracker"] = { "dots", "DoT Tracker" }, ["Auctions"] = { "auction", "The auction house" } }
+  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["DoT Tracker"] = { "dots", "DoT Tracker" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -104,6 +106,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Bags & Loot"] = "Bags, bank and loot rolls.",
     ["Quality of Life"] = "Small helpers in one place: vendor, loot, raid tools, screenshots and auto loot.",
     ["Questing"] = "pfQuest's map pins, tracker and database, and the quest helpers.",
+    ["OctoLazy"] = "Rolls by your rules, invites, summons, battlegrounds, NPCs and bags - done for you.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",

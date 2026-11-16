@@ -1287,3 +1287,28 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   Tests: tests\dots.lua. Unverified: GetUnitAuras taking a raw GUID, SuperWoW UnitResistance(guid, 0) / SetRaidTarget(guid),
   CreateMacro args; not ported: Expose Armor combo-point guessing, Dark Harvest / Conflagrate timer rules (ClassicAPI's
   timers make them moot when it runs).
+- OctoLazy (16 Nov 2026, NOT seen in game; NEW FILES = full client restart; user with _LazyPig: "copy it like for like
+  add more rules and make it ALOT better ... full control over what we want to need and what we want to greed or pass",
+  "call it octolazy in our tabs make it user friendly", "the dungeon option for example black morass should have full
+  control of the rep items"). _LazyPig has no licence: written fresh from its feature list. modules\octolazy.lua (module
+  "octolazy", pfUI.octolazy = LZ, frame pfOctoLazy; stands aside when _LazyPig is loaded, LZ.Other / LZ.aside).
+  Roll rules C.octolazy.rolllist = { { on, act = need|greed|pass|ask, where = any|raid|dungeon|instance|world,
+  zone = "A, B" (LZ.ZoneOk, part of a name), name, rule (librules text), items } }, first match wins (LZ.Decide);
+  each rep item its own default rule (ZG bijous, ZG coins, Black Morass sand, Necrotic Runes, AQ idols, shards).
+  needsafe (Need -> Greed when not Usable()), rollmax quality, rolldelay (LZ.pending), Shift at the roll = mine,
+  CONFIRM_LOOT_ROLL answered only for our rolls (LZ.mine), Ctrl+Alt rolls open greens (LZ.GreenKey), LZ.history.
+  librules gained Usable() (red tooltip line, scanner Color; roll items via SetLootRollItem when info.roll), Known(),
+  Upgrade() (R.SLOTS, ilvl with ClassicAPI else required level), Owned(n), Zone(), Instance(), InRaid(), InGroup(), Class().
+  Also: invites (guild / friends / anyone / decline others / not in BG), guild invites, summons + BG entry (now / wait /
+  late, LZ.WHEN), rez (instances or anywhere, not from someone in combat), duels (Shift bypass, friends allowed), BG
+  leave / release / queue at battle master / announce / shared-quest decline (UnitIsPlayer("npc")), flag carriers from
+  CHAT_MSG_BG_SYSTEM_* (LZ.efc / LZ.fc), gossip skip by kind (Ctrl = show menu, binder never) + own lines (gtext),
+  quests (off / Shift / always; done first, then new, last one per NPC repeated, reward by sell value), right-click to
+  trade / Blizzard mail (pfUI's mail window goes first), Shift+right-click split window pfOctoLazySplit (LZ.Split /
+  SplitTick, C_Container.MoveItem when there), chat (others' green/blue roll lines, junk loot, money, World muted by
+  place) via a ChatFrame_OnEvent wrapper, Salvation off (always / tank), camera distance, key combos, bindings PFLAZY*.
+  /lazy, /octolazy (/lp while _LazyPig is absent). Options octolazy-options.lua: section "OctoLazy" (after Questing),
+  tabs Loot rolls (lzrolls) / Groups / Battlegrounds / NPCs & quests / Bags, chat & more; a rule's "Matches" dropdown
+  fills its text rule (KINDS), "Only in" + "Add a dungeon" (LZ.ZONES). Tests: tests\octolazy.lua. Not taken: ".save"
+  (would be said aloud where the server lacks it), nameplate rules (pfUI's own). Unverified: CONFIRM_LOOT_ROLL /
+  LOOT_BIND_CONFIRM event names, GetLootRollItemID, IsEquippedItemType, Turtle zone names in LZ.ZONES.
