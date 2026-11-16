@@ -1252,3 +1252,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    Window: 960 wide, tabs Browse / Deals / Sell / My auctions / My bids / Ledger; UI.NewChart on the Sell tab (a bar
    per day seen, the usual price as a line); right-click a Browse / Deals row = the price line into chat.
    Still not built: disenchant values, auto-buy rules, a watchlist, net worth over time. Tests: tests\auction-ledger.lua.
+   Phase 4 (16 Nov 2026, NOT seen in game; user with Auctionator - All Rights Reserved, ideas only: "i like the shopping
+   lists ... ours is a bit plain ... PROFESSIONAL"). Name suggestions under the Browse box (AH.Names / AH.Complete from
+   pfDB items, seen-on-the-AH first; UI.Suggest / TakeSuggest / NamePart; Tab or arrows + Enter) - seen working in
+   game. Shopping lists: Store().lists = { { name, terms } }, AH.ListNew / ListAdd / ListExport ("Name^term^term") /
+   ListImport / SearchList (every term's queries in one queued search), AH.Group(rows) = one line an item (count up,
+   auctions, cheapest each); tab "Shopping" (UI.PaintShop): lists, the picked list's searches, folded results (click
+   one = UI.only on Browse); the Saved menu's "Add to list". Look: window 1000 x 610, rows 20 px with zebra, accent
+   column heads + rule, a Stack column (a list's first column with a 5th field: r.stack; "Have" for bags), time left
+   coloured (UI.Left), your own name green (UI.Seller), Role(button, go | buy | danger). Tooltip: "Cheapest today"
+   under "Auction:" when it differs from the usual price.

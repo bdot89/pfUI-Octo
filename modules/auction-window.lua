@@ -86,6 +86,31 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     t:SetText(text)
     return t
   end
+  -- (16 Nov 2026, user: "ours is a bit plain ... PROFESSIONAL") one colour language, as the options window's:
+  -- green = go, gold = costs gold, red = takes something away; time left red when nearly over
+  local ROLE = { go = { .16, .42, .22, .3, .75, .4 }, buy = { .45, .34, .08, .95, .75, .2 }, danger = { .42, .14, .12, .9, .35, .3 } }
+  local function Role(b, role)
+    local c = ROLE[role]
+    if not c then return b end
+    b.role = c
+    b:SetBackdropColor(c[1], c[2], c[3], 1)
+    b:SetBackdropBorderColor(c[4], c[5], c[6], 1)
+    b:SetScript("OnLeave", function() this:SetBackdropBorderColor(this.role[4], this.role[5], this.role[6], 1) GameTooltip:Hide() end)
+    local able = b.Able
+    b.Able = function(on)
+      able(on)
+      if on then b:SetBackdropColor(c[1], c[2], c[3], 1) else b:SetBackdropColor(.1, .1, .12, 1) end
+    end
+    return b
+  end
+  local LEFTCOL = { "|cffff5a4a", "|cffffa040", "|cffe8e8a0", "|cff9ad0a0" }
+  function UI.Left(left) return AH.LEFT[left] and ((LEFTCOL[left] or "") .. AH.LEFT[left] .. "|r") or "" end
+  local ME
+  function UI.Seller(name)
+    ME = ME or UnitName("player")
+    if not name then return "" end
+    return name == ME and ("|cff40e060" .. name .. "|r") or name
+  end
 
   -- a list: cols = { { title, width, justify, sortkey } }, draw(row, d) fills row.cell[i] / row.icon
   local function NewList(parent, cols, shown, draw, onPick)
@@ -102,7 +127,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       h:SetPoint("TOPLEFT", l, "TOPLEFT", x, -2)
       h.text = Text(h, 11, c[3])
       h.text:SetAllPoints(h)
-      h.text:SetTextColor(.62, .62, .67)
+      h.text:SetTextColor(Accent())
       h.text:SetText(c[1])
       h:SetScript("OnClick", function()
         if not cols[i][4] then return end
@@ -111,34 +136,65 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         l.Paint()
       end)
       l.heads[i] = h
+      if i == 1 and c[5] then
+        h:SetWidth(c[2] - 46)
+        local sh = CreateFrame("Button", nil, l)
+        sh:SetHeight(18)
+        sh:SetWidth(46)
+        sh:SetPoint("TOPLEFT", l, "TOPLEFT", x + c[2] - 46, -2)
+        sh.text = Text(sh, 11, "RIGHT")
+        sh.text:SetPoint("RIGHT", sh, "RIGHT", -4, 0)
+        sh.text:SetTextColor(Accent())
+        sh.text:SetText(c[5] == "total" and "Have" or "Stack")
+        sh:SetScript("OnClick", function()
+          if l.sortBy == cols[1][5] then l.desc = not l.desc else l.sortBy, l.desc = cols[1][5], true end
+          l.Sort()
+          l.Paint()
+        end)
+        l.stackHead = sh
+      end
       c.x = x
       x = x + c[2] + 6
     end
     for rr = 1, shown do
       local r = CreateFrame("Button", nil, l)
-      r:SetHeight(18)
-      r:SetPoint("TOPLEFT", l, "TOPLEFT", 2, -22 - (rr - 1) * 18)
+      r:SetHeight(20)
+      r:SetPoint("TOPLEFT", l, "TOPLEFT", 2, -24 - (rr - 1) * 20)
+      -- (every other row a shade lighter: easier to follow across the columns)
+      r.zebra = r:CreateTexture(nil, "BACKGROUND")
+      r.zebra:SetAllPoints(r)
+      r.zebra:SetTexture(1, 1, 1, .03)
+      if math.mod(rr, 2) == 1 then r.zebra:Hide() end
       r:SetPoint("RIGHT", l, "RIGHT", -2, 0)
       r:RegisterForClicks("LeftButtonUp", "RightButtonUp")
       r.hl = r:CreateTexture(nil, "BACKGROUND")
       r.hl:SetAllPoints(r)
-      r.hl:SetTexture(1, 1, 1, .07)
+      r.hl:SetTexture(1, 1, 1, .09)
       r.hl:Hide()
       r.pick = r:CreateTexture(nil, "BACKGROUND")
       r.pick:SetAllPoints(r)
       r.pick:Hide()
       r.icon = r:CreateTexture(nil, "ARTWORK")
-      r.icon:SetWidth(16)
-      r.icon:SetHeight(16)
+      r.icon:SetWidth(18)
+      r.icon:SetHeight(18)
       r.icon:SetPoint("LEFT", r, "LEFT", 4, 0)
       r.icon:SetTexCoord(.07, .93, .07, .93)
       r.cell = {}
       for i, c in ipairs(cols) do
         local t = Text(r, 12, c[3])
-        t:SetPoint("LEFT", r, "LEFT", c.x - 2 + (i == 1 and 20 or 0), 0)
-        t:SetWidth(c[2] - (i == 1 and 20 or 0))
-        t:SetHeight(18)
+        -- (the first column: the icon, the name, and - when it has a 5th field - the stack's size in a
+        -- column of its own at its right end; user, 16 Nov 2026: "x17 x2 looks awful")
+        local stack = (i == 1 and c[5]) and 46 or 0
+        t:SetPoint("LEFT", r, "LEFT", c.x - 2 + (i == 1 and 24 or 0), 0)
+        t:SetWidth(c[2] - (i == 1 and 24 or 0) - stack)
+        t:SetHeight(20)
         r.cell[i] = t
+        if stack > 0 then
+          r.stack = Text(r, 12, "RIGHT")
+          r.stack:SetPoint("RIGHT", r, "LEFT", c.x - 2 + c[2], 0)
+          r.stack:SetWidth(stack - 4)
+          r.stack:SetHeight(20)
+        end
       end
       r:SetScript("OnEnter", function()
         this.hl:Show()
@@ -165,7 +221,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       end)
       l.rows[rr] = r
     end
-    l:SetHeight(26 + shown * 18)
+    l:SetHeight(28 + shown * 20)
+    l.rule = l:CreateTexture(nil, "ARTWORK")
+    l.rule:SetHeight(1)
+    l.rule:SetPoint("TOPLEFT", l, "TOPLEFT", 4, -21)
+    l.rule:SetPoint("TOPRIGHT", l, "TOPRIGHT", -4, -21)
+    do local ar, ag, ab = Accent() l.rule:SetTexture(ar, ag, ab, .55) end
     l:EnableMouseWheel(true)
     l:SetScript("OnMouseWheel", function()
       local max = math.max(0, table.getn(l.data) - l.shown)
@@ -224,8 +285,16 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.icon:SetTexture(d.tex or "Interface\\Icons\\INV_Misc_QuestionMark")
     local cr, cg, cb = 1, 1, 1
     if d.quality and GetItemQualityColor then cr, cg, cb = GetItemQualityColor(d.quality) end
-    r.cell[1]:SetText(d.name .. ((count and count > 1) and ("  |cffffffffx" .. count .. "|r") or ""))
-    if d.color then r.cell[1]:SetText("|c" .. d.color .. d.name .. "|r" .. ((count and count > 1) and ("  x" .. count) or ""))
+    -- (the stack's size has its own column where the list has one; a single item shows a faint 1)
+    local tail = ""
+    if r.stack then
+      r.stack:SetText((count and count > 1) and tostring(count) or "|cff5a5a601|r")
+      r.stack:SetTextColor(1, 1, 1)
+    elseif count and count > 1 then
+      tail = "  |cffffffffx" .. count .. "|r"
+    end
+    r.cell[1]:SetText(d.name .. tail)
+    if d.color then r.cell[1]:SetText("|c" .. d.color .. d.name .. "|r" .. tail)
     elseif type(cr) == "number" then r.cell[1]:SetTextColor(cr, cg, cb) else r.cell[1]:SetTextColor(1, 1, 1) end
   end
 
@@ -233,8 +302,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
 
   local f = CreateFrame("Frame", "pfAuction", UIParent)
   UI.frame = f
-  f:SetWidth(960)
-  f:SetHeight(560)
+  f:SetWidth(1000)
+  f:SetHeight(610)
   f:SetPoint("LEFT", UIParent, "LEFT", 40, 30)
   f:SetFrameStrata("HIGH")
   f:SetToplevel(true)
@@ -261,7 +330,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   f.wash:SetTexture(WHITE)
   f.title = Text(f.bar, 15)
   f.title:SetPoint("LEFT", f.bar, "LEFT", 12, 0)
-  f.title:SetText("Auction House")
+  f.title:SetText("Auctions")
   f.money = Text(f.bar, 12, "RIGHT")
   f.close = Btn(f.bar, "X", 24, function() f:Hide() end, "Close the auction house (Esc).")
   f.close:SetPoint("RIGHT", f.bar, "RIGHT", -4, 0)
@@ -290,14 +359,14 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end
   AH.onNote = UI.Note
 
-  UI.TABS = { { "browse", "Browse" }, { "deals", "Deals" }, { "sell", "Sell" }, { "owner", "My auctions" }, { "bidder", "My bids" }, { "ledger", "Ledger" } }
+  UI.TABS = { { "browse", "Browse" }, { "shop", "Shopping" }, { "deals", "Deals" }, { "sell", "Sell" }, { "owner", "My auctions" }, { "bidder", "My bids" }, { "ledger", "Ledger" } }
   UI.pages, UI.tabBtn = {}, {}
-  local tx = 150
+  local tx = 112
   for _, t in ipairs(UI.TABS) do
     local key = t[1]
-    local b = Btn(f.bar, t[2], 86, function() UI.Open(key) end)
+    local b = Btn(f.bar, t[2], 80, function() UI.Open(key) end)
     b:SetPoint("LEFT", f.bar, "LEFT", tx, 0)
-    tx = tx + 90
+    tx = tx + 83
     UI.tabBtn[key] = b
     local p = CreateFrame("Frame", nil, f)
     p:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -40)
@@ -325,6 +394,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local list = AH.ParseQuery(text, { minLevel = tonumber(B.min:GetText()), maxLevel = tonumber(B.max:GetText()), quality = UI.q.quality,
       class = UI.q.class, usable = UI.q.usable or nil, exact = UI.q.exact or nil, first = first, maxUnit = AH.ParseMoney(B.maxp:GetText()) })
     UI.Recent(text)
+    UI.only = nil
     local q = table.remove(list, 1)
     AH.Search(q, function(s) UI.Status() end, function(why) UI.Status(why) end, list)
     UI.Status()
@@ -461,15 +531,15 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.usable:SetPoint("LEFT", B.class, "RIGHT", 6, 0)
   B.exact = Btn(B, "Exact", 54, function(b) UI.q.exact = not UI.q.exact b.Lit(UI.q.exact) end, "Only the item with exactly this name.")
   B.exact:SetPoint("LEFT", B.usable, "RIGHT", 6, 0)
-  B.go = Btn(B, "Search", 66, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop.")
+  B.go = Role(Btn(B, "Search", 66, function() if AH.Searching() then AH.Stop() else Search() end end, "Every page of the search. Click again to stop."), "go")
   B.go:SetPoint("LEFT", B.exact, "RIGHT", 6, 0)
-  B.list = NewList(B, { { "Item", 290, "LEFT", "name" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
+  B.list = NewList(B, { { "Item", 360, "LEFT", "name", "count" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
     { "Seller", 100, "LEFT", "owner" }, { "Bid each", 104, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
     { "Of usual", 60, "RIGHT" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
     r.cell[2]:SetText(d.level > 0 and d.level or "")
-    r.cell[3]:SetText(AH.LEFT[d.left] or "")
-    r.cell[4]:SetText(d.owner or "")
+    r.cell[3]:SetText(UI.Left(d.left))
+    r.cell[4]:SetText(UI.Seller(d.owner))
     r.cell[5]:SetText(AH.Money(d.bidunit) .. (d.high and " |cff40e060*|r" or ""))
     r.cell[6]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
     r.cell[7]:SetText(PctCell(d))
@@ -493,7 +563,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.status = Text(B, 11)
   B.status:SetPoint("TOPLEFT", B.list, "BOTTOMLEFT", 4, -8)
   B.status:SetTextColor(.62, .62, .67)
-  B.buy = Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go.")
+  B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go."), "buy")
   B.buy:SetPoint("TOPRIGHT", B.list, "BOTTOMRIGHT", 0, -4)
   B.bid = Btn(B, "Bid", 190, function() UI.Buy("bid") end, "Bid on the picked auction. Ctrl + click a row does it in one go.")
   B.bid:SetPoint("RIGHT", B.buy, "LEFT", -6, 0)
@@ -557,6 +627,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       for _, n in ipairs(st.saved) do table.insert(opts, { key = "s:" .. n, label = "|cffffd24d*|r " .. n }) end
     end
     for _, n in ipairs(st.recent or {}) do table.insert(opts, { key = "r:" .. n, label = n }) end
+    if text ~= "" then
+      for i, l in ipairs(AH.Lists()) do table.insert(opts, { key = "l:" .. i, label = "|cff6fb3ffAdd to list:|r " .. l.name }) end
+    end
     return opts
   end
   function UI.SearchPick(key)
@@ -572,6 +645,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       UI.Note("Pick the saved search to remove from the menu.")
       B.recent.fn(B.recent)
     else
+      if string.sub(key, 1, 2) == "l:" then
+        local i = tonumber(string.sub(key, 3))
+        local l = AH.Lists()[i or 0]
+        if l and AH.ListAdd(i, B.name:GetText()) then UI.Note("Added to \"" .. l.name .. "\".") end
+        return
+      end
       local text = string.sub(key, 3)
       if UI.forgetNext and string.sub(key, 1, 2) == "s:" then
         for i, n in ipairs(st.saved) do if n == text then table.remove(st.saved, i) break end end
@@ -608,7 +687,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   -- ---------------------------------------------------------------- Sell
 
   local P = UI.pages.sell
-  P.items = NewList(P, { { "In your bags", 250, "LEFT", "name" } }, 24, function(r, d)
+  P.items = NewList(P, { { "In your bags", 250, "LEFT", "name", "total" } }, 24, function(r, d)
     ItemCell(r, d, d.total)
   end, function(d) UI.PickSell(d) end)
   P.items:SetPoint("TOPLEFT", P, "TOPLEFT", 0, 0)
@@ -658,13 +737,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   P.sum = Text(P.box, 12)
   P.sum:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -212)
   P.sum:SetWidth(580)
-  P.post = Btn(P.box, "Post", 160, function() UI.Post() end)
+  P.post = Role(Btn(P.box, "Post", 160, function() UI.Post() end), "go")
   P.post:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -236)
-  P.rivals = NewList(P.box, { { "On the auction house now", 200, "LEFT", "name" }, { "Seller", 110, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
+  P.rivals = NewList(P.box, { { "On the auction house now", 250, "LEFT", "name", "count" }, { "Seller", 110, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
     { "Buyout each", 110, "RIGHT", "unit" } }, 10, function(r, d)
     ItemCell(r, d, d.count)
-    r.cell[2]:SetText(d.owner or "")
-    r.cell[3]:SetText(AH.LEFT[d.left] or "")
+    r.cell[2]:SetText(UI.Seller(d.owner))
+    r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
     if d.owner == UnitName("player") then r.cell[2]:SetTextColor(.4, .9, .5) else r.cell[2]:SetTextColor(.8, .8, .84) end
   end)
@@ -782,10 +861,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   -- ---------------------------------------------------------------- My auctions / My bids
 
   local O = UI.pages.owner
-  O.list = NewList(O, { { "Item", 270, "LEFT", "name" }, { "Time left", 86, "LEFT", "left" }, { "High bid", 104, "RIGHT", "bid" },
+  O.list = NewList(O, { { "Item", 330, "LEFT", "name", "count" }, { "Time left", 86, "LEFT", "left" }, { "High bid", 104, "RIGHT", "bid" },
     { "Buyout", 104, "RIGHT", "buyout" }, { "Each", 96, "RIGHT", "unit" }, { "Cheapest other", 130, "RIGHT", "other" } }, 23, function(r, d)
     ItemCell(r, d, d.count)
-    r.cell[2]:SetText(AH.LEFT[d.left] or "")
+    r.cell[2]:SetText(UI.Left(d.left))
     r.cell[3]:SetText(d.bid > 0 and AH.Money(d.bid) or "|cff808080no bid|r")
     r.cell[4]:SetText(d.buyout > 0 and AH.Money(d.buyout) or "|cff808080-|r")
     r.cell[5]:SetText(d.unit and AH.Money(d.unit) or "")
@@ -803,6 +882,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if AH.Cancel(d) then UI.Note("Cancelled " .. d.name .. ".") else UI.Note("That auction is gone.") end
   end, "Takes the picked auction down. You lose its deposit; an auction with a bid on it costs more.")
   O.cancel:SetPoint("TOPRIGHT", O.list, "BOTTOMRIGHT", 0, -4)
+  Role(O.cancel, "danger")
   O.sumText = Text(O, 11)
   O.sumText:SetPoint("TOPLEFT", O.list, "BOTTOMLEFT", 4, -8)
   O.sumText:SetTextColor(.62, .62, .67)
@@ -836,11 +916,11 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   O.check:SetPoint("RIGHT", O.cancel, "LEFT", -6, 0)
   UI.lists.owner = O.list
   local D = UI.pages.bidder
-  D.list = NewList(D, { { "Item", 300, "LEFT", "name" }, { "Time left", 90, "LEFT", "left" }, { "Seller", 110, "LEFT", "owner" },
+  D.list = NewList(D, { { "Item", 340, "LEFT", "name", "count" }, { "Time left", 90, "LEFT", "left" }, { "Seller", 110, "LEFT", "owner" },
     { "Bid now", 120, "RIGHT", "bid" }, { "Buyout", 120, "RIGHT", "buyout" }, { "", 60, "RIGHT" } }, 23, function(r, d)
     ItemCell(r, d, d.count)
-    r.cell[2]:SetText(AH.LEFT[d.left] or "")
-    r.cell[3]:SetText(d.owner or "")
+    r.cell[2]:SetText(UI.Left(d.left))
+    r.cell[3]:SetText(UI.Seller(d.owner))
     r.cell[4]:SetText(AH.Money(d.bid))
     r.cell[5]:SetText(d.buyout > 0 and AH.Money(d.buyout) or "|cff808080-|r")
     r.cell[6]:SetText(d.high and "|cff40e060yours|r" or "|cffff7060outbid|r")
@@ -848,11 +928,157 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end, function() UI.PaintBuy() end)
   D.list:SetPoint("TOPLEFT", D, "TOPLEFT", 0, 0)
   D.list:SetPoint("RIGHT", D, "RIGHT", 0, 0)
-  D.buy = Btn(D, "Buyout", 190, function() UI.Buy("buyout") end)
+  D.buy = Role(Btn(D, "Buyout", 190, function() UI.Buy("buyout") end), "buy")
   D.buy:SetPoint("TOPRIGHT", D.list, "BOTTOMRIGHT", 0, -4)
   D.bid = Btn(D, "Bid", 190, function() UI.Buy("bid") end, "Bid again on an auction you were outbid on.")
   D.bid:SetPoint("RIGHT", D.buy, "LEFT", -6, 0)
   UI.lists.bidder = D.list
+
+  -- ---------------------------------------------------------------- Shopping (16 Nov 2026)
+  -- your lists on the left, the picked list's searches under them, and on the right what a run of
+  -- the whole list found: one line an item - how many are up, the cheapest each (AH.Lists / AH.Group)
+
+  local H = UI.pages.shop
+  local function PlainCell(r, text, r1, g1, b1)
+    r.icon:SetTexture(nil)
+    r.cell[1]:SetText(text)
+    r.cell[1]:SetTextColor(r1 or 1, g1 or 1, b1 or 1)
+  end
+  H.lists = NewList(H, { { "Your lists", 204, "LEFT" } }, 8, function(r, d)
+    PlainCell(r, d.name .. "  |cff808088" .. table.getn(d.terms) .. "|r")
+  end, function(d) UI.shop = d.i UI.shopRan = nil UI.PaintShop() end)
+  H.lists:SetPoint("TOPLEFT", H, "TOPLEFT", 0, 0)
+  H.lists:SetWidth(224)
+  H.new = Edit(H, 224, function(e)
+    local _, i = AH.ListNew(e:GetText())
+    if i then UI.shop = i e:SetText("") UI.PaintShop() end
+  end, "New list: its name, then Enter")
+  H.new:SetPoint("TOPLEFT", H.lists, "BOTTOMLEFT", 0, -4)
+  H.del = Role(Btn(H, "Delete list", 108, function()
+    local lists = AH.Lists()
+    local l = lists[UI.shop or 0]
+    if not l then return end
+    if UI.sureDel == l and GetTime() < (UI.sureAt or 0) then
+      table.remove(lists, UI.shop)
+      UI.shop, UI.sureDel = 1, nil
+      UI.PaintShop()
+    else
+      UI.sureDel, UI.sureAt = l, GetTime() + 3
+      UI.Note("Click Delete list again to delete \"" .. l.name .. "\".")
+    end
+  end, "Click twice: the picked list and its searches go."), "danger")
+  H.del:SetPoint("TOPLEFT", H.new, "BOTTOMLEFT", 0, -4)
+  H.exp = Btn(H, "Export", 108, function()
+    local text = AH.ListExport(UI.shop or 0)
+    if text == "" then return end
+    local lc = pfUI.api and pfUI.api.libclient
+    if lc and lc.Copy and lc.Copy(text) then UI.Note("The list is on the clipboard: paste it to a friend.") return end
+    H.imp:SetText(text)
+    H.imp:SetFocus()
+    H.imp:HighlightText()
+    UI.Note("The list is in the box at the bottom, marked: Ctrl + C copies it.")
+  end, "The picked list as one line of text, to give to someone (they paste it into the box at the bottom).")
+  H.exp:SetPoint("LEFT", H.del, "RIGHT", 8, 0)
+  H.terms = NewList(H, { { "Searches in this list", 204, "LEFT" } }, 7, function(r, d)
+    PlainCell(r, d.text)
+  end, function() UI.PaintShop(true) end)
+  H.terms:SetPoint("TOPLEFT", H.del, "BOTTOMLEFT", 0, -8)
+  H.terms:SetWidth(224)
+  H.add = Edit(H, 224, function(e)
+    if AH.ListAdd(UI.shop or 0, e:GetText()) then e:SetText("") UI.PaintShop() end
+  end, "Add: an item or search, then Enter")
+  H.add:SetPoint("TOPLEFT", H.terms, "BOTTOMLEFT", 0, -4)
+  H.rem = Btn(H, "Remove search", 108, function()
+    local l = AH.Lists()[UI.shop or 0]
+    local d = H.terms.sel
+    if not l or not d then return end
+    table.remove(l.terms, d.i)
+    H.terms.sel = nil
+    UI.PaintShop()
+  end, "Takes the picked search off the list.")
+  H.rem:SetPoint("TOPLEFT", H.add, "BOTTOMLEFT", 0, -4)
+  H.one = Btn(H, "Search it", 108, function()
+    local d = H.terms.sel
+    if not d then return end
+    B.name:SetText(d.text)
+    UI.Open("browse")
+    Search()
+  end, "Runs only the picked search, on the Browse tab.")
+  H.one:SetPoint("LEFT", H.rem, "RIGHT", 8, 0)
+  H.imp = Edit(H, 224, function(e)
+    local l, i = AH.ListImport(e:GetText())
+    if l then UI.shop = i e:SetText("") UI.Note("List \"" .. l.name .. "\" added.") UI.PaintShop()
+    else UI.Note("That is not a list (Name^search^search).") end
+  end, "Paste a list here, then Enter")
+  H.imp:SetPoint("TOPLEFT", H.rem, "BOTTOMLEFT", 0, -6)
+  H.run = Role(Btn(H, "Search the whole list", 190, function()
+    if AH.Searching() then AH.Stop() return end
+    UI.shopRan = true
+    if not AH.SearchList(UI.shop or 0, function() UI.PaintShop() end, function(why)
+      UI.Note(table.getn(AH.Group()) .. " different items found" .. ((why and why ~= "done") and (" (" .. why .. ")") or "") .. ".")
+      UI.PaintShop()
+    end) then UI.Note("This list has no searches yet: add one on the left.") UI.shopRan = nil end
+    UI.PaintShop()
+  end, "Every search of the picked list, one after the other."), "go")
+  H.run:SetPoint("TOPLEFT", H, "TOPLEFT", 236, 0)
+  H.status = Text(H, 11)
+  H.status:SetPoint("LEFT", H.run, "RIGHT", 12, 0)
+  H.status:SetTextColor(.62, .62, .67)
+  H.found = NewList(H, { { "Item", 310, "LEFT", "name" }, { "Up for sale", 90, "RIGHT", "count" }, { "Auctions", 70, "RIGHT", "auctions" },
+    { "Cheapest each", 120, "RIGHT", "low" }, { "Of usual", 70, "RIGHT" } }, 22, function(r, d)
+    ItemCell(r, d)
+    r.cell[2]:SetText(d.count)
+    r.cell[3]:SetText(d.auctions)
+    r.cell[4]:SetText(d.low and AH.Money(d.low) or "|cff808080no buyout|r")
+    local v = d.low and AH.Value(d.key)
+    if v and v > 0 then
+      local p = d.low / v * 100
+      r.cell[5]:SetText(((p <= 80 and "|cff40e060") or (p <= 120 and "|cffffffff") or "|cffff7060") .. math.floor(p + .5) .. "%|r")
+    else
+      r.cell[5]:SetText("")
+    end
+    for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
+  end, function(d, button)
+    if button == "RightButton" then UI.PriceLine(d) return end
+    -- its auctions, cheapest first, on the Browse tab (they are already loaded: no new search)
+    UI.only = d.key
+    UI.Open("browse")
+  end)
+  H.found:SetPoint("TOPLEFT", H, "TOPLEFT", 236, -28)
+  H.found:SetPoint("RIGHT", H, "RIGHT", 0, 0)
+  H.found.sortBy = "name"
+  UI.lists.shop = H.found
+  function UI.PaintShop(keepTerm)
+    local lists = AH.Lists()
+    if not UI.shop or not lists[UI.shop] then UI.shop = lists[1] and 1 or nil end
+    local rows = {}
+    for i, l in ipairs(lists) do l.i = i table.insert(rows, l) end
+    H.lists.Set(rows, true)
+    H.lists.sel = UI.shop and lists[UI.shop] or nil
+    H.lists.Paint()
+    local l = UI.shop and lists[UI.shop]
+    local terms = {}
+    for i, t in ipairs(l and l.terms or {}) do table.insert(terms, { i = i, text = t, name = t }) end
+    local was = keepTerm and H.terms.sel and H.terms.sel.i
+    H.terms.Set(terms, true)
+    if was then for _, t in ipairs(terms) do if t.i == was then H.terms.sel = t end end H.terms.Paint() end
+    H.rem.Able(H.terms.sel ~= nil)
+    H.one.Able(H.terms.sel ~= nil)
+    H.del.Able(l ~= nil)
+    H.exp.Able(l ~= nil and table.getn(l.terms) > 0)
+    H.found.Set(UI.shopRan and AH.Group() or {}, true)
+    local s = AH.scan
+    if s then
+      local more = s.queue and table.getn(s.queue) or 0
+      H.status:SetText("Searching \"" .. tostring(s.q.name or "") .. "\": page " .. (s.page + 1) .. (s.pages > 0 and (" of " .. s.pages) or "")
+        .. (more > 0 and ("   " .. more .. " more searches") or ""))
+      H.run.text:SetText("Stop")
+    else
+      H.status:SetText(UI.shopRan and (table.getn(H.found.data) .. " different items. Click one to see its auctions.") or
+        (l and ("\"" .. l.name .. "\": " .. table.getn(l.terms) .. " searches") or "Make a list on the left."))
+      H.run.text:SetText("Search the whole list")
+    end
+  end
 
   -- ---------------------------------------------------------------- Deals (phase 3)
   -- auctions well under their item's usual price, the most profit first (AH.ledger.DealFilter)
@@ -889,12 +1115,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end, "Goes through the whole auction house and lists what is up for well under its usual price. "
     .. "Only items whose price has been seen on several days count, so run \"Read every auction\" on a few days first.")
   K.go:SetPoint("LEFT", kl4, "RIGHT", 12, 0)
-  K.list = NewList(K, { { "Item", 270, "LEFT", "name" }, { "Seller", 100, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
+  Role(K.go, "go")
+  K.list = NewList(K, { { "Item", 330, "LEFT", "name", "count" }, { "Seller", 100, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
     { "Buyout each", 100, "RIGHT", "unit" }, { "Usual", 100, "RIGHT", "value" }, { "Of usual", 62, "RIGHT", "share" },
     { "Profit a stack", 120, "RIGHT", "profit" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
-    r.cell[2]:SetText(d.owner or "")
-    r.cell[3]:SetText(AH.LEFT[d.left] or "")
+    r.cell[2]:SetText(UI.Seller(d.owner))
+    r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "")
     r.cell[5]:SetText(d.value and AH.Money(d.value) or "")
     r.cell[6]:SetText(d.share and ("|cff40e060" .. math.floor(d.share * 100 + .5) .. "%|r") or "")
@@ -910,7 +1137,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   K.status = Text(K, 11)
   K.status:SetPoint("TOPLEFT", K.list, "BOTTOMLEFT", 4, -8)
   K.status:SetTextColor(.62, .62, .67)
-  K.buy = Btn(K, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go.")
+  K.buy = Role(Btn(K, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go."), "buy")
   K.buy:SetPoint("TOPRIGHT", K.list, "BOTTOMRIGHT", 0, -4)
   K.bid = Btn(K, "Bid", 190, function() UI.Buy("bid") end)
   K.bid:SetPoint("RIGHT", K.buy, "LEFT", -6, 0)
@@ -1057,7 +1284,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   function UI.Refresh(event)
     if not f:IsShown() then return end
     if UI.tab == "browse" then
-      B.list.Set(AH.rows, true)
+      -- (from the Shopping tab: only the clicked item's auctions, until the next search)
+      local rows = AH.rows
+      if UI.only then
+        rows = {}
+        for _, r in ipairs(AH.rows) do if r.key == UI.only then table.insert(rows, r) end end
+      end
+      B.list.Set(rows, true)
       UI.Status()
       UI.PaintBuy()
     elseif UI.tab == "sell" then
@@ -1088,6 +1321,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     elseif UI.tab == "bidder" then
       D.list.Set(AH.Bids(), true)
       UI.PaintBuy()
+    elseif UI.tab == "shop" then
+      UI.PaintShop(true)
     elseif UI.tab == "deals" then
       UI.PaintDeals()
     elseif UI.tab == "ledger" then

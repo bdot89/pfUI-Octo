@@ -260,6 +260,79 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     end
     return out
   end
+  -- Shopping lists (16 Nov 2026; user, of Auctionator - All Rights Reserved, the idea only: "i like the
+  -- shopping lists"): named lists of searches (the search box's own words work in each), run in one go;
+  -- the results fold into one line an item: cheapest each and how many are up.
+  function AH.Lists()
+    local st = AH.Store()
+    if type(st.lists) ~= "table" then st.lists = { { name = "Shopping list", terms = {} } } end
+    return st.lists
+  end
+  function AH.ListNew(name)
+    name = Trim(name)
+    if name == "" then return nil end
+    local l = { name = name, terms = {} }
+    table.insert(AH.Lists(), l)
+    return l, table.getn(AH.Lists())
+  end
+  function AH.ListAdd(i, term)
+    local l = AH.Lists()[i]
+    term = Trim(term)
+    if not l or term == "" then return false end
+    for _, t in ipairs(l.terms) do if string.lower(t) == string.lower(term) then return false end end
+    table.insert(l.terms, term)
+    return true
+  end
+  -- "Name^term^term": a list as one line of text, to hand to someone
+  function AH.ListExport(i)
+    local l = AH.Lists()[i]
+    if not l then return "" end
+    local out = l.name
+    for _, t in ipairs(l.terms) do out = out .. "^" .. t end
+    return out
+  end
+  function AH.ListImport(text)
+    local parts = {}
+    for p in string.gfind((text or "") .. "^", "(.-)%^") do
+      p = Trim(p)
+      if p ~= "" then table.insert(parts, p) end
+    end
+    if table.getn(parts) < 2 then return nil end
+    local l, i = AH.ListNew(parts[1])
+    if not l then return nil end
+    for n = 2, table.getn(parts) do AH.ListAdd(i, parts[n]) end
+    return l, i
+  end
+  -- every search of a list, one after the other, into one result
+  function AH.SearchList(i, onPage, onDone)
+    local l = AH.Lists()[i]
+    if not l or table.getn(l.terms) == 0 then return false end
+    local all = {}
+    for _, term in ipairs(l.terms) do
+      for _, q in ipairs(AH.ParseQuery(term)) do table.insert(all, q) end
+    end
+    local first = table.remove(all, 1)
+    AH.Search(first, onPage, onDone, all)
+    return true
+  end
+  -- the rows folded by item: { key, name, tex, quality, link, low (cheapest buyout each), count (how many
+  -- are up in all), auctions }
+  function AH.Group(rows)
+    local by, list = {}, {}
+    for _, r in ipairs(rows or AH.rows) do
+      local k = r.key or r.name
+      local g = by[k]
+      if not g then
+        g = { key = r.key, name = r.name, tex = r.tex, quality = r.quality, link = r.link, count = 0, auctions = 0 }
+        by[k] = g
+        table.insert(list, g)
+      end
+      g.count, g.auctions = g.count + r.count, g.auctions + 1
+      if r.unit and (not g.low or r.unit < g.low) then g.low = r.unit end
+    end
+    table.sort(list, function(a, b) return a.name < b.name end)
+    return list
+  end
   -- vendor price each (pfUI's own table), and about what posting costs: 5% of it per 2 hours
   function AH.Vendor(key)
     local _, _, id = string.find(key or "", "^(%d+)")
@@ -633,6 +706,15 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       local left, right = AH.TooltipLine(link, libtooltip.GetItemCount and libtooltip:GetItemCount())
       if left then
         GameTooltip:AddDoubleLine(left, right, .6, .8, 1, 1, 1, 1)
+        -- (today's cheapest, when it differs from the usual price: green = cheap today, red = dear)
+        local key = AH.ItemKey(link)
+        local r = AH.Store().h[key]
+        local value = AH.Value(key)
+        if r and value and r.day == AH.Day() and r.min ~= value then
+          local cheap = r.min < value
+          GameTooltip:AddDoubleLine("Cheapest today:", AH.Money(r.min) .. (cheap and "  |cff40e060" or "  |cffff7060")
+            .. math.floor(r.min / value * 100 + .5) .. "%|r", .6, .8, 1, 1, 1, 1)
+        end
         GameTooltip:Show()
       end
     end)

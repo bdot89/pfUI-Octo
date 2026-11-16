@@ -196,3 +196,56 @@ do
   _G.pfDB = dbWas
   pfUI_cache.auction = cacheWas2
 end
+
+-- shopping lists, the folded results, the stack column (16 Nov 2026)
+do
+  local AH = pfUI.auction
+  local cacheWas3 = pfUI_cache.auction
+  pfUI_cache.auction = nil
+  local lists = AH.Lists()
+  ok(table.getn(lists) == 1 and lists[1].name == "Shopping list", "one empty shopping list to start with")
+  local l, i = AH.ListNew("  Alchemy ")
+  ok(l and i == 2 and l.name == "Alchemy" and AH.ListNew("  ") == nil, "a new list by name")
+  ok(AH.ListAdd(2, "Deviate Scale/exact") and AH.ListAdd(2, "briarthorn/max 5s") and AH.ListAdd(2, "DEVIATE scale/exact") == false and AH.ListAdd(2, " ") == false,
+    "searches added once each")
+  local text = AH.ListExport(2)
+  ok(text == "Alchemy^Deviate Scale/exact^briarthorn/max 5s" and not string.find(text, "|", 1, true), "a list as one line of text (" .. text .. ")")
+  local l2, i2 = AH.ListImport("Tailoring ^ Linen Cloth/exact^Wool Cloth")
+  ok(l2 and i2 == 3 and l2.name == "Tailoring" and table.getn(l2.terms) == 2 and l2.terms[2] == "Wool Cloth" and AH.ListImport("just a name") == nil, "and read back in")
+  local got
+  local realSearch = AH.Search
+  AH.Search = function(q, a, b, queue) got = { q, queue } end
+  ok(AH.SearchList(2) == true and got[1].name == "Deviate Scale" and got[1].exact and got[2][1].name == "briarthorn" and got[2][1].maxUnit == 500,
+    "a list runs all its searches in a row")
+  ok(AH.SearchList(1) == false, "an empty list does not search")
+  AH.Search = realSearch
+  local groups = AH.Group({
+    { key = "1", name = "Deviate Scale", count = 2, unit = 500, tex = "t" }, { key = "1", name = "Deviate Scale", count = 17, unit = 824 },
+    { key = "1", name = "Deviate Scale", count = 1 }, { key = "2", name = "Briarthorn", count = 20, unit = 90 } })
+  ok(table.getn(groups) == 2 and groups[1].name == "Briarthorn" and groups[2].count == 20 and groups[2].auctions == 3 and groups[2].low == 500,
+    "results fold into one line an item: 20 Deviate Scale in 3 auctions, cheapest 5s")
+  local UI = AH.ui
+  local good, err = pcall(function()
+    AH.Show()
+    UI.Open("shop")
+    UI.shop, UI.shopRan = 2, true
+    AH.rows = { { key = "1", name = "Deviate Scale", count = 2, unit = 500, tex = "t", quality = 1, level = 0, left = 4, owner = "Teff", buyout = 1000, bid = 0,
+      minBid = 900, next = 900, bidunit = 450, kind = "list", page = 0, index = 1 } }
+    UI.PaintShop()
+  end)
+  ok(good and UI.lists.shop and table.getn(UI.lists.shop.data) == 1 and table.getn(UI.pages.shop.terms.data) == 2, "the Shopping tab draws its lists, searches and folded results " .. tostring(err or ""))
+  local bl = UI.lists.browse
+  UI.only = "nothing"
+  UI.Open("browse")
+  ok(table.getn(bl.data) == 0, "an item clicked on the Shopping tab shows only its auctions on Browse")
+  UI.only = nil
+  UI.Open("browse")
+  ok(table.getn(bl.data) == 1 and bl.rows[1].stack and bl.rows[1].stack:GetText() == "2" and bl.rows[1].cell[1]:GetText() == "Deviate Scale",
+    "the stack's size has its own column; the name stands alone (" .. tostring(bl.rows[1].cell[1]:GetText()) .. ")")
+  ok(string.find(UI.Left(1), "under 30 min", 1, true) and string.find(UI.Left(1), "|cffff5a4a", 1, true) and UI.Left(9) == "", "time left is coloured, red when nearly over")
+  ok(UI.Seller("Me") ~= "Me" and UI.Seller("Teff") == "Teff" and UI.Seller(nil) == "", "your own name stands out in the seller column")
+  AH.rows = {}
+  AH.open = false
+  getglobal("pfAuction"):Hide()
+  pfUI_cache.auction = cacheWas3
+end
