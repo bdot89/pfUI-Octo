@@ -35,6 +35,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- items"): most used first within each sidebar heading
   O.NAV = {
     { "Settings", { "Settings" } },
+    -- (16 Nov 2026, user: Auctions "mixed in the middle ... at the top under settings")
+    { "Auctions", { "Auctions" } },
     { "UI layouts", { "UI layouts" } },
     { "Blizzard UI", { "Blizzard UI" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
@@ -57,8 +59,6 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Gear", { "Gear" } },
     -- (11 Nov 2026, Wolfahrt on Discord: track consumes by character) consumes-options.lua
     { "Consumables", { "Consumables" } },
-    -- (15 Nov 2026, user: our own auction house, "add a section on the side for auctions") auction-options.lua
-    { "Auctions", { "Auctions" } },
     { "Meters", { "Meters" } },
     { "Combat Text", { "Combat Text" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
@@ -78,9 +78,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
-    { "General", { "Settings", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
+    { "General", { "Settings", "Auctions", "Blizzard UI", "UI layouts", "Quality of Life", "Questing" } },
     { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Auctions", "Tooltip" } },
+    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "Gear", "Consumables", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- the power dot beside a section: its parts pfUI Octo's (green) or the

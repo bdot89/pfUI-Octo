@@ -3806,14 +3806,14 @@ do
     pfUI.gui:Show()
     local sec
     for _, s in ipairs(O.octo) do if s[1] == "Nameplates" then sec = s end end
-    ok(sec and table.getn(sec[2]) == 8, "Nameplates section with its eight pages")
+    ok(sec and table.getn(sec[2]) == 9, "Nameplates section with its nine pages")
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
     -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it;
     -- (9 Nov 2026) Questing after it
     -- (11 Nov 2026) Consumables after Gear
-    ok(heads[1] == "Settings" and heads[2] == "UI layouts" and heads[3] == "Blizzard UI" and heads[4] == "Quality of Life" and heads[5] == "Questing" and heads[6] == "Unit Frames" and heads[8] == "Nameplates" and heads[11] == "Art & Extras" and heads[12] == "CoolDownManager" and heads[13] == "Gear" and heads[14] == "Consumables" and heads[15] == "Auctions" and heads[16] == "Meters" and heads[17] == "Combat Text" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "Settings" and heads[2] == "Auctions" and heads[3] == "UI layouts" and heads[4] == "Blizzard UI" and heads[5] == "Quality of Life" and heads[6] == "Questing" and heads[7] == "Unit Frames" and heads[9] == "Nameplates" and heads[12] == "Art & Extras" and heads[13] == "CoolDownManager" and heads[14] == "Gear" and heads[15] == "Consumables" and heads[16] == "Meters" and heads[17] == "Combat Text" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do

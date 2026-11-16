@@ -1730,13 +1730,91 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     plate.calmAt = now + 1 / fps
   end
 
+  -- Battleground filters (16 Nov 2026, user: "Enemy name plates only / Ignore enemy pet nameplates /
+  -- only show enemy nameplates ignore all NPCs ... give us everything possible"). C.plates.bg_*: where
+  -- (bg / arena / everywhere else), what to hide (enemy NPCs, pets, totems; friendly players, NPCs, pets;
+  -- neutral), what always stays (target, casting, raid mark). Enemy players are never hidden. Kind from the
+  -- game bar's colour (red enemy, green friendly NPC, blue friendly player, yellow neutral); player from
+  -- pfUI's cache (UnitIsPlayer while targeted / moused over, or SuperWoW's GUID) or pfUI_playerDB; pet =
+  -- SuperWoW GUID controlled by a player (without SuperWoW pets count as NPCs). Hidden = alpha 0 and no
+  -- clicks (bg_nameonly: only the bar goes).
+  function P.FilterKind(plate)
+    local hb = plate.original and plate.original.healthbar
+    if not hb then return end
+    local r, g, b = hb:GetStatusBarColor()
+    r, g, b = r or 0, g or 0, b or 0
+    local guid = superwow_active and plate.parent and plate.parent.GetName and plate.parent:GetName(1)
+    if guid == "" then guid = nil end
+    local name = plate.cache and plate.cache.name or (plate.name and plate.name:GetText()) or ""
+    local isPlayer = (plate.cache and plate.cache.player == "PLAYER")
+      or (guid and UnitIsPlayer(guid))
+      or (pfUI_playerDB and pfUI_playerDB[name] and pfUI_playerDB[name].class and true)
+    local isPet = not isPlayer and guid and UnitPlayerControlled and UnitPlayerControlled(guid)
+    local isTotem
+    if not isPlayer and L and L["totems"] then
+      for totem in pairs(L["totems"]) do
+        if string.find(name, totem, 1, true) then isTotem = true break end
+      end
+    end
+    local side
+    if r > .9 and g > .9 and b < .2 then side = "neutral"
+    elseif r > .9 and g < .2 and b < .2 then side = "enemy"
+    elseif b > .9 and r < .2 and g < .2 then side = "friend" isPlayer = true
+    elseif g > .9 and r < .2 and b < .2 then side = "friend"
+    else side = "enemy" end
+    if side == "enemy" then
+      if isPlayer then return "enemyplayer" end
+      if isTotem then return "enemytotem" end
+      if isPet then return "enemypet" end
+      return "enemynpc"
+    elseif side == "friend" then
+      if isPlayer then return "friendplayer" end
+      if isPet then return "friendpet" end
+      return "friendnpc"
+    end
+    return "neutral"
+  end
+  function P.FilterOn()
+    if S.bg_on ~= "1" then return false end
+    local z = pfUI.context and pfUI.context.Zone and pfUI.context.Zone() or "world"
+    if z == "bg" then return S.bg_bg == "1" end
+    if z == "arena" then return S.bg_arena == "1" end
+    return S.bg_world == "1"
+  end
+  function P.Filtered(plate)
+    if not plate or (plate.parent and plate.parent.preview) or not P.FilterOn() then return false end
+    if S.bg_keeptarget == "1" and plate.istarget then return false end
+    if S.bg_keepmark == "1" and plate.raidicon and plate.raidicon:IsShown() then return false end
+    if S.bg_keepcasting == "1" and plate.castbar and plate.castbar:IsShown() then return false end
+    local kind = P.FilterKind(plate)
+    if not kind or kind == "enemyplayer" then return false end
+    return S["bg_" .. kind] == "1"
+  end
+  function P.ApplyFilter(parent, plate)
+    if not plate then return end
+    local hide = P.Filtered(plate)
+    if hide then
+      if S.bg_nameonly == "1" then
+        if plate.health then plate.health:Hide() end
+      else
+        plate:SetAlpha(0)
+        if parent.EnableMouse then parent:EnableMouse(false) end
+      end
+      plate.octoFiltered = true
+    elseif plate.octoFiltered then
+      plate.octoFiltered = nil
+      if parent.EnableMouse then parent:EnableMouse(true) end
+      if plate:GetAlpha() == 0 then plate:SetAlpha(1) end
+    end
+  end
+
   local OnUpdate = NP.OnUpdate
   NP.OnUpdate = function(frame)
     local parent = frame or this
     local plate = parent and parent.nameplate
     if plate and P.Calm(parent, plate) then return end
     OnUpdate(frame)
-    if parent then P.Tick(parent.nameplate) end
+    if parent then P.Tick(parent.nameplate) P.ApplyFilter(parent, parent.nameplate) end
   end
 
   local UpdateConfig = NP.UpdateConfig

@@ -921,7 +921,38 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     end
   end
 
+  -- (16 Nov 2026, user: battleground nameplate options "easy to find ... give us everything possible")
+  BUILD.npbg = function(p)
+    W.Heading(p, "Battlegrounds", { about = "Fewer nameplates where it matters: in battlegrounds (and arenas) "
+      .. "only the enemy players you fight. Enemy players always keep their plates." })
+    W.Card(p, "Where", { icon = "INV_BannerPVP_02" })
+    Chk(p, "Filter nameplates", "The switch for everything on this page.", S, "bg_on")
+    Chk(p, "In battlegrounds", "Warsong Gulch, Arathi Basin, Alterac Valley and the server's own.", S, "bg_bg")
+    Chk(p, "In arenas", nil, S, "bg_arena")
+    Chk(p, "Everywhere else too", "World PvP, dungeons, raids and the open world.", S, "bg_world")
+    W.Live(p, function()
+      local z = pfUI.context and pfUI.context.Zone and pfUI.context.Zone() or "world"
+      local PL = pfUI.plates
+      local on = PL and PL.FilterOn and PL.FilterOn()
+      return "You are in: |cffffffff" .. z .. "|r - filters " .. (on and "|cff55ff55on here|r" or "|cff999999off here|r")
+    end)
+    W.Card(p, "Hide these", { icon = "Ability_Hunter_BeastCall" })
+    Chk(p, "Enemy NPCs", "Guards, bosses, elementals, the battleground's own NPCs. Only enemy players stay.", S, "bg_enemynpc")
+    Chk(p, "Enemy pets", "Hunter and warlock pets, summons and guardians (needs SuperWoW to tell them from NPCs).", S, "bg_enemypet")
+    Chk(p, "Enemy totems", "Shaman totems (pfUI's totem icons go too).", S, "bg_enemytotem")
+    Chk(p, "Friendly players", "Your own team's plates.", S, "bg_friendplayer")
+    Chk(p, "Friendly NPCs", "Your side's guards and NPCs.", S, "bg_friendnpc")
+    Chk(p, "Friendly pets", "Your team's pets and summons.", S, "bg_friendpet")
+    Chk(p, "Neutral and critters", "Yellow mobs and critters.", S, "bg_neutral")
+    W.Card(p, "Always keep", { icon = "Ability_Hunter_SniperShot" })
+    Chk(p, "Your target", "A hidden kind still shows when you target it.", S, "bg_keeptarget")
+    Chk(p, "Raid marked", "Anything with a raid mark on it.", S, "bg_keepmark")
+    Chk(p, "Casting", "Anything casting a spell.", S, "bg_keepcasting")
+    W.Card(p, "How they go", { icon = "Spell_Shadow_DetectLesserInvisibility" })
+    Chk(p, "Name only, no bar", "Hidden plates keep their name (and stay clickable) instead of vanishing.", S, "bg_nameonly")
+  end
   O:AddPage("Nameplates", "npgeneral", "General", BUILD.npgeneral)
+  O:AddPage("Nameplates", "npbg", "Battlegrounds", BUILD.npbg)
   O:AddPage("Nameplates", "nplook", "Look and size", BUILD.nplook)
   O:AddPage("Nameplates", "npthreat", "Threat and colours", BUILD.npthreat)
   O:AddPage("Nameplates", "nptarget", "Target, range and execute", BUILD.nptarget)

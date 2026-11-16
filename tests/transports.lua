@@ -140,3 +140,26 @@ if MM and MM.SteadyOrder then
   ok(o[1].name == "B", "threat: a clear lead moves up")
   MM.threatOrder = {}
 end
+
+-- battleground nameplate filters (plates.lua P.Filtered)
+local PL = pfUI.plates
+if PL and PL.Filtered then
+  local function Plate(r, g, b, name, player)
+    local col = { r, g, b }
+    return { original = { healthbar = { GetStatusBarColor = function() return col[1], col[2], col[3] end } },
+      cache = { name = name, player = player }, parent = {} }
+  end
+  local oldZone = pfUI.context.Zone
+  pfUI.context.Zone = function() return "bg" end
+  ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == true, "bg: enemy NPC hidden")
+  ok(PL.Filtered(Plate(1, 0, 0, "Bob", "PLAYER")) == false, "bg: enemy player kept")
+  ok(PL.Filtered(Plate(0, 0, 1, "Ally")) == false, "bg: friendly players kept by default")
+  ok(PL.Filtered(Plate(0, 1, 0, "Herald")) == true, "bg: friendly NPC hidden")
+  local tp = Plate(1, 0, 0, "Guard", "NPC") tp.istarget = true
+  ok(PL.Filtered(tp) == false, "bg: your target is kept")
+  pfUI.context.Zone = function() return "world" end
+  ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == false, "world: no filtering by default")
+  pfUI.context.Zone = oldZone
+  local O2 = pfUI.octoui and pfUI.octoui.Options
+  ok(O2 and O2.BUILD and O2.BUILD.npbg, "Battlegrounds nameplate page registered")
+end
