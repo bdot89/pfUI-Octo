@@ -4674,6 +4674,21 @@ do
       a, _, _, x, y = ChatFrame1:GetPoint(1)
       ok(a == "BOTTOMLEFT" and x == 32 and y == 95 and ChatFrame1.pfOnPanel == nil,
         "Blizzard chat from pfUI's panel: the main window goes to the game's own spot")
+      -- (16 Nov 2026, Barbeque's screenshot: "General" left of the window, under the other tabs) the first tab
+      -- goes on the game's own anchor and its text inside it, whatever spot pfUI had given them
+      local tab, text = _G.ChatFrame1Tab, _G.ChatFrame1TabText
+      if tab and text and _G.ChatFrame1TabLeft and _G.ChatFrame1TabRight then
+        local keepPos, placed = rawget(_G, "FCF_SetTabPosition"), nil
+        placed = {}
+        _G.FCF_SetTabPosition = function(f, x) placed[f] = x end
+        tab:ClearAllPoints() tab:SetPoint("CENTER", UIParent, "CENTER", -500, -300)
+        text:ClearAllPoints() text:SetPoint("BOTTOM", tab, "BOTTOM", 0, 3)
+        BZ.Set("chat", "blizz")
+        local tp, rel = text:GetPoint(1)
+        ok(placed[ChatFrame1] == 0, "Blizzard chat: the General tab back on the game's own place")
+        ok(tp == "LEFT" and rel == _G.ChatFrame1TabLeft, "and its name inside the tab (" .. tostring(tp) .. ")")
+        _G.FCF_SetTabPosition = keepPos
+      end
       BZ.Set("chat", "octo")
       ok(pfUI.chat.left:GetParent() ~= BZ.hider and _G.CHAT_GUILD_GET == BZ.globals.CHAT_GUILD_GET.octo, "and pfUI's chat back")
     end

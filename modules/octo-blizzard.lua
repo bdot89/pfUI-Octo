@@ -715,13 +715,28 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
         end
         local text = _G["ChatFrame" .. i .. "TabText"]
         Restore(text, true)
-        -- (16 Nov 2026, Barbeque: "the General tab text does not move along with the rest") The snapshot
-        -- could hold a spot pfUI gave it; the game's own anchor (FloatingChatFrame.xml) is the tab's centre.
-        if text then
-          text:ClearAllPoints()
-          text:SetPoint("CENTER", tab, "CENTER", 0, -5)
-        end
         Font(text, c.text)
+        -- (16 Nov 2026, Barbeque: "the General tab text does not move along with the rest"; then his screenshot:
+        -- "General" left of the window, under the other tabs) The snapshot could hold spots pfUI gave the tab
+        -- and its text. The game's own: the text from the tab's left piece to its right piece, 7 px down
+        -- (FloatingChatFrame.xml), the tab of a window that heads a dock (or stands alone) on the top left of
+        -- its background (FCF_SetTabPosition, x 0); FCF_DockUpdate below lines up the docked ones after it.
+        local tl, tr = _G["ChatFrame" .. i .. "TabLeft"], _G["ChatFrame" .. i .. "TabRight"]
+        if text and tl and tr then
+          text:ClearAllPoints()
+          text:SetPoint("LEFT", tl, "LEFT", 0, -7)
+          text:SetPoint("RIGHT", tr, "RIGHT", 0, -7)
+        end
+        local docked = type(DOCKED_CHAT_FRAMES) == "table" and DOCKED_CHAT_FRAMES
+        -- (ChatFrame1 always heads the dock: the game docks it first)
+        if tab and (not frame.isDocked or not docked or docked[1] == frame or frame == ChatFrame1) then
+          tab:ClearAllPoints()
+          if type(FCF_SetTabPosition) == "function" then
+            FCF_SetTabPosition(frame, 0)
+          else
+            tab:SetPoint("BOTTOMLEFT", frame:GetName() .. "Background", "TOPLEFT", 2, 0)
+          end
+        end
         for _, part in ipairs({ "TabLeft", "TabMiddle", "TabRight" }) do Restore(_G["ChatFrame" .. i .. part], true) end
         for _, part in ipairs({ "UpButton", "DownButton", "BottomButton" }) do Restore(_G["ChatFrame" .. i .. part], true) end
         local flash = _G["ChatFrame" .. i .. "TabFlash"]
