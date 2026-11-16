@@ -9,6 +9,7 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
   if not W or not O or not O.AddPage then return end
   local D = pfUI.dots
   local SO = {}
+  pfUI.dotsoptions = SO
   pfUI.dotsOcto = SO
 
   local function G() return C.dots end
@@ -193,16 +194,88 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
 
     W.Card(p, "Multi-DoT", { icon = ICON .. "Spell_Shadow_AbominationExplosion", tip = "Macros that put your DoT on the best enemy that "
       .. "lacks it - no target swap with SuperWoW. Your old Cursive macros (/cursive multicurse ...) work too while Cursive is off." })
-    W.Note(p, "/dot cast Corruption  - the best enemy without your Corruption\n/dot cast Curse of Agony|lowhp|refresh=3,minhp=5000\n"
-      .. "/dot target Immolate  - targets it instead\nOrder: marks (skull first), hp (biggest), lowhp. Options: refresh=seconds, minhp=N, range=yards, ooc, warn")
+    -- (16 Nov 2026, user: "do this make macro section alot better for all spells in drop downs in a tidy
+    -- menu") a macro maker: pick the spell and each option from a list, see the macro, make or update it
+    local MM = SO.mm
     local list = SO.MyDots()
-    local btns = {}
-    for i = 1, math.min(5, table.getn(list)) do
-      local name = list[i]
-      table.insert(btns, { "Make macro: " .. name, function() SO.MakeMacro(name) end, nil,
-        "A macro \"" .. string.sub(name, 1, 16) .. "\" with /dot cast " .. name .. " in your macros." })
+    if table.getn(list) == 0 then
+      W.Note(p, "None of your class's damage over time spells is in your spell book yet.")
+    else
+      if not MM.spell or not SO.Has(list, MM.spell) then MM.spell = list[1] end
+      local spells = {}
+      for i = 1, table.getn(list) do table.insert(spells, { key = list[i], label = list[i] }) end
+      local function Pick(label, desc, opts, key)
+        W.Dropdown(p, label, desc, opts, function() return MM[key] end, function(v) MM[key] = v end)
+      end
+      Pick("Spell", "Every damage over time spell of yours in your spell book.", spells, "spell")
+      Pick("What the macro does", nil, { { key = "cast", label = "Cast it on the best enemy without it" },
+        { key = "target", label = "Target that enemy (cast yourself)" } }, "mode")
+      Pick("Which enemy first", nil, { { key = "marks", label = "Raid marks (skull first), then biggest" },
+        { key = "hp", label = "Most health" }, { key = "lowhp", label = "Lowest health %" } }, "order")
+      Pick("Refresh it", "Cast again this long before yours runs out.", { { key = "0", label = "Only when it is gone" },
+        { key = "1", label = "1 s before it ends" }, { key = "2", label = "2 s before" }, { key = "3", label = "3 s before" },
+        { key = "5", label = "5 s before" } }, "refresh")
+      Pick("Skip enemies under", "Not worth a DoT: enemies with less health than this.", { { key = "0", label = "Any health" },
+        { key = "1000", label = "1,000 health" }, { key = "5000", label = "5,000 health" }, { key = "20000", label = "20,000 health" },
+        { key = "100000", label = "100,000 health (bosses)" } }, "minhp")
+      Pick("Only within", nil, { { key = "0", label = "Spell range" }, { key = "20", label = "20 yards" },
+        { key = "30", label = "30 yards" }, { key = "40", label = "40 yards" } }, "range")
+      W.Check(p, "Also enemies out of combat", "Off: only enemies that are fighting.", function() return MM.ooc end, function(v) MM.ooc = v end)
+      W.Check(p, "Say so when no enemy needs it", "A line on screen when every enemy already has it.", function() return MM.warn end, function(v) MM.warn = v end)
+      W.Edit(p, "Macro name", "Empty: the spell's name. Up to 16 letters.", function() return MM.name or "" end, function(v) MM.name = v end, 200)
+      W.Live(p, function()
+        local body = SO.MacroBody(MM)
+        local name = SO.MacroName(MM)
+        local had = GetMacroIndexByName and GetMacroIndexByName(name) or 0
+        return "|cffaaaaaaMacro|r |cffffd24d" .. name .. "|r" .. ((had and had > 0) and "  |cff888888(you have it: Make updates it)|r" or "")
+          .. "\n|cffffffff" .. body .. "|r"
+      end, 2)
+      W.Buttons(p, {
+        { "Make macro", function() SO.MakeMacro(SO.MacroName(MM), SO.MacroBody(MM), MM.spell) end, 130,
+          "Puts it in your macros (per character), with the spell's icon. A macro of that name is updated.", role = "go" },
+        { "Open macros", function() if ShowMacroFrame then ShowMacroFrame() elseif MacroFrame_LoadUI then MacroFrame_LoadUI() if MacroFrame then ShowUIPanel(MacroFrame) end end end, 120,
+          "The game's macro window, to drag it onto a bar." },
+      })
     end
-    if table.getn(btns) > 0 then W.Buttons(p, btns) end
+    W.Note(p, "Typed by hand: /dot cast Corruption, /dot cast Curse of Agony|lowhp|refresh=3,minhp=5000, /dot target Immolate.")
+  end
+
+  SO.mm = { mode = "cast", order = "marks", refresh = "0", minhp = "0", range = "0" }
+  function SO.Has(list, v) for i = 1, table.getn(list) do if list[i] == v then return true end end return false end
+  -- the /dot line for the picks: "spell|order|options" (D.ParseArgs)
+  function SO.MacroBody(m)
+    local opts = {}
+    if tonumber(m.refresh) and tonumber(m.refresh) > 0 then table.insert(opts, "refresh=" .. m.refresh) end
+    if tonumber(m.minhp) and tonumber(m.minhp) > 0 then table.insert(opts, "minhp=" .. m.minhp) end
+    if tonumber(m.range) and tonumber(m.range) > 0 then table.insert(opts, "range=" .. m.range) end
+    if m.ooc then table.insert(opts, "ooc") end
+    if m.warn then table.insert(opts, "warn") end
+    local body = "/dot " .. (m.mode == "target" and "target" or "cast") .. " " .. (m.spell or "")
+    local order = m.order or "marks"
+    if table.getn(opts) > 0 then return body .. "|" .. order .. "|" .. table.concat(opts, ",") end
+    if order ~= "marks" then return body .. "|" .. order end
+    return body
+  end
+  function SO.MacroName(m)
+    local n = m.name and string.find(m.name, "%S") and m.name or (m.spell or "DoT")
+    return string.sub(n, 1, 16)
+  end
+  -- the macro icon of a spell: its spell book texture among the macro icons
+  function SO.IconFor(spell)
+    local tex
+    local i = 1
+    while GetSpellName and GetSpellName(i, BOOKTYPE_SPELL or "spell") do
+      if GetSpellName(i, BOOKTYPE_SPELL or "spell") == spell then tex = GetSpellTexture(i, BOOKTYPE_SPELL or "spell") end
+      i = i + 1
+    end
+    if tex and GetNumMacroIcons and GetMacroIconInfo then
+      tex = string.lower(tex)
+      for j = 1, GetNumMacroIcons() do
+        local t = GetMacroIconInfo(j)
+        if t and string.lower(t) == tex then return j end
+      end
+    end
+    return 1
   end
 
   -- your class's debuffs that you know (spell book names in the data file)
@@ -225,10 +298,20 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
     end
     return out
   end
-  function SO.MakeMacro(name)
-    local body = "/dot cast " .. name
-    local ok = pcall(CreateMacro, string.sub(name, 1, 16), 1, body, 1, 1)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: " .. (ok and ("macro made: " .. body) or "no room for another macro"))
+  function SO.MakeMacro(name, body, spell)
+    body = body or ("/dot cast " .. name)
+    name = string.sub(name, 1, 16)
+    local icon = SO.IconFor(spell or name)
+    local had = GetMacroIndexByName and GetMacroIndexByName(name) or 0
+    local ok
+    if had and had > 0 and EditMacro then
+      ok = pcall(EditMacro, had, name, icon, body, 1)
+    else
+      ok = pcall(CreateMacro, name, icon, body, 1, 1)
+    end
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoDoTs|r: " .. (ok and (((had and had > 0) and "macro updated: " or "macro made: ") .. name .. " = " .. body)
+      or "no room for another macro"))
+    return ok
   end
 
   -- ---------------------------------------------------------------- Raid

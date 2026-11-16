@@ -119,3 +119,32 @@ P.Preset("default")
 
 for k, v in pairs(keep) do rawset(_G, k, v) end
 D.Clear()
+
+-- (16 Nov 2026) the macro maker: the /dot line for the picks, made or updated
+local SO = pfUI.dotsoptions
+ok(SO and SO.MacroBody and SO.MakeMacro, "macro maker loaded")
+if SO and SO.MacroBody then
+  local m = { spell = "Corruption", mode = "cast", order = "marks", refresh = "0", minhp = "0", range = "0" }
+  ok(SO.MacroBody(m) == "/dot cast Corruption", "plain: /dot cast Corruption")
+  m.order = "lowhp"
+  ok(SO.MacroBody(m) == "/dot cast Corruption|lowhp", "an order")
+  m.order, m.refresh, m.minhp, m.ooc = "marks", "3", "5000", true
+  ok(SO.MacroBody(m) == "/dot cast Corruption|marks|refresh=3,minhp=5000,ooc", "options after the order (" .. SO.MacroBody(m) .. ")")
+  m.mode = "target"
+  ok(string.find(SO.MacroBody(m), "^/dot target Corruption") ~= nil, "target mode")
+  local D2 = pfUI.dots
+  if D2 and D2.ParseArgs then
+    local sp, ord, ref, o = D2.ParseArgs("Corruption|marks|refresh=3,minhp=5000,ooc")
+    ok(sp == "Corruption" and ord == "marks" and ref == 3 and o.minhp == 5000 and o.ooc, "and /dot reads it back")
+  end
+  ok(SO.MacroName({ spell = "Curse of Agony and more" }) == "Curse of Agony a" and SO.MacroName({ spell = "x", name = "My DoT" }) == "My DoT", "macro names: 16 letters, own name")
+  local made, edited = {}, {}
+  local k1, k2, k3 = rawget(_G, "CreateMacro"), rawget(_G, "EditMacro"), rawget(_G, "GetMacroIndexByName")
+  _G.CreateMacro = function(n, i, b) table.insert(made, { n, b }) end
+  _G.EditMacro = function(idx, n, i, b) table.insert(edited, { idx, b }) end
+  _G.GetMacroIndexByName = function(n) return n == "Old" and 7 or 0 end
+  SO.MakeMacro("Corruption", "/dot cast Corruption")
+  SO.MakeMacro("Old", "/dot cast Immolate")
+  ok(made[1] and made[1][1] == "Corruption" and edited[1] and edited[1][1] == 7 and edited[1][2] == "/dot cast Immolate", "new macros made, one of the same name updated")
+  _G.CreateMacro, _G.EditMacro, _G.GetMacroIndexByName = k1, k2, k3
+end
