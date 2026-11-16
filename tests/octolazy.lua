@@ -297,3 +297,13 @@ ok(LZ.efc == nil, "dropped: gone")
 
 for _, k in ipairs(NAMES) do _G[k] = keep[k] end
 LZ.ResetRules()
+
+-- (16 Nov 2026, "abit overwhelming") the Loot rolls tab: a table of rules, one rule's details when picked
+if O and O.Select then
+  S.lzsel = "3"
+  local good, err = pcall(function() O:Select("o:lzrolls") O:Rebuild("lzrolls") end)
+  ok(good, "Loot rolls tab with rule 3 open builds (" .. tostring(err) .. ")")
+  S.lzsel = "0"
+  good, err = pcall(function() O:Rebuild("lzrolls") end)
+  ok(good, "and with none open (" .. tostring(err) .. ")")
+end

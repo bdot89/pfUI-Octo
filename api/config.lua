@@ -752,6 +752,7 @@ function pfUI:LoadConfig()
     rightclick = "1", split = "1", splitsize = "1",
     chatrolls = "0", chatjunk = "0", chatmoney = "0",
     worldmute = "0", worldname = "World", worldraid = "1", worlddungeon = "1", worldbg = "1", worldalways = "0",
+    lzsel = "0", lzadvanced = "0",
     salva = "off", camera = "0", cameradist = "50", keys = "0", keylogout = "0",
   }) do
     pfUI:UpdateConfig("octolazy", nil, k, v)

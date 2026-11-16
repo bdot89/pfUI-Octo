@@ -45,6 +45,8 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
   LZ.ACTNAME = { need = "Need", greed = "Greed", pass = "Pass", ask = "Ask me" }
   LZ.WHERE = { { key = "any", label = "Anywhere" }, { key = "raid", label = "Raids" }, { key = "dungeon", label = "Dungeons" },
     { key = "instance", label = "Raids and dungeons" }, { key = "world", label = "Outside instances" } }
+  LZ.WHERELABEL = {}
+  for _, w in ipairs(LZ.WHERE) do LZ.WHERELABEL[w.key] = w.label end
   -- (16 Nov 2026, user: "the dungeon option for example black morass should have full control of the rep
   -- items etc, bijous everything like this that lazy pig had but full control") each of _LazyPig's
   -- items is a rule of its own - its own roll, its own zone - so each one can be Need, Greed, Pass or Ask

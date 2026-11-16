@@ -63,6 +63,146 @@ pfUI:RegisterModule("octolazy-options", "vanilla", function ()
   end
   local QMAX = { { key = "2", label = "Green (uncommon)" }, { key = "3", label = "Blue (rare)" }, { key = "4", label = "Purple (epic)" }, { key = "5", label = "Everything" } }
 
+  -- (16 Nov 2026, user with a screenshot of a card per rule: "this menu is abit overwhelming can we think of
+  -- a better way to set it out") the rules are one table, a line each: on, the roll (click = the next one),
+  -- name and place, move / delete. Clicking a name opens only that rule's details in the card under it.
+  -- The settings and the test box are folded cards below.
+  local CYCLE = { need = "greed", greed = "pass", pass = "ask", ask = "need" }
+  local ROWH = 24
+  local function RuleRow(p, idx, lz)
+    local K = W.C
+    local function r() return lz.Rules()[idx] end
+    local row = W.Row(p, ROWH, 0, 2)
+    local picked = tonumber(G().lzsel) == idx
+    local bg = W.Fill(row, picked and K.accent or K.field, picked and .22 or (math.mod(idx, 2) == 0 and .55 or .3))
+    bg:SetAllPoints(row)
+    -- on / off
+    local on = W.Button(row, "", 18, 18)
+    on:SetPoint("LEFT", row, "LEFT", 4, 0)
+    local tick = on:CreateTexture(nil, "OVERLAY")
+    tick:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+    tick:SetWidth(20) tick:SetHeight(20)
+    tick:SetPoint("CENTER", on, "CENTER", 0, 0)
+    local function PaintOn()
+      if r() and r().on == "1" then tick:Show() else tick:Hide() end
+    end
+    PaintOn()
+    on:SetScript("OnClick", function() if r() then r().on = r().on == "1" and "0" or "1" PaintOn() end end)
+    W.Tip(on, "Use this rule", "Ticked: this rule is asked. Not ticked: it is skipped.")
+    -- the roll: click = the next one
+    local roll = W.Button(row, "", 70, 18)
+    roll:SetPoint("LEFT", on, "RIGHT", 8, 0)
+    local function PaintRoll()
+      local a = r() and r().act or "ask"
+      roll:SetText((lz.ACTCOL[a] or "") .. (lz.ACTNAME[a] or a) .. "|r")
+    end
+    PaintRoll()
+    roll:SetScript("OnClick", function()
+      if not r() then return end
+      r().act = CYCLE[r().act or "ask"] or "need"
+      PaintRoll()
+    end)
+    W.Tip(roll, "Roll", "Click for the next: Need, Greed, Pass, Ask me (no roll).")
+    -- name and place: click = edit it
+    local name = CreateFrame("Button", nil, row)
+    name:SetPoint("LEFT", roll, "RIGHT", 10, 0)
+    name:SetPoint("RIGHT", row, "RIGHT", -96, 0)
+    name:SetHeight(ROWH)
+    local fs = W.Font(name:CreateFontString(nil, "OVERLAY"), 11, K.text[1], K.text[2], K.text[3])
+    fs:SetPoint("LEFT", name, "LEFT", 0, 0)
+    fs:SetPoint("RIGHT", name, "RIGHT", 0, 0)
+    fs:SetJustifyH("LEFT")
+    local rr = r()
+    local zone = rr.zone and string.find(rr.zone, "%S") and rr.zone
+    local where = zone or (rr.where and rr.where ~= "any" and lz.WHERELABEL and lz.WHERELABEL[rr.where]) or nil
+    fs:SetText((rr.name or "Rule") .. (where and ("  |cff888888" .. where .. "|r") or ""))
+    local hl = name:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetTexture("Interface\\Buttons\\WHITE8X8")
+    hl:SetVertexColor(1, 1, 1, .06)
+    hl:SetAllPoints(name)
+    name:SetScript("OnClick", function()
+      G().lzsel = (tonumber(G().lzsel) == idx) and "0" or tostring(idx)
+      O:Rebuild("lzrolls")
+    end)
+    W.Tip(name, rr.name or "Rule", "Click to change its name, place, items and what it matches.")
+    -- move up / down, delete
+    local function Small(text, x, tip, fn)
+      local b = W.Button(row, text, 26, 18)
+      b:SetPoint("RIGHT", row, "RIGHT", x, 0)
+      b:SetScript("OnClick", fn)
+      W.Tip(b, tip)
+      return b
+    end
+    Small("x", -4, "Delete this rule", function()
+      lz.RemoveRule(idx)
+      G().lzsel = "0"
+      O:Rebuild("lzrolls")
+    end)
+    local dn = Small("", -34, "Move down (asked later)", function()
+      lz.MoveRule(idx, 1)
+      if tonumber(G().lzsel) == idx then G().lzsel = tostring(idx + 1) end
+      O:Rebuild("lzrolls")
+    end)
+    local a1 = W.Arrow(dn, 9, "down") a1:SetPoint("CENTER", dn, "CENTER", 0, 0)
+    local up = Small("", -64, "Move up (asked sooner)", function()
+      lz.MoveRule(idx, -1)
+      if tonumber(G().lzsel) == idx and idx > 1 then G().lzsel = tostring(idx - 1) end
+      O:Rebuild("lzrolls")
+    end)
+    local a2 = W.Arrow(up, 9, "up") a2:SetPoint("CENTER", up, "CENTER", 0, 0)
+    return row
+  end
+
+  local function EditRule(p, lz, idx)
+    local function r() return lz.Rules()[idx] end
+    local function Adv() return G().lzadvanced == "1" end
+    W.Card(p, "Edit rule " .. idx .. ":  " .. (r().name or "Rule"), { icon = "Interface\\Icons\\INV_Misc_Note_02",
+      tip = "What this one rule matches and where. Click its name in the table again to close this." })
+    W.Edit(p, "Name", nil, function() return r() and r().name end, function(v) if r() then r().name = v O:Rebuild("lzrolls") end end, 260)
+    W.Dropdown(p, "Roll", nil, lz.ACTS, function() return r() and r().act end, function(v) if r() then r().act = v O:Rebuild("lzrolls") end end)
+    W.Dropdown(p, "Matches", "A kind of item, as well as the items in its box.", KINDS,
+      function() return r() and KindOf(r().rule) end, function(v)
+        if not r() then return end
+        if v == "custom" then G().lzadvanced = "1" else r().rule = v end
+        O:Rebuild("lzrolls")
+      end)
+    W.ItemBox(p, "Items in this rule", "These items always match this rule.", function()
+      local t = r() and r().items
+      return type(t) == "table" and t or {}
+    end, function(v) if r() then r().items = v end end, function() O:Rebuild("lzrolls") end)
+    W.Dropdown(p, "Where", "Only in these places; elsewhere the next rule is asked.", lz.WHERE,
+      function() return r() and r().where or "any" end, function(v) if r() then r().where = v O:Rebuild("lzrolls") end end)
+    W.Edit(p, "Only in", "Zones or dungeons this rule is for, split by commas (e.g. The Black Morass, Zul'Gurub). Empty: everywhere.",
+      function() return r() and r().zone or "" end, function(v) if r() then r().zone = v or "" O:Rebuild("lzrolls") end end, 320)
+    local zoneList = { { key = "", label = "Everywhere" } }
+    for z = 1, table.getn(lz.ZONES) do table.insert(zoneList, { key = lz.ZONES[z], label = lz.ZONES[z] }) end
+    W.Dropdown(p, "Add a dungeon", "Adds a dungeon or raid to \"Only in\" (Everywhere empties it).", zoneList, function() return "" end, function(v)
+      if not r() then return end
+      local cur = r().zone or ""
+      if v == "" then r().zone = "" elseif not string.find(string.lower(cur), string.lower(v), 1, true) then
+        r().zone = (string.find(cur, "%S") and (cur .. ", ") or "") .. v
+      end
+      O:Rebuild("lzrolls")
+    end)
+    W.Check(p, "Show the text rule (advanced)", "Text rules match whole kinds of items in your own words: Quality, Name, Type, Usable(), Upgrade()...",
+      function() return Adv() end, function(v) G().lzadvanced = v and "1" or "0" O:Rebuild("lzrolls") end)
+    if Adv() then
+      W.Edit(p, "Text rule", "For example: Quality(\"rare\") and Usable() and not Name(\"Libram\"). Empty: only the items above.",
+        function() return r() and r().rule end, function(v) if r() then r().rule = v end end, 460)
+      W.Live(p, function()
+        local text = r() and r().rule
+        if not text or text == "" then return "No text rule: only the items above match." end
+        local fn, err = R.Compile(text)
+        if not fn then return "|cffff5555This rule has a mistake:|r " .. tostring(err) end
+        return "|cff55ff55Rule reads fine|r"
+      end)
+      W.Note(p, "Checks: Name, NameIs, ID, Type, Subtype, Equip, Quality(\"poor\"...\"legendary\"), MinQuality, MaxQuality, "
+        .. "Level(min, max), Tooltip, BoE(), BoP(), Soulbound(), Quest(), Usable(), Known(), Upgrade(), Owned(n), Zone(...), "
+        .. "Instance(\"raid\", \"dungeon\", \"pvp\", \"world\"), InRaid(), InGroup(), Class(...), Value(min, max). Join them with and / or / not.")
+    end
+    W.Buttons(p, { { "Done", function() G().lzsel = "0" O:Rebuild("lzrolls") end, 90, "Close this rule's details." } })
+  end
+
   local function Rolls(p)
     if not Head(p, "Loot rolls", "OctoLazy rolls for you by your rules: top to bottom, the first rule that matches an item decides "
       .. "Need, Greed, Pass or Ask me. An item no rule matches is left to you, as always. Switched off = _LazyPig's jobs are "
@@ -70,14 +210,30 @@ pfUI:RegisterModule("octolazy-options", "vanilla", function ()
     local lz = LZ()
     W.Live(p, function()
       local on = G().rolls == "1"
-      local s = on and "|cff55ff55On: rolls by your rules.|r" or "|cffffcc00Rolls are left to you (switch below).|r"
+      local s = on and "|cff55ff55On: rolls by your rules.|r" or "|cffffcc00Rolls are left to you (Roll settings below).|r"
       s = s .. "   Rolled this session: |cffffffff" .. lz.stats.rolls .. "|r"
       local h = lz.history[1]
       if h then s = s .. "   Last: " .. (lz.ACTCOL[h.act] or "") .. (lz.ACTNAME[h.act] or "") .. "|r " .. (h.link or "") end
       return s
     end)
 
-    W.Card(p, "How it rolls", { icon = "Interface\\Buttons\\UI-GroupLoot-Dice-Up", tip = "When and how OctoLazy rolls for you." })
+    local list = lz.Rules()
+    local sel = tonumber(G().lzsel)
+    if sel and not list[sel] then G().lzsel, sel = "0", nil end
+    W.Card(p, "Your rules", { icon = "Interface\\Buttons\\UI-GroupLoot-Dice-Up",
+      tip = "Asked from the top; the first that matches decides. Click a roll to change it, a name to edit the rule." })
+    W.Note(p, "Asked from the top: the first rule that matches decides. |cffffffffClick a roll|r to change it, |cffffffffclick a name|r to edit that rule.")
+    for i = 1, table.getn(list) do RuleRow(p, i, lz) end
+    W.Buttons(p, {
+      { "+ Need rule", function() lz.AddRule("need", "Need these") G().lzsel = "1" O:Rebuild("lzrolls") end, 110, "A new rule at the top: Need on the items you put in its box." },
+      { "+ Greed rule", function() lz.AddRule("greed", "Greed these") G().lzsel = "1" O:Rebuild("lzrolls") end, 110, "A new rule at the top: Greed." },
+      { "+ Pass rule", function() lz.AddRule("pass", "Pass these") G().lzsel = "1" O:Rebuild("lzrolls") end, 110, "A new rule at the top: Pass." },
+      { "Starting rules", function() lz.ResetRules() G().lzsel = "0" O:Rebuild("lzrolls") end, 120,
+        "Throws your rules away and puts the starting ones back (rep items of Zul'Gurub, The Black Morass, Naxxramas, Ahn'Qiraj...)." },
+    })
+    if sel and list[sel] then EditRule(p, lz, sel) end
+
+    W.Card(p, "Roll settings", { folded = true, icon = "Interface\\Icons\\INV_Misc_Gear_01", tip = "When and how OctoLazy rolls for you." })
     Chk(p, "Roll for me by my rules", "Off: every roll is yours, the rules wait.", "rolls")
     Drop(p, "Roll by itself up to", "Items of a higher quality always stay for you to roll.", QMAX, "rollmax")
     O.PfSld(p, "Wait before rolling", "Time to look at the item first; 0 = at once.", 0, 15, 1, G, "rolldelay", nil, Secs)
@@ -86,80 +242,10 @@ pfUI:RegisterModule("octolazy-options", "vanilla", function ()
     Chk(p, "Answer the bind on pickup question", "Rolls made by OctoLazy say yes to \"this item binds when picked up\".", "rollconfirm")
     Chk(p, "A chat line for each roll", "What was rolled, on what, and which rule did it.", "rollchat")
     Chk(p, "Yes to bind on pickup when I loot alone", "Out of a group, a bind on pickup item is looted without asking.", "lootbind")
+    Chk(p, "Ctrl + Alt rolls every open green item", "_LazyPig's key: hold Ctrl and Alt for a moment while green roll windows are up.", "greenkey")
+    Drop(p, "Ctrl + Alt rolls", nil, { lz.ACTS[1], lz.ACTS[2], lz.ACTS[3] }, "greenroll")
 
-    W.Card(p, "Ctrl + Alt", { icon = "Interface\\Icons\\INV_Misc_Gem_Emerald_02", tip = "_LazyPig's green roll key." })
-    Chk(p, "Ctrl + Alt rolls every open green item", "Hold Ctrl and Alt for a moment while green roll windows are up.", "greenkey")
-    Drop(p, "With", nil, { LZ().ACTS[1], LZ().ACTS[2], LZ().ACTS[3] }, "greenroll")
-
-    local function Adv() return G().lzadvanced == "1" end
-    W.Card(p, "Your rules", { icon = "Interface\\Icons\\INV_Misc_Note_02", tip = "Checked from the top; the first that matches decides. Drag items into a rule's box." })
-    W.Buttons(p, {
-      { "+ Need rule", function() lz.AddRule("need", "Need these") O:Rebuild("lzrolls") end, 110, "A new rule at the top: Need on the items you put in its box.", role = "go" },
-      { "+ Greed rule", function() lz.AddRule("greed", "Greed these") O:Rebuild("lzrolls") end, 110, "A new rule at the top: Greed." },
-      { "+ Pass rule", function() lz.AddRule("pass", "Pass these") O:Rebuild("lzrolls") end, 110, "A new rule at the top: Pass." },
-    })
-    W.Check(p, "Show the text rules (advanced)", "Text rules match whole kinds of items in your own words: Quality, Name, Type, Usable(), Upgrade()...",
-      function() return Adv() end, function(v) G().lzadvanced = v and "1" or "0" O:Rebuild("lzrolls") end)
-
-    local list = lz.Rules()
-    for i = 1, table.getn(list) do
-      local idx = i
-      local function r() return lz.Rules()[idx] end
-      local act = list[idx].act or "ask"
-      W.Card(p, idx .. ".  " .. (lz.ACTCOL[act] or "") .. (lz.ACTNAME[act] or act) .. "|r   " .. (list[idx].name or "Rule")
-        .. ((list[idx].zone and string.find(list[idx].zone, "%S")) and ("   |cff888888in " .. list[idx].zone .. "|r") or ""),
-        { tip = "Rules are checked from the top; the first that matches decides." })
-      W.Check(p, "Use this rule", nil, function() return r() and r().on == "1" end, function(v) if r() then r().on = v and "1" or "0" end end)
-      W.Dropdown(p, "Roll", nil, lz.ACTS, function() return r() and r().act end, function(v) if r() then r().act = v O:Rebuild("lzrolls") end end)
-      W.Dropdown(p, "Where", "Only in these places; elsewhere the next rule is asked.", lz.WHERE,
-        function() return r() and r().where or "any" end, function(v) if r() then r().where = v end end)
-      W.Dropdown(p, "Matches", "A kind of item, as well as the items in its box.", KINDS,
-        function() return r() and KindOf(r().rule) end, function(v)
-          if not r() then return end
-          if v == "custom" then G().lzadvanced = "1" else r().rule = v end
-          O:Rebuild("lzrolls")
-        end)
-      W.Edit(p, "Name", nil, function() return r() and r().name end, function(v) if r() then r().name = v O:Rebuild("lzrolls") end end, 260)
-      W.Edit(p, "Only in", "Zones or dungeons this rule is for, split by commas (e.g. The Black Morass, Zul'Gurub). Empty: everywhere.",
-        function() return r() and r().zone or "" end, function(v) if r() then r().zone = v or "" O:Rebuild("lzrolls") end end, 320)
-      local zoneList = { { key = "", label = "Everywhere" } }
-      for z = 1, table.getn(lz.ZONES) do table.insert(zoneList, { key = lz.ZONES[z], label = lz.ZONES[z] }) end
-      W.Dropdown(p, "Add a dungeon", "Adds a dungeon or raid to \"Only in\" (Everywhere empties it).", zoneList, function() return "" end, function(v)
-        if not r() then return end
-        local cur = r().zone or ""
-        if v == "" then r().zone = "" elseif not string.find(string.lower(cur), string.lower(v), 1, true) then
-          r().zone = (string.find(cur, "%S") and (cur .. ", ") or "") .. v
-        end
-        O:Rebuild("lzrolls")
-      end)
-      W.ItemBox(p, "Items in this rule", "These items always match this rule.", function()
-        local t = r() and r().items
-        return type(t) == "table" and t or {}
-      end, function(v) if r() then r().items = v end end, function() O:Rebuild("lzrolls") end)
-      if Adv() then
-        W.Edit(p, "Text rule", "For example: Quality(\"rare\") and Usable() and not Name(\"Libram\"). Empty: only the items above.",
-          function() return r() and r().rule end, function(v) if r() then r().rule = v end end, 460)
-        W.Live(p, function()
-          local text = r() and r().rule
-          if not text or text == "" then return "No text rule: only the items above match." end
-          local fn, err = R.Compile(text)
-          if not fn then return "|cffff5555This rule has a mistake:|r " .. tostring(err) end
-          return "|cff55ff55Rule reads fine|r"
-        end)
-      end
-      W.Buttons(p, {
-        { "Move up", function() lz.MoveRule(idx, -1) O:Rebuild("lzrolls") end, 90, "Checked one place earlier." },
-        { "Move down", function() lz.MoveRule(idx, 1) O:Rebuild("lzrolls") end, 90, "Checked one place later." },
-        { "Delete", function() lz.RemoveRule(idx) O:Rebuild("lzrolls") end, 80, "Remove this rule.", role = "off" },
-      })
-    end
-    W.Buttons(p, { { "Back to the starting rules", function() lz.ResetRules() O:Rebuild("lzrolls") end, 190,
-      "Throws your rules away and puts the starting ones back (rep items of Zul'Gurub, The Black Morass, Naxxramas, Ahn'Qiraj...).", role = "off" } })
-    if Adv() then W.Note(p, "Checks: Name, NameIs, ID, Type, Subtype, Equip, Quality(\"poor\"...\"legendary\"), MinQuality, MaxQuality, "
-      .. "Level(min, max), Tooltip, BoE(), BoP(), Soulbound(), Quest(), Usable(), Known(), Upgrade(), Owned(n), Zone(...), "
-      .. "Instance(\"raid\", \"dungeon\", \"pvp\", \"world\"), InRaid(), InGroup(), Class(...), Value(min, max). Join them with and / or / not.") end
-
-    W.Card(p, "Try it", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02", tip = "See what OctoLazy would roll on an item." })
+    W.Card(p, "Try an item, and what it rolled", { folded = true, icon = "Interface\\Icons\\INV_Misc_Spyglass_02", tip = "See what OctoLazy would roll on an item." })
     W.Edit(p, "Item", "An item ID (19708) or a link (Shift-click an item while typing here).", function() return tryItem end, function(v) tryItem = v or "" end, 260)
     W.Live(p, function()
       if tryItem == "" then return "Type an item ID or link above and press Enter." end
@@ -169,12 +255,10 @@ pfUI:RegisterModule("octolazy-options", "vanilla", function ()
       if not act then return info.name .. ":  |cff33ccffleft to you|r  (no rule matched)" end
       return info.name .. ":  " .. (lz.ACTCOL[act] or "") .. (lz.ACTNAME[act] or act) .. "|r  (rule: " .. tostring(why) .. ")"
     end)
-
-    W.Card(p, "Rolled this session", { icon = "Interface\\Icons\\INV_Misc_Book_09", tip = "The last rolls OctoLazy made." })
     W.Live(p, function()
       local h = lz.history
-      if table.getn(h) == 0 then return "Nothing yet." end
-      local out = {}
+      if table.getn(h) == 0 then return "Rolled this session: nothing yet." end
+      local out = { "Rolled this session:" }
       for i = 1, math.min(8, table.getn(h)) do
         local e = h[i]
         table.insert(out, (lz.ACTCOL[e.act] or "") .. (lz.ACTNAME[e.act] or "") .. "|r " .. (e.link or "?") .. " |cff888888" .. (e.why or "") .. "|r")
