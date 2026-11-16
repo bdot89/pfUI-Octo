@@ -686,6 +686,21 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     -- (its own opening and "closing it closes the auction house" go; ours does both)
     f:UnregisterEvent("AUCTION_HOUSE_SHOW")
     f:SetScript("OnHide", nil)
+    -- (16 Nov 2026, seen in game: "Blizzard_AuctionUI.lua:836: attempt to perform arithmetic on field
+    -- 'page'" on My auctions. The game's tabs still answer the list events while they have never been
+    -- shown, and only their OnShow sets .page. So: a page of 0 from the start, and each tab's event
+    -- handler only runs while that tab is on screen - "Game window" shows it, and then it works as ever.)
+    for _, name in ipairs({ "AuctionFrameBrowse", "AuctionFrameBid", "AuctionFrameAuctions" }) do
+      local tab = rawget(_G, name)
+      if type(tab) == "table" and tab.page == nil then tab.page = 0 end
+      local handler = rawget(_G, name .. "_OnEvent")
+      if type(handler) == "function" and type(tab) == "table" and tab.IsVisible then
+        local own, frame = handler, tab
+        _G[name .. "_OnEvent"] = function(a1, a2, a3, a4, a5, a6, a7, a8, a9)
+          if frame:IsVisible() then return own(a1, a2, a3, a4, a5, a6, a7, a8, a9) end
+        end
+      end
+    end
   end
   -- an item's usual auction price in its tooltip (as pfUI's vendor price is added: a frame that shows with the tooltip)
   function AH.TooltipLine(link, count)

@@ -278,3 +278,37 @@ do
   _G.pfDB = dbWas
   pfUI_cache.auction = cacheWas4
 end
+
+-- the game's own auction tabs stay quiet while hidden (16 Nov 2026, in game: Blizzard_AuctionUI.lua:836
+-- "arithmetic on field 'page'" when My auctions asked for the owner list)
+do
+  local AH = pfUI.auction
+  local names = { "AuctionFrame", "AuctionFrameBrowse", "AuctionFrameBid", "AuctionFrameAuctions",
+    "AuctionFrameBrowse_OnEvent", "AuctionFrameBid_OnEvent", "AuctionFrameAuctions_OnEvent", "IsAddOnLoaded" }
+  local was = {}
+  for _, k in ipairs(names) do was[k] = rawget(_G, k) end
+  local calls = 0
+  local function Tab(shown) return { IsVisible = function() return shown end } end
+  _G.AuctionFrame = { UnregisterEvent = function() end, SetScript = function() end }
+  _G.AuctionFrameBrowse, _G.AuctionFrameBid, _G.AuctionFrameAuctions = Tab(false), Tab(false), Tab(true)
+  _G.AuctionFrameAuctions.page = 3
+  for _, n in ipairs({ "AuctionFrameBrowse", "AuctionFrameBid", "AuctionFrameAuctions" }) do
+    _G[n .. "_OnEvent"] = function() calls = calls + 1 return n end
+  end
+  _G.IsAddOnLoaded = function() return nil end
+  AH.ev:GetScript("OnEvent")(AH.ev, "ADDON_LOADED", "Blizzard_AuctionUI")
+  local okEv = true
+  if AH.ev.GetScript and AH.ev:GetScript("OnEvent") then
+    local e, a = _G.event, _G.arg1
+    _G.event, _G.arg1 = "ADDON_LOADED", "Blizzard_AuctionUI"
+    AH.ev:GetScript("OnEvent")()
+    _G.event, _G.arg1 = e, a
+  else okEv = false end
+  ok(okEv and _G.AuctionFrameBrowse.page == 0 and _G.AuctionFrameBid.page == 0 and _G.AuctionFrameAuctions.page == 3,
+    "the game's tabs start on page 0; one already set keeps its page")
+  _G.AuctionFrameBid_OnEvent()
+  _G.AuctionFrameBrowse_OnEvent()
+  ok(calls == 0, "a hidden game tab ignores the list events")
+  ok(_G.AuctionFrameAuctions_OnEvent() == "AuctionFrameAuctions" and calls == 1, "a shown one works as ever")
+  for _, k in ipairs(names) do _G[k] = was[k] end
+end
