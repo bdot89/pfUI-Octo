@@ -3844,7 +3844,8 @@ do
     -- (8 Nov 2026) Quality of Life after Blizzard UI, with Auto Loot inside it;
     -- (9 Nov 2026) Questing after it
     -- (11 Nov 2026) Consumables after Gear
-    ok(heads[1] == "Settings" and heads[2] == "Auctions" and heads[3] == "UI layouts" and heads[4] == "Blizzard UI" and heads[5] == "Quality of Life" and heads[6] == "Questing" and heads[7] == "OctoLazy" and heads[8] == "Unit Frames" and heads[10] == "Nameplates" and heads[13] == "Art & Extras" and heads[14] == "CoolDownManager" and heads[15] == "Gear" and heads[16] == "Consumables" and heads[17] == "Meters" and heads[18] == "Combat Text" and heads[table.getn(heads)] == "About",
+    -- (16 Nov 2026, user: "make the important ones be top of order dots are high up the combat list")
+    ok(heads[1] == "Settings" and heads[2] == "Auctions" and heads[3] == "OctoLazy" and heads[4] == "Quality of Life" and heads[8] == "Unit Frames" and heads[9] == "Nameplates" and heads[15] == "OctoDoTs" and heads[16] == "Meters" and heads[17] == "Gear" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do

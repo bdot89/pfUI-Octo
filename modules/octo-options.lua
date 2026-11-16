@@ -39,36 +39,36 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: TurtleMail "make it our own ... add mail tab") mail-options.lua: a tab beside the
     -- auction house (a 25th section would not fit the sidebar of a 600 px window)
     { "Auctions", { "Auctions", "Mail" } },
-    { "UI layouts", { "UI layouts" } },
-    { "Blizzard UI", { "Blizzard UI" } },
+    -- (16 Nov 2026, user: _LazyPig "call it octolazy in our tabs make it user friendly") octolazy-options.lua
+    { "OctoLazy", { "OctoLazy" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
     -- in here") qol-options.lua's pages, then Auto Loot's
     { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer" } },
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     { "Questing", { "Questing" } },
-    -- (16 Nov 2026, user: _LazyPig "call it octolazy in our tabs make it user friendly") octolazy-options.lua
-    { "OctoLazy", { "OctoLazy" } },
+    { "UI layouts", { "UI layouts" } },
+    { "Blizzard UI", { "Blizzard UI" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
-    { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Nameplates", { "Nameplates" } },
+    { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
-    { "Art & Extras", { "Art", "WeirdUtils" } },
     -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
     -- same day: named CoolDownManager, under Interface
     { "CoolDownManager", { "CoolDownManager" } },
+    { "Art & Extras", { "Art", "WeirdUtils" } },
+    -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called OctoDoTs") dots-options.lua
+    { "OctoDoTs", { "OctoDoTs" } },
+    { "Meters", { "Meters" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
     { "Gear", { "Gear" } },
     -- (11 Nov 2026, Wolfahrt on Discord: track consumes by character) consumes-options.lua
     { "Consumables", { "Consumables" } },
-    { "Meters", { "Meters" } },
     { "Combat Text", { "Combat Text" } },
-    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
     { "Swing Timer", { "Swing Timer" } },
-    -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called OctoDoTs") dots-options.lua
-    { "OctoDoTs", { "OctoDoTs" } },
+    { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
     { "Tooltip", { "Tooltip" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
@@ -84,11 +84,20 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
-    { "General", { "Settings", "Auctions", "Blizzard UI", "UI layouts", "Quality of Life", "Questing", "OctoLazy" } },
-    { "Interface", { "Unit Frames", "Action Bars", "Nameplates", "Art & Extras", "CoolDownManager", "Chat & Panels", "Minimap & Buffs" } },
-    { "Combat & Items", { "Bags & Loot", "Combat Text", "Meters", "Swing Timer", "OctoDoTs", "Gear", "Consumables", "Tooltip" } },
+    -- (16 Nov 2026, user: "getting very full ... make the important ones be top of order dots are high up the
+    -- combat list ... make important ones stand out") most used first in each group; O.FEATURED stand out
+    { "General", { "Settings", "Auctions", "OctoLazy", "Quality of Life", "Questing", "UI layouts", "Blizzard UI" } },
+    { "Interface", { "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "CoolDownManager", "Art & Extras" } },
+    { "Combat & Items", { "OctoDoTs", "Meters", "Gear", "Consumables", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
+  -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
+  O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
+    ["OctoDoTs"] = true, ["Meters"] = true, ["Gear"] = true }
+  function O.NavColor(name)
+    if O.FEATURED[name] then return 1, 1, 1 end
+    return .6, .62, .66
+  end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
   O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
@@ -1515,7 +1524,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     h.sel:Hide()
     local hl = W.Fill(h, { 1, 1, 1 }, 0.04, "HIGHLIGHT")
     hl:SetAllPoints(h)
-    h.text = W.Font(h:CreateFontString(nil, "OVERLAY"), 13, .82, .83, .86)
+    h.text = W.Font(h:CreateFontString(nil, "OVERLAY"), 13, O.NavColor(label))
+    h.label = label
+    -- (16 Nov 2026) pfUI Octo's own big features: a small accent mark before the name
+    if O.FEATURED[label] then
+      h.mark = W.Fill(h, K.accent, .9, "ARTWORK")
+      h.mark:SetWidth(4)
+      h.mark:SetHeight(4)
+      h.mark:SetPoint("LEFT", h, "LEFT", 10, 0)
+    end
     h.text:SetPoint("LEFT", h, "LEFT", 20, 0)
     h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
     h.text:SetJustifyH("LEFT")
@@ -1683,9 +1700,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         hf:SetHeight(20)
         -- (8 Nov 2026, user: "headers for each section") clear headings in the
         -- accent colour, the sections' words indented under them
-        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 13, K.accent[1], K.accent[2], K.accent[3])
+        -- (16 Nov 2026, user: "stuff just blends in") small capitals in the accent colour with a thin line
+        -- running to the edge, so each group reads as its own block
+        hf.text = W.Font(hf:CreateFontString(nil, "OVERLAY"), 11, K.accent[1], K.accent[2], K.accent[3])
         hf.text:SetPoint("BOTTOMLEFT", hf, "BOTTOMLEFT", 8, 3)
-        hf.text:SetText(hname)
+        hf.text:SetText(string.upper(hname))
+        hf.line = W.Fill(hf, K.accent, .28, "ARTWORK")
+        hf.line:SetHeight(1)
+        hf.line:SetPoint("LEFT", hf.text, "RIGHT", 8, 0)
+        hf.line:SetPoint("RIGHT", hf, "RIGHT", -8, 0)
         hf:EnableMouseWheel(true)
         hf:SetScript("OnMouseWheel", self.navFrame:GetScript("OnMouseWheel"))
         grp.headFrame = hf
@@ -1802,7 +1825,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       n = n + 1
       if grp.headFrame then m = m + 1 end
     end
-    local hh, gap = 20, 6
+    local hh, gap = 20, 10
     local rh = math.floor((fit - NAV_TOP - m * hh - math.max(0, m - 1) * gap) / math.max(n, 1))
     if rh < 24 then
       hh, gap = 15, 2
@@ -2035,7 +2058,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if gr == grp then
         h.sel:Show() h.bar:Show() h.text:SetTextColor(1, 1, 1)
       else
-        h.sel:Hide() h.bar:Hide() h.text:SetTextColor(.82, .83, .86)
+        h.sel:Hide() h.bar:Hide() h.text:SetTextColor(O.NavColor(h.label or gr.name))
       end
     end
     if grp then
