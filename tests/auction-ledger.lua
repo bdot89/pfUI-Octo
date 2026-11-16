@@ -167,28 +167,28 @@ do
   ok(table.getn(AH.Complete("scale", 2)) == 2 and AH.Complete("scale", 2)[1] == "Scale of Onyxia" and AH.Complete("scale", 2)[2] == "Deviate Scale", "a name starting with it, then a later word starting with it; the list is capped")
   local UI = AH.ui
   local B = UI.pages.browse
-  ok(B.sug and UI.Suggest and UI.TakeSuggest, "the Browse box has its name list")
+  ok(B.sug and B.sg and B.sg.Take, "the Browse box has its name list")
   local h, n, t = UI.NamePart("linen cloth/exact; devi/max 2s")
   ok(h == "linen cloth/exact;" and n == " devi" and t == "/max 2s", "the name being typed is the part after the last ; and before its /")
   local searched
   local realSearch = AH.Search
   AH.Search = function(q, a, b, queue) searched = { q, queue } end
   B.name:SetText("linen cloth/exact; devi/max 2s")
-  UI.Suggest()
-  ok(table.getn(UI.sugList) == 4 and B.sug:IsShown(), "the list shows under the box")
-  UI.StepSuggest(1)
-  UI.StepSuggest(1)
-  ok(UI.sugSel == 2, "Tab / arrow keys walk the list")
+  B.sg.Update()
+  ok(table.getn(B.sg.list) == 4 and B.sug:IsShown(), "the list shows under the box")
+  B.sg.Step(1)
+  B.sg.Step(1)
+  ok(B.sg.sel == 2, "Tab / arrow keys walk the list")
   UI.EnterName()
   ok(B.name:GetText() == "linen cloth/exact; Deviate Scale/max 2s" and not B.sug:IsShown(), "Enter takes the picked name and keeps the rest of the box (" .. tostring(B.name:GetText()) .. ")")
   ok(searched and searched[1].name == "linen cloth" and searched[2][1].name == "Deviate Scale" and searched[2][1].maxUnit == 200, "and searches")
   B.name:SetText("Deviate Fish")
-  UI.Suggest()
-  ok(table.getn(UI.sugList) == 0, "a name typed in full is not offered again")
+  B.sg.Update()
+  ok(table.getn(B.sg.list) == 0, "a name typed in full is not offered again")
   pfUI_config.auction.suggest = "0"
   B.name:SetText("devi")
-  UI.Suggest()
-  ok(table.getn(UI.sugList) == 0, "switched off: no list")
+  B.sg.Update()
+  ok(table.getn(B.sg.list) == 0, "switched off: no list")
   pfUI_config.auction.suggest = "1"
   B.name:SetText("")
   AH.Search = realSearch
@@ -248,4 +248,33 @@ do
   AH.open = false
   getglobal("pfAuction"):Hide()
   pfUI_cache.auction = cacheWas3
+end
+
+-- the Shopping tab's Add box offers names the same way: a picked one goes on the list at once
+do
+  local AH = pfUI.auction
+  local UI = AH.ui
+  local H = UI.pages.shop
+  local dbWas, cacheWas4 = rawget(_G, "pfDB"), pfUI_cache.auction
+  pfUI_cache.auction = nil
+  _G.pfDB = { items = { enUS = { [6470] = "Deviate Scale", [6522] = "Deviate Fish" } } }
+  AH.names = nil
+  UI.shop = 1
+  ok(H.sg and H.sg.frame, "the Add box has its own name list")
+  H.add:SetText("devi")
+  H.sg.Update()
+  ok(table.getn(H.sg.list) == 2 and H.sg.frame:IsShown(), "typing in it offers the names")
+  H.sg.Step(1)
+  H.sg.Enter()
+  local terms = AH.Lists()[1].terms
+  ok(table.getn(terms) == 1 and terms[1] == "Deviate Fish/exact" and (H.add:GetText() or "") == "" and not H.sg.frame:IsShown(),
+    "a picked name goes on the list as that exact item, and the box is empty for the next (" .. tostring(terms[1]) .. ")")
+  H.add:SetText("silk cloth/max 2s")
+  H.sg.Update()
+  H.sg.Enter()
+  ok(table.getn(terms) == 2 and terms[2] == "silk cloth/max 2s", "Enter with none picked adds what is typed")
+  H.add:SetText("")
+  AH.names = nil
+  _G.pfDB = dbWas
+  pfUI_cache.auction = cacheWas4
 end
