@@ -9,7 +9,7 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   M.ui = UI
   local function S() return C.mail end
   local WHITE = "Interface\\Buttons\\WHITE8X8"
-  local ROWS, ROWH = 9, 40
+  local ROWS, ROWH = 10, 40
   local function Accent()
     if GetAccentColor then return GetAccentColor() end
     return .2, .55, .9
@@ -78,7 +78,7 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   local f = CreateFrame("Frame", "pfMail", UIParent)
   UI.frame = f
   f:SetWidth(760)
-  f:SetHeight(470)
+  f:SetHeight(540)
   f:SetPoint("LEFT", UIParent, "LEFT", 40, 40)
   f:SetFrameStrata("HIGH")
   f:SetToplevel(true)
@@ -403,51 +403,146 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     t:SetTextColor(.75, .75, .8)
     return t
   end
-  Label(SE, "To", 0, -8)
-  UI.to = Box(SE, 220)
-  UI.to:SetPoint("TOPLEFT", SE, "TOPLEFT", 70, -4)
-  Label(SE, "Subject", 0, -38)
+  -- (16 Nov 2026, user: "make our send mail look more like this [the game's Send Mail] but with our style") laid
+  -- out like the game's: To and Postage on top, Subject across, a big letter, the items under it, Amount to send
+  -- in gold / silver / copper with Send money or C.O.D., your money, Send.
+  local GOLD = { .98, .82, .3 }
+  local function Gold(t) t:SetTextColor(GOLD[1], GOLD[2], GOLD[3]) return t end
+  Gold(Label(SE, "To:", 0, -8))
+  UI.to = Box(SE, 230)
+  UI.to:SetPoint("TOPLEFT", SE, "TOPLEFT", 64, -4)
+  UI.price = Text(SE, 13, "RIGHT")
+  UI.price:SetPoint("TOPRIGHT", SE, "TOPRIGHT", 0, -8)
+  Gold(Label(SE, "Subject:", 0, -38))
   UI.subj = Box(SE, 300)
-  UI.subj:SetPoint("TOPLEFT", SE, "TOPLEFT", 70, -34)
-  Label(SE, "Text", 0, -68)
-  UI.body = Box(SE, 300, 150, true)
-  UI.body:SetPoint("TOPLEFT", SE, "TOPLEFT", 70, -64)
-  UI.body:SetScript("OnMouseDown", function() this:SetFocus() end)
-  Label(SE, "Money", 0, -228)
-  UI.cash = Box(SE, 120)
-  UI.cash:SetPoint("TOPLEFT", SE, "TOPLEFT", 70, -224)
-  UI.cashHint = Text(SE, 11)
-  UI.cashHint:SetPoint("LEFT", UI.cash, "RIGHT", 8, 0)
-  UI.cashHint:SetTextColor(.6, .6, .6)
-  UI.cashHint:SetText("like 2g 50s, or 2.5")
-  UI.cod = Btn(SE, "Send it", 120, function()
-    UI.mode = UI.mode == "cod" and "send" or "cod"
-    UI.Refresh()
-  end, "Send it: the money goes with the mail. Cash on delivery: they pay that much to take the items.")
-  UI.cod:SetPoint("TOPLEFT", UI.cash, "BOTTOMLEFT", 0, -6)
-  UI.each = Btn(SE, "On the first mail", 140, function()
+  UI.subj:SetPoint("TOPLEFT", SE, "TOPLEFT", 64, -34)
+  UI.subj:SetPoint("TOPRIGHT", SE, "TOPRIGHT", 0, -34)
+  -- the letter: the game's own parchment (Interface\Stationery\StationeryTest1/2, as its Send Mail) in a thin
+  -- gold edge, dark ink. (16 Nov 2026, user screenshot: a multi-line edit box in 1.12 is only as tall as its
+  -- text, so the letter was one line: the paper is a frame of its own now and the box writes on it.)
+  local paper = CreateFrame("Button", nil, SE)
+  UI.paper = paper
+  paper:SetPoint("TOPLEFT", SE, "TOPLEFT", 0, -64)
+  paper:SetPoint("TOPRIGHT", SE, "TOPRIGHT", 0, -64)
+  paper:SetHeight(246)
+  paper:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+  paper:SetBackdropColor(.16, .12, .07, 1)
+  paper:SetBackdropBorderColor(.55, .44, .24, 1)
+  local pl = paper:CreateTexture(nil, "BORDER")
+  pl:SetTexture("Interface\\Stationery\\StationeryTest1")
+  pl:SetPoint("TOPLEFT", paper, "TOPLEFT", 1, -1)
+  pl:SetPoint("BOTTOMRIGHT", paper, "BOTTOMRIGHT", -61, 1)
+  local pr = paper:CreateTexture(nil, "BORDER")
+  pr:SetTexture("Interface\\Stationery\\StationeryTest2")
+  pr:SetPoint("TOPLEFT", pl, "TOPRIGHT", 0, 0)
+  pr:SetPoint("BOTTOMRIGHT", paper, "BOTTOMRIGHT", -1, 1)
+  UI.body = CreateFrame("EditBox", nil, paper)
+  UI.body:SetPoint("TOPLEFT", paper, "TOPLEFT", 14, -12)
+  UI.body:SetPoint("TOPRIGHT", paper, "TOPRIGHT", -14, -12)
+  UI.body:SetHeight(220)
+  UI.body:SetMultiLine(true)
+  UI.body:SetAutoFocus(false)
+  UI.body:SetFont(pfUI.font_default, 14, "")
+  UI.body:SetTextColor(.2, .13, .05)
+  UI.body:SetMaxLetters(500)
+  UI.body:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+  paper:SetScript("OnClick", function() UI.body:SetFocus() end)
+  UI.bodyHint = Text(paper, 14)
+  UI.bodyHint:SetPoint("TOPLEFT", paper, "TOPLEFT", 14, -12)
+  UI.bodyHint:SetTextColor(.42, .32, .18)
+  UI.bodyHint:SetText("Write your letter here...")
+  UI.body:SetScript("OnTextChanged", function()
+    if this:GetText() == "" then UI.bodyHint:Show() else UI.bodyHint:Hide() end
+  end)
+  UI.body:SetScript("OnEditFocusGained", function() UI.bodyHint:Hide() end)
+  UI.body:SetScript("OnEditFocusLost", function() if this:GetText() == "" then UI.bodyHint:Show() end end)
+
+  -- Amount to send: gold, silver, copper, each with its coin
+  local MB = CreateFrame("Frame", nil, SE)
+  MB:SetPoint("BOTTOMLEFT", SE, "BOTTOMLEFT", 0, 34)
+  MB:SetWidth(330)
+  MB:SetHeight(22)
+  UI.moneyBox = MB
+  local amt = Gold(Text(MB, 12))
+  amt:SetPoint("LEFT", MB, "LEFT", 0, 0)
+  amt:SetText("Amount to send:")
+  UI.coins = {}
+  local cx = 104
+  -- (the coins are one sheet in 1.12, Interface\MoneyFrame\UI-MoneyIcons: gold, silver, copper a quarter each)
+  for _, c in ipairs({ { "g", 54, 0 }, { "s", 34, .25 }, { "c", 34, .5 } }) do
+    local e = Box(MB, c[2])
+    e:SetPoint("LEFT", MB, "LEFT", cx, 0)
+    e:SetNumeric(true)
+    e:SetMaxLetters(c[1] == "g" and 6 or 2)
+    e:SetJustifyH("RIGHT")
+    local icon = MB:CreateTexture(nil, "OVERLAY")
+    icon:SetTexture("Interface\\MoneyFrame\\UI-MoneyIcons")
+    icon:SetTexCoord(c[3], c[3] + .25, 0, 1)
+    icon:SetWidth(14)
+    icon:SetHeight(14)
+    icon:SetPoint("LEFT", e, "RIGHT", 3, 0)
+    UI.coins[c[1]] = e
+    cx = cx + c[2] + 22
+  end
+  -- Tab walks gold -> silver -> copper
+  UI.coins.g:SetScript("OnTabPressed", function() UI.coins.s:SetFocus() end)
+  UI.coins.s:SetScript("OnTabPressed", function() UI.coins.c:SetFocus() end)
+  UI.coins.c:SetScript("OnTabPressed", function() UI.to:SetFocus() end)
+  function UI.Cash()
+    local function N(e) return tonumber(e:GetText() or "") or 0 end
+    return N(UI.coins.g) * 10000 + N(UI.coins.s) * 100 + N(UI.coins.c)
+  end
+  function UI.ClearCash() for _, e in pairs(UI.coins) do e:SetText("") end end
+  -- Send money / C.O.D., the lit one in use (the game's two round buttons)
+  UI.sendMoney = Btn(SE, "Send money", 104, function() UI.mode = "send" UI.Refresh() end,
+    "The money goes with the mail.")
+  UI.sendMoney:SetPoint("LEFT", MB, "RIGHT", 6, 0)
+  UI.cod = Btn(SE, "C.O.D.", 70, function() UI.mode = "cod" UI.Refresh() end,
+    "Cash on delivery: they pay this much to take the items.")
+  UI.cod:SetPoint("LEFT", UI.sendMoney, "RIGHT", 4, 0)
+  UI.each = Btn(SE, "On the first mail", 130, function()
     S().codeach = S().codeach == "1" and "0" or "1"
     UI.Refresh()
   end, "With many items: cash on delivery on the first mail only, or on each one.")
-  UI.each:SetPoint("LEFT", UI.cod, "RIGHT", 6, 0)
+  UI.each:SetPoint("LEFT", UI.cod, "RIGHT", 4, 0)
 
   -- the suggestions under To
   UI.sugg = CreateFrame("Frame", nil, SE)
   UI.sugg:SetPoint("TOPLEFT", UI.to, "BOTTOMLEFT", 0, -2)
-  UI.sugg:SetWidth(220)
-  UI.sugg:SetFrameLevel(SE:GetFrameLevel() + 10)
+  -- (16 Nov 2026) a dropdown of everyone you might mail (M.Names: mailed, group, friends, guild, alts, seen):
+  -- class colour, a green dot when online, where they come from; Up / Down picks, Tab or Enter takes it
+  UI.sugg:SetWidth(260)
+  UI.sugg:SetFrameStrata("FULLSCREEN_DIALOG")
   Flat(UI.sugg, 1, .3)
   UI.sugg:Hide()
   UI.sugg.rows = {}
-  for k = 1, 8 do
+  UI.suggPick = 1
+  local function PaintPick()
+    for k, b in ipairs(UI.sugg.rows) do
+      if k == UI.suggPick then b.bg:SetVertexColor(Accent()) b.bg:SetAlpha(.28) else b.bg:SetAlpha(0) end
+    end
+  end
+  for k = 1, 10 do
     local b = CreateFrame("Button", nil, UI.sugg)
-    b:SetHeight(18)
-    b:SetPoint("TOPLEFT", UI.sugg, "TOPLEFT", 2, -2 - (k - 1) * 18)
-    b:SetPoint("TOPRIGHT", UI.sugg, "TOPRIGHT", -2, -2 - (k - 1) * 18)
+    b:SetHeight(20)
+    b:SetPoint("TOPLEFT", UI.sugg, "TOPLEFT", 2, -2 - (k - 1) * 20)
+    b:SetPoint("TOPRIGHT", UI.sugg, "TOPRIGHT", -2, -2 - (k - 1) * 20)
+    b.bg = b:CreateTexture(nil, "BACKGROUND")
+    b.bg:SetAllPoints(b)
+    b.bg:SetTexture(WHITE)
+    b.bg:SetAlpha(0)
+    b.dot = b:CreateTexture(nil, "ARTWORK")
+    b.dot:SetTexture(WHITE)
+    b.dot:SetWidth(6)
+    b.dot:SetHeight(6)
+    b.dot:SetPoint("LEFT", b, "LEFT", 6, 0)
     b.text = Text(b, 12)
-    b.text:SetPoint("LEFT", b, "LEFT", 6, 0)
-    b:SetScript("OnEnter", function() this.text:SetTextColor(Accent()) end)
-    b:SetScript("OnLeave", function() this.text:SetTextColor(1, 1, 1) end)
+    b.text:SetPoint("LEFT", b, "LEFT", 18, 0)
+    b.tag = Text(b, 11, "RIGHT")
+    b.tag:SetPoint("RIGHT", b, "RIGHT", -6, 0)
+    b.tag:SetTextColor(.55, .58, .62)
+    b.k = k
+    b:SetScript("OnEnter", function() UI.suggPick = this.k PaintPick() end)
     b:SetScript("OnClick", function()
       UI.to:SetText(this.name)
       UI.sugg:Hide()
@@ -455,23 +550,56 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     end)
     UI.sugg.rows[k] = b
   end
-  UI.to:SetScript("OnTextChanged", function()
-    local list = M.Names(this:GetText())
-    if table.getn(list) == 0 or (table.getn(list) == 1 and list[1] == this:GetText()) then UI.sugg:Hide() return end
+  function UI.ShowNames(typed)
+    local list = M.Names(typed, 10)
+    UI.suggList = list
+    if table.getn(list) == 0 or (table.getn(list) == 1 and list[1].name == typed) then UI.sugg:Hide() return end
     for k, b in ipairs(UI.sugg.rows) do
-      if list[k] then b.name = list[k] b.text:SetText(list[k]) b:Show() else b:Hide() end
+      local e = list[k]
+      if e then
+        b.name = e.name
+        local c = e.class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[e.class]
+        b.text:SetText(e.name)
+        if c then b.text:SetTextColor(c.r, c.g, c.b) else b.text:SetTextColor(1, 1, 1) end
+        b.tag:SetText(M.TAGLABEL[e.tag] or "")
+        if e.online then b.dot:SetVertexColor(.25, .9, .4, 1) else b.dot:SetVertexColor(.35, .35, .38, 1) end
+        b:Show()
+      else
+        b:Hide()
+      end
     end
-    UI.sugg:SetHeight(4 + table.getn(list) * 18)
+    UI.suggPick = 1
+    PaintPick()
+    UI.sugg:SetHeight(4 + table.getn(list) * 20)
     UI.sugg:Show()
-  end)
-  UI.to:SetScript("OnTabPressed", function()
-    local list = M.Names(this:GetText())
-    if list[1] then this:SetText(list[1]) end
+  end
+  local function Take()
+    local e = UI.sugg:IsShown() and UI.suggList and UI.suggList[UI.suggPick]
+    if e then UI.to:SetText(e.name) end
     UI.sugg:Hide()
     UI.subj:SetFocus()
-  end)
+  end
+  UI.to:SetScript("OnTextChanged", function() UI.ShowNames(this:GetText()) end)
+  UI.to:SetScript("OnTabPressed", Take)
+  UI.to:SetScript("OnEnterPressed", Take)
   UI.to:SetScript("OnEditFocusLost", function() UI.suggHideAt = GetTime() + .3 end)
-  UI.to:SetScript("OnEnterPressed", function() UI.subj:SetFocus() end)
+  -- clicked into an empty To box: your alts and the people you mail, straight away
+  UI.to:SetScript("OnEditFocusGained", function()
+    UI.suggHideAt = nil
+    UI.ShowNames(this:GetText())
+  end)
+  -- Up / Down move the pick. (16 Nov 2026, user: "when i right click the mailbox it does nothing": the 1.12 client
+  -- has no OnArrowPressed script - not in WoW.exe - and setting it errored, so the window was never finished and
+  -- the game's own mail window stays hidden. 1.12 has OnKeyDown; set in a pcall so a missing script can never
+  -- stop the window again.)
+  pcall(UI.to.SetScript, UI.to, "OnKeyDown", function()
+    if not UI.sugg:IsShown() or not UI.suggList then return end
+    local n = table.getn(UI.suggList)
+    if arg1 == "UP" then UI.suggPick = UI.suggPick > 1 and UI.suggPick - 1 or n
+    elseif arg1 == "DOWN" then UI.suggPick = UI.suggPick < n and UI.suggPick + 1 or 1
+    else return end
+    PaintPick()
+  end)
   UI.subj:SetScript("OnTabPressed", function() UI.body:SetFocus() end)
   UI.subj:SetScript("OnEnterPressed", function() UI.body:SetFocus() end)
 
@@ -479,23 +607,25 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   UI.SLOTS = 16
   local A = CreateFrame("Frame", nil, SE)
   SE.items = A
-  A:SetPoint("TOPLEFT", SE, "TOPLEFT", 400, -4)
-  A:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", 0, 40)
+  -- under the letter, one strip of 16 slots across
+  A:SetPoint("TOPLEFT", SE, "TOPLEFT", 0, -318)
+  A:SetPoint("TOPRIGHT", SE, "TOPRIGHT", 0, -318)
+  A:SetHeight(76)
   Flat(A, 1, .18)
   A:SetBackdropColor(.03, .03, .04, 1)
-  A.head = Text(A, 12)
-  A.head:SetPoint("TOPLEFT", A, "TOPLEFT", 10, -8)
-  A.head:SetWidth(320)
+  A.head = Gold(Text(A, 12))
+  A.head:SetPoint("TOPLEFT", A, "TOPLEFT", 10, -7)
+  A.head:SetWidth(160)
   A.hint = Text(A, 11)
-  A.hint:SetPoint("BOTTOMLEFT", A, "BOTTOMLEFT", 10, 8)
-  A.hint:SetWidth(320)
+  A.hint:SetPoint("TOPRIGHT", A, "TOPRIGHT", -10, -7)
+  A.hint:SetJustifyH("RIGHT")
   A.hint:SetTextColor(.6, .6, .6)
-  A.hint:SetText("Right-click items in your bags, or drop them here. Each item goes in its own mail. Click one to take it off.")
+  A.hint:SetText("Right-click items in your bags or drop them here - one mail each. Click one to take it off.")
   for k = 1, UI.SLOTS do
     local b = CreateFrame("Button", nil, A)
-    b:SetWidth(38)
-    b:SetHeight(38)
-    b:SetPoint("TOPLEFT", A, "TOPLEFT", 10 + math.mod(k - 1, 8) * 41, -30 - math.floor((k - 1) / 8) * 41)
+    b:SetWidth(40)
+    b:SetHeight(40)
+    b:SetPoint("TOPLEFT", A, "TOPLEFT", 8 + (k - 1) * 45, -26)
     Flat(b, 1, .25)
     b:SetBackdropColor(.08, .08, .1, 1)
     b.icon = b:CreateTexture(nil, "ARTWORK")
@@ -585,26 +715,25 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
 
   UI.go = Btn(SE, "Send", 110, function()
     if M.sending then M.StopSend("stopped.") return end
-    local money = M.ParseMoney(UI.cash:GetText())
+    local money = UI.Cash()
     local cod = UI.mode == "cod" and money or 0
     if cod > 0 and table.getn(M.items) == 0 then UI.Note("Cash on delivery needs at least one item.") return end
     M.Send(UI.to:GetText(), UI.subj:GetText(), UI.body:GetText(), UI.mode == "cod" and 0 or money, cod, M.items, S().codeach == "1")
   end, "Sends it. With items: one mail for each, the text and money on the first.")
-  UI.go:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", 0, 6)
+  UI.go:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", 0, 33)
   UI.clear = Btn(SE, "Clear", 70, function()
     if M.sending then return end
     M.items = {}
-    for _, e in ipairs({ UI.to, UI.subj, UI.body, UI.cash }) do e:SetText("") end
+    for _, e in ipairs({ UI.to, UI.subj, UI.body }) do e:SetText("") end
+    UI.ClearCash()
     UI.Refresh()
-  end)
+  end, "Empties the mail: name, subject, letter, money and items.")
   UI.clear:SetPoint("RIGHT", UI.go, "LEFT", -6, 0)
-  UI.price = Text(SE, 12, "RIGHT")
-  UI.price:SetPoint("RIGHT", UI.clear, "LEFT", -12, 0)
   M.onSent = function()
     M.items = {}
     UI.subj:SetText("")
     UI.body:SetText("")
-    UI.cash:SetText("")
+    UI.ClearCash()
     UI.Refresh()
   end
 
@@ -672,11 +801,13 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
       end
       SE.items.head:SetText(n == 0 and "Items" or ("Items: |cffffffff" .. n .. "|r " .. (n == 1 and "mail" or "mails")))
       UI.mode = UI.mode or "send"
-      UI.cod.text:SetText(UI.mode == "cod" and "|cffff8060Cash on delivery|r" or "Send it")
+      UI.sendMoney.Lit(UI.mode ~= "cod")
+      UI.cod.Lit(UI.mode == "cod")
+      UI.cod.text:SetText(UI.mode == "cod" and "|cffff8060C.O.D.|r" or "C.O.D.")
       UI.each.text:SetText(S().codeach == "1" and "On each mail" or "On the first mail")
       if UI.mode == "cod" and n > 1 then UI.each:Show() else UI.each:Hide() end
       local post = (GetSendMailPrice and GetSendMailPrice() or 30)
-      UI.price:SetText("Postage " .. M.Money(math.max(1, n) * post))
+      UI.price:SetText("|cfffad14dPostage:|r  " .. M.Money(math.max(1, n) * post))
       if M.sending then
         UI.go.text:SetText("Stop (" .. (M.sending.sent) .. "/" .. table.getn(M.sending.queue) .. ")")
       else

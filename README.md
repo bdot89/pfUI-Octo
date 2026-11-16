@@ -119,6 +119,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.27
+
+- 📬 **Mail:** sending items no longer gets stuck. The Send tab looks like the game's (parchment letter, gold / silver / copper, Send money or C.O.D.), and the To box suggests your alts and the people you mail first, then group, friends, guild and people you've seen.
+- 💥 **Combat Text:** one clear choice at the top - On nameplates, Mix or Scrolling on screen - with a list of what shows where; Nameplates and every scroll area say if they're in use.
+
 ## 📜 New in 1.1.26
 
 - 💥 **Combat Text:** 8 new movements (Float, Rocket, Drop and bounce, Boomerang, Orbit, Pendulum, Scatter, Helix), 6 new crit effects (Elastic, Punch, Heartbeat, Jiggle, Throb, Stamp), a Feel setting (Steady, Smooth, Snappy, Lazy) and 5 new looks. Crits are now set on each area's tab and on Nameplates; the crit look for every crit is on General. Smoother on screen.

@@ -73,30 +73,123 @@ pfUI:RegisterModule("mail", "vanilla", function ()
   M.Store = Store
   function M.AddName(name)
     if type(name) ~= "string" or name == "" or string.find(name, " ") then return end
-    Store().names[name] = time and time() or 0
+    local st = Store()
+    st.names[name] = time and time() or 0
+    -- how often: people you mail a lot come first
+    st.count = st.count or {}
+    st.count[name] = (st.count[name] or 0) + 1
   end
-  -- names starting with what was typed: recent first, then guild and friends
-  function M.Names(prefix)
-    local out, seen = {}, {}
-    prefix = string.lower(prefix or "")
-    if prefix == "" then return out end
-    local function add(n)
-      if n and not seen[n] and string.sub(string.lower(n), 1, string.len(prefix)) == prefix and n ~= UnitName("player") then
-        seen[n] = true
-        table.insert(out, n)
+  -- this character is one of your alts on this realm and side (noted at every login, not only at a mailbox)
+  function M.NoteAlt()
+    local me = UnitName("player")
+    if not me or me == "" or me == UNKNOWNOBJECT then return end
+    local st = Store()
+    st.alts = st.alts or {}
+    local _, cls = UnitClass("player")
+    st.alts[me] = cls or true
+  end
+  -- (16 Nov 2026, user: "the search in the mail is smart by name ... guildies / friend list / people online ... a
+  -- drop down ... fast") Everyone you might mail, gathered once (M.People, refreshed every 20 s and when the
+  -- mailbox opens): people you mailed, your group, friends, guild (online ones marked), your other characters,
+  -- and everyone pfUI has seen (pfUI_playerDB: nameplates, chat, /who). Typing only filters that list.
+  -- (16 Nov 2026, user: "show all our alts prio and ones we have mailed before, be highly smart") alts first, then
+  -- people you mailed (most often / most lately), people who mailed you, group, friends, guild, seen
+  local TAGS = { alt = 1, recent = 2, wrote = 3, group = 4, friend = 5, guild = 6, seen = 7 }
+  M.TAGLABEL = { alt = "your alt", recent = "mailed", wrote = "mailed you", group = "group", friend = "friend",
+                 guild = "guild", seen = "seen" }
+  local function ClassKey(c)
+    if not c or c == "" then return nil end
+    c = string.upper(c)
+    if RAID_CLASS_COLORS and RAID_CLASS_COLORS[c] then return c end
+  end
+  function M.People(force)
+    local now = GetTime()
+    if not force and M.people and now - (M.peopleAt or 0) < 20 then return M.people end
+    local me = UnitName("player")
+    local list, by = {}, {}
+    local function add(n, tag, class, online, t)
+      if type(n) ~= "string" or n == "" or n == me or string.find(n, " ") then return end
+      local e = by[n]
+      if not e then
+        e = { name = n, low = string.lower(n), tag = tag }
+        by[n] = e
+        table.insert(list, e)
+      elseif TAGS[tag] < TAGS[e.tag] then
+        e.tag = tag
       end
+      e.class = e.class or ClassKey(class)
+      if online then e.online = true end
+      if t then e.t = t end
     end
-    local recent = {}
-    for n, t in pairs(Store().names) do table.insert(recent, { n, t }) end
-    table.sort(recent, function(a, b) return a[2] > b[2] end)
-    for _, r in ipairs(recent) do add(r[1]) end
-    if GetNumGuildMembers then
-      for i = 1, GetNumGuildMembers(true) do add((GetGuildRosterInfo(i))) end
+    local st0 = Store()
+    for n, cls in pairs(st0.alts or {}) do add(n, "alt", type(cls) == "string" and cls or nil) end
+    for n, t in pairs(st0.names) do
+      add(n, "recent", nil, nil, t)
+      if by[n] then by[n].mails = (st0.count and st0.count[n]) or 1 end
+    end
+    -- players whose mail is in the inbox now
+    for i = 1, (GetInboxNumItems and GetInboxNumItems() or 0) do
+      local h = M.Header(i)
+      if h and h.kind == "player" then add(h.sender, "wrote") end
+    end
+    for i = 1, GetNumRaidMembers() do
+      local n, _, _, _, _, cls, _, online = GetRaidRosterInfo(i)
+      add(n, "group", cls, online)
+    end
+    for i = 1, GetNumPartyMembers() do
+      local _, cls = UnitClass("party" .. i)
+      add(UnitName("party" .. i), "group", cls, UnitIsConnected("party" .. i))
     end
     if GetNumFriends then
-      for i = 1, GetNumFriends() do add((GetFriendInfo(i))) end
+      for i = 1, GetNumFriends() do
+        local n, _, cls, _, online = GetFriendInfo(i)
+        add(n, "friend", cls, online)
+      end
     end
-    while table.getn(out) > 8 do table.remove(out) end
+    if GetNumGuildMembers and IsInGuild and IsInGuild() then
+      for i = 1, GetNumGuildMembers(true) do
+        local n, _, _, _, cls, _, _, _, online = GetGuildRosterInfo(i)
+        add(n, "guild", cls, online)
+      end
+    end
+    local db = rawget(_G, "pfUI_playerDB")
+    if type(db) == "table" then
+      for n, d in pairs(db) do add(n, "seen", type(d) == "table" and d.class or nil) end
+    end
+    M.people, M.peopleAt = list, now
+    return list
+  end
+  -- what was typed: names that START with it first, then names that hold it; online and closer people first
+  -- Nothing typed yet: your alts and the people you mail (shown as soon as the To box is clicked).
+  -- Typed: names that start with it, then names that hold it. Within those: alts, then people you mailed
+  -- (often and lately), people who mailed you, then group, friends, guild - online ones ahead - and the rest.
+  local function Score(e)
+    local s = (8 - (TAGS[e.tag] or 7)) * 1000
+    if e.tag == "recent" then
+      local days = math.max(0, ((time and time() or 0) - (e.t or 0)) / 86400)
+      s = s + math.min(400, (e.mails or 1) * 40) + math.max(0, 300 - days * 10)
+    end
+    if e.online then s = s + 500 end
+    return s
+  end
+  function M.Names(typed, max)
+    local out = {}
+    typed = string.lower(typed or "")
+    local hits = {}
+    for _, e in ipairs(M.People()) do
+      if typed == "" then
+        if e.tag == "alt" or e.tag == "recent" then table.insert(hits, { e = e, starts = true, s = Score(e) }) end
+      else
+        local at = string.find(e.low, typed, 1, true)
+        if at then table.insert(hits, { e = e, starts = at == 1, s = Score(e) }) end
+      end
+    end
+    table.sort(hits, function(a, b)
+      if a.starts ~= b.starts then return a.starts end
+      if a.s ~= b.s then return a.s > b.s end
+      return a.e.low < b.e.low
+    end)
+    for k = 1, math.min(max or 10, table.getn(hits)) do table.insert(out, hits[k].e) end
     return out
   end
 
@@ -284,6 +377,8 @@ pfUI:RegisterModule("mail", "vanilla", function ()
           body = k == 1 and body or "", money = k == 1 and money or 0, cod = (k == 1 or codEach) and cod or 0 })
       end
     end
+    -- (anything left on the game's send mail from before goes back first)
+    if ClearSendMail then ClearSendMail() end
     M.sending = { to = to, queue = queue, k = 1, sent = 0 }
     if M.onChange then M.onChange() end
   end
@@ -314,23 +409,41 @@ pfUI:RegisterModule("mail", "vanilla", function ()
       if M.onSent then M.onSent() end
       return
     end
-    if q.item then
+    -- (16 Nov 2026, Lobo on Discord: "trying to send mail, it just stays there doing nothing") an item on the
+    -- mail is locked in its bag, and this used to wait for the lock to clear BEFORE asking whether it was
+    -- already on the mail - so it waited for ever. Now: attached = go on; not yet = attach once, then wait up
+    -- to 4 s for it, then stop and say so.
+    if q.item and not GetSendMailItem() then
       local it = q.item
-      local _, _, locked = GetContainerItemInfo(it.bag, it.slot)
-      if locked then s.pause = now + .1 return end
-      if GetContainerItemLink(it.bag, it.slot) ~= it.link then
-        -- (moved or gone since it was picked: skip it, not a wrong item)
-        s.k = s.k + 1
-        return
-      end
-      if not GetSendMailItem() then
+      if not s.tried then
+        local _, _, locked = GetContainerItemInfo(it.bag, it.slot)
+        if locked then
+          s.lockAt = s.lockAt or now
+          if now - s.lockAt > 4 then M.StopSend("That item stays locked in your bag; stopped after " .. s.sent .. " mails.") return end
+          s.pause = now + .1
+          return
+        end
+        if GetContainerItemLink(it.bag, it.slot) ~= it.link then
+          -- (moved or gone since it was picked: skip it, not a wrong item)
+          s.k, s.lockAt = s.k + 1, nil
+          return
+        end
         ClearCursor()
         PickupContainerItem(it.bag, it.slot)
         ClickSendMailItemButton()
+        s.tried, s.attachAt = true, now
         s.pause = now + .1
         return
       end
+      if now - (s.attachAt or now) > 4 then
+        ClearCursor()
+        M.StopSend("The item would not go on the mail; stopped after " .. s.sent .. " mails.")
+        return
+      end
+      s.pause = now + .1
+      return
     end
+    s.tried, s.attachAt, s.lockAt = nil, nil, nil
     SetSendMailCOD(q.cod and q.cod > 0 and q.cod or 0)
     SetSendMailMoney(not (q.cod and q.cod > 0) and q.money or 0)
     if GetSendMailPrice and GetSendMailPrice() + ((not (q.cod and q.cod > 0)) and q.money or 0) > GetMoney() then
@@ -347,7 +460,9 @@ pfUI:RegisterModule("mail", "vanilla", function ()
   M.ev = ev
   local function Tame()
     local f = rawget(_G, "MailFrame")
-    if not f or f.pfOctoTamed or not M.Active() then return end
+    -- (16 Nov 2026) only when our window really got built (M.onShow is set at its end): a window that failed
+    -- to build must leave the game's mailbox working, not hide both
+    if not f or f.pfOctoTamed or not M.Active() or not M.onShow then return end
     f.pfOctoTamed = true
     -- (its own opening goes; ours opens instead. MAIL_CLOSED still hides it if the player showed it.)
     f:UnregisterEvent("MAIL_SHOW")
@@ -358,6 +473,7 @@ pfUI:RegisterModule("mail", "vanilla", function ()
   ev:SetScript("OnEvent", function()
     if event == "PLAYER_ENTERING_WORLD" then
       Tame()
+      M.NoteAlt()
       return
     end
     if not M.Active() then return end
@@ -366,6 +482,10 @@ pfUI:RegisterModule("mail", "vanilla", function ()
       M.open = true
       M.skip = {}
       if CheckInbox then CheckInbox() end
+      -- fresh guild online marks and friends for the name list
+      if GuildRoster and IsInGuild and IsInGuild() then GuildRoster() end
+      if ShowFriends then ShowFriends() end
+      M.people = nil
       if M.onShow then M.onShow() end
     elseif event == "MAIL_CLOSED" then
       M.open = false

@@ -25,6 +25,10 @@ see "Roadmap" below.
   so a reused list fills after a run of holes and table.sort hands the order function nil (16 Nov 2026,
   Wolfahrt: "dots.lua:513: attempt to index local `a'"). Empty reused lists with table.setn(t, 0) too
   (dots.lua Wipe), or make a new table. The test host (LuaJIT) cannot show this.
+- SetScript with a handler the 1.12 client lacks raises an error and stops the rest of that file / module (16 Nov
+  2026: OnArrowPressed - not in WoW.exe - left the mail window unbuilt; the mailbox did nothing). The test mock takes
+  any name: check new handler names with `grep -c -a <name> C:\Games\OctoWoW\WoW.exe`; tests\mail.lua scans modules
+  for known retail-only ones.
 - Never assign a client global like `this`, `event` or `arg1` from pfUI code: modules run in
   pfUI's environment, so `this = f` creates a pfUI-only `this` that hides the real one from every
   pfUI script afterwards. Use `_G.this` (22 Oct 2026: broke every pfUI script and blanked the
@@ -1350,3 +1354,9 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   CritCards(p, T, plate, sample) = "Crits" + "Crits: own time and travel" on each Scroll areas tab and on Nameplates
   (Your text tab); CritLookCards = General's "Crits everywhere" (Loud / Clean / Blizzard / Springy + crit look + big
   messages). 11 looks (LOOKS 7th field = tooltip; every look sets feel). Tests in tests\sct.lua.
+  Part 2 (same day; user: "it should be clear if we have name plate or scrolling enabled or a mixture"): sct-options
+  CT.Usage() (place -> kinds of message switched on), CT.Setup() plates | mix | screen | own and CT.SetSetup (damage
+  DMG + your heals HEALS moved; other plate messages go back to their default area; used areas switched on).
+  SetupButtons (lit = in use) on General ("1. Where your numbers go" + a what-goes-where list; cards numbered 1-4),
+  Nameplates (in use / not in use line first) and Messages; scroll area tabs show "Incoming 14" or grey, with an
+  in use / not in use / switched off line. The old AllOut buttons are gone.

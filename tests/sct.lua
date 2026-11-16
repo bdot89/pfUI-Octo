@@ -236,6 +236,30 @@ do
   CT.ApplyLook("octo")
   CT:Clear()
 end
+-- (16 Nov 2026, user: "clear if we have name plate or scrolling enabled or a mixture") the three setups
+do
+  local keep = {}
+  for k, v in pairs(B.db.sct.events) do keep[k] = v.area end
+  local ok3 = CT.SetSetup and CT.Setup and CT.Usage
+  ok(ok3, "setups: CT.Setup / SetSetup / Usage")
+  if ok3 then
+    CT.SetSetup("screen")
+    local u = CT.Usage()
+    ok(CT.Setup() == "screen" and not u.plate and u.out and u.out.n >= 6, "Scrolling on screen: nothing on plates, your damage in Outgoing")
+    CT.SetSetup("mix")
+    u = CT.Usage()
+    ok(CT.Setup() == "mix" and u.plate and B.db.sct.events.outHeal.area == "out", "Mix: damage on plates, heals on screen")
+    CT.SetSetup("plates")
+    ok(CT.Setup() == "plates" and B.db.sct.events.outHeal.area == "plate" and B.db.sct.events.inMelee.area == "inc",
+      "On nameplates: damage and heals on plates, damage taken stays on screen")
+    B.db.sct.events.lowHp.area = "plate"
+    ok(CT.Setup() == "own", "a message moved by hand: your own mix")
+    B.db.sct.areas.out.enabled = false
+    CT.SetSetup("screen")
+    ok(B.db.sct.events.lowHp.area == "note" and B.db.sct.areas.out.enabled, "back to screen: stray plate messages go home, a used area is switched on")
+  end
+  for k, a in pairs(keep) do B.db.sct.events[k].area = a end
+end
 -- (user, 26 Oct 2026: "give crits options for movement same as hits") a crit's
 -- entrance and movement are two settings; old settings keep their look
 do

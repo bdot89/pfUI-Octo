@@ -61,20 +61,112 @@ end
 local MASTER = { function() return B.db.sct.enabled end, function(v) CT:SetEnabled(v) end,
                  "Combat text on or off. Off: pfUI shows none and the game's own damage and healing numbers come back. Same on every combat text page." }
 
-local function AllOut(where)
-  local ev = B.db.sct.events
-  for _, k in ipairs({ "outMelee", "outSpell", "outDot", "outPet", "outShield", "outMiss" }) do ev[k].area = where end
-end
--- (the buttons light up for the place your damage goes now)
-local function AllOutIs(where)
-  local ev = B.db.sct.events
-  for _, k in ipairs({ "outMelee", "outSpell", "outDot", "outPet", "outShield", "outMiss" }) do
-    if not ev[k] or ev[k].area ~= where then return false end
+-- (16 Nov 2026, user: "it should be clear if we have name plate or scrolling enabled or a mixture ... the settings
+-- together and easy to see") Where text goes is each message's own setting (Messages page); these read it back as
+-- one of three setups and set one in a click.
+local DMG = { "outMelee", "outSpell", "outDot", "outPet", "outShield", "outMiss" }
+local HEALS = { "outHeal", "outHot" }
+local SHORT = { ["in"] = "damage you take", heal = "heals and power you get", out = "your damage", outheal = "your healing",
+                warn = "alerts", reward = "rewards", obg = "OctoBG alerts" }
+-- every place in use: place -> { n = messages, groups = { "your damage", ... } } (messages switched on only)
+function CT.Usage()
+  local ev, use = B.db.sct.events, {}
+  for _, e in ipairs(CT.EVENTS) do
+    local s = ev[e.key]
+    if s and s.on and (e.group ~= "obg" or IsAddOnLoaded("OctoBG")) then
+      local u = use[s.area or "out"] or { n = 0, groups = {}, seen = {} }
+      use[s.area or "out"] = u
+      u.n = u.n + 1
+      if not u.seen[e.group] then
+        u.seen[e.group] = true
+        table.insert(u.groups, SHORT[e.group] or e.group)
+      end
+    end
   end
-  return true
+  return use
 end
-local function OnPlates() return AllOutIs("plate") end
-local function OnScreen() return AllOutIs("out") end
+local function AreaOf(key) local s = B.db.sct.events[key] return s and s.area end
+-- "plates" | "screen" | "mix" | "own"
+function CT.Setup()
+  local dmgP, healP, other = true, true, false
+  for _, k in ipairs(DMG) do if AreaOf(k) ~= "plate" then dmgP = false end end
+  for _, k in ipairs(HEALS) do if AreaOf(k) ~= "plate" then healP = false end end
+  local anyP = false
+  for _, e in ipairs(CT.EVENTS) do
+    local a = AreaOf(e.key)
+    if a == "plate" then
+      anyP = true
+      local isD, isH = false, false
+      for _, k in ipairs(DMG) do if k == e.key then isD = true end end
+      for _, k in ipairs(HEALS) do if k == e.key then isH = true end end
+      if not isD and not isH then other = true end
+    end
+  end
+  if not anyP then return "screen" end
+  if other then return "own" end
+  if dmgP and healP then return "plates" end
+  if dmgP then return "mix" end
+  return "own"
+end
+function CT.SetSetup(which)
+  local ev = B.db.sct.events
+  local def = B.DEFAULTS.sct.events
+  for _, e in ipairs(CT.EVENTS) do
+    local s = ev[e.key]
+    if s then
+      local isD, isH = false, false
+      for _, k in ipairs(DMG) do if k == e.key then isD = true end end
+      for _, k in ipairs(HEALS) do if k == e.key then isH = true end end
+      if isD then
+        s.area = (which == "screen") and "out" or "plate"
+      elseif isH then
+        s.area = (which == "plates") and "plate" or "out"
+      elseif s.area == "plate" then
+        -- anything else on a plate goes back to its own screen area
+        s.area = (def[e.key] and def[e.key].area ~= "plate" and def[e.key].area) or "out"
+      end
+    end
+  end
+  -- an area messages now go to is switched on
+  for area in pairs(CT.Usage()) do
+    local a = B.db.sct.areas[area]
+    if a and not a.enabled then a.enabled = true CT:PlaceArea(area) end
+  end
+end
+local SETUPS = {
+  { "plates", "On nameplates", "Your damage and your heals rise from whoever you hit or heal. What happens to you (damage taken, "
+    .. "heals you get, alerts) still shows on screen near your character." },
+  { "mix", "Mix", "Your damage rises from the enemy you hit; your heals and everything else scroll on screen. (The default.)" },
+  { "screen", "Scrolling on screen", "Everything scrolls in the screen areas, nothing on nameplates - like the classic SCT add-on." },
+}
+-- the three setups as buttons, the one in use lit
+local function SetupButtons(p)
+  local list = {}
+  for _, s in ipairs(SETUPS) do
+    local key = s[1]
+    table.insert(list, { s[2], function() CT.SetSetup(key) O:Refresh() end, 170, s[3],
+      on = function() return CT.Setup() == key end })
+  end
+  W.Buttons(p, list)
+end
+-- one line per place in use: where each kind of message goes now
+local function UsageText()
+  local use = CT.Usage()
+  local lines = {}
+  local function Line(place, label)
+    local u = use[place]
+    if not u then return end
+    local off = place ~= "plate" and B.db.sct.areas[place] and not B.db.sct.areas[place].enabled
+    table.insert(lines, "|cffffd100" .. label .. "|r  " .. table.concat(u.groups, ", ")
+      .. (off and "  |cffff5555(this area is switched off!)|r" or ""))
+  end
+  Line("plate", "Nameplates")
+  for _, k in ipairs(CT.AREA_ORDER) do Line(k, CT.AREA_LABEL[k]) end
+  local setup = CT.Setup()
+  local head = setup == "own" and "Now: |cffffffffyour own mix|r (changed on Messages and sounds)"
+    or ("Now: |cff40d977" .. ((setup == "plates" and "On nameplates") or (setup == "mix" and "Mix") or "Scrolling on screen") .. "|r")
+  return head .. "\n" .. table.concat(lines, "\n")
+end
 -- one-shot tests light up for a moment after the click
 local shotAt = {}
 local function Shot(key, fn) return function() shotAt[key] = GetTime() fn() end end
@@ -86,12 +178,14 @@ local TEST = { "Test combat text", function() CT:TestMode(not CT:Testing()) end,
   "For a minute, sample texts keep coming in every area and on every nameplate on screen (V shows enemy "
     .. "nameplates, Shift-V friendly ones). Click again to stop.", on = function() return CT:Testing() end }
 
-local function DamageButtons(p)
-  W.Buttons(p, {
-    TEST,
-    { "Your damage on nameplates", function() AllOut("plate") end, 180, "Melee, spells, damage over time, pet, damage shields and misses rise from the enemy you hit.", on = OnPlates },
-    { "Your damage on screen", function() AllOut("out") end, 160, "The same messages scroll in the Outgoing area (SCT - Damage).", on = OnScreen },
-  })
+-- Step 1 of the setup: nameplates, mix or screen, and what goes where now
+local function WhereCard(p, title)
+  W.Card(p, title or "Where your numbers go", { text = "Pick one: the lit one is what you have now. The lines under it say "
+    .. "where each kind of message shows.", tip = "Every message can also pick its own place on Messages and sounds." })
+  SetupButtons(p)
+  -- (a fixed height for the head line + nameplates + five areas, so the card never jumps)
+  local fs = W.Live(p, UsageText)
+  if fs and fs.SetHeight then fs:SetHeight(100) end
 end
 
 -- the area picked on Scroll areas (a click on an area in the preview picks it)
@@ -358,11 +452,16 @@ BUILD.ctgeneral = function(p)
     table.insert(s, n .. " nameplate" .. ((n == 1) and "" or "s") .. " on screen" .. ((n == 0) and " - V shows enemy plates, Shift-V friendly" or ""))
     return table.concat(s, "    ")
   end)
-  W.Card(p, "Looks", { tip = "Ready-made styles for all combat text: letters, how each area moves, how crits appear. "
+  -- (16 Nov 2026, user: "layout is a bit confusing") the page reads as steps: 1 where, 2 look, 3 crits, then fine-tuning
+  WhereCard(p, "1. Where your numbers go")
+  W.Buttons(p, { TEST,
+    { "Set up nameplates  >", function() O:Open("ctplates") end, 170, "Movement, crits and size of the text on nameplates.", role = "open" },
+    { "Set up scroll areas  >", function() O:Open("ctareas") end, 170, "Place, movement and crits of each screen area.", role = "open" } })
+  W.Card(p, "2. Pick a look", { tip = "Ready-made styles for all combat text: letters, how each area moves, how crits appear. "
     .. "Colours, messages and places stay as they are." })
   Looks(p)
   Preview(p)
-  W.Card(p, "Look of all text", { tip = "The letters, size, outline and speed of every combat text. Areas can pick their own on Scroll areas." })
+  W.Card(p, "3. Letters, size and speed", { tip = "The letters, size, outline and speed of every combat text. Areas can pick their own on Scroll areas." })
   Drop(p, "Style", "Blizzard numbers: the game's own damage-number look - its font, plain numbers, white melee and "
     .. "yellow spells, straight up, crits that pop - still placed and filtered by these pages.", CT.STYLES, DB, "style")
   Drop(p, "Font", "Shown in its own letters. Areas can pick their own on Scroll areas.", W.Fonts(), DB, "font")
@@ -374,8 +473,6 @@ BUILD.ctgeneral = function(p)
   Chk(p, "Shadow", "A soft shadow behind the letters.", DB, "shadow")
   Chk(p, "Spell icons", "The spell's icon next to its number.", DB, "icons")
   Sld(p, "Icon size", "Next to the text, relative to its height.", 0.5, 2, 0.1, DB, "iconScale", nil, Pct)
-  W.Card(p, "Where your damage goes", { text = "Rising from the enemy you hit (nameplates), or scrolling in the Outgoing area on screen." })
-  DamageButtons(p)
   CritLookCards(p)
   W.Card(p, "The game's own numbers", { folded = true,
     tip = "The ON / OFF switch swaps these for you; here they can be set one by one." })
@@ -423,11 +520,35 @@ BUILD.ctareas = function(p)
     end)
     tabs[i] = b
   end
-  table.insert(p.items, { Refresh = function()
-    for i = 1, table.getn(tabs) do W.Pick(tabs[i], tabs[i].key == AREA.cur) end
-  end })
+  -- (16 Nov 2026) each tab says how many kinds of message come to it; an area nothing uses is greyed
+  local function PaintTabs()
+    local use = CT.Usage()
+    for i = 1, table.getn(tabs) do
+      local k = tabs[i].key
+      local u = use[k]
+      local on = B.db.sct.areas[k].enabled
+      tabs[i]:SetText((u and on) and (AREA_TAB[k] .. "  |cff40d977" .. u.n .. "|r") or ("|cff8a8f99" .. AREA_TAB[k] .. "|r"))
+      W.Pick(tabs[i], k == AREA.cur)
+    end
+  end
+  table.insert(p.items, { Refresh = PaintTabs })
+  row:SetScript("OnUpdate", function()
+    if (this.tick or 0) > GetTime() then return end
+    this.tick = GetTime() + 1
+    PaintTabs()
+  end)
+  -- in use or not, in words, right under the tabs
   W.Live(p, function()
-    return "|cffffd100" .. CT.AREA_LABEL[AREA.cur] .. "|r - " .. AREA_INFO[AREA.cur]
+    local u = CT.Usage()[AREA.cur]
+    local a = B.db.sct.areas[AREA.cur]
+    local head = "|cffffd100" .. CT.AREA_LABEL[AREA.cur] .. "|r  "
+    if u and not a.enabled then
+      return head .. "|cffff5555Switched off|r - but " .. table.concat(u.groups, ", ") .. " are sent here and do not show. Switch it on under Movement."
+    elseif u then
+      return head .. "|cff40d977In use|r - shows " .. table.concat(u.groups, ", ") .. " (" .. u.n .. " kinds of message)."
+    end
+    return head .. "|cff8a8f99Not in use|r - no message is sent here. Pick this area for a message on Messages and sounds. ("
+      .. AREA_INFO[AREA.cur] .. ")"
   end)
   W.Buttons(p, { TEST, { "Test this area", Shot("area", function()
     CT:Show("1234", 1, 1, 1, AREA.cur, {})
@@ -478,9 +599,18 @@ BUILD.ctplates = function(p)
       .. "to the fallback area. Works with pfUI's nameplates.\n\nTeammates: the damage your party deals rises from the "
       .. "plate of whoever they hit - smaller, in their class colour, in a column beside your own numbers. Your own "
       .. "damage is never shown twice, and teammates' text never goes to the screen areas." })
+  -- (16 Nov 2026) in use or not, first thing on the page, with the three setups to change it
+  W.Live(p, function()
+    local u = CT.Usage().plate
+    if u then
+      return "|cff40d977Nameplates in use|r - " .. table.concat(u.groups, ", ") .. " rise from the other unit's plate ("
+        .. u.n .. " kinds of message). The settings below are for that text."
+    end
+    return "|cffff5555Nameplates not in use|r - nothing rises from nameplates now. Pick \"On nameplates\" or \"Mix\" below to use them."
+  end)
+  SetupButtons(p)
   W.Buttons(p, {
     TEST,
-    { "Your damage on nameplates", function() AllOut("plate") end, 180, "Melee, spells, damage over time, pet, damage shields and misses.", on = OnPlates },
     { "Test on nameplates", Shot("plates", function() CT:TestPlates() end), 140, "A hit, a crit, a miss and a heal on every nameplate on screen.", on = Shooting("plates") },
   })
   Preview(p)
@@ -634,7 +764,7 @@ local function PlaySnd(v) CT.PlaySound(v) end
 
 -- General's crit cards: one-click crit styles, the crit look for every crit, big messages.
 function CritLookCards(p)
-  W.Card(p, "Crits everywhere", { text = "One click for every crit, then the letters, colour, flash and mark every crit gets.",
+  W.Card(p, "4. Crits everywhere", { text = "One click for every crit, then the letters, colour, flash and mark every crit gets.",
     tip = "How crits appear and move in each place is on that place's tab: Scroll areas (each area) and Nameplates." })
   W.Buttons(p, {
     { "Show a crit", Shot("crit", SampleCrit), 100, "A crit in the Outgoing area and on your target's nameplate.", on = Shooting("crit") },
@@ -764,7 +894,7 @@ local function EventRow(p, key)
   W.Tip(sw, e.label, "Its colour. Click to pick another.")
   W.Tip(wf, e.label, "Where it comes from: one of the screen areas, or the nameplate of the other person.")
   W.Tip(cc, e.label, "Always show it as a crit (bigger, with the crit movement).")
-  W.Tip(bg, e.label, "Bigger, with a flash, so it stands out (how much bigger: General, Crits everywhere).")
+  W.Tip(bg, e.label, "Bigger, with a flash, so it stands out (how much bigger: General, 4. Crits everywhere).")
   W.Tip(sf, e.label, "A sound when it happens. Picking one plays it.")
   table.insert(W.index, { page = p, card = p.cur, label = e.label, desc = "A message type: on, colour, where it comes from, crit, big, sound.", region = row })
 end
@@ -788,9 +918,8 @@ BUILD.ctevents = function(p)
       .. "the other unit. Crit = always shown as a crit. Big = bigger with a flash so it stands out (General > Crits everywhere sets how "
       .. "much). Sound: picking one plays it.\n\nThe sound lists hold the game's alerts, gunshots and explosions, boss "
       .. "kill lines (\"Die, insect!\"), crowd cheers and victory horns, BigWigs' voices and four files of your own." })
+  SetupButtons(p)
   W.Buttons(p, {
-    { "Your damage on nameplates", function() AllOut("plate") end, 180, nil, on = OnPlates },
-    { "Your damage on screen", function() AllOut("out") end, 150, nil, on = OnScreen },
     { "Defaults", function()
       B.db.sct.events = {}
       Fill(B.db.sct.events, B.DEFAULTS.sct.events)
