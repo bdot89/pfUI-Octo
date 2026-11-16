@@ -715,6 +715,12 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
         end
         local text = _G["ChatFrame" .. i .. "TabText"]
         Restore(text, true)
+        -- (16 Nov 2026, Barbeque: "the General tab text does not move along with the rest") The snapshot
+        -- could hold a spot pfUI gave it; the game's own anchor (FloatingChatFrame.xml) is the tab's centre.
+        if text then
+          text:ClearAllPoints()
+          text:SetPoint("CENTER", tab, "CENTER", 0, -5)
+        end
         Font(text, c.text)
         for _, part in ipairs({ "TabLeft", "TabMiddle", "TabRight" }) do Restore(_G["ChatFrame" .. i .. part], true) end
         for _, part in ipairs({ "UpButton", "DownButton", "BottomButton" }) do Restore(_G["ChatFrame" .. i .. part], true) end
