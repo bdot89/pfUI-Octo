@@ -460,6 +460,8 @@ pfUI:RegisterModule("auction", "vanilla", function ()
   function AH.Buy(row, how)
     local why = AH.CanBuy(row, how)
     if why ~= "ok" then return false, why end
+    -- (one fetched page at a time: a second click while one is on its way waits for it)
+    if AH.pending then return false, "wait a moment, the last one is still going through" end
     if row.kind ~= "list" or (AH.listPage == row.page and AH.listQuery == (row.q or AH.query) and not AH.scan) then
       if Place(row, how) then return true end
       if row.kind ~= "list" then return false, "it is gone" end

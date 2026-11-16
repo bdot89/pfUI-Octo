@@ -65,6 +65,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     Flat(e, 1, .3)
     e:SetBackdropColor(.03, .03, .04, 1)
     e:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+    -- (16 Nov 2026, user: clicking back into the search box "should highlight all the text to make it fast
+    -- deleteable" - every box: typing replaces what was there)
+    e:SetScript("OnEditFocusGained", function() this:HighlightText() end)
     e:SetScript("OnEnterPressed", function() this:ClearFocus() if onEnter then onEnter(this) end end)
     if hint then
       e.hint = Text(e, 11)
@@ -846,12 +849,28 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end
   function UI.List() return UI.lists[UI.tab] or B.list end
   function UI.Buy(how)
-    local d = UI.List().sel
+    local l = UI.List()
+    local d = l.sel
+    -- (16 Nov 2026, user: "if i click buyout ... it should then go to the item below so its possible to spam
+    -- buyout": the row after it in the list's own order is picked next, and scrolled into view)
+    local at, nextRow
+    for i, r in ipairs(l.data or {}) do if r == d then at = i end end
+    if at then nextRow = l.data[at + 1] end
     local ok, why = AH.Buy(d, how)
-    if not ok then UI.Note("Cannot " .. (how == "buyout" and "buy" or "bid") .. ": " .. tostring(why) .. ".")
-    elseif why then UI.Note(why .. "...")
+    if not ok then UI.Note("Cannot " .. (how == "buyout" and "buy" or "bid") .. ": " .. tostring(why) .. ".") UI.Refresh() return end
+    if why then UI.Note(why .. "...")
     else UI.Note((how == "buyout" and "Bought " or "Bid on ") .. d.name .. " for " .. AH.Money(AH.Cost(d, how), true) .. ".") end
+    l.sel = nextRow
     UI.Refresh()
+    if nextRow and l.Show then
+      local n
+      for i, r in ipairs(l.data) do if r == nextRow then n = i end end
+      if n and (n <= l.offset or n > l.offset + l.shown) then
+        l.offset = math.max(0, n - math.floor(l.shown / 2))
+        l.Paint()
+      end
+    end
+    UI.PaintBuy()
   end
   -- the last searches, newest first (per account)
   function UI.Recent(name)

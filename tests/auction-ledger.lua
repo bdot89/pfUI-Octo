@@ -396,3 +396,54 @@ do
   getglobal("pfAuction"):Hide()
   pfUI_cache.auction = cacheWas5
 end
+
+-- buying moves the pick to the next row, so a list can be bought down one click at a time (16 Nov 2026)
+do
+  local AH = pfUI.auction
+  local UI = AH.ui
+  local realBuy = AH.Buy
+  local moneyWas, nameWas = rawget(_G, "GetMoney"), rawget(_G, "UnitName")
+  _G.GetMoney, _G.UnitName = function() return 10000000 end, function() return "Me" end
+  local bought = {}
+  AH.Buy = function(row, how)
+    table.insert(bought, row.name)
+    for i, r in ipairs(AH.rows) do if r == row then table.remove(AH.rows, i) break end end
+    return true
+  end
+  local function Row(name, unit)
+    return { key = name, name = name, unit = unit, count = 1, quality = 1, level = 0, left = 4, owner = "X", buyout = unit, bid = 0, minBid = unit,
+      next = unit, bidunit = unit, kind = "list", page = 0, index = 1, tex = "t" }
+  end
+  AH.rows = {}
+  for i = 1, 30 do table.insert(AH.rows, Row("Item" .. string.format("%02d", i), i * 10)) end
+  AH.open = true
+  AH.Show()
+  UI.Open("browse")
+  local l = UI.lists.browse
+  l.sortBy, l.desc = "unit", false
+  UI.Refresh()
+  l.sel = l.data[1]
+  UI.Buy("buyout")
+  ok(bought[1] == "Item01" and l.sel and l.sel.name == "Item02", "after a buyout the next row is picked (" .. tostring(l.sel and l.sel.name) .. ")")
+  UI.Buy("buyout")
+  UI.Buy("buyout")
+  ok(table.getn(bought) == 3 and bought[3] == "Item03" and l.sel.name == "Item04", "clicking on buys down the list in its order")
+  l.desc = true
+  l.Sort()
+  l.sel = l.data[24]
+  UI.Buy("buyout")
+  ok(l.sel and l.sel.name == l.data[24].name and l.offset > 0, "the next one is scrolled into view (" .. tostring(l.sel and l.sel.name) .. ", from row " .. l.offset .. ")")
+  l.sel = l.data[table.getn(l.data)]
+  UI.Buy("buyout")
+  ok(l.sel == nil, "after the last one nothing is picked")
+  AH.Buy = realBuy
+  AH.pending = { row = {}, how = "buyout" }
+  local okay, why = AH.Buy(Row("Z", 1), "buyout")
+  ok(okay == false and string.find(why, "wait", 1, true), "a second buy while one page is on its way waits")
+  AH.pending = nil
+  ok(UI.pages.browse.name:GetScript("OnEditFocusGained") ~= nil, "clicking into the search box marks what is in it")
+  _G.GetMoney, _G.UnitName = moneyWas, nameWas
+  AH.rows = {}
+  AH.open = false
+  getglobal("pfAuction"):Hide()
+end
