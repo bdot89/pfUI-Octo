@@ -1312,3 +1312,14 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   fills its text rule (KINDS), "Only in" + "Add a dungeon" (LZ.ZONES). Tests: tests\octolazy.lua. Not taken: ".save"
   (would be said aloud where the server lacks it), nameplate rules (pfUI's own). Unverified: CONFIRM_LOOT_ROLL /
   LOOT_BIND_CONFIRM event names, GetLootRollItemID, IsEquippedItemType, Turtle zone names in LZ.ZONES.
+- game-icons crests (16 Nov 2026, NOT seen in game; NEW FILES = full client restart; user: "Download about 100 icons
+  and put them in tidy the best rated ones that look good put if there are any raid markers also"). 106 icons from
+  game-icons.net (CC BY 3.0; authors credited on the Art page and in tools\gameicons\list.txt), sources in
+  tools\gameicons\*.png (512 px white on black, https://game-icons.net/icons/ffffff/000000/1x1/<author>/<icon>.png).
+  tools\MakeIconArt.ps1: picture -> 256 grid mask -> signed distance field (Felzenszwalb EDT) -> MakeMarkArt's metal
+  lighting. Writes img\elite\gi\<id>-elite|rare|boss.tga (64 px gold / silver / red), img\plates\gi\<id>.tga (32 px chrome,
+  tinted on plates), img\marks\emblems.tga + fantasy.tga (raid mark sheets, list groups marks1 / marks2), and
+  modules\art-icons.lua (GENERATED: pfUI.artIcons, loaded before art.lua). art.lua: A.ELITE gains key "gi-<id>" with group,
+  A.GROUPS, A.ICONSQ, A.Crest -> path, w, h (icons 32 x 32, drawn 46 x 23), A.PlateArt; C.art.elitesize scales the crest
+  (unitframes-octo). plates.lua P.MARKART gains every icon before "None". Art page: preview of the picked crest + a grid by
+  group (click to pick), size slider, credits. Dropped: skoll rank-1..3 (hollow outlines). Tests: tests\art.lua.

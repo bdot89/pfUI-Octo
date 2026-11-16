@@ -631,6 +631,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     { key = "crest-crown", label = "3D crown", art = "crest-crown", wide = true },
     { key = "none", label = "None" },
   }
+  -- (16 Nov 2026) the game-icons.net crests (modules\art-icons.lua), before "None": chrome, tinted like the rest
+  local none = table.remove(P.MARKART)
+  for _, ic in ipairs(pfUI.artIcons or {}) do
+    table.insert(P.MARKART, { key = "gi-" .. ic[1], label = ic[2] .. " (" .. ic[3] .. ")", art = "gi\\" .. ic[1] })
+  end
+  table.insert(P.MARKART, none)
   local MARKBY = {}
   P.MARKWIDE = {}
   for _, m in ipairs(P.MARKART) do MARKBY[m.key] = m.art P.MARKWIDE[m.key] = m.wide end

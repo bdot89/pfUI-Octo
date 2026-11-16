@@ -1,0 +1,127 @@
+# pfUI Octo :: the game-icons.net icons drawn into crests and raid marks by tools\MakeIconArt.ps1.
+# Icons from https://game-icons.net (CC BY 3.0), by their authors (the first part of each path):
+# Lorc, Delapouite, Skoll, sbed, Faithtoken, DarkZaitzev, Caro Asercion, Carl Olsen.
+# Lines: group|author/icon|shown name. Groups: crest groups, or marks1 / marks2 (raid mark sets,
+# in the game's order: star, circle, diamond, triangle, moon, square, cross, skull).
+Skulls|lorc/crowned-skull|Crowned skull
+Skulls|lorc/horned-skull|Horned skull
+Skulls|lorc/daemon-skull|Daemon skull
+Skulls|lorc/diablo-skull|Devil skull
+Skulls|lorc/dread-skull|Dread skull
+Skulls|lorc/fanged-skull|Fanged skull
+Skulls|lorc/skull-crossed-bones|Skull and bones
+Skulls|lorc/pirate-skull|Pirate skull
+Skulls|lorc/broken-skull|Broken skull
+Skulls|lorc/skull-shield|Skull shield
+Skulls|lorc/skull-signet|Skull signet
+Skulls|lorc/triple-skulls|Three skulls
+Skulls|lorc/thunder-skull|Thunder skull
+Skulls|skoll/burning-skull|Burning skull
+Skulls|sbed/death-skull|Death skull
+Skulls|lorc/star-skull|Star skull
+Skulls|darkzaitzev/skull-sabertooth|Sabretooth skull
+Skulls|delapouite/t-rex-skull|Rex skull
+Skulls|lorc/animal-skull|Beast skull
+Skulls|lorc/sharped-teeth-skull|Grinning skull
+Crowns|lorc/crown|Crown
+Crowns|lorc/queen-crown|Queen's crown
+Crowns|lorc/sharp-crown|Spiked crown
+Crowns|lorc/laurel-crown|Laurel crown
+Crowns|lorc/crown-of-thorns|Crown of thorns
+Crowns|delapouite/imperial-crown|Imperial crown
+Crowns|delapouite/jewel-crown|Jewelled crown
+Crowns|delapouite/crenel-crown|Tower crown
+Crowns|lorc/crowned-heart|Crowned heart
+Crowns|lorc/crowned-explosion|Crowned blast
+Crowns|delapouite/pope-crown|High crown
+Crowns|delapouite/throne-king|Throne
+Dragons|lorc/dragon-head|Dragon head
+Dragons|faithtoken/dragon-head|Dragon profile
+Dragons|delapouite/spiked-dragon-head|Spiked dragon
+Dragons|lorc/wyvern|Wyvern
+Dragons|lorc/double-dragon|Twin dragons
+Dragons|lorc/dragon-spiral|Coiled dragon
+Dragons|lorc/sea-dragon|Sea dragon
+Dragons|lorc/hydra|Hydra
+Dragons|delapouite/dragon-shield|Dragon shield
+Dragons|delapouite/griffin-symbol|Griffin
+Dragons|delapouite/griffin-shield|Griffin shield
+Dragons|delapouite/horned-reptile|Horned drake
+Dragons|delapouite/drakkar-dragon|Longship dragon
+Dragons|delapouite/dragon-orb|Dragon orb
+Beasts|lorc/wolf-head|Wolf
+Beasts|lorc/lion|Lion
+Beasts|delapouite/bear-head|Bear
+Beasts|delapouite/tiger-head|Tiger
+Beasts|delapouite/orc-head|Orc
+Beasts|delapouite/ogre|Ogre
+Beasts|skoll/troll|Troll
+Beasts|lorc/minotaur|Minotaur
+Beasts|lorc/cyclops|Cyclops
+Beasts|delapouite/gargoyle|Gargoyle
+Beasts|lorc/grim-reaper|Reaper
+Beasts|lorc/evil-bat|Bat
+Beasts|lorc/scorpion|Scorpion
+Beasts|lorc/raven|Raven
+Beasts|lorc/bull-horns|Bull horns
+Beasts|delapouite/devil-mask|Devil
+Wings|lorc/winged-emblem|Winged emblem
+Wings|lorc/batwing-emblem|Batwing emblem
+Wings|lorc/eagle-emblem|Eagle emblem
+Wings|lorc/hawk-emblem|Hawk emblem
+Wings|lorc/condor-emblem|Condor emblem
+Wings|lorc/steelwing-emblem|Steel wings
+Wings|lorc/swords-emblem|Swords emblem
+Wings|lorc/winged-shield|Winged shield
+Wings|lorc/winged-sword|Winged sword
+Wings|delapouite/winged-scepter|Winged sceptre
+Wings|sbed/evil-wings|Demon wings
+Wings|lorc/winged-arrow|Winged arrow
+Stars|lorc/beveled-star|Bevelled star
+Stars|lorc/barbed-star|Barbed star
+Stars|lorc/justice-star|Justice star
+Stars|lorc/law-star|Law star
+Stars|lorc/cursed-star|Cursed star
+Stars|delapouite/round-star|Round star
+Stars|delapouite/polar-star|North star
+Stars|delapouite/seven-pointed-star|Seven points
+Stars|skoll/allied-star|Allied star
+Stars|darkzaitzev/north-star-shuriken|Star blade
+Stars|caro-asercion/heraldic-sun|Heraldic sun
+Stars|lorc/barbed-sun|Barbed sun
+Shields|delapouite/spiked-shield|Spiked shield
+Shields|delapouite/cross-shield|Cross shield
+Shields|lorc/horned-helm|Horned helm
+Shields|lorc/spiked-halo|Spiked halo
+Shields|delapouite/spiked-shoulder-armor|Pauldron
+Shields|lorc/mailed-fist|Mailed fist
+Medals|lorc/medal|Medal
+Medals|lorc/medal-skull|Skull medal
+Medals|delapouite/star-medal|Star medal
+Medals|delapouite/ribbon-medal|Ribbon medal
+Medals|delapouite/laurels-trophy|Laurel trophy
+Medals|lorc/laurels|Laurels
+Signs|lorc/gothic-cross|Gothic cross
+Signs|skoll/iron-cross|Iron cross
+Signs|delapouite/jerusalem-cross|Holy cross
+Signs|lorc/cut-diamond|Diamond
+Signs|lorc/diamond-hard|Hard diamond
+Signs|lorc/crossed-swords|Crossed swords
+Signs|lorc/crossed-axes|Crossed axes
+Signs|lorc/fangs-circle|Fang ring
+marks1|delapouite/round-star|Star
+marks1|delapouite/plain-circle|Circle
+marks1|lorc/cut-diamond|Diamond
+marks1|delapouite/great-pyramid|Triangle
+marks1|lorc/moon|Moon
+marks1|delapouite/plain-square|Square
+marks1|lorc/crossed-bones|Cross
+marks1|lorc/skull-crossed-bones|Skull
+marks2|delapouite/seven-pointed-star|Star
+marks2|lorc/sun|Circle
+marks2|skoll/diamonds|Diamond
+marks2|delapouite/mayan-pyramid|Triangle
+marks2|lorc/evil-moon|Moon
+marks2|skoll/divided-square|Square
+marks2|lorc/crossed-claws|Cross
+marks2|lorc/dread-skull|Skull

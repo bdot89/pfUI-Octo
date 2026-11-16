@@ -333,12 +333,15 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     if special and mode == "graphic" then
       local rare = kind == "rare" or kind == "rareelite"
       -- (5 Nov 2026, Art page: a drawn crest in its own gold / silver / red, bigger)
-      local crest = pfUI.art and pfUI.art.Crest(nil, kind == "worldboss" and "boss" or (rare and "rare" or "elite"))
+      local crest, cw, ch
+      if pfUI.art then crest, cw, ch = pfUI.art.Crest(nil, kind == "worldboss" and "boss" or (rare and "rare" or "elite")) end
       if crest then
         f.octoElite:SetTexture(crest)
         f.octoElite:SetVertexColor(1, 1, 1)
-        f.octoElite:SetWidth(46)
-        f.octoElite:SetHeight(23)
+        -- (16 Nov 2026) the game-icons crests are square; the Art page's size slider scales either
+        local k = tonumber(C.art and C.art.elitesize) or 1
+        f.octoElite:SetWidth((cw or 46) * k)
+        f.octoElite:SetHeight((ch or 23) * k)
       else
         f.octoElite:SetTexture(ART .. (rare and "uf-rare" or "uf-elite"))
         f.octoElite:SetWidth(36)

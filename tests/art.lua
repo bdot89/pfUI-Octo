@@ -34,6 +34,25 @@ for _, s in ipairs(A.ELITE) do
   end
 end
 
+-- (16 Nov 2026) the game-icons.net crests: about a hundred, square, in groups, on nameplates too
+local icons = pfUI.artIcons or {}
+ok(table.getn(icons) >= 100, "game-icons crests: " .. table.getn(icons))
+local _, w, h = A.Crest("gi-lorc-crowned-skull", "elite")
+ok(w == 32 and h == 32 and string.find(A.Crest("gi-lorc-crowned-skull", "rare"), "elite\\gi\\lorc-crowned-skull-rare", 1, true), "an icon crest is square, per kind")
+local _, w2 = A.Crest("wings", "elite")
+ok(w2 == 46, "the drawn crests stay wide")
+ok(table.getn(A.GROUPS) >= 8 and A.GROUPS[1] == "pfUI Octo", "crest groups (" .. table.concat(A.GROUPS, ", ") .. ")")
+local plateOk = true
+for _, ic in ipairs(icons) do if not exists(A.PlateArt("gi-" .. ic[1])) then plateOk = false end end
+ok(plateOk, "every icon has its nameplate mark")
+local P = pfUI.plates
+if P and P.MarkArt then ok(P.MarkArt("gi-lorc-dragon-head") ~= nil and P.MarkArt("none") == nil, "nameplates offer the icon crests") end
+ok(A.MarkSheet("emblems") and A.MarkSheet("fantasy"), "two game-icons raid mark sets")
+S.elite = "gi-lorc-wyvern"
+good, e = pcall(function() O:Page("art") O:Rebuild("art") end)
+ok(good, "the Art page builds with an icon crest picked" .. (good and "" or (": " .. tostring(e))))
+S.elite = "classic"
+
 -- gryphon pictures brought by other add-ons (pfUI-CustomMedia) join the Gryphons page's list
 do
   local GR = pfUI.gryphons
