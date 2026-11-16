@@ -1742,10 +1742,10 @@ do
   ok(O and O.frame == pfUI.gui, "pfUI's window has the Octo shell")
   if O and O.frame then
     pfUI.gui:Show()
-    -- Combat Text first, with OctoBG's six pages
+    -- Combat Text first, with five pages (16 Nov 2026: Crits merged into Scroll areas, Nameplates and General)
     local ct
     for _, s in ipairs(O.octo) do if s[1] == "Combat Text" then ct = s end end
-    ok(ct and table.getn(ct[2]) == 6, "Combat Text section with its six pages")
+    ok(ct and table.getn(ct[2]) == 5, "Combat Text section with its five pages")
     ok(O.first and string.sub(O.first, 1, 2) == "o:", "the window first opens on an Octo page: " .. tostring(O.first))
     -- Action Bars: five clean pages instead of pfUI's old Actionbar category
     local abs
@@ -6378,6 +6378,7 @@ dofile(DIR .. "/tests/auction.lua")
 dofile(DIR .. "/tests/auction-ledger.lua")
 dofile(DIR .. "/tests/octolazy.lua")
 dofile(DIR .. "/tests/perf.lua")
+dofile(DIR .. "/tests/octousers.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)
 do

@@ -46,7 +46,7 @@ CT.AREA_LABEL = { inc = "Incoming", out = "Outgoing", heal = "Healing and power"
 local function Area(x, y, anim, more)
   local a = { enabled = true, x = x, y = y, anim = anim, dir = "up", side = "alt", align = "CENTER", size = 20,
               crit = "sticky", critScale = 1.5, alpha = 1, time = 2.4, height = 180, width = 140, icon = "LEFT",
-              font = "", outline = "" }
+              font = "", outline = "", feel = "steady" }
   for k, v in pairs(more or {}) do a[k] = v end
   return a
 end
@@ -82,7 +82,7 @@ B.DEFAULTS.sct = {
   plates = { yOffset = 20, xVariance = 0, width = 130, height = 80, size = 18, critScale = 1.6, time = 1.5,
              hit = "fountain", crit = "pow", critMove = "vertical", miss = "vertical", heal = "vertical",
              targetScale = 1.15, offScale = 0.8, offAlpha = 0.6, offTarget = true, max = 8,
-             fallback = "out", autoShow = false,
+             fallback = "out", autoShow = false, feel = "steady",
              stack = true,     -- straight movements keep a line apart (AnySCT's line tower)
              merge = true,     -- identical hits on one plate add up in the text already there
              clamp = true },   -- texts of plates at the screen edge stay on screen
@@ -192,6 +192,51 @@ MOVE.comet = function(o, t)
   local e = 1 - (1 - t) * (1 - t)
   return o.s * e * o.W * 0.8, o.d * (t * o.H * 0.25 + e * o.H * 0.2)
 end
+-- (16 Nov 2026, user: "more styles more animations ... the best ever") new movements, our own
+-- float: rises fast and settles softly at the top, like a balloon
+MOVE.float = function(o, t)
+  local e = 1 - (1 - t) * (1 - t) * (1 - t)
+  return 0, o.d * e * o.H
+end
+-- rocket: sits a moment, then takes off faster and faster
+MOVE.rocket = function(o, t) return 0, o.d * t * t * t * o.H end
+-- drop: falls from above its spot and bounces twice on landing
+MOVE.drop = function(o, t)
+  local y
+  if t < 0.45 then
+    local p = t / 0.45
+    y = (1 - p * p) * o.H * 0.5
+  elseif t < 0.75 then
+    y = sin((t - 0.45) / 0.3 * PI) * o.H * 0.12
+  else
+    y = sin((t - 0.75) / 0.25 * PI) * o.H * 0.04
+  end
+  return (o.r1 - 0.5) * o.W * 0.3, o.d * y
+end
+-- boomerang: flies out to the side and curls back over the middle
+MOVE.boomerang = function(o, t)
+  return o.s * sin(PI * t) * o.W * 0.6, o.d * t * o.H * 0.8
+end
+-- orbit: circles once round its spot while it climbs
+MOVE.orbit = function(o, t)
+  local a = o.s * t * 2 * PI + o.r1 * 2 * PI
+  local r = o.W * 0.22
+  return cos(a) * r, o.d * (t * o.H * 0.5) + sin(a) * r * 0.5
+end
+-- pendulum: swings side to side, each swing smaller, while it rises
+MOVE.pendulum = function(o, t)
+  return o.s * sin(t * 3 * PI) * o.W * 0.3 * (1 - t), o.d * t * o.H * 0.85
+end
+-- scatter: a short burst in a random direction, then drifts up
+MOVE.scatter = function(o, t)
+  local a = o.r1 * 2 * PI
+  local burst = o.W * 0.25 * (1 - (1 - math.min(1, t * 3)) * (1 - math.min(1, t * 3)))
+  return cos(a) * burst, sin(a) * burst * 0.6 + o.d * t * o.H * 0.6
+end
+-- helix: two strands winding round each other as they rise (texts take turns)
+MOVE.helix = function(o, t)
+  return o.s * sin(t * 4 * PI) * o.W * 0.2, o.d * t * o.H + cos(t * 4 * PI) * 6
+end
 
 CT.MOVES = {
   { key = "vertical", label = "Vertical (SCT)", tip = "Straight up (or down) the area, one line after another." },
@@ -214,10 +259,31 @@ CT.MOVES = {
   { key = "bounce", label = "Bounce", tip = "Bounces up and out to the side." },
   { key = "shockwave", label = "Shockwave", tip = "Blasts out to the side fast, then slows." },
   { key = "comet", label = "Comet", tip = "Streaks out to the side in a curve." },
+  { key = "float", label = "Float", tip = "Rises quickly and settles softly at the top, like a balloon." },
+  { key = "rocket", label = "Rocket", tip = "Waits a moment, then takes off faster and faster." },
+  { key = "drop", label = "Drop and bounce", tip = "Falls onto its spot and bounces twice." },
+  { key = "boomerang", label = "Boomerang", tip = "Flies out to the side and curls back over the middle." },
+  { key = "orbit", label = "Orbit", tip = "Circles once round its spot while it climbs." },
+  { key = "pendulum", label = "Pendulum", tip = "Swings side to side, each swing smaller, as it rises." },
+  { key = "scatter", label = "Scatter", tip = "A short burst in a random direction, then drifts up." },
+  { key = "helix", label = "Helix", tip = "Two strands winding round each other as they rise." },
   { key = "random", label = "Random mix", tip = "A different movement each time, picked at random." },
 }
 local RANDOM_POOL = { "vertical", "rainbow", "horizontal", "sprinkler", "parabola", "fountain", "rainfall", "sway",
-                      "wave", "zigzag", "spiral", "bounce", "comet" }
+                      "wave", "zigzag", "spiral", "bounce", "comet", "float", "boomerang", "orbit", "pendulum", "scatter" }
+CT.RANDOM_POOL = RANDOM_POOL
+-- How a movement feels: the same path, taken at an even pace or eased. Applied to the time, so every
+-- movement (and the preview) gets it.
+CT.FEELS = { { key = "steady", label = "Steady", tip = "The same speed all the way (the classic SCT feel)." },
+             { key = "smooth", label = "Smooth", tip = "Starts gently, speeds up, slows down at the end." },
+             { key = "snappy", label = "Snappy", tip = "Shoots out fast, then glides to a stop: easy to read." },
+             { key = "lazy", label = "Lazy", tip = "Starts slowly and speeds up as it fades." } }
+function CT.Ease(feel, t)
+  if feel == "smooth" then return t * t * (3 - 2 * t) end
+  if feel == "snappy" then local u = 1 - t return 1 - u * u * u end
+  if feel == "lazy" then return t * t end
+  return t
+end
 -- (pfUI Octo, 26 Oct 2026, user: "give crits options for movement same as hits ... it's hard to understand what
 -- does what"): a crit's entrance (crit) and how it moves (critPath) are now two settings. Each entry has a tip
 -- shown when the mouse is over it in the menu.
@@ -227,7 +293,48 @@ CT.CRITS = { { key = "sticky", label = "Pop (SCT Sticky)", tip = "Pops a little 
              { key = "flash", label = "Shrink in from big (SCT Flash)", tip = "Starts twice as big and shrinks to size over a third of a second." },
              { key = "blizzard", label = "Swell and settle (Blizzard)", tip = "The game's own crit: swells fast, then settles a little bigger than a hit." },
              { key = "zoom", label = "Grow from small (Zoom)", tip = "Starts small and grows to size, with a little overshoot." },
+             { key = "elastic", label = "Elastic", tip = "Springs in: overshoots, pulls back, and wobbles to size." },
+             { key = "punch", label = "Punch", tip = "Pulls in small, then punches out big and settles." },
+             { key = "heartbeat", label = "Heartbeat", tip = "Two quick beats as it appears: ba-dum." },
+             { key = "jiggle", label = "Jiggle", tip = "Wiggles left and right for a moment as it appears." },
+             { key = "throb", label = "Throb", tip = "Keeps pulsing gently the whole time it is on screen." },
+             { key = "stamp", label = "Stamp", tip = "Drops in from big and thumps down with a little shake." },
              { key = "normal", label = "None, just bigger", tip = "No entrance: the crit is simply bigger than a hit." } }
+-- A crit entrance at e seconds: its size (1 = normal) and a sideways shake (px). One place for the
+-- engine and the options preview.
+function CT.Entrance(cs, e)
+  local sc, dx = 1, 0
+  if cs == "pow" or cs == "shake" then
+    if e < 0.12 then sc = 2 - e / 0.12 end
+    if cs == "shake" and e < 0.5 then dx = sin(e * 60) * 6 * (1 - e / 0.5) end
+  elseif cs == "flash" then
+    if e < 0.3 then sc = 2 - e / 0.3 end
+  elseif cs == "sticky" then
+    if e < 0.1 then sc = 1.3 - e * 3 end
+  elseif cs == "blizzard" then
+    if e < 0.08 then sc = 1 + e / 0.08 * 0.7 elseif e < 0.22 then sc = 1.7 - (e - 0.08) / 0.14 * 0.5 else sc = 1.2 end
+  elseif cs == "zoom" then
+    if e < 0.15 then sc = 0.3 + e / 0.15 * 0.9 elseif e < 0.25 then sc = 1.2 - (e - 0.15) / 0.1 * 0.2 end
+  elseif cs == "elastic" then
+    if e < 0.6 then sc = 1 + sin(e * 22) * 0.45 * (1 - e / 0.6) * (1 - e / 0.6) end
+    if e < 0.06 then sc = 0.4 + e / 0.06 * 0.6 end
+  elseif cs == "punch" then
+    if e < 0.08 then sc = 1 - e / 0.08 * 0.4 elseif e < 0.18 then sc = 0.6 + (e - 0.08) / 0.1 * 1.1
+    elseif e < 0.35 then sc = 1.7 - (e - 0.18) / 0.17 * 0.7 end
+  elseif cs == "heartbeat" then
+    if e < 0.12 then sc = 1 + sin(e / 0.12 * PI) * 0.45
+    elseif e < 0.18 then sc = 1
+    elseif e < 0.3 then sc = 1 + sin((e - 0.18) / 0.12 * PI) * 0.3 end
+  elseif cs == "jiggle" then
+    if e < 0.45 then dx = sin(e * 45) * 5 * (1 - e / 0.45) sc = 1.1 end
+  elseif cs == "throb" then
+    sc = 1.08 + sin(e * 9) * 0.1
+  elseif cs == "stamp" then
+    if e < 0.1 then sc = 2.4 - e / 0.1 * 1.4
+    elseif e < 0.3 then dx = sin(e * 80) * 3 * (1 - (e - 0.1) / 0.2) end
+  end
+  return sc, dx
+end
 -- How a crit moves: as the hits of that place, stays put, or any movement.
 CT.CRIT_PATHS = { { key = "same", label = "Same as the hits here", tip = "Crits take the hits' movement of this area or nameplate." },
                   { key = "still", label = "Stay in place (SCT Sticky)", tip = "Crits stay where they appear, stacked above and below the middle, then fade." } }
@@ -283,6 +390,9 @@ CT.AIM = {
   sway = { dir = true, flow = "lean", side = "lean" }, wave = { dir = true, flow = "lean", side = "lean" },
   zigzag = { dir = true, flow = "lean", side = "lean" }, spiral = { dir = true, flow = "lean", side = "lean" },
   bounce = { dir = true, side = true }, shockwave = { side = true, flow = "drift" }, comet = { dir = true, side = true },
+  float = { dir = true, flow = "lean", side = "lean" }, rocket = { dir = true, flow = "lean", side = "lean" },
+  drop = { dir = true }, boomerang = { dir = true, side = true }, orbit = { dir = true, side = true },
+  pendulum = { dir = true, side = true }, scatter = { dir = true }, helix = { dir = true, side = true },
   random = { dir = true, side = true }, still = {}, same = {},
 }
 CT.LEANS = { { key = "none", label = "Straight", tip = "Straight up or down." },
@@ -708,6 +818,11 @@ function CT:Show(text, r, g, b, where, opts)
   if opts.big then size = size * (db.bigScale or 1.4) end
   if move == "random" then move = RANDOM_POOL[random(1, table.getn(RANDOM_POOL))] end
   o.move, o.crit, o.critStyle = move, crit, critStyle
+  -- (16 Nov 2026) how the movement feels (CT.FEELS), and the fade-out read once, not every frame
+  local feelT = (plate and P) or a
+  o.feel = (not team) and feelT and feelT.feel or "steady"
+  o.fo = math.max(0.05, math.min(0.9, db.fade or 0.25))
+  o.guidAt = 0
   o.size, o.alpha = math.max(6, floor(size + 0.5)), alpha
   o.dur = dur / math.max(0.25, db.speed or 1)
   -- which way: the area's (or plate's) direction, side and diagonal; a crit with its own travel uses its own
@@ -814,34 +929,27 @@ function CT:Step(o, now)
   local t = e / o.dur
   local x, y
   local cs = o.critStyle
+  -- size and shake of a crit's entrance (CT.Entrance: one place for the engine and the preview)
+  local scale, dx = 1, 0
+  if cs then scale, dx = CT.Entrance(cs, e) end
   if o.move == "pin" then
-    x, y = 0, o.pinY or 0
-    if cs == "shake" and e < 0.5 then x = sin(e * 60) * 6 * (1 - e / 0.5) end
+    x, y = dx, o.pinY or 0
   else
     local f = MOVE[o.move] or MOVE.vertical
-    x, y = CT.Bend(o, f(o, t))
+    local te = t
+    if o.feel ~= "steady" and o.move ~= "static" then te = CT.Ease(o.feel, t) end
+    x, y = CT.Bend(o, f(o, te))
+    x = x + dx
   end
-  -- size: pow / shake slam in from double size, flash shrinks from double, sticky pops a little
-  local scale = 1
-  if cs == "pow" or cs == "shake" then
-    if e < 0.12 then scale = 2 - e / 0.12 end
-  elseif cs == "flash" then
-    if e < 0.3 then scale = 2 - e / 0.3 end
-  elseif cs == "sticky" then
-    if e < 0.1 then scale = 1.3 - e * 3 end
-  elseif cs == "blizzard" then
-    -- the game's crit: swells fast, settles a little bigger than a hit
-    if e < 0.08 then scale = 1 + e / 0.08 * 0.7 elseif e < 0.22 then scale = 1.7 - (e - 0.08) / 0.14 * 0.5 else scale = 1.2 end
-  elseif cs == "zoom" then
-    if e < 0.15 then scale = 0.3 + e / 0.15 * 0.9 elseif e < 0.25 then scale = 1.2 - (e - 0.15) / 0.1 * 0.2 end
-  end
+  -- (smoother: the text is only re-sized when its size really changes, to a tenth of a pixel)
+  scale = floor(scale * o.size * 10 + 0.5) / (o.size * 10)
   if scale ~= o.scale then
     o.fs:SetTextHeight(o.size * scale)
     o.scale = scale
   end
   -- fade in quickly, hold, fade out over the last part (a quarter unless set)
   local a = o.alpha
-  local fo = math.max(0.05, math.min(0.9, B.db.sct.fade or 0.25))
+  local fo = o.fo or 0.25
   if e < 0.06 then a = a * e / 0.06 elseif t > 1 - fo then a = a * (1 - t) / fo end
   if o.hasGlow then
     -- a bright flash for half a second, then a soft glow until the text fades
@@ -853,8 +961,12 @@ function CT:Step(o, now)
   if o.plate then
     -- plates are pooled: gone, or showing someone else now, ends the text
     if not o.plate:IsVisible() then return false end
-    local pg = o.guid and self:PlateGuid(o.plate)
-    if pg and pg ~= o.guid then return false end
+    -- (whose plate it is: looked up 7 times a second, not every frame - the lookup is the costly part)
+    if o.guid and now >= (o.guidAt or 0) then
+      o.guidAt = now + 0.15
+      local pg = self:PlateGuid(o.plate)
+      if pg and pg ~= o.guid then return false end
+    end
   end
   o.fs:SetAlpha(a)
   if o.hasIcon then o.icon:SetVertexColor(1, 1, 1, a) end

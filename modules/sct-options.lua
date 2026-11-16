@@ -96,6 +96,8 @@ end
 
 -- the area picked on Scroll areas (a click on an area in the preview picks it)
 local AREA = { cur = "inc" }
+-- made further down (crits), used by the pages above them
+local CritCards, CritLookCards
 
 -- A small copy of your screen with every area and sample texts moving as set
 -- (sct-preview.lua): click an area for its options, drag to move it, Shift +
@@ -228,19 +230,42 @@ local function AimRow(p, T, Move, crit, after, sameText)
 end
 
 -- One-click looks for all combat text: { key, label, top keys, every area's keys, plate keys, area keys by area }
+-- 5th field = what the look is like, for its tooltip. (16 Nov 2026: five more looks with the new movements,
+-- entrances and feels; every look sets the feel too, so picking one always gives exactly that look.)
 local LOOKS = {
   { "octo", "pfUI Octo", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1, icons = true },
-    { anim = "vertical", crit = "sticky" }, { hit = "fountain", crit = "pow" }, { note = { anim = "static" } } },
+    { anim = "vertical", crit = "sticky", feel = "steady" }, { hit = "fountain", crit = "pow", feel = "steady" }, { note = { anim = "static" } },
+    "Ours: straight lines on screen, a fountain off the enemy, crits that slam in." },
   { "sct", "Classic SCT", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1, icons = false },
-    { anim = "vertical", crit = "flash" }, { hit = "vertical", crit = "flash" }, { note = { anim = "static" } } },
+    { anim = "vertical", crit = "flash", feel = "steady" }, { hit = "vertical", crit = "flash", feel = "steady" }, { note = { anim = "static" } },
+    "The old SCT add-on: everything straight up, crits shrink in from big." },
   { "msbt", "MSBT", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "THICKOUTLINE", speed = 1, icons = true },
-    { anim = "parabola", crit = "pow" }, { hit = "parabola", crit = "pow" }, { note = { anim = "static" } } },
+    { anim = "parabola", crit = "pow", feel = "steady" }, { hit = "parabola", crit = "pow", feel = "steady" }, { note = { anim = "static" } },
+    "Mik's Scrolling Battle Text: curved paths and Pow crits." },
   { "fountain", "Fountain", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1.1, icons = true },
-    { anim = "fountain", crit = "shake" }, { hit = "fountain", crit = "shake" }, { note = { anim = "static" } } },
+    { anim = "fountain", crit = "shake", feel = "steady" }, { hit = "fountain", crit = "shake", feel = "steady" }, { note = { anim = "static" } },
+    "Numbers spray up and out like a fountain; crits shake." },
   { "blizzard", "Blizzard", { style = "blizzard", outline = "OUTLINE", speed = 1, icons = false },
-    { anim = "vertical", crit = "blizzard" }, { hit = "vertical", crit = "blizzard" }, { note = { anim = "static" } } },
+    { anim = "vertical", crit = "blizzard", feel = "steady" }, { hit = "vertical", crit = "blizzard", feel = "steady" }, { note = { anim = "static" } },
+    "The game's own damage numbers." },
   { "minimal", "Minimal", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "", speed = 1.25, icons = false },
-    { anim = "vertical", crit = "normal" }, { hit = "vertical", crit = "normal" }, { note = { anim = "static" } } },
+    { anim = "vertical", crit = "normal", feel = "steady" }, { hit = "vertical", crit = "normal", feel = "steady" }, { note = { anim = "static" } },
+    "Quiet: thin letters, quick, no effects." },
+  { "smooth", "Silky smooth", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 0.9, icons = true },
+    { anim = "float", crit = "zoom", feel = "smooth" }, { hit = "float", crit = "zoom", feel = "smooth" }, { note = { anim = "static" } },
+    "Everything eases in and out: soft floating numbers, crits that grow in." },
+  { "arcade", "Arcade", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "THICKOUTLINE", speed = 1.1, icons = true },
+    { anim = "scatter", crit = "punch", feel = "snappy" }, { hit = "scatter", crit = "stamp", feel = "snappy" }, { note = { anim = "static" } },
+    "Punchy: numbers burst out of the hit, crits punch and stamp." },
+  { "juicy", "Juicy", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1, icons = true },
+    { anim = "fountain", crit = "elastic", feel = "snappy" }, { hit = "fountain", crit = "elastic", feel = "snappy" }, { note = { anim = "static" } },
+    "Springy fountains with elastic crits, like modern action games." },
+  { "party", "Party", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1, icons = true },
+    { anim = "boomerang", crit = "heartbeat", feel = "smooth" }, { hit = "orbit", crit = "jiggle", feel = "smooth" }, { note = { anim = "static" } },
+    "Playful: boomerangs and orbits, crits with a heartbeat or a jiggle." },
+  { "rocket", "Rocket", { style = "octo", font = "Fonts\\FRIZQT__.TTF", outline = "OUTLINE", speed = 1.15, icons = false },
+    { anim = "rocket", crit = "pow", feel = "steady" }, { hit = "rocket", crit = "pow", feel = "steady" }, { note = { anim = "static" } },
+    "Numbers hang for a beat, then blast off upwards." },
 }
 
 local function ApplyLook(key)
@@ -299,7 +324,7 @@ local function Looks(p)
       Paint()
       O:Refresh()
     end)
-    W.Tip(b, l[2], "Letters, movements and crit style for all combat text in one click.")
+    W.Tip(b, l[2], (l[7] and (l[7] .. " ") or "") .. "Letters, movements, feel and crit style for all combat text in one click.")
     btns[i] = b
   end
   W.Live(p, function()
@@ -323,7 +348,7 @@ BUILD.ctgeneral = function(p)
     about = "Everything SCT and SCT - Damage showed (and Mik's Scrolling Battle Text, NameplateSCT, the game's own "
       .. "options over the years). Test combat text sends sample texts everywhere for a minute; Move frames shows "
       .. "the areas as blue boxes to drag and size.\n\nThe other combat text pages: Scroll areas (where and how text "
-      .. "moves), Nameplates (and teammates' damage on them), Crits, Messages and sounds (what shows, its colour, where "
+      .. "moves, how crits appear there), Nameplates (crits and teammates' damage too), Messages and sounds (what shows, its colour, where "
       .. "it comes from), Text and filters, Threat." })
   W.Live(p, function()
     local s = {}
@@ -349,8 +374,9 @@ BUILD.ctgeneral = function(p)
   Chk(p, "Shadow", "A soft shadow behind the letters.", DB, "shadow")
   Chk(p, "Spell icons", "The spell's icon next to its number.", DB, "icons")
   Sld(p, "Icon size", "Next to the text, relative to its height.", 0.5, 2, 0.1, DB, "iconScale", nil, Pct)
-  W.Card(p, "Where your damage goes")
+  W.Card(p, "Where your damage goes", { text = "Rising from the enemy you hit (nameplates), or scrolling in the Outgoing area on screen." })
   DamageButtons(p)
+  CritLookCards(p)
   W.Card(p, "The game's own numbers", { folded = true,
     tip = "The ON / OFF switch swaps these for you; here they can be set one by one." })
   W.Check(p, "Game damage numbers", "The client's floating damage over targets (CombatDamage).",
@@ -362,6 +388,7 @@ BUILD.ctgeneral = function(p)
   W.Check(p, "Game scrolling text over you", "Blizzard's own combat text that floats over your character: heals you "
     .. "get (\"+954\"), damage you take. The same box as the game's Interface Options - Show Scrolling Combat Text.",
     function() return CT:GameNumbersOn("fct") end, function(v) CT:GameNumbers("fct", v) end, true)
+  StyleGuide(p, true)
 end
 
 -- ---------------------------------------------------------------- areas
@@ -415,11 +442,11 @@ BUILD.ctareas = function(p)
   Sld(p, "Time on screen", "How long each text stays.", 0.5, 8, 0.1, A, "time", nil, Sec1)
   Sld(p, "Travel height", "How far up (or down) the text travels.", 40, 600, 10, A, "height", Place, Px)
   Sld(p, "Travel width", "How far sideways the text can travel.", 20, 600, 10, A, "width", Place, Px)
-  W.Buttons(p, { { "Crits in this area: how they appear and move  >", function() O:Open("ctcrits", AREA.cur) end, 300,
-    "Crits have their own page: how they appear, how they move, their size, time and travel - for each area and nameplates.", role = "open" } })
-  W.Card(p, "Look", { text = "Size, crit size and letters of the text in this area." })
+  Drop(p, "Feel", "How the movement feels: an even pace (classic), smooth, snappy (fast then gliding - easiest to read) or lazy.",
+    CT.FEELS, A, "feel")
+  CritCards(p, A, false, function() SampleCritIn(AREA.cur) end)
+  W.Card(p, "Look", { text = "Size, opacity and letters of the text in this area." })
   Sld(p, "Text size", "How big the text is in this area.", 8, 48, 1, A, "size", Place, Px)
-  Sld(p, "Crit size", "How much bigger crits are than normal hits.", 1, 3, 0.05, A, "critScale", nil, Times)
   Sld(p, "Opacity", "How solid the text is. Lower = more see-through.", 0.1, 1, 0.05, A, "alpha", nil, Pct)
   Drop(p, "Text alignment", "Line the texts up on the left, middle or right.", CT.ALIGNS, A, "align")
   Drop(p, "Spell icon", "Show the spell icon, and on which side.", CT.ICONS, A, "icon")
@@ -458,7 +485,7 @@ BUILD.ctplates = function(p)
   })
   Preview(p)
   O.CardTabs(p, {
-    { "mine", "Your text", "Ability_MeleeDamage", { "Basics", "Movement", "Look", "Keep it tidy" } },
+    { "mine", "Your text", "Ability_MeleeDamage", { "Basics", "Movement", "Crits", "Crits: own time and travel", "Look", "Keep it tidy" } },
     { "team", "Teammates", "INV_Banner_02", { "Teammates' damage", "Teammates' look" } },
   })
   W.Card(p, "Basics", { text = "Which nameplates get text, and what happens when there is no nameplate." })
@@ -470,12 +497,13 @@ BUILD.ctplates = function(p)
   Drop(p, "Misses", "How Dodge, Parry, Resist and the like move.", CT.MOVES, PL, "miss")
   Drop(p, "Heals", "How heals move.", CT.MOVES, PL, "heal")
   AimRow(p, PL, function() return PL().hit end, false)
-  W.Buttons(p, { { "Nameplate crits: how they appear and move  >", function() O:Open("ctcrits", "plate") end, 300,
-    "Crits have their own page: how they appear, how they move, their size, time and travel.", role = "open" } })
   Sld(p, "Time on screen", "How long each text stays.", 0.5, 5, 0.1, PL, "time", nil, Sec1)
   Sld(p, "Travel height", "How far up the text travels.", 20, 300, 5, PL, "height", nil, Px)
   Sld(p, "Travel width", "How far sideways the text can travel.", 20, 300, 5, PL, "width", nil, Px)
   Sld(p, "Random spread", "Each text starts a little left or right at random, so they don't sit on top of each other.", 0, 60, 1, PL, "xVariance", nil, Px)
+  Drop(p, "Feel", "How the movement feels: an even pace (classic), smooth, snappy (fast then gliding - easiest to read) or lazy.",
+    CT.FEELS, PL, "feel")
+  CritCards(p, PL, true, function() SampleCritIn("plate") end)
   W.Card(p, "Look", { folded = true, text = "Size and height of the text, and how other enemies' text looks." })
   Sld(p, "Text size", "How big nameplate text is.", 8, 40, 1, PL, "size", nil, Px)
   Sld(p, "Height above the plate", "Where the text starts, above the nameplate.", -40, 120, 1, PL, "yOffset", nil, Px)
@@ -519,23 +547,62 @@ local function CL() return B.db.sct.critLook end
 local CRIT_OUTLINES = { { key = "same", label = "Same as the text" }, { key = "", label = "None" },
                         { key = "OUTLINE", label = "Outline" }, { key = "THICKOUTLINE", label = "Thick outline" } }
 
--- the place whose crits the Crits page sets: "plate" or an area key
-local CRIT = { cur = "plate" }
-local CRIT_TABS = { { "plate", "Nameplates" }, { "inc", "Incoming" }, { "out", "Outgoing" }, { "heal", "Healing" },
-                    { "note", "Notifications" }, { "extra", "Extra" } }
-local function CP() if CRIT.cur == "plate" then return B.db.sct.plates end return B.db.sct.areas[CRIT.cur] end
-O.tabs = O.tabs or {}
-O.tabs.ctcrits = function(key) if key then CRIT.cur = key end end
-
-local function SampleCrit()
-  if CRIT.cur ~= "plate" then
-    CT:Show("2468", 1, 1, 1, CRIT.cur, { crit = true })
-    CT:Show("1357", 1, 1, 1, CRIT.cur, { crit = true })
+-- (16 Nov 2026, user: "crits should be merged into the tab and made easy to setup") no Crits page any more:
+-- each scroll area's tab and the Nameplates page have a Crits card for that place (CritCards), and the crit
+-- look for every crit sits on General. A crit sample in a place: an area key, or "plate" (your target's plate).
+local function SampleCritIn(where)
+  if where ~= "plate" then
+    CT:Show("2468", 1, 1, 1, where, { crit = true })
+    CT:Show("1357", 1, 1, 1, where, { crit = true })
   else
-    CT:Show("2468", 1, 1, 1, "out", { crit = true })
+    local tg = U.GuidOf("target")
+    if tg and CT:Plate(tg) then
+      CT:Show("3579", 1, 0.85, 0.2, "plate", { guid = tg, target = true, crit = true, kind = "crit" })
+    else
+      CT:Show("2468", 1, 1, 1, "out", { crit = true })
+    end
   end
-  local tg = U.GuidOf("target")
-  if tg and CT:Plate(tg) then CT:Show("3579", 1, 0.85, 0.2, "plate", { guid = tg, target = true, crit = true, kind = "crit" }) end
+end
+local function SampleCrit()
+  SampleCritIn("out")
+  SampleCritIn("plate")
+end
+-- the old Crits page's links land on the place's own tab now
+O.tabs = O.tabs or {}
+
+-- A place's crits: entrance, size, movement and its turns, and (folded) their own time and travel.
+-- T() = the area's or the plates' settings, plate = true for nameplates, sample() = show one.
+function CritCards(p, T, plate, sample)
+  W.Card(p, "Crits", { text = "How crits appear and move here. Point at a name in a list to see what it does.",
+    tip = "The crit look for every crit (letters, colour, flash, mark) is on the General tab." })
+  Drop(p, "Entrance", "How a crit appears: slam in, pop, spring in, punch, heartbeat, jiggle... Point at a name to see what it does.",
+    CT.CRITS, T, "crit", sample)
+  Sld(p, "Crit size", "How much bigger crits are than normal hits here.", 1, 3, 0.05, T, "critScale", nil, Times)
+  W.Dropdown(p, "Crit movement", "The same as the hits here, staying in place, or any other movement.",
+    CT.CRIT_PATHS, function() return CT.CritPath(T(), plate) end, function(v)
+      T().critPath = v
+      sample()
+    end)
+  AimRow(p, T, function() return CT.CritPath(T(), plate) end, true, sample,
+    "Crits go the same way as the hits here. Pick a crit movement above to turn crits their own way.")
+  W.Card(p, "Crits: own time and travel", { folded = true,
+    text = "Off: crits stay as long and travel as far as the hits here. On: the settings below are just for crits.",
+    on = { function() return T().critOwn end, function(v)
+      local t = T()
+      t.critOwn = v and true or nil
+      -- (starts from the hits' values, so switching it on changes nothing yet)
+      if v then
+        t.critTime = t.critTime or t.time
+        t.critHeight = t.critHeight or t.height
+        t.critWidth = t.critWidth or t.width
+      end
+    end, "Crits get their own time on screen and travel here." } })
+  W.Slider(p, "Time on screen", "How long a crit stays here ('Crits stay longer' on General still adds to it).", 0.5, 8, 0.1,
+    function() return T().critTime or T().time end, function(v) T().critTime = v end, Sec1)
+  W.Slider(p, "Travel height", "How far up (or down) crits travel.", 20, 600, 5,
+    function() return T().critHeight or T().height end, function(v) T().critHeight = v end, Px)
+  W.Slider(p, "Travel width", "How far sideways crits can travel.", 20, 600, 5,
+    function() return T().critWidth or T().width end, function(v) T().critWidth = v end, Px)
 end
 
 -- One-click looks for crits.
@@ -551,6 +618,10 @@ local function CritPreset(which)
     L.outline, L.tint, L.glow, L.mark, L.hold = "same", false, false, "none", 1
     P.crit, P.critScale = "normal", 1.4
     for _, k in ipairs(CT.AREA_ORDER) do B.db.sct.areas[k].crit, B.db.sct.areas[k].critScale = "normal", 1.4 end
+  elseif which == "springy" then
+    L.outline, L.tint, L.r, L.g, L.b, L.glow, L.glowSize, L.mark, L.hold = "THICKOUTLINE", true, 1, 0.82, 0.1, true, 1, "none", 1.25
+    P.crit, P.critScale = "elastic", 1.7
+    for _, k in ipairs(CT.AREA_ORDER) do B.db.sct.areas[k].crit, B.db.sct.areas[k].critScale = "elastic", 1.6 end
   else   -- the game's
     L.outline, L.tint, L.glow, L.mark, L.hold, L.numberOnly = "same", false, false, "none", 1, true
     P.crit, P.critScale = "blizzard", 1.5
@@ -561,16 +632,11 @@ end
 
 local function PlaySnd(v) CT.PlaySound(v) end
 
-BUILD.ctcrits = function(p)
-  W.Heading(p, "Crits", {
-    on = MASTER,
-    text = "Pick a place below, then how its crits appear and how they move. Point at any name in a list to see what it does.",
-    about = "Each place - nameplates and the five scroll areas - has its own crit entrance (how a crit appears: slam in, "
-      .. "pop, swell...) and its own crit movement (the same as its hits, staying in place, or any of the movements "
-      .. "hits can use), and can give crits their own time on screen, travel and direction. The crit look at the "
-      .. "bottom (letters, colour, flash, mark) is for every crit. Crit sounds are on Messages and sounds." })
+-- General's crit cards: one-click crit styles, the crit look for every crit, big messages.
+function CritLookCards(p)
+  W.Card(p, "Crits everywhere", { text = "One click for every crit, then the letters, colour, flash and mark every crit gets.",
+    tip = "How crits appear and move in each place is on that place's tab: Scroll areas (each area) and Nameplates." })
   W.Buttons(p, {
-    TEST,
     { "Show a crit", Shot("crit", SampleCrit), 100, "A crit in the Outgoing area and on your target's nameplate.", on = Shooting("crit") },
     { "Loud", function() CritPreset("loud") end, 70, "Thick gold numbers that slam in with a flash and a !",
       on = function() return B.db.sct.plates.crit == "pow" and B.db.sct.critLook.mark == "bang" end },
@@ -578,68 +644,9 @@ BUILD.ctcrits = function(p)
       on = function() return B.db.sct.plates.crit == "normal" and not B.db.sct.critLook.glow end },
     { "Blizzard", function() CritPreset("blizzard") end, 80, "The game's crit: the number pops and moves on.",
       on = function() return B.db.sct.plates.crit == "blizzard" end },
+    { "Springy", function() CritPreset("springy") end, 80, "Gold crits that spring in elastic, with a flash.",
+      on = function() return B.db.sct.plates.crit == "elastic" end },
   })
-  Preview(p)
-  -- the place whose crits are set below
-  local row = W.Row(p, 26, 0, 8)
-  local tabs = {}
-  for i, t in ipairs(CRIT_TABS) do
-    local b = W.Button(row, t[2], 104, 22, "pfOctoCtCritTab" .. i)
-    b:SetPoint("LEFT", row, "LEFT", (i - 1) * 109, 0)
-    b.key = t[1]
-    b:SetScript("OnClick", function()
-      CRIT.cur = this.key
-      O:Refresh()
-    end)
-    W.Tip(b, t[2], "Set the crits " .. (t[1] == "plate" and "that rise from nameplates." or ("in the " .. CT.AREA_LABEL[t[1]] .. " area.")))
-    tabs[i] = b
-  end
-  table.insert(p.items, { Refresh = function()
-    for i = 1, table.getn(tabs) do W.Pick(tabs[i], tabs[i].key == CRIT.cur) end
-  end })
-  local function Label(list, key)
-    for _, e in ipairs(list) do if e.key == key then return e.label end end
-    return tostring(key)
-  end
-  W.Live(p, function()
-    local t = CP()
-    return "Crits " .. (CRIT.cur == "plate" and "on |cffffd100nameplates|r" or ("in |cffffd100" .. CT.AREA_LABEL[CRIT.cur] .. "|r"))
-      .. ": appear |cffffffff" .. Label(CT.CRITS, t.crit) .. "|r, move |cffffffff" .. Label(CT.CRIT_PATHS, CT.CritPath(t, CRIT.cur == "plate")) .. "|r"
-      .. (t.critOwn and " with their own time and travel" or "")
-  end)
-
-  W.Card(p, "How they appear", { text = "The crit's entrance. Point at a name in the list to see what it does." })
-  Drop(p, "Entrance", "Slam in, pop, swell like the game's own, grow, or just bigger.", CT.CRITS, CP, "crit", SampleCrit)
-  Sld(p, "Crit size", "How much bigger crits are than normal hits here.", 1, 3, 0.05, CP, "critScale", nil, Times)
-
-  W.Card(p, "How they move", { text = "Crits can move like the hits here, stay in place, or take any other movement." })
-  W.Dropdown(p, "Movement", "Every movement hits can use, plus staying in place. Point at a name in the list to see what it does.",
-    CT.CRIT_PATHS, function() return CT.CritPath(CP(), CRIT.cur == "plate") end, function(v)
-      CP().critPath = v
-      SampleCrit()
-    end)
-  AimRow(p, CP, function() return CT.CritPath(CP(), CRIT.cur == "plate") end, true, SampleCrit,
-    "Crits go the same way as the hits here (set on Scroll areas or Nameplates). Pick a movement above to turn crits their own way.")
-  W.Card(p, "Their own time and travel", { folded = true,
-    text = "Off: crits stay as long and travel as far as the hits here. On: the settings below are just for crits.",
-    on = { function() return CP().critOwn end, function(v)
-      local t = CP()
-      t.critOwn = v and true or nil
-      -- (starts from the hits' values, so switching it on changes nothing yet)
-      if v then
-        t.critTime = t.critTime or t.time
-        t.critHeight = t.critHeight or t.height
-        t.critWidth = t.critWidth or t.width
-      end
-    end, "Crits get their own time on screen and travel here." } })
-  W.Slider(p, "Time on screen", "How long a crit stays here (Crit look's 'stay longer' still adds to it).", 0.5, 8, 0.1,
-    function() return CP().critTime or CP().time end, function(v) CP().critTime = v end, Sec1)
-  W.Slider(p, "Travel height", "How far up (or down) crits travel.", 20, 600, 5,
-    function() return CP().critHeight or CP().height end, function(v) CP().critHeight = v end, Px)
-  W.Slider(p, "Travel width", "How far sideways crits can travel.", 20, 600, 5,
-    function() return CP().critWidth or CP().width end, function(v) CP().critWidth = v end, Px)
-
-  W.Card(p, "Crit look", { text = "For every crit, everywhere: their own letters, colour, a flash and a mark." })
   local fonts = { { key = "", label = "Same as the text" } }
   local list = W.Fonts()
   for i = 1, table.getn(list) do table.insert(fonts, list[i]) end
@@ -657,7 +664,6 @@ BUILD.ctcrits = function(p)
     tip = "On the Messages page any message can be ticked big (killing blows are): it shows bigger, with the same flash." })
   Sld(p, "Big size", "How much bigger big messages are.", 1, 2.5, 0.05, DB, "bigScale", nil, Times)
   Chk(p, "Flash behind big ones", "The same flash crits get.", DB, "bigGlow")
-  StyleGuide(p, true)
 end
 
 -- Sounds and warnings (on Messages and sounds)
@@ -758,7 +764,7 @@ local function EventRow(p, key)
   W.Tip(sw, e.label, "Its colour. Click to pick another.")
   W.Tip(wf, e.label, "Where it comes from: one of the screen areas, or the nameplate of the other person.")
   W.Tip(cc, e.label, "Always show it as a crit (bigger, with the crit movement).")
-  W.Tip(bg, e.label, "Bigger, with a flash, so it stands out (sizes on Crits).")
+  W.Tip(bg, e.label, "Bigger, with a flash, so it stands out (how much bigger: General, Crits everywhere).")
   W.Tip(sf, e.label, "A sound when it happens. Picking one plays it.")
   table.insert(W.index, { page = p, card = p.cur, label = e.label, desc = "A message type: on, colour, where it comes from, crit, big, sound.", region = row })
 end
@@ -779,7 +785,7 @@ BUILD.ctevents = function(p)
     on = MASTER,
     text = "Every kind of combat text: show it, its colour, where it comes from, always a crit, big, and a sound.",
     about = "Tick to show a message. The swatch is its colour. Where it comes from: a screen area, or the nameplate of "
-      .. "the other unit. Crit = always shown as a crit. Big = bigger with a flash so it stands out (Crits sets how "
+      .. "the other unit. Crit = always shown as a crit. Big = bigger with a flash so it stands out (General > Crits everywhere sets how "
       .. "much). Sound: picking one plays it.\n\nThe sound lists hold the game's alerts, gunshots and explosions, boss "
       .. "kill lines (\"Die, insect!\"), crowd cheers and victory horns, BigWigs' voices and four files of your own." })
   W.Buttons(p, {
@@ -971,7 +977,6 @@ end
 O:AddPage("Combat Text", "ctgeneral", "General", BUILD.ctgeneral)
 O:AddPage("Combat Text", "ctareas", "Scroll areas", BUILD.ctareas)
 O:AddPage("Combat Text", "ctplates", "Nameplates", BUILD.ctplates)
-O:AddPage("Combat Text", "ctcrits", "Crits", BUILD.ctcrits)
 O:AddPage("Combat Text", "ctevents", "Messages and sounds", BUILD.ctevents)
 O:AddPage("Combat Text", "ctfilters", "Text and filters", BUILD.ctfilters)
 

@@ -2003,8 +2003,67 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 3 * (LW + GAP), nil,
         "Shagu's pfUI, which pfUI Octo is built on.")
 
+      -- (16 Nov 2026, user: "how many people are on running our pfui any version") players heard running pfUI
+      -- Octo (updatenotify.lua pfUI.octoUsers); hover = who and which version
+      local users = CreateFrame("Button", nil, page)
+      users:SetWidth(GRID)
+      users:SetHeight(20)
+      users:SetPoint("TOP", grid, "TOP", 0, LINKY - 34)
+      local usersText = Text(users, C.global.font_size + 1, .85, .86, .9)
+      usersText:SetPoint("CENTER", 0, 0)
+      users.text = usersText
+      local function Ago(t)
+        local s = time() - (t or 0)
+        if s < 3600 then return math.max(1, math.floor(s / 60)) .. " min ago" end
+        if s < 86400 then return math.floor(s / 3600) .. " h ago" end
+        return math.floor(s / 86400) .. " days ago"
+      end
+      local function UsersTip()
+        local U = pfUI.octoUsers
+        if not U then return end
+        local c = U.Counts()
+        GameTooltip:SetOwner(users, "ANCHOR_TOP")
+        GameTooltip:SetText("Players running pfUI Octo", 1, 1, 1)
+        GameTooltip:AddLine("Counted from what every pfUI Octo since 29 Oct says to your guild, group and "
+          .. "battleground (any version). Players you never share one of those with can't be heard.", .7, .72, .76, 1)
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddDoubleLine("Online now", c.online, 1, 1, 1, .25, .85, .47)
+        GameTooltip:AddDoubleLine("Heard today", c.day, 1, 1, 1, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Heard this week", c.week, 1, 1, 1, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Heard ever", c.ever, 1, 1, 1, 1, 1, 1)
+        local vs = {}
+        for v, n in pairs(c.versions) do table.insert(vs, { v = v, n = n }) end
+        table.sort(vs, function(a, b)
+          local na, nb = pfUI.octoUpdate.Num(a.v), pfUI.octoUpdate.Num(b.v)
+          if na ~= nb then return na > nb end
+          return a.v < b.v
+        end)
+        if vs[1] then
+          GameTooltip:AddLine(" ")
+          GameTooltip:AddLine("Versions this week", .35, .7, 1)
+          for i = 1, math.min(8, table.getn(vs)) do
+            local v = vs[i].v == "?" and "older / not said yet" or ("v" .. vs[i].v)
+            GameTooltip:AddDoubleLine(v, vs[i].n, 1, 1, 1, 1, 1, 1)
+          end
+        end
+        if c.list[1] then
+          GameTooltip:AddLine(" ")
+          for i = 1, math.min(20, table.getn(c.list)) do
+            local e = c.list[i]
+            local when = e.live and "|cff40d977online|r" or ("|cff8a8f99" .. Ago(e.t) .. "|r")
+            GameTooltip:AddDoubleLine(e.name .. (e.v and ("  |cff8a8f99v" .. e.v .. "|r") or ""), when, 1, 1, 1, 1, 1, 1)
+          end
+          if table.getn(c.list) > 20 then
+            GameTooltip:AddLine("... and " .. (table.getn(c.list) - 20) .. " more", .55, .58, .62)
+          end
+        end
+        GameTooltip:Show()
+      end
+      users:SetScript("OnEnter", function() this.hover = true UsersTip() end)
+      users:SetScript("OnLeave", function() this.hover = nil GameTooltip:Hide() end)
+
       local thanks = Text(page, C.global.font_size - 1, .5, .52, .56)
-      thanks:SetPoint("TOP", grid, "TOP", 0, LINKY - 36)
+      thanks:SetPoint("TOP", grid, "TOP", 0, LINKY - 58)
       thanks:SetText(T["Thanks to Shagu for pfUI, and to everyone on OctoWoW who tries it out."])
 
       -- octo (29 Oct 2026): a newer pfUI Octo seen on another player
@@ -2012,7 +2071,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       local upd = CreateFrame("Frame", nil, page)
       upd:SetWidth(GRID)
       upd:SetHeight(84)
-      upd:SetPoint("TOP", grid, "TOP", 0, LINKY - 58)
+      upd:SetPoint("TOP", grid, "TOP", 0, LINKY - 80)
       upd:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
       upd:SetBackdropColor(.16, .12, .04, 1)
       upd:SetBackdropBorderColor(1, .72, .2, 1)
@@ -2059,6 +2118,19 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
           upd:Show()
         else
           upd:Hide()
+        end
+        if pfUI.octoUsers then
+          local ok, c = pcall(pfUI.octoUsers.Counts)
+          if ok and c then
+            usersText:SetText("|cff40d977" .. c.online .. "|r players running pfUI Octo online now  |cff666e7a-|r  "
+              .. c.week .. " heard this week  |cff666e7a(hover for who)|r")
+            if users.hover then UsersTip() end
+          end
+          -- the guild list's online marks are only as fresh as the last roster update
+          if (this.roster or 0) < GetTime() and GuildRoster and IsInGuild and IsInGuild() then
+            this.roster = GetTime() + 20
+            GuildRoster()
+          end
         end
         version:SetText("|cff33b3ffv" .. pfUI.version.octo .. "|r" .. (newer and (" |cffffc840(" .. newer .. " " .. T["is out"] .. ")|r") or ""))
         based:SetText("pfUI " .. pfUI.version.string .. " " .. T["by"] .. " Shagu")

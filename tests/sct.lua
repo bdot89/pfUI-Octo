@@ -191,6 +191,51 @@ for i = 1, table.getn(CT.CRITS) do
   CT:Show("c" .. i, 1, 0, 0, "extra", { crit = true })
   CT:Show("pc" .. i, 1, 0, 0, "plate", { crit = true, guid = FOE, target = false, kind = "crit" })
 end
+-- (16 Nov 2026) every movement under every feel, and every crit entrance, give real numbers all the way
+do
+  local bad
+  local o = { H = 180, W = 140, s = 1, d = 1, r1 = .3, r2 = .6, r3 = .9, spr = 6, size = 20, slot = 1 }
+  for _, m in ipairs(CT.MOVES) do
+    local f = CT.MOVE[m.key]
+    for _, feel in ipairs(CT.FEELS) do
+      for step = 0, 20 do
+        local t = CT.Ease(feel.key, step / 20)
+        if f then
+          local x, y = f(o, t)
+          if type(x) ~= "number" or type(y) ~= "number" or x ~= x or y ~= y or math.abs(x) > 2000 or math.abs(y) > 2000 then
+            bad = m.key .. "/" .. feel.key
+          end
+        end
+        if t < -0.01 or t > 1.01 then bad = "ease " .. feel.key end
+      end
+    end
+  end
+  for _, c in ipairs(CT.CRITS) do
+    for step = 0, 30 do
+      local sc, dx = CT.Entrance(c.key, step / 20)
+      if type(sc) ~= "number" or sc <= 0 or sc > 3 or math.abs(dx) > 20 then bad = "entrance " .. c.key end
+    end
+  end
+  ok(not bad, "every movement, feel and crit entrance stays sane" .. (bad and (": " .. bad) or ""))
+  ok(table.getn(CT.MOVES) >= 29 and table.getn(CT.CRITS) >= 13 and table.getn(CT.FEELS) == 4,
+    "new movements, entrances and feels listed: " .. table.getn(CT.MOVES) .. " / " .. table.getn(CT.CRITS))
+  -- a feel reaches the text, and the guid lookup on plates is spaced out
+  local X = B.db.sct.areas.extra
+  CT:Clear()
+  X.enabled, X.anim, X.feel = true, "float", "snappy"
+  CT:Show("felt", 1, 1, 1, "extra", {})
+  ok(LiveText("felt") and LiveText("felt").feel == "snappy", "an area's feel goes on its texts")
+  X.feel = "steady"
+  -- every look applies and is then recognised as the look in use
+  local wrong
+  for _, l in ipairs(CT.LOOKS or {}) do
+    CT.ApplyLook(l[1])
+    if CT.CurrentLook() ~= l[1] then wrong = l[1] end
+  end
+  ok(CT.LOOKS and table.getn(CT.LOOKS) >= 11 and not wrong, "every look applies and is recognised" .. (wrong and (": " .. wrong) or ""))
+  CT.ApplyLook("octo")
+  CT:Clear()
+end
 -- (user, 26 Oct 2026: "give crits options for movement same as hits") a crit's
 -- entrance and movement are two settings; old settings keep their look
 do

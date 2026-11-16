@@ -24,7 +24,7 @@ pfUI:RegisterModule("sct-preview", "vanilla", function ()
   }
   local EDGE = { inc = { 1, .35, .35 }, out = { 1, 1, 1 }, heal = { .35, 1, .35 }, note = { 1, .82, 0 }, extra = { .6, .6, 1 } }
   local STRAIGHT_ORIGIN = { vertical = true, parabola = true, sway = true, wave = true, zigzag = true, spiral = true }
-  local POOL = { "vertical", "rainbow", "horizontal", "sprinkler", "parabola", "fountain", "rainfall", "sway",
+  local POOL = CT.RANDOM_POOL or { "vertical", "rainbow", "horizontal", "sprinkler", "parabola", "fountain", "rainfall", "sway",
                  "wave", "zigzag", "spiral", "bounce", "comet" }
 
   local function DB() return B.db.sct end
@@ -298,6 +298,7 @@ pfUI:RegisterModule("sct-preview", "vanilla", function ()
       end
       if move == "random" then move = POOL[random(1, table.getn(POOL))] end
       o.move, o.cs = move, cs
+      o.feel = (a or P).feel or "steady"
       o.size = math.max(6, size * (db.scale or 1) * tk)
       o.dur = dur * ((crit and db.critLook and db.critLook.hold) or 1) / math.max(.25, db.speed or 1)
       o.alpha = alpha or 1
@@ -339,14 +340,25 @@ pfUI:RegisterModule("sct-preview", "vanilla", function ()
       if e >= o.dur then return false end
       local t = e / o.dur
       local x, y = 0, 0
+      -- the engine's entrance (size + shake) and feel when it has them
+      local sc, dx = 1, 0
+      if CT.Entrance then
+        if o.cs then sc, dx = CT.Entrance(o.cs, e) dx = dx * .5 end
+      else
+        sc = CritScale(o.cs, e)
+      end
       if o.move ~= "pin" then
         local f = MOVE[o.move] or MOVE.vertical
-        x, y = f(o, t)
+        local te = t
+        if CT.Ease and o.feel and o.feel ~= "steady" and o.move ~= "static" then te = CT.Ease(o.feel, t) end
+        x, y = f(o, te)
         if CT.Bend then x, y = CT.Bend(o, x, y) end
-      elseif o.cs == "shake" and e < .5 then
+        x = x + dx
+      elseif o.cs == "shake" and e < .5 and not CT.Entrance then
         x = math.sin(e * 60) * 3 * (1 - e / .5)
+      else
+        x = dx
       end
-      local sc = CritScale(o.cs, e)
       if sc ~= o.sc then o.fs:SetTextHeight(o.size * sc) o.sc = sc end
       local al = o.alpha
       local fo = math.max(.05, math.min(.9, DB().fade or .25))

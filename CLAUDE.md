@@ -1340,3 +1340,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   heal prediction 20/s, plates' calm throttle, plate scan only on new children, bubbles/raid layout one-shots, cooldown
   text .1 s. Not used: weirdutils weirdperformance (froze loading, 29 Oct); PerfBoost DLL (gitea avitasia/perf_boost) is
   only named on the page - the user installs DLLs. Tests: tests\perf.lua.
+- Combat text overhaul, part 1 (16 Nov 2026, NOT seen in game; user: "more options more styles more animations ... easier
+  to understand ... crits should be merged into the tab ... extra smooth"). Ideas from MSBT / SCT / NameplateSCT /
+  ClassicFCT feature lists only. sct-engine.lua: 8 new movements (float, rocket, drop, boomerang, orbit, pendulum,
+  scatter, helix; CT.AIM + CT.RANDOM_POOL), 6 new crit entrances (elastic, punch, heartbeat, jiggle, throb, stamp) in
+  CT.Entrance(cs, e) -> scale, shake (shared with sct-preview.lua), per area / plates `feel` (CT.FEELS steady | smooth |
+  snappy | lazy, CT.Ease on the time; default steady = old look). Smoother: fade read once per text (o.fo), plate GUID
+  checked 7x a second (o.guidAt), text re-sized only on a real size change. Options: the Crits page is gone (5 pages):
+  CritCards(p, T, plate, sample) = "Crits" + "Crits: own time and travel" on each Scroll areas tab and on Nameplates
+  (Your text tab); CritLookCards = General's "Crits everywhere" (Loud / Clean / Blizzard / Springy + crit look + big
+  messages). 11 looks (LOOKS 7th field = tooltip; every look sets feel). Tests in tests\sct.lua.

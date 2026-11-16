@@ -119,6 +119,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.26
+
+- 💥 **Combat Text:** 8 new movements (Float, Rocket, Drop and bounce, Boomerang, Orbit, Pendulum, Scatter, Helix), 6 new crit effects (Elastic, Punch, Heartbeat, Jiggle, Throb, Stamp), a Feel setting (Steady, Smooth, Snappy, Lazy) and 5 new looks. Crits are now set on each area's tab and on Nameplates; the crit look for every crit is on General. Smoother on screen.
+- 👥 **About:** how many players running pfUI Octo are online and heard this week (guild, group and battleground); hover for who and which version.
+
 ## 📜 New in 1.1.25
 
 - 🐛 **OctoLazy:** NPCs who train and sell (Survival, Cooking...) no longer jump straight to the shop; their menu stays so you can train.
