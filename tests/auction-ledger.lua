@@ -110,15 +110,15 @@ AH.Record("2589", 110)
 AH.Record("2589", 130)
 ok(L.outN == 1 and L.out["2589"] == 110, "the day's low of an item waits to be shared, once")
 local msg = L.Pack()
-ok(msg == "Octo-Horde|" .. AH.Day() .. "|2589=110" and L.outN == 0, "packed as realm, day and prices (" .. tostring(msg) .. ")")
-ok(L.Receive("Octo-Horde|" .. AH.Day() .. "|2840=450,7911:1200=99000,bad=1", "Khijazi") == 2 and AH.Value("2840") == 450 and AH.Value("7911:1200") == 99000,
+ok(msg == "Octo-Horde^" .. AH.Day() .. "^2589=110" and not string.find(msg, "|", 1, true) and L.outN == 0, "packed as realm, day and prices (" .. tostring(msg) .. ")")
+ok(L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=450,7911:1200=99000,bad=1", "Khijazi") == 2 and AH.Value("2840") == 450 and AH.Value("7911:1200") == 99000,
   "another player's prices are taken")
 ok(L.outN == 0, "and not sent on again")
-ok(L.Receive("Other-Horde|" .. AH.Day() .. "|2840=1", "Khijazi") == 0 and L.Receive("Octo-Horde|" .. (AH.Day() - 1) .. "|2840=1", "Khijazi") == 0
-  and L.Receive("Octo-Horde|" .. AH.Day() .. "|2840=1", "Me") == 0 and AH.Value("2840") == 450, "not from another realm, another day, or yourself")
+ok(L.Receive("Other-Horde^" .. AH.Day() .. "^2840=1", "Khijazi") == 0 and L.Receive("Octo-Horde^" .. (AH.Day() - 1) .. "^2840=1", "Khijazi") == 0
+  and L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=1", "Me") == 0 and AH.Value("2840") == 450, "not from another realm, another day, or yourself")
 S.share = "0"
 AH.Record("4306", 500)
-ok(L.outN == 0 and L.Receive("Octo-Horde|" .. AH.Day() .. "|2840=1", "Khijazi") == 0, "sharing off: nothing out, nothing in")
+ok(L.outN == 0 and L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=1", "Khijazi") == 0, "sharing off: nothing out, nothing in")
 S.share = "1"
 
 -- the two new tabs draw

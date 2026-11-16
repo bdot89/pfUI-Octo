@@ -254,10 +254,11 @@ pfUI:RegisterModule("auction-ledger", "vanilla", function ()
     elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(list, "PARTY") end
     return list
   end
-  -- one message of the waiting prices: "Realm-Faction|day|key=copper,key=copper"
+  -- one message of the waiting prices: "Realm-Faction^day^key=copper,key=copper" (never "|": the
+  -- server refuses a message with it, "Invalid escape code in chat message" - seen in game 16 Nov 2026)
   function L.Pack()
     if L.outN <= 0 then return nil end
-    local msg = Where() .. "|" .. AH.Day() .. "|"
+    local msg = Where() .. "^" .. AH.Day() .. "^"
     local head = string.len(msg)
     for key, unit in pairs(L.out) do
       local piece = key .. "=" .. unit
@@ -270,7 +271,7 @@ pfUI:RegisterModule("auction-ledger", "vanilla", function ()
   end
   function L.Receive(msg, from)
     if S().share == "0" or type(msg) ~= "string" or from == UnitName("player") then return 0 end
-    local _, _, where, day, body = string.find(msg, "^(.-)|(%d+)|(.*)$")
+    local _, _, where, day, body = string.find(msg, "^(.-)%^(%d+)%^(.*)$")
     if where ~= Where() or tonumber(day) ~= AH.Day() then return 0 end
     local n = 0
     L.receiving = true

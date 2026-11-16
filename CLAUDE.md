@@ -29,6 +29,9 @@ see "Roadmap" below.
   addon button scan did that at login and the client crashed with #132 ACCESS_VIOLATION in the Lua
   core on every login (Errors\*Crash.txt; Logs\nampower_debug.log times show which reload broke).
   Check name / type first, and only on a small known parent.
+- Never put `|` in a SendAddonMessage text: the server refuses it ("Invalid escape code in chat message
+  (prefix ...)", one red line per message). Separate fields with `^` (15 Nov 2026 nodes / flights, and
+  again 16 Nov in the auction price sharing - the tests' fake SendAddonMessage accepts anything).
 - Modules are `pfUI:RegisterModule(name, "vanilla:tbc", fn)` listed in init/modules.xml; they run
   in pfUI's environment (`C` = config, `T` = translations, pfUI.api functions as globals).
   Defaults go in api/config.lua (`pfUI:UpdateConfig(group, sub, key, default)`), options in
