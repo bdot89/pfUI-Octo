@@ -361,3 +361,38 @@ do
   UI.cat, UI.q.class, UI.q.subclass, UI.q.slot = {}, nil, nil, nil
   for _, k in ipairs(names) do _G[k] = was[k] end
 end
+
+-- the column heads: sorting by "Of usual", the sorted head marked (16 Nov 2026)
+do
+  local AH = pfUI.auction
+  local UI = AH.ui
+  local cacheWas5 = pfUI_cache.auction
+  pfUI_cache.auction = nil
+  local day = AH.Day()
+  AH.Store().h["1"] = { day = day, min = 100, days = {} }
+  AH.Store().h["2"] = { day = day, min = 100, days = {} }
+  local function Row(key, name, unit)
+    return { key = key, name = name, unit = unit, count = 1, quality = 1, level = 0, left = 4, owner = "X", buyout = unit, bid = 0, minBid = unit,
+      next = unit, bidunit = unit, kind = "list", page = 0, index = 1, tex = "t" }
+  end
+  AH.rows = { Row("1", "Cheap", 50), Row("2", "Dear", 250), Row("1", "Usual", 100), Row("3", "Unknown", 10) }
+  AH.open = true
+  AH.Show()
+  UI.Open("browse")
+  local l = UI.lists.browse
+  local head
+  for _, h in ipairs(l.heads) do if h.key == "ofusual" then head = h end end
+  ok(head ~= nil, "\"Of usual\" can be sorted")
+  local thisWas = rawget(_G, "this") _G.this = head head:GetScript("OnClick")() _G.this = thisWas
+  ok(l.sortBy == "ofusual" and l.desc == true and l.data[1].name == "Dear" and l.data[2].name == "Usual" and l.data[3].name == "Cheap" and l.data[4].name == "Unknown",
+    "first click: highest first, unknown last (" .. l.data[1].name .. ", " .. l.data[2].name .. ", " .. l.data[3].name .. ")")
+  local thisWas = rawget(_G, "this") _G.this = head head:GetScript("OnClick")() _G.this = thisWas
+  ok(l.desc == false and l.data[1].name == "Cheap", "second click: lowest first")
+  ok(head.arrow:IsShown() and l.under:IsShown() and l.tint:IsShown(), "the sorted head shows its arrow, an underline and a tinted column")
+  local other = l.heads[1]
+  ok(not other.arrow:IsShown(), "the other heads do not")
+  AH.rows = {}
+  AH.open = false
+  getglobal("pfAuction"):Hide()
+  pfUI_cache.auction = cacheWas5
+end

@@ -103,6 +103,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     end
     return b
   end
+  -- a row's price against its item's usual one, in percent, kept on the row so "Of usual" sorts
+  function UI.OfUsual(r, unit)
+    local v = unit and AH.Value(r.key)
+    r.ofusual = (v and v > 0) and (unit / v * 100) or nil
+    return r.ofusual
+  end
   local LEFTCOL = { "|cffff5a4a", "|cffffa040", "|cffe8e8a0", "|cff9ad0a0" }
   function UI.Left(left) return AH.LEFT[left] and ((LEFTCOL[left] or "") .. AH.LEFT[left] .. "|r") or "" end
   local ME
@@ -117,41 +123,76 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local l = CreateFrame("Frame", nil, parent)
     l.cols, l.data, l.offset, l.rows, l.shown = cols, {}, 0, {}, shown
     Flat(l, .6)
+    -- (16 Nov 2026, user: "make all the headers here look better and stand out more ... this looks very
+    -- plain") a header band in the accent colour, each head its own button (hover lights it; the sorted
+    -- one is white with the game's sort arrow, an accent line under it and its column faintly tinted
+    -- down the rows), thin lines between the heads
+    local ar0, ag0, ab0 = Accent()
+    l.band = l:CreateTexture(nil, "BORDER")
+    l.band:SetPoint("TOPLEFT", l, "TOPLEFT", 1, -1)
+    l.band:SetPoint("TOPRIGHT", l, "TOPRIGHT", -1, -1)
+    l.band:SetHeight(22)
+    l.band:SetTexture(WHITE)
+    l.band:SetGradientAlpha("VERTICAL", ar0 * .25, ag0 * .25, ab0 * .25, .9, ar0 * .5, ag0 * .5, ab0 * .5, .9)
+    l.tint = l:CreateTexture(nil, "BORDER")
+    l.tint:SetTexture(ar0, ag0, ab0, .07)
+    l.tint:Hide()
+    l.under = l:CreateTexture(nil, "OVERLAY")
+    l.under:SetTexture(ar0, ag0, ab0, 1)
+    l.under:SetHeight(2)
+    l.under:Hide()
     local x = 6
     l.heads = {}
-    for ii, c in ipairs(cols) do
-      local i = ii
+    local function Head(label, w, justify, key, desc0, at)
       local h = CreateFrame("Button", nil, l)
-      h:SetHeight(18)
-      h:SetWidth(c[2])
-      h:SetPoint("TOPLEFT", l, "TOPLEFT", x, -2)
-      h.text = Text(h, 11, c[3])
-      h.text:SetAllPoints(h)
-      h.text:SetTextColor(Accent())
-      h.text:SetText(c[1])
+      h:SetHeight(22)
+      h:SetWidth(w)
+      h:SetPoint("TOPLEFT", l, "TOPLEFT", at, -1)
+      h.key, h.x, h.w = key, at, w
+      h.hl = h:CreateTexture(nil, "BACKGROUND")
+      h.hl:SetAllPoints(h)
+      h.hl:SetTexture(1, 1, 1, .08)
+      h.hl:Hide()
+      h.text = Text(h, 12, justify)
+      h.text:SetPoint("LEFT", h, "LEFT", 2, 0)
+      h.text:SetPoint("RIGHT", h, "RIGHT", key and -12 or -2, 0)
+      h.text:SetText(label)
+      h.arrow = h:CreateTexture(nil, "OVERLAY")
+      h.arrow:SetTexture("Interface\\Buttons\\UI-SortArrow")
+      h.arrow:SetWidth(9)
+      h.arrow:SetHeight(8)
+      h.arrow:SetPoint("RIGHT", h, "RIGHT", -1, 0)
+      h.arrow:Hide()
+      h:SetScript("OnEnter", function() if this.key then this.hl:Show() end end)
+      h:SetScript("OnLeave", function() this.hl:Hide() end)
       h:SetScript("OnClick", function()
-        if not cols[i][4] then return end
-        if l.sortBy == cols[i][4] then l.desc = not l.desc else l.sortBy, l.desc = cols[i][4], false end
+        if not this.key then return end
+        -- (a new column starts with its natural order: money and amounts biggest first)
+        if l.sortBy == this.key then l.desc = not l.desc else l.sortBy, l.desc = this.key, desc0 and true or false end
         l.Sort()
         l.Paint()
       end)
-      l.heads[i] = h
+      -- a thin line on the head's left edge (not before the first)
+      if at > 8 then
+        h.sep = l:CreateTexture(nil, "ARTWORK")
+        h.sep:SetTexture(1, 1, 1, .12)
+        h.sep:SetWidth(1)
+        h.sep:SetPoint("TOPLEFT", l, "TOPLEFT", at - 3, -5)
+        h.sep:SetHeight(15)
+      end
+      return h
+    end
+    -- numbers and money read best biggest first; names and times A to Z
+    local BIGFIRST = { count = true, total = true, unit = true, bidunit = true, buyout = true, bid = true, minBid = true, value = true,
+      profit = true, ofusual = true, share = false, level = true, low = true, auctions = true, a = true, t = true, other = false }
+    for ii, c in ipairs(cols) do
+      local i = ii
+      local w = c[2]
+      if i == 1 and c[5] then w = c[2] - 46 end
+      l.heads[i] = Head(c[1], w, c[3], c[4], c[4] and BIGFIRST[c[4]], x)
       if i == 1 and c[5] then
-        h:SetWidth(c[2] - 46)
-        local sh = CreateFrame("Button", nil, l)
-        sh:SetHeight(18)
-        sh:SetWidth(46)
-        sh:SetPoint("TOPLEFT", l, "TOPLEFT", x + c[2] - 46, -2)
-        sh.text = Text(sh, 11, "RIGHT")
-        sh.text:SetPoint("RIGHT", sh, "RIGHT", -4, 0)
-        sh.text:SetTextColor(Accent())
-        sh.text:SetText(c[5] == "total" and "Have" or "Stack")
-        sh:SetScript("OnClick", function()
-          if l.sortBy == cols[1][5] then l.desc = not l.desc else l.sortBy, l.desc = cols[1][5], true end
-          l.Sort()
-          l.Paint()
-        end)
-        l.stackHead = sh
+        l.stackHead = Head(c[5] == "total" and "Have" or "Stack", 46, "RIGHT", c[5], true, x + c[2] - 46)
+        table.insert(l.heads, l.stackHead)
       end
       c.x = x
       x = x + c[2] + 6
@@ -224,8 +265,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     l:SetHeight(28 + shown * 20)
     l.rule = l:CreateTexture(nil, "ARTWORK")
     l.rule:SetHeight(1)
-    l.rule:SetPoint("TOPLEFT", l, "TOPLEFT", 4, -21)
-    l.rule:SetPoint("TOPRIGHT", l, "TOPRIGHT", -4, -21)
+    l.rule:SetPoint("TOPLEFT", l, "TOPLEFT", 4, -23)
+    l.rule:SetPoint("TOPRIGHT", l, "TOPRIGHT", -4, -23)
     do local ar, ag, ab = Accent() l.rule:SetTexture(ar, ag, ab, .55) end
     l:EnableMouseWheel(true)
     l:SetScript("OnMouseWheel", function()
@@ -263,9 +304,32 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
           r:Hide()
         end
       end
-      for i, h in ipairs(l.heads) do
-        local c = l.cols[i]
-        h.text:SetText(c[1] .. ((l.sortBy and c[4] == l.sortBy) and (l.desc and " v" or " ^") or ""))
+      local sorted
+      for _, h in ipairs(l.heads) do
+        if h.key and h.key == l.sortBy then
+          sorted = h
+          h.text:SetTextColor(1, 1, 1)
+          h.arrow:Show()
+          -- (the game's arrow points down; turned over for "smallest first")
+          if l.desc then h.arrow:SetTexCoord(0, .5625, 0, 1) else h.arrow:SetTexCoord(0, .5625, 1, 0) end
+        else
+          if h.key then h.text:SetTextColor(.78, .8, .86) else h.text:SetTextColor(.55, .56, .6) end
+          h.arrow:Hide()
+        end
+      end
+      if sorted then
+        l.under:ClearAllPoints()
+        l.under:SetPoint("TOPLEFT", l, "TOPLEFT", sorted.x - 2, -21)
+        l.under:SetWidth(sorted.w + 4)
+        l.under:Show()
+        l.tint:ClearAllPoints()
+        l.tint:SetPoint("TOPLEFT", l, "TOPLEFT", sorted.x - 2, -23)
+        l.tint:SetPoint("BOTTOM", l, "BOTTOM", 0, 2)
+        l.tint:SetWidth(sorted.w + 4)
+        l.tint:Show()
+      else
+        l.under:Hide()
+        l.tint:Hide()
       end
       l.count:SetText(n > l.shown and ((l.offset + 1) .. " - " .. math.min(n, l.offset + l.shown) .. " of " .. n) or (n > 0 and (n .. "") or ""))
     end
@@ -576,7 +640,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.go:SetPoint("LEFT", B.exact, "RIGHT", 6, 0)
   B.list = NewList(B, { { "Item", 300, "LEFT", "name", "count" }, { "Lvl", 30, "RIGHT", "level" }, { "Time left", 86, "LEFT", "left" },
     { "Seller", 96, "LEFT", "owner" }, { "Bid each", 100, "RIGHT", "bidunit" }, { "Buyout each", 104, "RIGHT", "unit" },
-    { "Of usual", 60, "RIGHT" } }, 22, function(r, d)
+    { "Of usual", 60, "RIGHT", "ofusual" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
     -- (a level above yours in red, as the game marks what you cannot use yet)
     local mine = UnitLevel and UnitLevel("player") or 60
@@ -1219,7 +1283,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   H.status:SetPoint("LEFT", H.run, "RIGHT", 12, 0)
   H.status:SetTextColor(.62, .62, .67)
   H.found = NewList(H, { { "Item", 310, "LEFT", "name" }, { "Up for sale", 90, "RIGHT", "count" }, { "Auctions", 70, "RIGHT", "auctions" },
-    { "Cheapest each", 120, "RIGHT", "low" }, { "Of usual", 70, "RIGHT" } }, 22, function(r, d)
+    { "Cheapest each", 120, "RIGHT", "low" }, { "Of usual", 70, "RIGHT", "ofusual" } }, 22, function(r, d)
     ItemCell(r, d)
     r.cell[2]:SetText(d.count)
     r.cell[3]:SetText(d.auctions)
@@ -1260,7 +1324,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     H.one.Able(H.terms.sel ~= nil)
     H.del.Able(l ~= nil)
     H.exp.Able(l ~= nil and table.getn(l.terms) > 0)
-    H.found.Set(UI.shopRan and AH.Group() or {}, true)
+    local found = UI.shopRan and AH.Group() or {}
+    for _, g in ipairs(found) do UI.OfUsual(g, g.low) end
+    H.found.Set(found, true)
     local s = AH.scan
     if s then
       local more = s.queue and table.getn(s.queue) or 0
@@ -1480,6 +1546,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if UI.tab == "browse" then
       -- (from the Shopping tab: only the clicked item's auctions, until the next search)
       local rows = AH.rows
+      for _, r in ipairs(rows) do UI.OfUsual(r, r.unit) end
       if UI.only then
         rows = {}
         for _, r in ipairs(AH.rows) do if r.key == UI.only then table.insert(rows, r) end end
