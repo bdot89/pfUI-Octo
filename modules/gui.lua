@@ -1777,8 +1777,8 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
 
       local logo = page:CreateTexture(nil, "ARTWORK")
       logo:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\logo")
-      logo:SetWidth(256)
-      logo:SetHeight(128)
+      logo:SetWidth(220)
+      logo:SetHeight(110)
       logo:SetPoint("TOP", page, "TOP", 0, -6)
 
       local tag = Text(page, C.global.font_size + 1, .62, .68, .76)
@@ -1789,12 +1789,17 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       by:SetPoint("TOP", tag, "BOTTOM", 0, -8)
       by:SetText(T["made by"] .. " |cff33b3ffBdot89|r  |cff666e7a-|r  " .. T["aka"] .. " |cff9a6bffUpsi|r")
 
-      -- a card: dark panel with a title bar
-      local function Card(title, x)
+      -- (16 Nov 2026, user: "square this page up ... tell them what addons they dont need and what this has ...
+      -- tell them how to update the DLLS with our bat file under the dll list") one grid, 784 wide:
+      -- two cards side by side, a full-width "built in" card, the links under them
+      local GRID, GAP = 784, 16
+      local HALF = (GRID - GAP) / 2
+      -- a card: dark panel with a title bar; x / y from the grid's top left
+      local function Card(title, x, y, w, h)
         local card = CreateFrame("Frame", nil, page)
-        card:SetWidth(320)
-        card:SetHeight(160)
-        card:SetPoint("TOP", page, "TOP", x, -212)
+        card:SetWidth(w)
+        card:SetHeight(h)
+        card:SetPoint("TOPLEFT", page, "TOP", -GRID / 2 + x, y)
         card:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
         card:SetBackdropColor(.125, .13, .145, .95)
         card:SetBackdropBorderColor(.23, .24, .27, 1)
@@ -1802,32 +1807,34 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         head:SetTexture(.165, .17, .19, 1)
         head:SetPoint("TOPLEFT", 1, -1)
         head:SetPoint("TOPRIGHT", -1, -1)
-        head:SetHeight(22)
+        head:SetHeight(24)
         local accent = card:CreateTexture(nil, "OVERLAY")
         accent:SetTexture(.2, .7, 1, 1)
         accent:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 0, 0)
         accent:SetPoint("TOPRIGHT", head, "BOTTOMRIGHT", 0, 0)
         accent:SetHeight(1)
         local t = Text(card, C.global.font_size + 1)
-        t:SetPoint("LEFT", head, "LEFT", 8, 0)
+        t:SetPoint("LEFT", head, "LEFT", 10, 0)
         t:SetText(title)
+        card.title = t
         card.rows = 0
         -- a row: label left (dim), value right
         function card:Row(label)
           self.rows = self.rows + 1
-          local y = -30 - (self.rows - 1) * 21
+          local ry = -34 - (self.rows - 1) * 20
           local l = Text(self, C.global.font_size, .6, .61, .65)
-          l:SetPoint("TOPLEFT", 10, y)
+          l:SetPoint("TOPLEFT", 12, ry)
           l:SetText(label)
           local v = Text(self, C.global.font_size)
-          v:SetPoint("TOPRIGHT", -10, y)
+          v:SetPoint("TOPRIGHT", -12, ry)
           v:SetJustifyH("RIGHT")
           return v
         end
         return card
       end
 
-      local game = Card(T["pfUI Octo and this game"], -165)
+      local TOP = -172
+      local game = Card(T["pfUI Octo and this game"], 0, TOP, HALF, 176)
       local version = game:Row(T["Version"])
       local based = game:Row(T["Based on"])
       local screen = game:Row(T["Resolution"])
@@ -1835,7 +1842,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       local client = game:Row(T["Game client"])
       local language = game:Row(T["Language"])
 
-      local mods = Card(T["Client mods it uses"], 165)
+      local mods = Card(T["Client mods it uses"], HALF + GAP, TOP, HALF, 176)
       -- name, how to find it out (a version text, true, or nil), what it adds
       local MODS = {
         { "SuperWoW", function() return SUPERWOW_VERSION and tostring(SUPERWOW_VERSION) end, T["focus by GUID, mouseover casts, enemy casts"] },
@@ -1862,18 +1869,68 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         v.what = m[3]
         modrows[i] = v
       end
-      local hint = Text(mods, C.global.font_size - 1, .6, .61, .65)
-      hint:SetPoint("BOTTOMLEFT", 10, 8)
-      hint:SetPoint("BOTTOMRIGHT", -10, 8)
-      hint:SetJustifyH("LEFT")
-      hint:SetText(T["Optional: everything works without them."])
+      -- how to get or update them: our bat file
+      local dll = CreateFrame("Frame", nil, mods)
+      dll:SetPoint("BOTTOMLEFT", mods, "BOTTOMLEFT", 8, 8)
+      dll:SetPoint("BOTTOMRIGHT", mods, "BOTTOMRIGHT", -8, 8)
+      dll:SetHeight(48)
+      dll:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
+      dll:SetBackdropColor(.06, .12, .18, 1)
+      dll:SetBackdropBorderColor(.2, .5, .75, 1)
+      local dllText = Text(dll, C.global.font_size - 1, .85, .87, .9)
+      dllText:SetPoint("TOPLEFT", 8, -6)
+      dllText:SetPoint("BOTTOMRIGHT", -8, 6)
+      dllText:SetJustifyH("LEFT")
+      dllText:SetJustifyV("TOP")
+      dllText:SetText("|cff33b3ffInstall or update them:|r close the game, open |cffffd100Interface\\AddOns\\pfUI|r and run "
+        .. "|cffffd100Install pfUI Octo DLLs.bat|r. Optional: everything works without them.")
+
+      -- built in: what pfUI Octo has of its own, and the add-ons that makes unneeded
+      -- { feature, replaces (shown), folder names to look for }
+      local BUILTIN = {
+        { "Meters", "Details!, DPSMate, ShaguDPS", { "Details", "DPSMate", "ShaguDPS" } },
+        { "Threat", "KTM, TWThreat", { "KLHThreatMeter", "TWThreat", "TWT" } },
+        { "ItemRack", "ItemRack, Outfitter", { "ItemRack", "Outfitter", "ClosetGnome" } },
+        { "Questing", "pfQuest, Questie", { "pfQuest", "pfQuest-turtle", "Questie" } },
+        { "OctoDoTs", "Cursive", { "Cursive", "Cursive-Raid" } },
+        { "OctoLazy", "LazyPig", { "_LazyPig", "LazyPig" } },
+        { "Auctions", "aux, Auctionator", { "aux-addon", "aux", "Auctionator", "Auctioneer" } },
+        { "Mail", "TurtleMail, Postal", { "TurtleMail", "Postal", "CT_MailMod" } },
+        { "Nameplates", "ShaguPlates", { "ShaguPlates", "pfPlates" } },
+        { "Combat Text", "SCT, MSBT", { "sct", "SCT", "MikScrollingBattleText" } },
+        { "OctoConsumes", "consume trackers", { "ConsumesManager", "ConsumeTracker" } },
+        { "Swing Timer", "SP_SwingTimer", { "SP_SwingTimer", "SwingTimer" } },
+        { "Bags", "Bagnon, OneBag", { "Bagnon", "OneBag3", "OneBag", "OneBank3" } },
+        { "Char stats", "BetterCharacterStats", { "BetterCharacterStats", "EvenBetterCharacterStats" } },
+      }
+      local ROWS = math.ceil(table.getn(BUILTIN) / 2)
+      local built = Card("Built in - you don't need these add-ons", 0, TOP - 176 - GAP, GRID, 34 + ROWS * 20 + 8)
+      local builtRows = {}
+      for i, b in ipairs(BUILTIN) do
+        local col, row = math.mod(i - 1, 2), math.floor((i - 1) / 2)
+        local x, y = 12 + col * (GRID / 2), -34 - row * 20
+        local name = Text(built, C.global.font_size, 1, 1, 1)
+        name:SetPoint("TOPLEFT", x, y)
+        name:SetText("|cff33b3ff>|r " .. b[1])
+        local rep = Text(built, C.global.font_size, .6, .61, .65)
+        rep:SetPoint("TOPLEFT", x + 130, y)
+        rep:SetWidth(GRID / 2 - 150)
+        rep:SetJustifyH("LEFT")
+        builtRows[i] = rep
+      end
+      local function Loaded(list)
+        for _, n in ipairs(list) do
+          if IsAddOnLoaded(n) then return n end
+        end
+      end
 
       -- links: copied into a box to paste in your browser
+      local LINKY = TOP - 176 - GAP - (34 + ROWS * 20 + 8) - GAP
       local function Link(text, url, x, blue)
         local b = CreateFrame("Button", nil, page)
-        b:SetWidth(150)
-        b:SetHeight(24)
-        b:SetPoint("TOP", page, "TOP", x, -388)
+        b:SetWidth((GRID - 2 * GAP) / 3)
+        b:SetHeight(26)
+        b:SetPoint("TOPLEFT", page, "TOP", -GRID / 2 + x, LINKY)
         b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
         local r, g, bl = .55, .58, .62
         if blue then r, g, bl = .35, .7, 1 end
@@ -1898,20 +1955,21 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         b:SetScript("OnClick", function() pfUI.chat.urlcopy.CopyText(url) end)
         return b
       end
-      Link(T["Web page"], "https://bdot89.github.io/pfUI-Octo/", -160, true)
-      Link("GitHub", "https://github.com/bdot89/pfUI-Octo", 0, true)
-      Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 160)
+      local LW = (GRID - 2 * GAP) / 3
+      Link(T["Web page"], "https://bdot89.github.io/pfUI-Octo/", 0, true)
+      Link("GitHub", "https://github.com/bdot89/pfUI-Octo", LW + GAP, true)
+      Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 2 * (LW + GAP))
 
       local thanks = Text(page, C.global.font_size - 1, .5, .52, .56)
-      thanks:SetPoint("TOP", page, "TOP", 0, -424)
+      thanks:SetPoint("TOP", page, "TOP", 0, LINKY - 36)
       thanks:SetText(T["Thanks to Shagu for pfUI, and to everyone on OctoWoW who tries it out."])
 
       -- octo (29 Oct 2026): a newer pfUI Octo seen on another player
       -- (updatenotify.lua) gets a box with the link for the OctoWoW launcher
       local upd = CreateFrame("Frame", nil, page)
-      upd:SetWidth(640)
+      upd:SetWidth(GRID)
       upd:SetHeight(84)
-      upd:SetPoint("TOP", page, "TOP", 0, -446)
+      upd:SetPoint("TOP", page, "TOP", 0, LINKY - 58)
       upd:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
       upd:SetBackdropColor(.16, .12, .04, 1)
       upd:SetBackdropBorderColor(1, .72, .2, 1)
@@ -1965,6 +2023,20 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         scale:SetText(round(UIParent:GetEffectiveScale(), 2))
         client:SetText(GetBuildInfo() .. " (" .. GetLocale() .. ")")
         language:SetText(lang)
+        -- an add-on pfUI Octo already has, still switched on: said in red
+        local doubled = 0
+        for i, b in ipairs(BUILTIN) do
+          local on = Loaded(b[3])
+          if on then
+            doubled = doubled + 1
+            builtRows[i]:SetText("|cffff5555" .. on .. " is on - not needed|r")
+          else
+            builtRows[i]:SetText(T["replaces"] .. " " .. b[2])
+          end
+        end
+        built.title:SetText(doubled > 0
+          and ("Built in - you don't need these add-ons  |cffff5555(" .. doubled .. " of them still on: switch them off in the add-on list)|r")
+          or "Built in - you don't need these add-ons")
         for i, m in ipairs(MODS) do
           local ok, found = pcall(m[2])
           if ok and found then
