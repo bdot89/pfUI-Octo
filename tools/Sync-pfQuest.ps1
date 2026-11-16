@@ -117,6 +117,14 @@ $patches = @{
   "map.lua" = { param($t)
     Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel())'
   }
+  # (16 Nov 2026, Wolfahrt: "pfquest\tracker.lua:313: attempt to call method 'ScheduleLayout' (a nil value)"
+  # while splitting stacks at the auction house) the tracker's QUEST_LOG_UPDATE code trusted the game's
+  # `this`; called with another frame in it (an add-on passing events on by hand) it errored. It names its
+  # own frame now and sets the layout time itself.
+  "tracker.lua" = { param($t)
+    $t = Must $t 'this.sectionSignature = nil' 'pfQuestMapTracker.sectionSignature = nil'
+    Must $t 'this:ScheduleLayout()' 'pfQuestMapTracker.layoutAt = GetTime() + 0.05'
+  }
   # built in, its version comes from pfUI's toc; another player's VERSION message
   # before ours is known must not error (9 Nov 2026: endless chat errors)
   "updatenotify.lua" = { param($t)

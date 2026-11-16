@@ -309,8 +309,8 @@ tracker:SetScript("OnEvent", function()
     end
     UpdateSortButton()
   elseif event == "QUEST_LOG_UPDATE" then
-    this.sectionSignature = nil
-    this:ScheduleLayout()
+    pfQuestMapTracker.sectionSignature = nil
+    pfQuestMapTracker.layoutAt = GetTime() + 0.05
   end
 end)
 

@@ -209,6 +209,10 @@ do
     local s1 = string.find(src, "pfQuestOctoModel(v)", 1, true)
     local s2 = string.find(src, "v:GetModel()", 1, true)
     ok(s1 and not s2, "map.lua: a world map model without a model file does not stop pfQuest's map loading")
+    -- (16 Nov 2026, Wolfahrt: "tracker.lua:313: attempt to call method 'ScheduleLayout'" splitting stacks at
+    -- the auction house) the tracker's quest log event names its own frame, never the game's `this`
+    ok(has("tracker.lua", "pfQuestMapTracker.layoutAt = GetTime() + 0.05") and not has("tracker.lua", "this:ScheduleLayout()"),
+      "tracker.lua: a quest log event passed on with another frame in `this` does not error")
     -- (16 Nov 2026, the error came back) the answer may be nothing, the model itself or an error: always text
     ok(has("compat/client.lua", "pfQuestOctoModel(v)") and not has("compat/client.lua", "v:GetModel()"),
       "compat\\client.lua: the minimap arrow search uses the safe model name too")

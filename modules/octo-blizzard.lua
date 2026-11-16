@@ -189,13 +189,14 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
   end
 
   -- a Blizzard frame as it was: parent, place, size, scale, scripts, Show
-  local function Restore(f, show, store)
+  -- (keep: everything but its place - a window the player put somewhere stays there)
+  local function Restore(f, show, store, keep)
     if not f then return end
     local s = (store or BZ.snap)[f]
     f.Show = nil
     if s then
       if s.parent and f.SetParent then f:SetParent(s.parent) end
-      if s.points[1] then
+      if s.points[1] and not keep then
         f:ClearAllPoints()
         for _, p in ipairs(s.points) do
           if p[1] then f:SetPoint(p[1], p[2], p[3], p[4], p[5]) end
@@ -661,18 +662,29 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
       -- ChatFrame1 BOTTOMLEFT 32, 95, 430 x 120; the edit box under it).
       -- 23 Oct 2026 in game they stayed inside pfUI's chat panels, which then
       -- went away: no chat and no way to type.
+      -- (16 Nov 2026, Barbeque: "chat moves on top of each other if you seperate windows each time i log in")
+      -- This runs at every login with Blizzard's chat on, and put the main window back on the game's default
+      -- spot each time - onto a window the player had separated and parked there. Only a window pfUI hung on
+      -- one of its panels this session (a switch made in the options) needs a place given back; one pfUI
+      -- never took is where the game's own saved layout put it, and stays there.
+      local taken = {}
       for i = 1, (tonumber(NUM_CHAT_WINDOWS) or 7) do
         local frame, tab = _G["ChatFrame" .. i], _G["ChatFrame" .. i .. "Tab"]
-        if frame then frame:SetParent(UIParent) Reshow(frame) end
+        if frame then
+          taken[i] = (frame.pfOnPanel or frame:GetParent() ~= UIParent) and true or false
+          frame.pfOnPanel = nil
+          frame:SetParent(UIParent) Reshow(frame)
+        end
         if tab then tab:SetParent(UIParent) Reshow(tab) end
       end
+      BZ.chatTaken = taken
       if ChatFrame1 then
-        local s = BZ.snap[ChatFrame1]
-        if not (s and s.points[1]) or ChatFrame1:GetParent() ~= UIParent then
+        if taken[1] then
+          local s = BZ.snap[ChatFrame1]
           ChatFrame1:ClearAllPoints()
           ChatFrame1:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 32, 95)
-          ChatFrame1:SetWidth(430)
-          ChatFrame1:SetHeight(120)
+          ChatFrame1:SetWidth(s and s.w and s.w > 0 and s.w or 430)
+          ChatFrame1:SetHeight(s and s.h and s.h > 0 and s.h or 120)
         end
         ChatFrame1:Show()
       end
@@ -684,7 +696,7 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
       end
       for i, c in pairs(BZ.chat) do
         local frame, tab = _G["ChatFrame" .. i], _G["ChatFrame" .. i .. "Tab"]
-        Restore(frame, frame:IsShown())
+        Restore(frame, frame:IsShown(), nil, true)
         Restore(tab, tab:IsShown())
         tab.SetAlpha = nil
         for name, t in pairs(c.tex) do
@@ -1044,26 +1056,62 @@ pfUI:RegisterModule("octo-blizzard", "vanilla", function ()
     minimap = { "MinimapCluster" },
     buffs = { "BuffFrame", "TemporaryEnchantFrame" },
   }
-  BZ.managed = {}
+  -- (16 Nov 2026, Barbeque: "utility windows for abilities (like monkey aspect for hunter) dont move on top of
+  -- the extra action bars if you turn them on") Every listed frame used to be taken out of the game's table
+  -- for good, so the game stopped lifting the stance / aspect bar, the pet bar and the cast bar above the
+  -- extra bars. The game goes on placing a frame until the player has moved it in layout mode (a saved place
+  -- in pfUI_config.position); only such a frame is held back, and only while the game does its placing.
+  BZ.movable = {}
+  function BZ.HookManage()
+    if BZ.manageOrig or type(_G.UIParent_ManageFramePositions) ~= "function" then return end
+    BZ.manageOrig = _G.UIParent_ManageFramePositions
+    _G.UIParent_ManageFramePositions = function()
+      local managed, held = _G.UIPARENT_MANAGED_FRAME_POSITIONS, nil
+      local saved = pfUI_config and pfUI_config.position
+      if type(managed) == "table" and type(saved) == "table" then
+        for name in pairs(BZ.movable) do
+          if managed[name] and saved[name] then
+            held = held or {}
+            held[name] = managed[name]
+            managed[name] = nil
+          end
+        end
+        -- (while the chat is pfUI Octo's its windows sit on pfUI's panels: not the game's to place either)
+        if not BZ.IsBlizz("chat") and pfUI.chat then
+          for _, name in ipairs({ "ChatFrame1", "ChatFrame2" }) do
+            if managed[name] then
+              held = held or {}
+              held[name] = managed[name]
+              managed[name] = nil
+            end
+          end
+        end
+      end
+      local ok, err = pcall(BZ.manageOrig)
+      if held then for name, v in pairs(held) do managed[name] = v end end
+      if not ok then error(err, 0) end
+    end
+  end
   function BZ.Movers(id, on)
     local list = BZ.FRAMES[id]
     if not list or not pfUI.api or not pfUI.api.UpdateMovable then return end
-    local managed = _G.UIPARENT_MANAGED_FRAME_POSITIONS
+    BZ.HookManage()
     for _, name in ipairs(list) do
       local f = _G[name]
       if f then
         if on then
-          if managed and managed[name] and BZ.managed[name] == nil then
-            BZ.managed[name] = managed[name]
-            managed[name] = nil
-          end
+          BZ.movable[name] = true
           f:SetMovable(true)
           pcall(pfUI.api.UpdateMovable, f)
         else
-          if managed and BZ.managed[name] then managed[name] = BZ.managed[name] BZ.managed[name] = nil end
+          BZ.movable[name] = nil
           if pfUI.api.RemoveMovable then pfUI.api.RemoveMovable(f) end
         end
       end
+    end
+    -- the game's bars are back: it places what hangs on them (stance bar above the bottom-left bar...)
+    if on and (id == "actionbars" or id == "castbar") and type(_G.UIParent_ManageFramePositions) == "function" then
+      pcall(_G.UIParent_ManageFramePositions)
     end
   end
 

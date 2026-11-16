@@ -4626,6 +4626,22 @@ do
       ok(ChatFrame1:GetParent() ~= pfUI.chat.left and pfUI.chat.left:GetParent() == BZ.hider
         and _G.CHAT_GUILD_GET == BZ.globals.CHAT_GUILD_GET.blizz, "Blizzard chat: the game's windows and \"[Guild]\" names")
       ok(pfUI.chat.RefreshChat(pfUI.chat) == nil and ChatFrame1:GetParent() ~= pfUI.chat.left, "pfUI's chat refresh leaves Blizzard's windows alone")
+      -- (16 Nov 2026, Barbeque: separated chat windows on top of each other at every login) logging in with
+      -- Blizzard's chat on, the main window is where the player left it - not put back on the default spot
+      ChatFrame1.pfOnPanel = nil
+      ChatFrame1:SetParent(UIParent)
+      ChatFrame1:ClearAllPoints()
+      ChatFrame1:SetPoint("CENTER", UIParent, "CENTER", 111, 222)
+      BZ.Set("chat", "blizz")
+      local a, _, _, x, y = ChatFrame1:GetPoint(1)
+      ok(a == "CENTER" and x == 111 and y == 222 and BZ.chatTaken and BZ.chatTaken[1] == false,
+        "Blizzard chat at login: the main window stays where the player put it")
+      -- one pfUI had on its panel (a switch in the options) does get the game's place back
+      ChatFrame1.pfOnPanel = true
+      BZ.Set("chat", "blizz")
+      a, _, _, x, y = ChatFrame1:GetPoint(1)
+      ok(a == "BOTTOMLEFT" and x == 32 and y == 95 and ChatFrame1.pfOnPanel == nil,
+        "Blizzard chat from pfUI's panel: the main window goes to the game's own spot")
       BZ.Set("chat", "octo")
       ok(pfUI.chat.left:GetParent() ~= BZ.hider and _G.CHAT_GUILD_GET == BZ.globals.CHAT_GUILD_GET.octo, "and pfUI's chat back")
     end
@@ -4859,14 +4875,33 @@ do
     pfUI.gui:Hide()
     local cb = _G.CastingBarFrame
     if cb and cb.GetName and cb:GetName() == "CastingBarFrame" then
-      local man = _G.UIPARENT_MANAGED_FRAME_POSITIONS
+      -- (16 Nov 2026, Barbeque: the aspect bar did not lift above the extra bars) the game keeps placing a
+      -- frame until the player has moved it; only a moved one is held back, and only while the game places
+      local man, fn, hook = _G.UIPARENT_MANAGED_FRAME_POSITIONS, rawget(_G, "UIParent_ManageFramePositions"), BZ.manageOrig
+      local keepPos = pfUI_config.position.CastingBarFrame
+      pfUI_config.position.CastingBarFrame = nil
+      local placed, calls = nil, 0
       _G.UIPARENT_MANAGED_FRAME_POSITIONS = { CastingBarFrame = { baseY = 1 } }
+      BZ.manageOrig = nil
+      rawset(_G, "UIParent_ManageFramePositions", function()
+        calls = calls + 1
+        placed = _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame ~= nil
+      end)
       BZ.Movers("castbar", true)
-      ok(pfUI.movables.CastingBarFrame == cb and _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame == nil,
-        "a Blizzard part's frames become layout mode boxes the game no longer places")
+      ok(pfUI.movables.CastingBarFrame == cb and calls == 1 and placed == true,
+        "a Blizzard part's frames become layout mode boxes, and the game still places one nobody moved")
+      pfUI_config.position.CastingBarFrame = { xpos = 5, ypos = 5 }
+      _G.UIParent_ManageFramePositions()
+      ok(calls == 2 and placed == false and _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame ~= nil,
+        "one the player moved is left where it is while the game places the rest")
+      pfUI_config.position.CastingBarFrame = nil
       BZ.Movers("castbar", false)
-      ok(pfUI.movables.CastingBarFrame == nil and _G.UIPARENT_MANAGED_FRAME_POSITIONS.CastingBarFrame ~= nil,
-        "and are given back when the part is pfUI Octo's again")
+      _G.UIParent_ManageFramePositions()
+      ok(pfUI.movables.CastingBarFrame == nil and calls == 3 and placed == true,
+        "and it is the game's again when the part is pfUI Octo's")
+      pfUI_config.position.CastingBarFrame = keepPos
+      rawset(_G, "UIParent_ManageFramePositions", fn)
+      BZ.manageOrig = hook
       _G.UIPARENT_MANAGED_FRAME_POSITIONS = man
     end
   end
