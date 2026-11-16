@@ -567,6 +567,11 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("art",        nil,           "marks",            "pfui")
   pfUI:UpdateConfig("art",        nil,           "elite",            "classic")
   pfUI:UpdateConfig("art",        nil,           "elitesize",        "1")
+  -- (16 Nov 2026) performance (modules/perf.lua): clean-up held in fights, raid graphics
+  for k, v in pairs({ gc = "1", gcextra = "150", gcafter = "1", gcload = "1", raidfx = "1", raidfxwhere = "raid",
+    fxglow = "1", fxweather = "1", fxparticles = "1", fxfoot = "1", fxfarclip = "0", farclip = "350" }) do
+    pfUI:UpdateConfig("perf", nil, k, v)
+  end
   -- autoloot.lua: automatic area looting with ClassicAPI (4 Nov 2026)
   pfUI:UpdateConfig("autoloot",   nil,           "enable",           "0")
   pfUI:UpdateConfig("autoloot",   nil,           "death",            "1")

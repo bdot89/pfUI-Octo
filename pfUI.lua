@@ -289,7 +289,10 @@ end
 -- the others still start (one error used to stop every module after it)
 local function Start(kind, name, fn)
   setfenv(fn, pfUI:GetEnvironment())
+  -- (16 Nov 2026) the module starting, for the profiler's labels (modules\perf.lua)
+  pfUI.loading = name
   local ok, err = pcall(fn)
+  pfUI.loading = nil
   if not ok then
     local handler = geterrorhandler and geterrorhandler()
     local msg = "pfUI " .. kind .. " '" .. tostring(name) .. "' did not start: " .. tostring(err)

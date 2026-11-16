@@ -1323,3 +1323,16 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   A.GROUPS, A.ICONSQ, A.Crest -> path, w, h (icons 32 x 32, drawn 46 x 23), A.PlateArt; C.art.elitesize scales the crest
   (unitframes-octo). plates.lua P.MARKART gains every icon before "None". Art page: preview of the picked crest + a grid by
   group (click to pick), size slider, credits. Dropped: skoll rank-1..3 (hollow outlines). Tests: tests\art.lua.
+- Performance (16 Nov 2026, NOT seen in game; NEW FILES = full client restart; user: "optimize this addon ... it should not
+  stutter in any raids ... use DLLs where needed"). modules\perf.lua (pfUI.perf = PF, frame pfOctoPerf, /pfperf):
+  Lua 5.0 GC held in fights (PLAYER_REGEN_DISABLED: collectgarbage(gcinfo() + C.perf.gcextra MB)), full collectgarbage()
+  2 s after the fight (out of combat) and 1 s after a loading screen (PF.last = why / freed / ms). Raid graphics PF.FX
+  (ffxGlow, weatherDensity, particleDensity 0.4, showfootprintparticles, farclip only lowered) inside raids / instances,
+  the player's values in pfUI_cache.perfsaved, put back outside. Measuring: ClassicAPI GetAddOnCPUUsage / GetFrameCPUUsage
+  / EnumerateFrames with CVar scriptProfile (PF.SetProfiling reloads); while it is on, CreateFrame is wrapped at file load
+  and frames made during a module's start get PF.tags[f] = module (pfUI.loading, set in pfUI.lua Start). Options:
+  Settings > Performance (perf-options.lua, key stperf). Also: api RunOOC's frame sleeps when its queue is empty.
+  Checked and already fine: libcast's combat log parsing off with SuperWoW (superwow.lua), unit frames' RegisterUnitEvent,
+  heal prediction 20/s, plates' calm throttle, plate scan only on new children, bubbles/raid layout one-shots, cooldown
+  text .1 s. Not used: weirdutils weirdperformance (froze loading, 29 Oct); PerfBoost DLL (gitea avitasia/perf_boost) is
+  only named on the page - the user installs DLLs. Tests: tests\perf.lua.

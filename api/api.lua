@@ -82,11 +82,14 @@ function pfUI.api.RunOOC(func)
     frame:SetScript("OnUpdate", function()
       if InCombatLockdown and InCombatLockdown() then return end
       for key, func in pairs(queue) do func(); queue[key] = nil end
+      -- octo (16 Nov 2026): asleep while the queue is empty (it ran on every frame for good once used)
+      if not next(queue) then this:Hide() end
     end)
   end
 
   if not queue[tostring(func)] then
     queue[tostring(func)] = func
+    frame:Show()
     return true
   end
 end
