@@ -594,7 +594,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
     if not e then Say("Nothing to put on: every consumable on your list is up (or none left in your bags).", .3, 1, .4) return end
     CS.Use(e)
   end
-  _G.BINDING_HEADER_PFCONSUMES = "pfUI Octo: consumables"
+  _G.BINDING_HEADER_PFCONSUMES = "pfUI Octo: OctoConsumes"
   _G.BINDING_NAME_PFCONSUMENEXT = "Use the next missing consumable"
 
   -- ---------------------------------------------------------------- learning

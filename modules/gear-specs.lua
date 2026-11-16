@@ -1103,5 +1103,5 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
       W.Note(p, "Your specs show up here after you talk to a Goblin Brainwashing Device.")
     end
   end
-  O:AddPage("Gear", "gearspecs", "Talent specs", Build)
+  O:AddPage("ItemRack", "gearspecs", "Talent specs", Build)
 end)

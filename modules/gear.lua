@@ -650,7 +650,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
         return
       end
     end
-    Say("no set uses key " .. n .. " - pick one on the Gear page.")
+    Say("no set uses key " .. n .. " - pick one on the ItemRack page.")
   end
 
   local ev = CreateFrame("Frame")
@@ -682,7 +682,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
   for _, s in ipairs(GR.SLOTS) do
     _G["BINDING_NAME_PFGEARSLOT" .. s[1]] = "Use worn: " .. s[3]
   end
-  _G.BINDING_HEADER_PFGEARSLOT = "pfUI Octo: gear slot buttons"
+  _G.BINDING_HEADER_PFGEARSLOT = "pfUI Octo: ItemRack slot buttons"
   _G.BINDING_NAME_PFGEARNAKED = "Birthday suit (all gear into bags) / dress again"
 
   -- a gear button that works its slot: bindable by hovering it (pfUI's
@@ -759,7 +759,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     end
   end
 
-  _G.BINDING_HEADER_PFGEAR = "pfUI Octo: gear sets"
+  _G.BINDING_HEADER_PFGEAR = "pfUI Octo: ItemRack sets"
 
   -- ---------------------------------------------------------------- set button and menu
 
@@ -831,7 +831,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     else
       table.insert(list, { text = "Birthday suit (all into bags)", icon = "Interface\\Icons\\Ability_Rogue_Disguise", action = function() GR.Naked() end })
     end
-    table.insert(list, { text = "Gear options...", icon = "Interface\\Icons\\INV_Misc_Gear_01", action = function()
+    table.insert(list, { text = "ItemRack options...", icon = "Interface\\Icons\\INV_Misc_Gear_01", action = function()
       if pfUI.gearOcto and pfUI.gearOcto.Open then pfUI.gearOcto.Open() end
     end })
     for i, e in ipairs(list) do
@@ -885,7 +885,7 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     end)
     b:SetScript("OnEnter", function()
       GameTooltip:SetOwner(this, "ANCHOR_LEFT")
-      GameTooltip:AddLine("Gear sets")
+      GameTooltip:AddLine("ItemRack")
       local cur = GR.Current()
       GameTooltip:AddLine(cur and ("Wearing: " .. cur) or "Wearing: no saved set", 1, 1, 1)
       if GR.queue and GR.queue.waiting then GameTooltip:AddLine(GR.WaitText(), 1, .8, .2) end

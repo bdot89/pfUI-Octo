@@ -21,7 +21,7 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
     return .2, .55, .9
   end
   local function Off(p, title)
-    W.Heading(p, title, { on = O.ModuleSwitch("consumes", "Consumables"),
+    W.Heading(p, title, { on = O.ModuleSwitch("consumes", "OctoConsumes"),
       about = "The consumables tracker is switched off. Switch it on and close the options to reload; your lists come back." })
     W.Note(p, "The tracker is off. Use the switch at the top right to turn it back on (takes a reload).")
   end
@@ -180,8 +180,8 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
 
   local function Build(p)
     local cs = CS()
-    if not cs then Off(p, "Consumables") return end
-    W.Heading(p, "Consumables", { on = O.ModuleSwitch("consumes", "Consumables"),
+    if not cs then Off(p, "OctoConsumes") return end
+    W.Heading(p, "OctoConsumes", { on = O.ModuleSwitch("consumes", "OctoConsumes"),
       about = "Pick the flasks, elixirs, food, oils and scrolls you want up, and the bar shows each one: red when it "
       .. "is missing, gold with a timer when it runs out soon. A warning on screen (and a sound) says what is missing "
       .. "as you enter a raid. Click an icon - or press its key - to use it from your bags. Lists are per character; "
@@ -497,6 +497,6 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
       .. "a trade, the mail or the auction house is open (they would be sold or moved instead).")
   end
 
-  O:AddPage("Consumables", "consumes", "Tracker", Build)
-  O:AddPage("Consumables", "consumesbar", "Bar and alerts", BuildBar)
+  O:AddPage("OctoConsumes", "consumes", "Tracker", Build)
+  O:AddPage("OctoConsumes", "consumesbar", "Bar and alerts", BuildBar)
 end)

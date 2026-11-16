@@ -362,7 +362,7 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
   panel.title = panel:CreateFontString(nil, "OVERLAY")
   panel.title:SetFont(pfUI.font_default, 13, "OUTLINE")
   panel.title:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -7)
-  panel.title:SetText("Gear sets")
+  panel.title:SetText("ItemRack")
   panel.rows = {}
   GR.sheet = panel
   local function SheetButton(text, w, fn, tip)
@@ -394,10 +394,10 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
     GR.Save("Set " .. n, GR.Snapshot())
     C.gear.current = "Set " .. n
     GR.Changed()
-  end, "Save everything you wear as a new set. Rename it on the Gear page.")
+  end, "Save everything you wear as a new set. Rename it on the ItemRack page.")
   panel.opt = SheetButton("Options", 54, function()
     if pfUI.gearOcto and pfUI.gearOcto.Open then pfUI.gearOcto.Open() end
-  end, "The Gear page: change sets, slot by slot.")
+  end, "The ItemRack page: change sets, slot by slot.")
   local function SheetRow(i)
     local r = panel.rows[i]
     if r then return r end
@@ -432,7 +432,7 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
       GameTooltip:AddLine(this.set)
       GameTooltip:AddLine("Click: wear it", 1, 1, 1)
       GameTooltip:AddLine("Shift + click: back to the gear worn before", 1, 1, 1)
-      GameTooltip:AddLine("Right-click: change it on the Gear page", 1, 1, 1)
+      GameTooltip:AddLine("Right-click: change it on the ItemRack page", 1, 1, 1)
       GameTooltip:Show()
     end)
     r:SetScript("OnLeave", function()
@@ -557,7 +557,7 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
         else GameTooltip:AddLine("Right-click: its trinket queue", .6, .8, 1) end
         GameTooltip:AddLine("Alt-click: queue on / off - the cog does the same", .6, .8, 1)
         GameTooltip:AddLine("Shift-click: link it in chat", .6, .8, 1)
-        GameTooltip:AddLine("Hide this bar: Gear > Gear sets > Trinket bar > Show the trinket bar", .6, .6, .6, 1)
+        GameTooltip:AddLine("Hide this bar: ItemRack > Gear sets > Trinket bar > Show the trinket bar", .6, .6, .6, 1)
         GameTooltip:Show()
       end
       if C.gear.trinketmenu ~= "0" and C.gear.trinketmenuclick ~= "1" and (C.gear.trinketshift ~= "1" or IsShiftKeyDown()) then GR.TrinketMenu(this) end

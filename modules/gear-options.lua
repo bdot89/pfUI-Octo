@@ -636,7 +636,7 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
   -- ---------------------------------------------------------------- page
 
   local function Build(p)
-    W.Heading(p, "Gear sets", { on = O.ModuleSwitch("gear", "Gear sets"), about = "Gear sets as ItemRack and Outfitter make them: pick a set on the left, tick the slots "
+    W.Heading(p, "Gear sets", { on = O.ModuleSwitch("gear", "ItemRack"), about = "Gear sets as ItemRack and Outfitter make them: pick a set on the left, tick the slots "
       .. "it should change, click a slot to pick its item (or Save to take what you wear), then Wear. In combat your "
       .. "weapons change at once and the rest when combat ends. Also: the Gear sets list beside your character window, "
       .. "the set button, keys, /gear equip <set>." })
@@ -878,6 +878,6 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
     Chk(p, "Also in chat", nil, "notifychat")
   end
 
-  O:AddPage("Gear", "gearsets", "Gear sets", Build)
-  O:AddPage("Gear", "gearslots", "Slot buttons", BuildSlots)
+  O:AddPage("ItemRack", "gearsets", "Gear sets", Build)
+  O:AddPage("ItemRack", "gearslots", "Slot buttons", BuildSlots)
 end)

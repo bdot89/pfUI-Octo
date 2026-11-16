@@ -63,9 +63,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Meters", { "Meters" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
-    { "Gear", { "Gear" } },
+    -- (16 Nov 2026, user: "Rename Gear to ItemRack ... gear is to simple")
+    { "ItemRack", { "ItemRack" } },
     -- (11 Nov 2026, Wolfahrt on Discord: track consumes by character) consumes-options.lua
-    { "Consumables", { "Consumables" } },
+    -- (16 Nov 2026, user: "Consumables renamed to OctoConsumes")
+    { "OctoConsumes", { "OctoConsumes" } },
     { "Combat Text", { "Combat Text" } },
     { "Swing Timer", { "Swing Timer" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
@@ -90,12 +92,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "Questing", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
-    { "Combat & Items", { "OctoDoTs", "Meters", "Gear", "Consumables", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
+    { "Combat & Items", { "OctoDoTs", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoDoTs"] = true, ["Meters"] = true, ["Gear"] = true }
+    ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -105,7 +107,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["Gear"] = { "gear", "Gear" }, ["Consumables"] = { "consumes", "Consumables" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -125,8 +127,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
-    ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
-    ["Consumables"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
+    ["ItemRack"] = "Gear sets, talent specs and swaps that happen by themselves.",
+    ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
     ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect all your mail at once.",
     ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
     ["Tooltip"] = "What the tooltip shows and where.",
@@ -826,7 +828,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "swing", "Swing Timer", "stbars", "Bars", "Swing Timer" },
     { "minimap", "Minimap", "mmmap", "Map", "Minimap" },
     { "meters", "Meters", "mtwindows", "Windows", "Meters" },
-    { "gear", "Gear", "gearsets", "Gear sets", "Gear sets" },
+    { "gear", "ItemRack", "gearsets", "Gear sets", "ItemRack" },
   }
   function O:AddStandIns()
     for _, s in ipairs(O.STANDIN) do

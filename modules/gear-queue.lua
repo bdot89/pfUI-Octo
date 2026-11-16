@@ -496,7 +496,7 @@ pfUI:RegisterModule("gear-queue", "vanilla", function ()
       SlotList(p, slot)
     end
   end
-  O:AddPage("Gear", "gearqueue", "Trinket queue", Build)
+  O:AddPage("ItemRack", "gearqueue", "Trinket queue", Build)
 
   -- /gear queue [top|bottom] [on|off]
   local slash = SlashCmdList.PFGEAR

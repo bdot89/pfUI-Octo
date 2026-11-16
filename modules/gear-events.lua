@@ -377,7 +377,7 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
     end
     O.TabFilter(p)
   end
-  O:AddPage("Gear", "gearevents", "Automatic swaps", Build)
+  O:AddPage("ItemRack", "gearevents", "Automatic swaps", Build)
 
   -- /gear events: what is happening and what would be worn
   local slash = SlashCmdList.PFGEAR
