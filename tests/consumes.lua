@@ -233,6 +233,56 @@ do
   _G.UseContainerItem = keep.UseContainerItem
 end
 
+-- ---------------------------------------------------------------- items that give the same thing
+do
+  local F = CS.NewList("Fuse")
+  local a = CS.Add(F, 20452)
+  local b, _, host = CS.Add(F, 51720)
+  ok(a and b and host == a and table.getn(F.items) == 1 and a.alts and table.getn(a.alts) == 1 and a.alts[1].item == 51720,
+    "Power Mushroom joins Smoked Desert Dumplings (+20 Strength): one entry")
+  local _, why = CS.Add(F, 51720)
+  ok(why and string.find(why, "already"), "a joined item twice is refused")
+  CS.Add(F, 13928)
+  ok(table.getn(F.items) == 2, "Grilled Squid (Well Fed, but not the same food) stays its own entry")
+  local w = CS.Add(F, 12820)
+  local _, _, h2 = CS.Add(F, 42014)
+  ok(h2 == w and CS.SameOf(w) == "ap35", "Blackroot Brew joins Winterfall Firewater (+35 attack power)")
+  auras = { { "Blackroot Brew", 900 } }
+  ok(CS.State(w, CS.ReadBuffs()) == "ok", "the joined item's buff counts for the entry")
+  auras = {}
+  ok(CS.State(w, CS.ReadBuffs()) == "missing", "neither buff up: missing")
+  -- only the joined item is in the bags: it is the one counted, shown and used
+  bag[5] = { "item:51720:0:0:0", 4 }
+  _G.GetContainerNumSlots = function(bb) return bb == 0 and 5 or 0 end
+  _G.UseContainerItem = function(bb, s) table.insert(used, bb .. ":" .. s) end
+  CS.bagsDirty = true
+  ok(CS.Total(a) == 4 and CS.Pick(a).item == 51720, "bags hold the mushroom only: 4, and it is the pick")
+  used = {}
+  ok(CS.Use(a) and used[1] == "0:5", "using the entry eats the mushroom (" .. tostring(used[1]) .. ")")
+  ok(CS.learning and CS.learning.e == a.alts[1], "and learning watches the mushroom's buff")
+  CS.learning = nil
+  local n = CS.Split(F, 1, 1)
+  ok(n and n.item == 51720 and F.items[2] == n and not a.alts and n.buff == "Well Fed" and n.kind == "buff", "Split: its own entry again, right after")
+  ok(CS.Join(F, 2, 1) and table.getn(a.alts) == 1 and a.alts[1].item == 51720 and table.getn(F.items) == 3, "Join by hand puts it back")
+  CS.Add(F, 18262)
+  local done, why2 = CS.Join(F, table.getn(F.items), 1)
+  ok(not done and why2, "a stone and a food cannot be joined")
+  local cp = pfUI.consumesOptions
+  bag[5] = nil
+  _G.GetContainerNumSlots = function(bb) return bb == 0 and 4 or 0 end
+  _G.UseContainerItem = keep.UseContainerItem
+  CS.bagsDirty = true
+  -- the page draws a joined entry
+  if cp then
+    table.insert(S.lists, F)
+    cp.sel = table.getn(S.lists)
+    local good, err = pcall(function() O:Rebuild("consumes") end)
+    ok(good, "the Tracker page builds with a joined entry: " .. tostring(err))
+    table.remove(S.lists)
+    cp.sel = 1
+  end
+end
+
 -- ---------------------------------------------------------------- cursor and pages
 do
   _G.CursorHasItem = function() return true end
@@ -252,6 +302,13 @@ do
   local bm = cp and cp.BagMenu(CS.NewList("x"))
   ok(bm and table.getn(bm) >= 3, "the bag menu lists the usable items in the bags (" .. tostring(bm and table.getn(bm)) .. ")")
   ok(string.find(cp.Status(), "Watching", 1, true), "preview status: watching the list")
+  local good, text = pcall(CS.Where)
+  ok(good and string.find(tostring(text), "icons", 1, true), "where the bar is, in words: " .. tostring(text))
+  local pos = pfUI_config.position and pfUI_config.position["pfConsumes"]
+  pfUI_config.position = pfUI_config.position or {}
+  pfUI_config.position["pfConsumes"] = { xpos = -5000, ypos = 0, anchor = "TOPRIGHT" }
+  ok(pcall(CS.Home) and pfUI_config.position["pfConsumes"] == nil, "Bar to the middle forgets the saved place")
+  pfUI_config.position["pfConsumes"] = pos
 end
 
 -- put things back

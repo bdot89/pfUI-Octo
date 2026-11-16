@@ -98,10 +98,12 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       { 12455, "Juju Ember", "Juju Ember", "INV_Misc_MonsterScales_15" },
       { 12457, "Juju Chill", "Juju Chill", "INV_Misc_MonsterScales_09" },
       { 12458, "Juju Guile", "Juju Guile", "INV_Misc_MonsterScales_13" },
-      { 12820, "Winterfall Firewater", "Winterfall Firewater", "INV_Potion_92" },
+      { 12820, "Winterfall Firewater", "Winterfall Firewater", "INV_Potion_92", "ap35" },
+      { 42014, "Blackroot Brew", "Blackroot Brew", "INV_Drink_04", "ap35" },
     },
     food = {
-      { 20452, "Smoked Desert Dumplings", "Well Fed", "Spell_Misc_Food" },
+      { 20452, "Smoked Desert Dumplings", "Well Fed", "Spell_Misc_Food", "str20" },
+      { 51267, "Spicy Beef Burrito", "Well Fed", "Spell_Misc_Food", "str20" },
       { 13928, "Grilled Squid", "Well Fed", "Spell_Misc_Food" },
       { 13931, "Nightfin Soup", "Well Fed", "Spell_Misc_Food" },
       { 18254, "Runn Tum Tuber Surprise", "Well Fed", "Spell_Misc_Food" },
@@ -113,7 +115,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       { 60978, "Danonzo's Tel'Abim Medley", "Well Fed", "Spell_Misc_Food" },
       { 60976, "Danonzo's Tel'Abim Surprise", "Well Fed", "Spell_Misc_Food" },
       { 53015, "Gurubashi Gumbo", "Well Fed", "Spell_Misc_Food" },
-      { 51720, "Power Mushroom", "Well Fed", "Spell_Misc_Food" },
+      { 51720, "Power Mushroom", "Well Fed", "Spell_Misc_Food", "str20" },
       { 51717, "Hardened Mushroom", "Well Fed", "Spell_Misc_Food" },
       { 84040, "Le Fishe Au Chocolat", "Well Fed", "Spell_Misc_Food" },
       { 83309, "Empowering Herbal Salad", "Well Fed", "Spell_Misc_Food" },
@@ -159,11 +161,15 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       { 10922, "Wound Poison IV", "*", "INV_Misc_Herb_16" },
     },
   }
-  -- item id -> { cat, name, buff, icon }
+  -- item id -> { cat, name, buff, icon, same }
   CS.BYID = {}
   for _, c in ipairs(CS.CATS) do
-    for _, e in ipairs(CS.CATALOG[c[1]] or {}) do CS.BYID[e[1]] = { cat = c[1], name = e[2], buff = e[3], icon = e[4] } end
+    for _, e in ipairs(CS.CATALOG[c[1]] or {}) do CS.BYID[e[1]] = { cat = c[1], name = e[2], buff = e[3], icon = e[4], same = e[5] } end
   end
+  -- a catalogue item's 5th field: items that give the same thing (15 Nov 2026,
+  -- Wolfahrt on Discord). Adding one to a list that has another joins them:
+  -- one icon, any of them up counts, the one in your bags is used.
+  CS.SAME = { str20 = "+20 Strength food", ap35 = "+35 attack power" }
   -- buffs that are eating / drinking, not the buff the item leaves
   CS.SKIPLEARN = { ["food"] = true, ["drink"] = true, ["refreshment"] = true, ["food & drink"] = true }
 
@@ -232,6 +238,27 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
     return out
   end
   function CS.Count(id) local e = CS.Bags()[id] return e and e.count or 0 end
+
+  -- an entry and the items joined to it (e.alts = { { item, name, buff, learned } }):
+  -- the entry itself first
+  function CS.Options(e)
+    local out = { e }
+    for _, a in ipairs(e.alts or {}) do table.insert(out, a) end
+    return out
+  end
+  -- the one to use / show: the first of them in your bags, else the entry itself
+  function CS.Pick(e)
+    for _, o in ipairs(CS.Options(e)) do
+      if CS.Count(o.item) > 0 then return o end
+    end
+    return e
+  end
+  -- how many of an entry (and the items joined to it) are in your bags
+  function CS.Total(e)
+    local n = 0
+    for _, o in ipairs(CS.Options(e)) do n = n + CS.Count(o.item) end
+    return n
+  end
 
   -- name and picture of an item (the client's item info, the catalogue, the bags)
   function CS.ItemInfo(id)
@@ -345,7 +372,11 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       warn = Num(S().warnweapon, 5) * 60
     else
       buffs = buffs or CS.ReadBuffs()
-      left = buffs[Lower(e.buff or e.name)]
+      -- any of the joined items' buffs counts; the longest one is shown
+      for _, o in ipairs(CS.Options(e)) do
+        local l = buffs[Lower(o.buff or o.name)]
+        if l and (left == nil or left >= 0 and (l < 0 or l > left)) then left = l end
+      end
       if left == nil then return "missing" end
     end
     if left >= 0 and left < warn then return "low", left end
@@ -384,13 +415,54 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
     end
     return e
   end
+  -- where an item is on a list: the entry's index, and the entry or the joined item
   function CS.Has(list, id, hand)
     for i, e in ipairs(list.items or {}) do
-      if e.item == id and (e.kind ~= "weapon" or not hand or e.hand == hand) then return i end
+      if e.kind ~= "weapon" or not hand or e.hand == hand then
+        if e.item == id then return i, e end
+        for _, a in ipairs(e.alts or {}) do
+          if a.item == id then return i, a end
+        end
+      end
     end
   end
+  -- the "same thing" group of an entry (from the catalogue), or nil
+  function CS.SameOf(e)
+    for _, o in ipairs(CS.Options(e)) do
+      local c = CS.BYID[o.item]
+      if c and c.same then return c.same end
+    end
+  end
+  local function AltOf(e) return { item = e.item, name = e.name, buff = e.buff, learned = e.learned, cat = e.cat } end
+  -- join entry i into entry j of a list (one icon, either will do); returns true or nil, why
+  function CS.Join(list, i, j)
+    local items = list and list.items or {}
+    local a, b = items[i], items[j]
+    if not a or not b or a == b then return nil, "Pick another item of the list." end
+    if (a.kind == "weapon") ~= (b.kind == "weapon") then return nil, "A weapon enchant and a buff cannot be joined." end
+    b.alts = b.alts or {}
+    for _, o in ipairs(CS.Options(a)) do table.insert(b.alts, AltOf(o)) end
+    table.remove(items, i)
+    CS.Changed()
+    return true
+  end
+  -- take joined item k of entry i out again: it becomes its own entry right after
+  function CS.Split(list, i, k)
+    local e = list and list.items and list.items[i]
+    local a = e and e.alts and e.alts[k]
+    if not a then return end
+    table.remove(e.alts, k)
+    if table.getn(e.alts) == 0 then e.alts = nil end
+    local n = AltOf(a)
+    n.on, n.kind, n.hand = "1", e.kind, e.hand
+    table.insert(list.items, i + 1, n)
+    CS.Changed()
+    return n
+  end
   -- add an item (id, link, or part of a name: bags first, then the catalogue,
-  -- then pfQuest's item names) to a list; returns the entry or nil, why
+  -- then pfQuest's item names) to a list; returns the entry or nil, why. An item
+  -- that gives the same as one on the list (CS.SAME) is joined to that one: the
+  -- third return is the entry it went into
   function CS.Add(list, what)
     list = list or CS.Lists()[1]
     local id = IdOf(what)
@@ -408,6 +480,17 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       e.hand = "17"
     end
     list.items = list.items or {}
+    local same = CS.BYID[id] and CS.BYID[id].same
+    if same and e.kind == "buff" then
+      for _, host in ipairs(list.items) do
+        if host.kind ~= "weapon" and CS.SameOf(host) == same then
+          host.alts = host.alts or {}
+          table.insert(host.alts, AltOf(e))
+          CS.Changed()
+          return e, nil, host
+        end
+      end
+    end
     table.insert(list.items, e)
     CS.Changed()
     return e
@@ -480,9 +563,12 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
     if why then Say(why, 1, .3, .3) return false end
     if e.cat == "food" and UnitAffectingCombat("player") then Say("You cannot eat in combat.", 1, .3, .3) return false end
     CS.bagsDirty = true
-    local b = CS.Bags()[e.item]
+    CS.Bags()
+    -- (joined items: the first of them you carry)
+    local pick = CS.Pick(e)
+    local b = CS.Bags()[pick.item]
     if not b then Say("No " .. (e.name or "item") .. " in your bags.", 1, .3, .3) return false end
-    CS.StartLearn(e)
+    if e.kind ~= "weapon" then CS.StartLearn(pick) end
     UseContainerItem(b.bag, b.slot)
     if e.kind == "weapon" and SpellIsTargeting and SpellIsTargeting() then
       PickupInventoryItem(tonumber(e.hand) or 16)
@@ -563,8 +649,9 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
         pcall(function()
           local l = CS.Active()
           local id = IdOf(GetContainerItemLink(bag, slot))
-          local i = l and id and CS.Has(l, id)
-          if i then CS.StartLearn(l.items[i]) end
+          local i, o
+          if l and id then i, o = CS.Has(l, id) end
+          if i and l.items[i].kind ~= "weapon" then CS.StartLearn(o) end
         end)
       end
       return rawUse(bag, slot, a3, a4)
@@ -592,7 +679,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       for _, e in ipairs(l.items) do
         if e.on ~= "0" then
           local st, left = CS.State(e, buffs, wpn)
-          if st ~= "none" then table.insert(rows, { e = e, state = st, left = left, count = CS.Count(e.item) }) end
+          if st ~= "none" then table.insert(rows, { e = e, state = st, left = left, count = CS.Total(e) }) end
         end
       end
     end
@@ -672,7 +759,8 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       if not e then return end
       if arg1 == "RightButton" then CS.OpenOptions() return end
       if IsShiftKeyDown() and ChatFrameEditBox and ChatFrameEditBox:IsVisible() then
-        local link = CS.Bags()[e.item] and GetContainerItemLink(CS.Bags()[e.item].bag, CS.Bags()[e.item].slot)
+        local at = CS.Bags()[CS.Pick(e).item]
+        local link = at and GetContainerItemLink(at.bag, at.slot)
         if link then ChatFrameEditBox:Insert(link) end
         return
       end
@@ -682,7 +770,8 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       local e = this.e
       if not e then return end
       GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
-      if GameTooltip.SetHyperlink and e.item then GameTooltip:SetHyperlink("item:" .. e.item .. ":0:0:0") end
+      local pick = CS.Pick(e)
+      if GameTooltip.SetHyperlink and pick.item then GameTooltip:SetHyperlink("item:" .. pick.item .. ":0:0:0") end
       if GameTooltip:NumLines() == 0 then GameTooltip:AddLine(e.name or "?") end
       local st = this.state
       if st == "missing" then GameTooltip:AddLine("Missing", 1, .3, .3)
@@ -693,7 +782,14 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       else
         GameTooltip:AddLine("Buff: " .. (e.buff or e.name or "?") .. (e.learned and " (learned)" or ""), .7, .7, .75)
       end
-      GameTooltip:AddLine(CS.Count(e.item) .. " in your bags", .7, .7, .75)
+      if e.alts then
+        local names = {}
+        for _, o in ipairs(CS.Options(e)) do
+          if o ~= pick then table.insert(names, (o.name or "?") .. " (" .. CS.Count(o.item) .. ")") end
+        end
+        GameTooltip:AddLine("Also counts: " .. table.concat(names, ", "), .7, .7, .75, 1)
+      end
+      GameTooltip:AddLine(CS.Total(e) .. " in your bags", .7, .7, .75)
       GameTooltip:AddLine("Click: use it.  Right-click: options.", .35, .7, 1)
       GameTooltip:Show()
     end)
@@ -705,7 +801,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
   function CS.Paint(b, r)
     local e = r.e
     b.e, b.state, b.left = e, r.state, r.left
-    local _, tex = CS.ItemInfo(e.item)
+    local _, tex = CS.ItemInfo(CS.Pick(e).item)
     b.icon:SetTexture(tex or "Interface\\Icons\\INV_Misc_QuestionMark")
     local col = CS.COLORS[r.state] or CS.COLORS.ok
     b:SetBackdropBorderColor(col[1], col[2], col[3], 1)
@@ -781,7 +877,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
     for i, e in ipairs(l and l.items or {}) do
       if e.on ~= "0" then
         local st = states[math.mod(i - 1, 3) + 1]
-        table.insert(out, { e = e, state = st, left = (st == "low") and 150 or 2400, count = CS.Count(e.item) })
+        table.insert(out, { e = e, state = st, left = (st == "low") and 150 or 2400, count = CS.Total(e) })
       end
     end
     if table.getn(out) == 0 then
@@ -811,7 +907,49 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       if not CS.list then want = false end
       if S().hidecombat == "1" and UnitAffectingCombat("player") then want = false end
     end
-    if want or layout then bar:Show() else bar:Hide() end
+    if want or layout then
+      bar:Show()
+      -- (1.12: a frame can report shown, with every parent shown, and still not be drawn
+      -- after a reparent - UpdateMovable sets the parent again - until it is hidden and shown)
+      if bar.IsVisible and not bar:IsVisible() and UIParent:IsVisible() then
+        bar:Hide()
+        bar:Show()
+        CS.kicked = (CS.kicked or 0) + 1
+      end
+    else
+      bar:Hide()
+    end
+  end
+
+  -- where the bar is and whether it is drawn, in words (for /consumes check)
+  function CS.Where()
+    local n = 0
+    for _, b in ipairs(bar.buttons) do if b:IsShown() then n = n + 1 end end
+    local s = "bar " .. (bar:IsShown() and "on" or "off") .. ", " .. ((bar.IsVisible and bar:IsVisible()) and "drawn" or "NOT drawn") .. ", " .. n .. " icons"
+    local l, t = bar:GetLeft(), bar:GetTop()
+    local sw, sh = UIParent:GetWidth(), UIParent:GetHeight()
+    if l and t and sw and sh then
+      local sc = (bar:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+      s = s .. ", its top left corner is " .. math.floor(l * sc + .5) .. " from the left and " .. math.floor(sh - t * sc + .5)
+        .. " from the top of a " .. math.floor(sw + .5) .. " x " .. math.floor(sh + .5) .. " screen"
+    else
+      s = s .. ", no place on screen"
+    end
+    s = s .. ", opacity " .. tostring(bar:GetAlpha()) .. ", scale " .. tostring(bar:GetScale())
+    if S().bar ~= "1" then s = s .. " (Show the bar is off)" end
+    if S().show == "problems" then s = s .. " (only missing / running out shown)" end
+    if CS.kicked then s = s .. " (redrawn " .. CS.kicked .. "x)" end
+    return s
+  end
+  -- the bar back in the middle of the screen (its saved place forgotten)
+  function CS.Home()
+    if C.position then C.position["pfConsumes"] = nil end
+    bar:SetParent(UIParent)
+    bar:SetScale(1)
+    bar:ClearAllPoints()
+    bar:SetPoint("CENTER", UIParent, "CENTER", 0, 190)
+    bar:Hide()
+    CS.Scan()
   end
 
   -- missing icons pulse (and the bar is drawn again while layout mode is open)
@@ -876,6 +1014,10 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
       else
         for _, r in ipairs(CS.rows) do Chat(r.e.name .. ": " .. r.state .. (r.left and r.left >= 0 and (" " .. CS.Time(r.left)) or "") .. ", " .. r.count .. " in bags") end
       end
+      Chat(CS.Where())
+    elseif msg == "reset" or msg == "center" or msg == "centre" then
+      CS.Home()
+      Chat("the bar is back in the middle of the screen, above the centre. " .. CS.Where())
     elseif string.find(msg, "^add ") then
       local e, why = CS.Add(CS.Active() or CS.Lists()[1], string.sub(msg, 5))
       Chat(e and (e.name .. " added.") or why)

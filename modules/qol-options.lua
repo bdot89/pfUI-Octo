@@ -53,6 +53,9 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Chk(p, "Map exploration points", "Marks the spots that count for exploration.", "appearance", "worldmap", "mapexploration")
     Chk(p, "Boats and zeppelins on the map", "Where each boat and zeppelin is right now, worked out from its route. "
       .. "It gets exact once you or a guild / group member with pfUI Octo sees one move (ClassicAPI).", "appearance", "worldmap", "transports", function() end)
+    Chk(p, "Never open the battle map", "The game's small zone map (Shift-M) pops up by itself whenever the server "
+      .. "shows a battle or world PvP bar. This keeps it shut.", "appearance", "worldmap", "nobattlemap",
+      function() if pfUI.context and pfUI.context.ShutBattleMap then pfUI.context.ShutBattleMap() end end)
     Chk(p, "Item IDs in tooltips", "The item's number in its tooltip (and the spell's on auras).", "tooltip", nil, "itemid")
     Chk(p, "How many you have", "Bags, bank and worn counts in item tooltips.", "tooltip", nil, "itemcount")
     Chk(p, "Vendor price always", "The sell price in every item tooltip, not only at a vendor.", "tooltip", "vendor", "showalways")

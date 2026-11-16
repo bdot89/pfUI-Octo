@@ -129,4 +129,29 @@ pfUI:RegisterModule("octo-context", "vanilla", function ()
     W.Check(p, "Say so in chat", nil, function() return C.mapauto.tell ~= "0" end,
       function(v) C.mapauto.tell = v and "1" or "0" end)
   end
+
+  -- (16 Nov 2026; user's screenshot of the small zone map popping up in
+  -- Orgrimmar: "stop it ever happenign") The game's battle map
+  -- (Blizzard_BattlefieldMinimap) opens by itself whenever its saved
+  -- SHOW_BATTLEFIELD_MINIMAP is "1" and the server shows any world-state bar
+  -- (WorldStateFrame_ToggleMinimap, patch-4). C.appearance.worldmap.nobattlemap
+  -- = "1" keeps it shut: the saved flag stays "0" and any showing is undone.
+  function X.BattleMapOff()
+    return C.appearance.worldmap.nobattlemap == "1"
+  end
+  function X.ShutBattleMap()
+    if not X.BattleMapOff() then return end
+    _G.SHOW_BATTLEFIELD_MINIMAP = "0"
+    local m = _G.BattlefieldMinimap
+    if m and m:IsShown() then m:Hide() end
+  end
+  HookAddonOrVariable("Blizzard_BattlefieldMinimap", function()
+    if not _G.BattlefieldMinimap then return end
+    HookScript(_G.BattlefieldMinimap, "OnShow", function() X.ShutBattleMap() end)
+    X.ShutBattleMap()
+  end)
+  local bm = CreateFrame("Frame")
+  bm:RegisterEvent("PLAYER_ENTERING_WORLD")
+  bm:RegisterEvent("UPDATE_WORLD_STATES")
+  bm:SetScript("OnEvent", function() X.ShutBattleMap() end)
 end)

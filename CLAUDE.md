@@ -1210,6 +1210,14 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    screen inside, departures seen leaving your platform time it ("T|city|since|gap"). Icons = white glyph on a dark
    disc + coloured ring (tools\mktransport.c -> img\transports), 34 px zone / 28 px continent. Switch: QoL > Map and
    tooltips (C.appearance.worldmap.transports). Not on the whole-world view (no coordinates for it). Tests: tests\transports.lua.
+   Timing by hand (16 Nov 2026, NOT seen in game; user: zeppelins keep "loosing timing", time lost docked). The
+   length / speed + DBC wait guess runs short (they slow into docks, real waits differ) and slips every loop.
+   TR.Mark(r, dock, "arrive" | "leave"): puts it there exactly; arrive then leave the same visit = e.wait[d] (used
+   by TR.Build instead of the DBC delay); the same mark 1-4 loops later = e.period -> TR.Retime sets the speed so the
+   loop is exactly that long; TR.Timed routes ignore the short speed watches. Marks from: click a map icon (W.Menu
+   "Just arrived at / Just left <dock>", Forget its timing), /transports arrived | left (nearest dock, 150 yd), and
+   the object watch (still -> moving at a dock = left, moving -> still = arrived). Shared as "P^id^period^d:wait,..."
+   (own timings only; taken unless you timed it yourself, e.periodFrom).
 30. Auction house, phase 1 (15 Nov 2026, NOT seen in game; NEW FILES = full client restart; user with aux-addon.zip
    and AuctionQueryThrottle: "merge them ... make this AH the best ever", then chose "write our own" - aux (shirsig)
    has no licence, so its feature list only; AuctionQueryThrottle is a GPL-3 DLL that lifts the client's 5 s wait

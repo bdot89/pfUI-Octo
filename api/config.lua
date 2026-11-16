@@ -767,6 +767,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("appearance", "worldmap",    "mapreveal_color",  ".4,.4,.4,1")
   pfUI:UpdateConfig("appearance", "worldmap",    "mapexploration",   "0")
   pfUI:UpdateConfig("appearance", "worldmap",    "transports",       "1")
+  pfUI:UpdateConfig("appearance", "worldmap",    "nobattlemap",      "1")
   pfUI:UpdateConfig("appearance", "worldmap",    "groupcircles",     "3")
   pfUI:UpdateConfig("appearance", "worldmap",    "colornames",       "1")
 

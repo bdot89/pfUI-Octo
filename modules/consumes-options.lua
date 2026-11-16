@@ -94,7 +94,7 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
         for i, e in ipairs(l.items or {}) do
           if e.on ~= "0" then
             local st = states[math.mod(i - 1, 3) + 1]
-            table.insert(out, { e = e, state = st, left = (st == "low") and 150 or 1800, count = cs.Count(e.item) })
+            table.insert(out, { e = e, state = st, left = (st == "low") and 150 or 1800, count = cs.Total(e) })
           end
         end
         if table.getn(out) == 0 then return cs.Samples() end
@@ -124,6 +124,8 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
           "Looks at your buffs and bags again and says what is missing (also /consumes check)." },
         { "Use the next missing", function() CS().UseNext() end, nil, "Uses the first missing consumable from your bags (the same as its key)." },
         { "Move frames", function() if pfUI.unlock then pfUI.unlock:Show() end end, nil, "Drag the consumables bar where you want it." },
+        { "Bar to the middle", function() CS().Home() CS().Chat(CS().Where()) end, nil,
+          "Cannot find the bar? This puts it back in the middle of the screen, above the centre, and says in chat where it is." },
       })
     end)
   end
@@ -165,8 +167,12 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
     table.sort(out, function(a, b) return a.label < b.label end)
     return out
   end
-  local function Added(e, why)
-    if e then CS().Chat(e.name .. " is on the list" .. (e.kind == "weapon" and (e.hand == "17" and " (off hand)." or " (main hand).") or ".")) Again()
+  local function Added(e, why, host)
+    if e and host then
+      CS().Chat(e.name .. " gives the same as " .. (host.name or "?") .. " (" .. (CS().SAME[CS().SameOf(host) or ""] or "same buff")
+        .. "): they share one icon, either one counts. \"Split\" on its row sets it apart.")
+      Again()
+    elseif e then CS().Chat(e.name .. " is on the list" .. (e.kind == "weapon" and (e.hand == "17" and " (off hand)." or " (main hand).") or ".")) Again()
     elseif why then CS().Chat(why) end
   end
 
@@ -213,6 +219,14 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
         for _, e in ipairs(list.items or {}) do
           local c = {}
           for k, v in pairs(e) do c[k] = v end
+          if e.alts then
+            c.alts = {}
+            for _, a in ipairs(e.alts) do
+              local ca = {}
+              for k, v in pairs(a) do ca[k] = v end
+              table.insert(c.alts, ca)
+            end
+          end
           table.insert(l.items, c)
         end
         table.insert(lists, l)
@@ -265,7 +279,8 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
 
     -- items
     W.Card(p, "Items on " .. (list.name or "this list"), { icon = "Interface\\Icons\\INV_Potion_62",
-      tip = "Each row: the item, the buff it is tracked by, how many you have. The switch takes it off the bar without removing it." })
+      tip = "Each row: the item, the buff it is tracked by, how many you have. The switch takes it off the bar without removing it. "
+        .. "\"Join...\" puts two items that give the same thing on one icon: either one being up counts, and the one in your bags is used." })
     local items = list.items or {}
     if table.getn(items) == 0 then
       W.Note(p, "Nothing on this list yet: add items in the next card.")
@@ -291,13 +306,13 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
       local name = r:CreateFontString(nil, "OVERLAY")
       name:SetFont(W.UIFont(), 12, "")
       name:SetPoint("LEFT", ic, "RIGHT", 8, 0)
-      name:SetWidth(230)
+      name:SetWidth(200)
       name:SetJustifyH("LEFT")
       name:SetText((it.on == "0" and "|cff777777" or "") .. (it.name or "?"))
       local what = r:CreateFontString(nil, "OVERLAY")
       what:SetFont(W.UIFont(), 11, "")
       what:SetPoint("LEFT", name, "RIGHT", 6, 0)
-      what:SetWidth(210)
+      what:SetWidth(180)
       what:SetJustifyH("LEFT")
       local n = cs.Count(it.item)
       what:SetText((it.kind == "weapon" and "|cff9a9aa0weapon enchant|r" or ("|cff9a9aa0buff:|r " .. (it.buff or it.name or "?") .. (it.learned and " |cff6fb3ff(learned)|r" or "")))
@@ -317,12 +332,14 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
         if i > 1 then items[i], items[i - 1] = items[i - 1], items[i] Up() Again() end
       end)
       W.Tip(up, "Up", "Earlier on the bar, and used first by the key.")
+      local last = up
       if it.kind == "weapon" then
         local hand = W.Button(r, it.hand == "17" and "Off hand" or "Main hand", 76, 20)
         hand:SetPoint("RIGHT", up, "LEFT", -6, 0)
         if W.Tint then W.Tint(hand, "pick") end
         hand:SetScript("OnClick", function() it.hand = (it.hand == "17") and "16" or "17" Up() Again() end)
         W.Tip(hand, "Which hand", "Click to switch. Clicking the icon on the bar puts it on this hand.")
+        last = hand
       elseif it.learned or not cs.BYID[it.item] then
         local fix = W.Button(r, "Buff...", 60, 20)
         fix:SetPoint("RIGHT", up, "LEFT", -6, 0)
@@ -343,6 +360,59 @@ pfUI:RegisterModule("consumes-options", "vanilla", function ()
           if m and m.Show then m:Show() end
         end)
         W.Tip(fix, "Which buff", "Pick the buff this item gives from the ones on you now. Normally it is learned by itself the first time you use the item.")
+        last = fix
+      end
+      -- join with another item of the list that gives the same thing
+      local join = W.Button(r, "Join...", 50, 20)
+      join:SetPoint("RIGHT", last, "LEFT", -6, 0)
+      if W.Tint then W.Tint(join, "pick") end
+      join:SetScript("OnClick", function()
+        local opts = {}
+        for jj, o in ipairs(items) do
+          if jj ~= i and (o.kind == "weapon") == (it.kind == "weapon") then
+            local _, otex = cs.ItemInfo(o.item)
+            table.insert(opts, { key = jj, label = o.name or "?", icon = otex })
+          end
+        end
+        if table.getn(opts) == 0 then cs.Chat("nothing else on this list to join " .. (it.name or "it") .. " with.") return end
+        local m = W.Menu(this, opts, 240, function(j)
+          local done, why = cs.Join(list, i, j)
+          if not done and why then cs.Chat(why) end
+          Again()
+        end)
+        if m and m.Show then m:Show() end
+      end)
+      W.Tip(join, "Gives the same as...", "Pick another item of this list that gives the same thing (two +20 Strength foods, "
+        .. "Winterfall Firewater and Blackroot Brew). They share one icon: either one being up counts, and the one in your bags is used.")
+      -- the items joined to this one
+      for kk, alt in ipairs(it.alts or {}) do
+        local k, a = kk, alt
+        local ar = W.Row(p, 22, 0, 0)
+        local aic = ar:CreateTexture(nil, "ARTWORK")
+        aic:SetWidth(16)
+        aic:SetHeight(16)
+        aic:SetPoint("LEFT", ar, "LEFT", 32, 0)
+        aic:SetTexCoord(.07, .93, .07, .93)
+        local _, atex = cs.ItemInfo(a.item)
+        aic:SetTexture(atex or "Interface\\Icons\\INV_Misc_QuestionMark")
+        local an = ar:CreateFontString(nil, "OVERLAY")
+        an:SetFont(W.UIFont(), 11, "")
+        an:SetPoint("LEFT", aic, "RIGHT", 8, 0)
+        an:SetWidth(186)
+        an:SetJustifyH("LEFT")
+        an:SetText("|cff9a9aa0or|r " .. (it.on == "0" and "|cff777777" or "") .. (a.name or "?"))
+        local aw = ar:CreateFontString(nil, "OVERLAY")
+        aw:SetFont(W.UIFont(), 11, "")
+        aw:SetPoint("LEFT", an, "RIGHT", 6, 0)
+        aw:SetWidth(260)
+        aw:SetJustifyH("LEFT")
+        local ac = cs.Count(a.item)
+        aw:SetText((it.kind == "weapon" and "" or ("|cff9a9aa0buff:|r " .. (a.buff or a.name or "?") .. (a.learned and " |cff6fb3ff(learned)|r" or "") .. "   "))
+          .. (ac > 0 and ("|cff40e060" .. ac .. " in bags|r") or "|cffff6060none in bags|r"))
+        local split = W.Button(ar, "Split", 50, 18)
+        split:SetPoint("RIGHT", ar, "RIGHT", -4, 0)
+        split:SetScript("OnClick", function() cs.Split(list, i, k) Again() end)
+        W.Tip(split, "Split", "Gives " .. (a.name or "it") .. " its own icon again.")
       end
     end
 

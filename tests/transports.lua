@@ -106,6 +106,79 @@ _G.UnitPosition = savedPos
 pfUI_cache.transports = {}
 TR.ride = {}
 
+-- timing by hand (16 Nov 2026): arrived then left = the real wait; the same mark a trip later = the real loop
+pfUI_cache.transports = {}
+TR.BuildAll()
+local hr = TR.routes[121]
+local guess = hr.period
+local learnt = TR.Mark(hr, 1, "arrive", 20000)
+ok(learnt == nil, "first mark learns nothing yet")
+local ht = TR.Now(hr, 20000)
+local _, _, _, _, hs = TR.At(hr, ht)
+ok(hs == hr.stops[1], "a mark puts it at that dock")
+learnt, hr = TR.Mark(hr, 1, "leave", 20075)
+ok(learnt == "wait" and math.abs(hr.stops[1].t2 - hr.stops[1].t1 - 75) < .01, "arrived then left: wait at the dock learnt (75 s)")
+local real = guess * 1.2 + 15
+learnt, hr = TR.Mark(hr, 1, "leave", 20075 + real)
+ok(learnt == "loop" and math.abs(hr.period - real) < .01, "the same mark a trip later: round trip learnt (" .. string.format("%.1f", hr.period) .. ")")
+ok(TR.Timed(121) and math.abs(TR.routes[121].stops[1].t2 - TR.routes[121].stops[1].t1 - 75) < .01, "the learnt wait is kept after retiming")
+-- after the timing it stays in step trips later
+local later = 20075 + real * 5
+ht = TR.Now(hr, later)
+ok(math.abs(math.mod(ht, hr.period) - hr.stops[1].t2) < .5, "five trips later it leaves the same dock on time")
+-- a short speed watch may not undo it
+local sp = hr.speed
+TR.watch = {}
+local hl = hr.legs[3]
+TR.Seen(164871, hl[2], hl[3], 30000, 500)
+TR.Seen(164871, hl[2] + (hl[4] - hl[2]) * .5, hl[3] + (hl[5] - hl[3]) * .5, 30009, 509)
+ok(math.abs(TR.routes[121].speed - sp) < .01, "a timed route keeps its speed")
+-- shared: another player takes it unless they timed it themselves
+local pm = TR.PeriodMessage(121)
+ok(pm and string.find(pm, "^P%^121%^") and string.find(pm, "1:75%.0") and not string.find(pm, "|", 1, true), "period message (" .. tostring(pm) .. ")")
+pfUI_cache.transports = {}
+TR.BuildAll()
+TR.Receive(pm, "Friend", 31000)
+ok(TR.Timed(121) and math.abs(TR.routes[121].period - real) < .2 and pfUI_cache.transports[121].periodFrom == "Friend", "a shared round trip is taken")
+ok(TR.PeriodMessage(121) == nil, "a shared timing is not passed on")
+TR.Receive("P^121^999.0^-", "Other", 31001)
+ok(math.abs(TR.routes[121].period - 999) < .2, "a newer shared timing replaces a shared one")
+TR.MenuPick(121, "forget")
+ok(not TR.Timed(121) and math.abs(TR.routes[121].period - guess) < .01, "forget puts the guess back")
+-- a watched object stopping then starting at a dock marks it
+pfUI_cache.transports = {}
+TR.BuildAll()
+TR.watch = {}
+local zs2 = TR.routes[121].stops[2]
+TR.Seen(164871, zs2.x - 20, zs2.y, 40000, 900)
+TR.Seen(164871, zs2.x - 2, zs2.y, 40001, 900.5)
+TR.Seen(164871, zs2.x - 2, zs2.y, 40002, 901)
+TR.Seen(164871, zs2.x - 2, zs2.y, 40062, 901.5)
+TR.Seen(164871, zs2.x + 4, zs2.y, 40063, 902)
+local me = pfUI_cache.transports[121]
+ok(me and me.marks and me.marks.arrive2 == 40002 and me.marks.leave2 == 40063, "object watch marks arriving and leaving")
+pfUI_cache.transports = {}
+TR.watch = {}
+TR.BuildAll()
+
+-- the game's battle map is kept shut (octo-context.lua, 16 Nov 2026)
+local CX = pfUI.context
+ok(CX and CX.ShutBattleMap and pfUI_config.appearance.worldmap.nobattlemap == "1", "battle map switch, on by default")
+if CX and CX.ShutBattleMap then
+  local savedBM = rawget(_G, "BattlefieldMinimap")
+  local shown = true
+  _G.BattlefieldMinimap = { IsShown = function() return shown end, Hide = function() shown = false end }
+  _G.SHOW_BATTLEFIELD_MINIMAP = "1"
+  CX.ShutBattleMap()
+  ok(not shown and _G.SHOW_BATTLEFIELD_MINIMAP == "0", "battle map hidden and its saved flag cleared")
+  pfUI_config.appearance.worldmap.nobattlemap = "0"
+  shown = true
+  CX.ShutBattleMap()
+  ok(shown, "switch off: the battle map is left alone")
+  pfUI_config.appearance.worldmap.nobattlemap = "1"
+  _G.BattlefieldMinimap = savedBM
+end
+
 -- nothing shared may hold "|": the server rejects it ("Invalid escape code", 15 Nov 2026)
 pfUI_cache.transports = {}
 TR.Fix(TR.routes[72], 100, 5000, nil, 0)

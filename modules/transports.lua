@@ -75,16 +75,20 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     local n = math.floor(table.getn(p) / 6)
     local r = { id = id, legs = {}, stops = {}, docks = {}, kind = info[1], color = info[2] }
     speed = speed or TR.SPEED
-    local t, len = 0, 0
+    -- a dock wait timed in game (TR.Mark) replaces the game file's figure
+    local own = Store()[id]
+    local t, len, docktime = 0, 0, 0
     for i = 1, n do
       local b = (i - 1) * 6
       local m, x, y, fl, dl = p[b + 1], p[b + 2], p[b + 3], p[b + 5], p[b + 6]
       if fl == 2 and dl > 0 then
         local d = table.getn(r.stops) + 1
         local name = info[3] and info[3][d] or TR.AreaAt(m, x, y)
+        if own and own.wait and own.wait[d] then dl = own.wait[d] end
         table.insert(r.stops, { t1 = t, t2 = t + dl, dock = name, map = m, x = x, y = y })
         table.insert(r.docks, name)
         t = t + dl
+        docktime = docktime + dl
       end
       local nb = (math.mod(i, n)) * 6
       local m2, x2, y2 = p[nb + 1], p[nb + 2], p[nb + 3]
@@ -95,13 +99,31 @@ pfUI:RegisterModule("transports", "vanilla", function ()
         t, len = t + dt, len + dist
       end
     end
-    r.period, r.length, r.speed = t, len, speed
+    r.period, r.length, r.speed, r.docktime = t, len, speed, docktime
     TR.routes[id] = r
     return r
   end
+  -- build a route from what is known of it: a timed round trip (e.period)
+  -- sets the speed, so the loop is exactly as long as the real one
+  function TR.Retime(id)
+    local e = Store()[id]
+    local r = TR.Build(id, e and e.speed)
+    if e and e.period then
+      local move = e.period - r.docktime
+      if move > 10 then
+        e.speed = r.length / move
+        r = TR.Build(id, e.speed)
+      end
+    end
+    return r
+  end
   function TR.BuildAll()
-    local s = Store()
-    for id in pairs(TRD.paths) do TR.Build(id, s[id] and s[id].speed) end
+    for id in pairs(TRD.paths) do TR.Retime(id) end
+  end
+  -- a route's own timing is known (no short speed watch may change it then)
+  function TR.Timed(id)
+    local e = Store()[id]
+    return e and e.period and true or false
   end
 
   -- where a route is t seconds into its loop: map, x, y, moving, stop, dir
@@ -171,6 +193,55 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     return true
   end
 
+  -- (16 Nov 2026; user: the zeppelin timers keep "loosing timing ... make up for
+  -- the time they spend docked") a transport seen arriving at or leaving dock d
+  -- right now - by a click on its map icon, /transports arrived|left, or the
+  -- object finder watching it stop / start. Puts it exactly there, and learns:
+  --   the real wait at that dock = arrived then left the same dock
+  --   the real round trip = the same mark again one to four loops later
+  -- (it slows into docks and the wait differs from the game file, so the
+  -- path length / speed guess runs short and slips more every loop)
+  function TR.StopIndex(r, s)
+    for d, st in ipairs(r.stops) do if st == s then return d end end
+  end
+  function TR.Mark(r, d, kind, now)
+    if not r or not r.stops[d] then return end
+    now = now or time()
+    local s = Store()
+    s[r.id] = s[r.id] or {}
+    local e = s[r.id]
+    e.marks = e.marks or {}
+    local learnt
+    if kind == "leave" then
+      -- the arrival of this same visit: after the last departure from here
+      local a = e.marks["arrive" .. d]
+      if a and a > (e.marks["leave" .. d] or 0) and now - a >= 10 and now - a <= 300 then
+        e.wait = e.wait or {}
+        e.wait[d] = now - a
+        learnt = "wait"
+      end
+    end
+    local prev = e.marks[kind .. d]
+    if prev and now > prev then
+      local gap, n = now - prev
+      local f = gap / r.period
+      -- one loop: the guess may be well off; more loops: must round cleanly
+      if f >= .6 and f <= 1.6 then n = 1
+      else
+        n = math.floor(f + .5)
+        if n < 2 or n > 4 or math.abs(gap / n - r.period) > r.period * .12 then n = nil end
+      end
+      if n then e.period = gap / n e.periodFrom = nil learnt = "loop" end
+    end
+    e.marks[kind .. d] = now
+    if learnt then r = TR.Retime(r.id) end
+    local st = r.stops[d]
+    e.seen = nil
+    TR.Fix(r, kind == "leave" and st.t2 or st.t1, now, nil, 0)
+    TR.dirty = true
+    return learnt, r
+  end
+
   -- ------------------------------------------------------ watching in game
   local function Finder()
     if type(_G.ClosestGameObjectPosition) == "function" then return _G.ClosestGameObjectPosition end
@@ -235,7 +306,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
         R.startLen = R.startLen or R.len
         if R.streak >= 8 then
           local m = (len - R.startLen) / (clock - R.start)
-          if m > 15 and m < 80 and math.abs(m - r.speed) > .3 then
+          if m > 15 and m < 80 and math.abs(m - r.speed) > .3 and not TR.Timed(r.id) then
             local s = Store()
             s[r.id] = s[r.id] or {}
             s[r.id].speed = m
@@ -284,6 +355,14 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       TR.dirty = true
     end
   end
+  -- an object that stops at a dock = it arrived; one that starts from a dock = it left
+  local function MarkAt(x, y, kind, now)
+    local r, s = TR.StopAt(x, y)
+    if not r then return end
+    TR.Mark(r, TR.StopIndex(r, s), kind, now)
+    TR.Tell(r.id)
+    return true
+  end
   function TR.Seen(oid, x, y, now, clock)
     local w = TR.watch[oid]
     if not w or clock - w.clock > 6 then
@@ -292,8 +371,15 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     end
     local moved = (x - w.x) * (x - w.x) + (y - w.y) * (y - w.y)
     if moved < 1 then
-      w.clock = clock
+      if w.moving then MarkAt(x, y, "arrive", now) end
+      w.clock, w.moving, w.still = clock, nil, true
       TR.SeenDocked(x, y, now)
+      return
+    end
+    local wasStill = w.still
+    w.moving, w.still = true, nil
+    if wasStill and MarkAt(w.x, w.y, "leave", now) then
+      w.x, w.y, w.clock, w.route = x, y, clock, nil
       return
     end
     local r, t, len = TR.Match(nil, x, y)
@@ -301,7 +387,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     -- speed from a watch of 8 s or more on the same route, no stop between
     if w.route == r.id and w.len and clock - w.start >= 8 then
       local sp = (len - w.len) / (clock - w.start)
-      if sp > 5 and sp < 80 and math.abs(sp - r.speed) > .3 then
+      if sp > 5 and sp < 80 and math.abs(sp - r.speed) > .3 and not TR.Timed(r.id) then
         local s = Store()
         s[r.id] = s[r.id] or {}
         s[r.id].speed = sp
@@ -339,9 +425,44 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     return "S^" .. id .. "^" .. string.format("%.1f", math.mod(now - e.t0, r.period))
       .. "^" .. math.floor(now - (e.seen or now)) .. "^" .. string.format("%.2f", r.speed)
   end
+  -- "P^route^round trip seconds^dock waits (1:62.0,2:65.5 or -)": only our own timings
+  function TR.PeriodMessage(id)
+    local e = Store()[id]
+    if not e or e.periodFrom or not (e.period or e.wait) then return end
+    local w = {}
+    for d, v in pairs(e.wait or {}) do table.insert(w, d .. ":" .. string.format("%.1f", v)) end
+    table.sort(w)
+    return "P^" .. id .. "^" .. (e.period and string.format("%.1f", e.period) or "0")
+      .. "^" .. (w[1] and table.concat(w, ",") or "-")
+  end
   function TR.Tell(id)
     local m = TR.Message(id)
     if m and table.getn(out) < 40 then table.insert(out, m) end
+    local p = TR.PeriodMessage(id)
+    if p and table.getn(out) < 40 then table.insert(out, p) end
+  end
+  -- a shared timing is taken unless we timed this route ourselves
+  function TR.ReceivePeriod(id, period, waits, from)
+    local r = TR.routes[id]
+    if not r or from == UnitName("player") then return end
+    local s = Store()
+    local e = s[id] or {}
+    if (e.period or e.wait) and not e.periodFrom then return end
+    local changed
+    if period > 60 and period < 3600 then e.period = period changed = true end
+    for d, v in string.gfind(waits or "", "(%d+):([%d%.]+)") do
+      d, v = tonumber(d), tonumber(v)
+      if r.stops[d] and v >= 10 and v <= 600 then
+        e.wait = e.wait or {}
+        e.wait[d] = v
+        changed = true
+      end
+    end
+    if not changed then return end
+    e.periodFrom = from
+    s[id] = e
+    TR.Retime(id)
+    TR.dirty = true
   end
   function TR.Receive(msg, from, now)
     if not msg or not TR.On() then return end
@@ -359,6 +480,11 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       if not TR.TRAM or not TR.TRAM[city] or from == UnitName("player") or since > 6 * 3600 or gap < 20 or gap > 160 then return end
       if e and e.dep and e.dep >= now - since - 1 then return end
       TR.TramDeparted(city, now - since, from, gap)
+      return
+    end
+    local _, _, pid, per, waits = string.find(msg, "^P%^(%d+)%^([%d%.]+)%^([%d%.:,%-]+)$")
+    if pid then
+      TR.ReceivePeriod(tonumber(pid), tonumber(per) or 0, waits, from)
       return
     end
     local _, _, id, t, age, sp = string.find(msg, "^S%^(%d+)%^([%d%.]+)%^(%d+)%^([%d%.]+)$")
@@ -438,8 +564,78 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     else
       table.insert(lines, "|cffff9933A guess: nobody has seen it yet.|r")
     end
-    table.insert(lines, "|cff999999One trip round: " .. Clock(r.period) .. "|r")
+    if e and e.period then
+      table.insert(lines, "|cff66dd66One trip round: " .. Clock(r.period) .. " (timed"
+        .. (e.periodFrom and (" by " .. e.periodFrom) or "") .. ")|r")
+    else
+      table.insert(lines, "|cff999999One trip round: " .. Clock(r.period) .. " (a guess until timed)|r")
+    end
+    if e and e.wait then
+      local w = {}
+      for d, st in ipairs(r.stops) do
+        if e.wait[d] then table.insert(w, st.dock .. " " .. Clock(e.wait[d])) end
+      end
+      if w[1] then table.insert(lines, "|cff66dd66Waits: " .. table.concat(w, ", ") .. "|r") end
+    end
+    table.insert(lines, "|cff33ffccClick when it arrives or leaves to set its timer|r")
     return lines
+  end
+
+  -- the click menu on a map icon: "just arrived at / just left" each dock
+  TR.menus = {}
+  function TR.PinMenu(pin)
+    local r = pin.route
+    local W = pfUI.octoui and pfUI.octoui.W
+    if not r or not W or not W.Menu then return end
+    local menu = TR.menus[r.id]
+    if not menu then
+      local opts = { { label = table.concat(r.docks, " - "), group = true } }
+      for d, st in ipairs(r.stops) do
+        table.insert(opts, { label = "Just arrived at " .. st.dock, key = "arrive^" .. d,
+          tip = "Click the moment it stops at " .. st.dock .. "." })
+        table.insert(opts, { label = "Just left " .. st.dock, key = "leave^" .. d,
+          tip = "Click the moment it pulls away from " .. st.dock .. ". Arrived then left = its real wait there; the same click a trip later = its real round trip." })
+      end
+      table.insert(opts, { label = "Forget its timing", key = "forget",
+        tip = "Back to the guess from the game files for this route." })
+      local id = r.id
+      menu = W.Menu(pin, opts, 220, function(key) TR.MenuPick(id, key) end)
+      TR.menus[r.id] = menu
+    end
+    menu:ClearAllPoints()
+    menu:SetPoint("TOPLEFT", pin, "BOTTOMRIGHT", 0, 0)
+    if menu:IsShown() then menu:Hide() else menu:Show() end
+  end
+  local function Say(text) DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI|r " .. text) end
+  function TR.SayMark(r, d, kind, learnt)
+    local st = r.stops[d]
+    local text = (kind == "leave" and "left " or "arrived at ") .. st.dock .. " - timer set."
+    if learnt == "wait" then
+      text = text .. " Waits " .. Clock(st.t2 - st.t1) .. " there."
+    elseif learnt == "loop" then
+      text = text .. " Round trip timed: " .. Clock(r.period) .. "."
+    else
+      text = text .. " Do it again " .. (kind == "leave" and "next time it leaves" or "next time it arrives")
+        .. " here to time its round trip."
+    end
+    Say(table.concat(r.docks, " - ") .. ": " .. text)
+  end
+  function TR.MenuPick(id, key)
+    local r = TR.routes[id]
+    if not r then return end
+    if key == "forget" then
+      Store()[id] = nil
+      TR.Retime(id)
+      TR.dirty = true
+      Say(table.concat(r.docks, " - ") .. ": timing forgotten.")
+      return
+    end
+    local _, _, kind, d = string.find(key or "", "^(%a+)%^(%d+)$")
+    d = tonumber(d)
+    if not d then return end
+    local learnt, r2 = TR.Mark(r, d, kind)
+    TR.SayMark(r2 or r, d, kind, learnt)
+    TR.Tell(id)
   end
 
   TR.pins = {}
@@ -473,6 +669,9 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       tip:Show()
     end)
     b:SetScript("OnLeave", function() (_G.WorldMapTooltip or GameTooltip):Hide() end)
+    b:SetScript("OnClick", function()
+      if this.route then (_G.WorldMapTooltip or GameTooltip):Hide() TR.PinMenu(this) end
+    end)
     TR.pins[i] = b
     return b
   end
@@ -700,6 +899,9 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       if not TR.InTram() then TR.Look(time(), clock) TR.Ride(time(), clock) end
       TR.TramTick(time(), clock)
     end
+    if not (WorldMapFrame and WorldMapFrame:IsShown()) then
+      for _, m in pairs(TR.menus) do if m:IsShown() then m:Hide() end end
+    end
     if WorldMapButton and WorldMapFrame and WorldMapFrame:IsShown() then
       if not layer then
         layer = CreateFrame("Frame", "pfTransportPins", WorldMapButton)
@@ -742,8 +944,33 @@ pfUI:RegisterModule("transports", "vanilla", function ()
       TR.BuildAll()
       out2:AddMessage("|cff33ffccpfUI|r transport sightings forgotten.")
       return
+    elseif msg == "arrived" or msg == "left" then
+      -- the dock you stand at (nearest stop within 150 yd)
+      local px, py = Pos()
+      local br, bd, bdist
+      if px then
+        for _, r in pairs(TR.routes) do
+          for d, st in ipairs(r.stops) do
+            for k = 1, 2 do
+              local x, y = px, py
+              if k == 2 then x, y = py, px end
+              local dist = (st.x - x) * (st.x - x) + (st.y - y) * (st.y - y)
+              if dist < 22500 and (not bdist or dist < bdist) then br, bd, bdist = r, d, dist end
+            end
+          end
+        end
+      end
+      if not br then
+        out2:AddMessage("|cff33ffccpfUI|r no dock near you. Stand on the platform, or click the boat / zeppelin on the world map.")
+        return
+      end
+      local kind = msg == "left" and "leave" or "arrive"
+      local learnt, r2 = TR.Mark(br, bd, kind)
+      TR.SayMark(r2 or br, bd, kind, learnt)
+      TR.Tell(br.id)
+      return
     end
-    out2:AddMessage("|cff33ffccpfUI|r transports (/transports on | off | forget):"
+    out2:AddMessage("|cff33ffccpfUI|r transports (/transports on | off | forget | arrived | left):"
       .. (Finder() and "" or " |cffff9933ClassicAPI missing: they can only be guessed or shared.|r"))
     for id, r in pairs(TR.routes) do
       local lines = TR.Lines(r)
