@@ -91,5 +91,12 @@ int main(void) {
   ring(32, 34, 17, 38);
   line(32, 8, 32, 30);
   save("power.tga");
+  /* quality of life: a magic wand with a big and a small sparkle (16 Nov 2026) */
+  W = 5.6f; line(10, 54, 36, 28); W = 4.6f;
+  line(45, 7, 45, 29); line(34, 18, 56, 18);
+  W = 3.2f; line(40, 13, 50, 23); line(50, 13, 40, 23); W = 4.6f;
+  line(17, 10, 17, 22); line(11, 16, 23, 16);
+  line(53, 38, 53, 46); line(49, 42, 57, 42);
+  save("qol.tga");
   return 0;
 }

@@ -3845,7 +3845,7 @@ do
     -- (9 Nov 2026) Questing after it
     -- (11 Nov 2026) Consumables after Gear
     -- (16 Nov 2026, user: "make the important ones be top of order dots are high up the combat list")
-    ok(heads[1] == "Settings" and heads[2] == "Auctions" and heads[3] == "OctoLazy" and heads[4] == "Quality of Life" and heads[8] == "Unit Frames" and heads[9] == "Nameplates" and heads[15] == "OctoDoTs" and heads[16] == "Meters" and heads[17] == "Gear" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "UI layouts" and heads[2] == "Settings" and heads[3] == "Auctions" and heads[4] == "OctoLazy" and heads[5] == "Quality of Life" and heads[8] == "CoolDownManager" and heads[9] == "Unit Frames" and heads[15] == "OctoDoTs" and heads[16] == "Meters" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -3862,7 +3862,7 @@ do
     O.openGroup = nil
     O:LayoutNav()
     local shown = 0
-    for _, grp in ipairs(O.groups) do if grp.header:IsShown() then shown = shown + 1 end end
+    for _, grp in ipairs(O.groups) do if grp.header:IsShown() or grp.top then shown = shown + 1 end end
     ok(shown == table.getn(O.groups), "every section shows in a tall list (" .. shown .. "/" .. table.getn(O.groups) .. ")")
     nav.GetHeight = gh
     -- (8 Nov 2026) the sidebar is sized from the window's height (the client reported the sidebar
@@ -3876,7 +3876,7 @@ do
       shown = 0
       local last
       for _, grp in ipairs(O.groups) do
-        if grp.header:IsShown() then shown = shown + 1 end
+        if grp.header:IsShown() or grp.top then shown = shown + 1 end
         last = grp.header
       end
       local _, _, _, _, y = last:GetPoint(1)
@@ -3929,7 +3929,8 @@ do
       for _, k in ipairs({ O.navFrame:GetChildren() }) do
         if k.pic and string.find(k.pic.texture or "", "octo\\icons\\", 1, true) then glyphs = glyphs + 1 end
       end
-      ok(glyphs == 4, "the four big entries wear our white glyphs (" .. glyphs .. ")")
+      -- (16 Nov 2026) five: Quality of Life under Install
+      ok(glyphs == 5, "the five big entries wear our white glyphs (" .. glyphs .. ")")
       -- the faint Octo mark: the page panel's own BACKGROUND texture (under every card and preview), can be hidden
       local mk = O.mark
       -- (the mock keeps no draw layers: the texture belonging to the page panel is what it can check)

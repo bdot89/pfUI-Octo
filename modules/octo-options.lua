@@ -34,6 +34,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (8 Nov 2026, user: "re order these by importance Gear for example should be at the top of combat and
   -- items"): most used first within each sidebar heading
   O.NAV = {
+    { "UI layouts", { "UI layouts" } },
     { "Settings", { "Settings" } },
     -- (16 Nov 2026, user: Auctions "mixed in the middle ... at the top under settings")
     -- (16 Nov 2026, user: TurtleMail "make it our own ... add mail tab") mail-options.lua: a tab beside the
@@ -47,16 +48,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     { "Questing", { "Questing" } },
-    { "UI layouts", { "UI layouts" } },
     { "Blizzard UI", { "Blizzard UI" } },
+    -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
+    -- same day: named CoolDownManager, under Interface
+    { "CoolDownManager", { "CoolDownManager" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Nameplates", { "Nameplates" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
-    -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
-    -- same day: named CoolDownManager, under Interface
-    { "CoolDownManager", { "CoolDownManager" } },
     { "Art & Extras", { "Art", "WeirdUtils" } },
     -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called OctoDoTs") dots-options.lua
     { "OctoDoTs", { "OctoDoTs" } },
@@ -79,21 +79,26 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (8 Nov 2026, the EllesmereUI-like shell) where the section list starts in
   -- the sidebar (under the name and the big entries), where the page tabs
   -- sit, and the footer's height
-  local NAV_TOP, TAB_TOP, FOOT = 168, 88, 34
+  -- (16 Nov 2026: a fifth big entry - Quality of Life - under Install; the entries 22 px apart, was 26)
+  local NAV_TOP, TAB_TOP, FOOT = 174, 88, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
   O.NAVGROUPS = {
     -- (16 Nov 2026, user: "getting very full ... make the important ones be top of order dots are high up the
     -- combat list ... make important ones stand out") most used first in each group; O.FEATURED stand out
-    { "General", { "Settings", "Auctions", "OctoLazy", "Quality of Life", "Questing", "UI layouts", "Blizzard UI" } },
-    { "Interface", { "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "CoolDownManager", "Art & Extras" } },
+    -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
+    { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "Questing", "Blizzard UI" } },
+    { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
     { "Combat & Items", { "OctoDoTs", "Meters", "Gear", "Consumables", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
     ["OctoDoTs"] = true, ["Meters"] = true, ["Gear"] = true }
+  -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
+  -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
+  O.TOPENTRY = { ["Quality of Life"] = true }
   function O.NavColor(name)
     if O.FEATURED[name] then return 1, 1, 1 end
     return .6, .62, .66
@@ -1169,7 +1174,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local y = -58
     local function Entry(text, icon, tip, fn)
       local b = CreateFrame("Button", nil, nav)
-      b:SetHeight(24)
+      b:SetHeight(21)
       b:SetPoint("TOPLEFT", nav, "TOPLEFT", 6, y)
       b:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, y)
       local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
@@ -1186,7 +1191,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       b.text:SetText(text)
       b:SetScript("OnClick", function() GameTooltip:Hide() fn() end)
       QuickTip(b, text, tip)
-      y = y - 26
+      y = y - 22
       return b
     end
     Entry(T["Move Frames"], "move", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
@@ -1227,6 +1232,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       if pfUI.firstrun then
         g:Hide()
         pfUI.firstrun:Restart()
+      end
+    end)
+    Entry(T["Quality of Life"], "qol", "Small helpers in one place: vendor, loot, raid tools, screenshots, auto loot, gathering and flight times.", function()
+      for _, grp in ipairs(O.groups or {}) do
+        if grp.name == (T["Quality of Life"] or "Quality of Life") then
+          local key = grp.lastKey and O.nav[grp.lastKey] and grp.lastKey or (grp.buttons[1] and grp.buttons[1].key)
+          if key then O:Select(key) end
+          return
+        end
       end
     end)
     Rule(y - 2)
@@ -1582,7 +1596,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     self.navItems, self.groups, self.nav, self.groupOf, self.legacy = {}, {}, {}, {}, {}
 
     local function Group(name, single)
-      local grp = { header = NavHeader(name, single), buttons = {}, name = name }
+      local grp = { header = NavHeader(name, single), buttons = {}, name = name, top = O.TOPENTRY[name] }
       grp.header.group = grp
       table.insert(self.navItems, grp.header)
       table.insert(self.groups, grp)
@@ -1694,7 +1708,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local seen = {}
     for _, grp in ipairs(self.groups) do
       local hname = headOf[grp.name] or lastHead
-      if hname and not seen[hname] then
+      if hname and not seen[hname] and not grp.top then
         seen[hname] = true
         local hf = CreateFrame("Frame", nil, self.navFrame)
         hf:SetHeight(20)
@@ -1822,7 +1836,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local fit = known
     local n, m = 0, 0
     for _, grp in ipairs(self.groups) do
-      n = n + 1
+      if grp.top then grp.header:Hide() else n = n + 1 end
       if grp.headFrame then m = m + 1 end
     end
     local hh, gap = 20, 10
@@ -1836,6 +1850,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     rh = math.max(13, math.min(32, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
+      -- (a section with a big entry at the top - Quality of Life - is opened from there, not a row here)
+      if not grp.top then
       if grp.headFrame then
         y = y + ((y > NAV_TOP) and gap or 0)
         grp.headFrame:SetHeight(hh)
@@ -1855,6 +1871,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       table.insert(rows, { h, 0, y, rh - 1 })
       y = y + rh
       self:PowerFor(grp)
+      end
     end
     local room = known
     if room >= 100 then nav.laidH = room + 10 end
