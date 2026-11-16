@@ -1768,6 +1768,13 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       -- who made it, two cards (this game / client mods) and the links.
       -- Colours: W.C's flat palette, blue = open, green = found.
       local page = this
+      -- (16 Nov 2026, user screenshot: the left of the cards "hid behind the side bar" - the page is wider than
+      -- what shows, so its middle sat too far left) everything hangs on one 784-wide grid from the left edge
+      local GRID, GAP = 784, 16
+      local grid = CreateFrame("Frame", nil, page)
+      grid:SetPoint("TOPLEFT", page, "TOPLEFT", 16, 0)
+      grid:SetWidth(GRID)
+      grid:SetHeight(1)
       local function Text(parent, size, r, g, b)
         local t = parent:CreateFontString(nil, "OVERLAY", "GameFontWhite")
         t:SetFont(pfUI.font_default, size or C.global.font_size, "OUTLINE")
@@ -1779,7 +1786,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       logo:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\logo")
       logo:SetWidth(220)
       logo:SetHeight(110)
-      logo:SetPoint("TOP", page, "TOP", 0, -6)
+      logo:SetPoint("TOP", grid, "TOP", 0, -6)
 
       local tag = Text(page, C.global.font_size + 1, .62, .68, .76)
       tag:SetPoint("TOP", logo, "BOTTOM", 0, -2)
@@ -1792,14 +1799,14 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       -- (16 Nov 2026, user: "square this page up ... tell them what addons they dont need and what this has ...
       -- tell them how to update the DLLS with our bat file under the dll list") one grid, 784 wide:
       -- two cards side by side, a full-width "built in" card, the links under them
-      local GRID, GAP = 784, 16
+      -- (GRID, GAP and the grid frame are made above, by the logo)
       local HALF = (GRID - GAP) / 2
       -- a card: dark panel with a title bar; x / y from the grid's top left
       local function Card(title, x, y, w, h)
         local card = CreateFrame("Frame", nil, page)
         card:SetWidth(w)
         card:SetHeight(h)
-        card:SetPoint("TOPLEFT", page, "TOP", -GRID / 2 + x, y)
+        card:SetPoint("TOPLEFT", grid, "TOPLEFT", x, y)
         card:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
         card:SetBackdropColor(.125, .13, .145, .95)
         card:SetBackdropBorderColor(.23, .24, .27, 1)
@@ -1917,6 +1924,34 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         rep:SetWidth(GRID / 2 - 150)
         rep:SetJustifyH("LEFT")
         builtRows[i] = rep
+        -- (16 Nov 2026, user: "a turn off option next to the addons ... a small text to click that is tidy")
+        local off = CreateFrame("Button", nil, built)
+        off:SetHeight(16)
+        off:SetWidth(60)
+        off:SetPoint("TOPRIGHT", built, "TOPLEFT", x + GRID / 2 - 14, y + 1)
+        off.text = Text(off, C.global.font_size - 1, .35, .7, 1)
+        off.text:SetPoint("RIGHT", off, "RIGHT", 0, 0)
+        off.text:SetText("turn off")
+        off:SetScript("OnEnter", function()
+          this.text:SetTextColor(1, 1, 1)
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:SetText("Turn " .. (this.name or "it") .. " off", 1, 1, 1)
+          GameTooltip:AddLine("Switched off in the add-on list from the next reload. Its folder and saved data stay.", .6, .61, .65, 1)
+          GameTooltip:Show()
+        end)
+        off:SetScript("OnLeave", function()
+          this.text:SetTextColor(.35, .7, 1)
+          GameTooltip:Hide()
+        end)
+        off:SetScript("OnClick", function()
+          if not this.name then return end
+          DisableAddOn(this.name)
+          this.done = this.name
+          if pfUI.gui then pfUI.gui.settingChanged = true end
+          DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r " .. this.name .. " is switched off from the next reload.")
+        end)
+        off:Hide()
+        rep.off = off
       end
       local function Loaded(list)
         for _, n in ipairs(list) do
@@ -1930,7 +1965,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         local b = CreateFrame("Button", nil, page)
         b:SetWidth((GRID - 2 * GAP) / 3)
         b:SetHeight(26)
-        b:SetPoint("TOPLEFT", page, "TOP", -GRID / 2 + x, LINKY)
+        b:SetPoint("TOPLEFT", grid, "TOPLEFT", x, LINKY)
         b:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
         local r, g, bl = .55, .58, .62
         if blue then r, g, bl = .35, .7, 1 end
@@ -1961,7 +1996,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       Link(T["Original pfUI"], "https://github.com/shagu/pfUI", 2 * (LW + GAP))
 
       local thanks = Text(page, C.global.font_size - 1, .5, .52, .56)
-      thanks:SetPoint("TOP", page, "TOP", 0, LINKY - 36)
+      thanks:SetPoint("TOP", grid, "TOP", 0, LINKY - 36)
       thanks:SetText(T["Thanks to Shagu for pfUI, and to everyone on OctoWoW who tries it out."])
 
       -- octo (29 Oct 2026): a newer pfUI Octo seen on another player
@@ -1969,7 +2004,7 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
       local upd = CreateFrame("Frame", nil, page)
       upd:SetWidth(GRID)
       upd:SetHeight(84)
-      upd:SetPoint("TOP", page, "TOP", 0, LINKY - 58)
+      upd:SetPoint("TOP", grid, "TOP", 0, LINKY - 58)
       upd:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
       upd:SetBackdropColor(.16, .12, .04, 1)
       upd:SetBackdropBorderColor(1, .72, .2, 1)
@@ -2027,11 +2062,18 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         local doubled = 0
         for i, b in ipairs(BUILTIN) do
           local on = Loaded(b[3])
-          if on then
+          local off = builtRows[i].off
+          if on and off.done == on then
+            builtRows[i]:SetText("|cffffd100" .. on .. " goes at the next reload|r")
+            off:Hide()
+          elseif on then
             doubled = doubled + 1
             builtRows[i]:SetText("|cffff5555" .. on .. " is on - not needed|r")
+            off.name = on
+            off:Show()
           else
             builtRows[i]:SetText(T["replaces"] .. " " .. b[2])
+            off:Hide()
           end
         end
         built.title:SetText(doubled > 0
