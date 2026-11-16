@@ -36,7 +36,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   O.NAV = {
     { "Settings", { "Settings" } },
     -- (16 Nov 2026, user: Auctions "mixed in the middle ... at the top under settings")
-    { "Auctions", { "Auctions" } },
+    -- (16 Nov 2026, user: TurtleMail "make it our own ... add mail tab") mail-options.lua: a tab beside the
+    -- auction house (a 25th section would not fit the sidebar of a 600 px window)
+    { "Auctions", { "Auctions", "Mail" } },
     { "UI layouts", { "UI layouts" } },
     { "Blizzard UI", { "Blizzard UI" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
@@ -108,7 +110,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["DoT Tracker"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
     ["Gear"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["Consumables"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
-    ["Auctions"] = "Our own auction window: search every page, sell at the going price, your auctions and bids.",
+    ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect all your mail at once.",
     ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
