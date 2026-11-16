@@ -78,6 +78,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     if IsInInstance then inside, kind = IsInInstance() end
     if not inside then return false end
     local w = G().raidfxwhere or "raid"
+    -- (16 Nov 2026, user: "this should have nowhere ... for people who dont care")
+    if w == "off" then return false end
     if w == "raid" then return kind == "raid" end
     if w == "group" then return kind == "raid" or kind == "party" end
     return true

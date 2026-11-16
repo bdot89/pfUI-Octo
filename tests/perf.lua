@@ -75,6 +75,9 @@ ok(cvars.ffxGlow == "1", "a dungeon: left alone (raids only)")
 S.raidfxwhere = "group"
 PF.ApplyFX()
 ok(cvars.ffxGlow == "0", "with raids and dungeons: lowered")
+S.raidfxwhere = "off"
+PF.ApplyFX()
+ok(cvars.ffxGlow == "1" and next(pfUI_cache.perfsaved) == nil, "Nowhere: put back at once, even inside a raid")
 S.raidfxwhere, S.fxfarclip = "raid", "0"
 inside = { false }
 PF.ApplyFX()

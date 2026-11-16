@@ -36,7 +36,7 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
     W.Card(p, "Raid graphics", { icon = "Interface\\Icons\\Spell_Holy_PrayerOfHealing02",
       tip = "Forty players casting at once: these effects cost the most frames. Your own settings come back when you leave." })
     Chk(p, "Lower effects in raids", "Only while you are inside; leaving puts your own settings back.", "raidfx", FX)
-    W.Dropdown(p, "Where", nil, { { key = "raid", label = "Raids" }, { key = "group", label = "Raids and dungeons" },
+    W.Dropdown(p, "Where", "Nowhere: never lowered, your own settings everywhere.", { { key = "off", label = "Nowhere (off)" }, { key = "raid", label = "Raids" }, { key = "group", label = "Raids and dungeons" },
       { key = "all", label = "Every instance (battlegrounds too)" } }, function() return G().raidfxwhere end, function(v) G().raidfxwhere = v FX() end)
     for _, fx in ipairs(PF.FX) do Chk(p, fx.label, fx.tip, fx.key, FX) end
     O.PfSld(p, "View distance in raids", "With \"Shorter view distance\".", 177, 777, 10, G, "farclip", FX, function(v) return v .. " yd" end)
