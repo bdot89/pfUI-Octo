@@ -308,6 +308,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     local i = AH.Find(row)
     if not i then return false end
     PlaceAuctionBid(row.kind, i, AH.Cost(row, how))
+    if AH.onBought then AH.onBought(row, how, AH.Cost(row, how)) end
     row.gone = true
     for n, r in ipairs(AH.rows) do
       if r == row then table.remove(AH.rows, n) break end
@@ -468,6 +469,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
         local name = GetAuctionSellItemInfo()
         if not name then EndJob("it cannot be auctioned") return end
         StartAuction(j.bid, j.buyout, j.minutes)
+        if AH.onPosted then AH.onPosted(j) end
         j.left, j.posted = j.left - 1, j.posted + 1
         j.hold = now + .15
         if AH.onChange then AH.onChange() end

@@ -52,6 +52,28 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
     O.PfChk(p, "Auction price in item tooltips", "An item's usual auction price (each, and for the stack) in its tooltip, everywhere.", G, "tooltip")
     W.Buttons(p, { { "Back to its first place", function() G().x, G().y = "", "" end, 170, "Forget where you dragged the window." } })
 
+    W.Card(p, "Sales, ledger and sharing", { icon = "Interface\\Icons\\INV_Misc_Coin_01",
+      tip = "The Ledger tab notes every sale, purchase, expiry and outbid as it happens; the auction house's mail then gives the exact gold." })
+    O.PfChk(p, "Tell me when something sells", "A line in the middle of the screen and in chat the moment a buyer is found - also when you are won or outbid on a bid - wherever you are.", G, "salealert")
+    O.PfChk(p, "With a coin sound", nil, G, "salesound")
+    O.PfChk(p, "Share prices with guild and group", "The day's lowest prices your searches see go to other pfUI Octo players in your guild and group, and theirs come to you: everyone's price history fills faster.", G, "share")
+    W.Live(p, function()
+      local L = ah.ledger
+      if not L then return "|cffffcc00The ledger part is not loaded (restart the game once after updating).|r" end
+      local s = L.Sum(7 * 86400)
+      return "Last 7 days: sold |cffffffff" .. ah.Money(s.sold, true) .. "|r in " .. s.sales .. " sales, spent |cffffffff" .. ah.Money(s.spent, true)
+        .. "|r.   Prices from others this session: |cffffffff" .. (L.got or 0) .. "|r"
+    end)
+    W.Buttons(p, { { "Empty the ledger", function()
+      if ah.sureL and GetTime() < ah.sureL then
+        ah.sureL = nil
+        ah.Store().ledger = {}
+      else
+        ah.sureL = GetTime() + 3
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r auction house: click Empty the ledger again within 3 s.")
+      end
+    end, 150, "Click twice: every line of the ledger of this realm and faction is dropped.", role = "off" } })
+
     W.Card(p, "Speed", { icon = "Interface\\Icons\\Spell_Nature_TimeStop", tip = "Why a full search is fast or slow." })
     W.Note(p, "The game makes every auction search wait 5 seconds after the one before. The small AuctionQueryThrottle DLL "
       .. "takes that wait away, so a search of every page runs as fast as the server answers. \"Install pfUI Octo DLLs.bat\" in "

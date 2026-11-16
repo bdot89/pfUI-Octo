@@ -233,7 +233,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
 
   local f = CreateFrame("Frame", "pfAuction", UIParent)
   UI.frame = f
-  f:SetWidth(880)
+  f:SetWidth(960)
   f:SetHeight(560)
   f:SetPoint("LEFT", UIParent, "LEFT", 40, 30)
   f:SetFrameStrata("HIGH")
@@ -290,14 +290,14 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end
   AH.onNote = UI.Note
 
-  UI.TABS = { { "browse", "Browse" }, { "sell", "Sell" }, { "owner", "My auctions" }, { "bidder", "My bids" } }
+  UI.TABS = { { "browse", "Browse" }, { "deals", "Deals" }, { "sell", "Sell" }, { "owner", "My auctions" }, { "bidder", "My bids" }, { "ledger", "Ledger" } }
   UI.pages, UI.tabBtn = {}, {}
   local tx = 150
   for _, t in ipairs(UI.TABS) do
     local key = t[1]
-    local b = Btn(f.bar, t[2], 96, function() UI.Open(key) end)
+    local b = Btn(f.bar, t[2], 86, function() UI.Open(key) end)
     b:SetPoint("LEFT", f.bar, "LEFT", tx, 0)
-    tx = tx + 100
+    tx = tx + 90
     UI.tabBtn[key] = b
     local p = CreateFrame("Frame", nil, f)
     p:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -40)
@@ -376,9 +376,17 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     for i = 2, 4 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)
     UI.PaintBuy()
-    -- (Alt + click = buy it out at once; Ctrl + click = bid)
-    if IsAltKeyDown() then UI.Buy("buyout") elseif IsControlKeyDown() then UI.Buy("bid") end
+    -- (right-click = its price as a line for chat; Alt + click = buy it out at once; Ctrl + click = bid)
+    if button == "RightButton" then UI.PriceLine(d)
+    elseif IsAltKeyDown() then UI.Buy("buyout") elseif IsControlKeyDown() then UI.Buy("bid") end
   end)
+  -- "[item]: usual 1s each (6 days), cheapest now 98c": into the chat box when it is open, else to you
+  function UI.PriceLine(d)
+    if not AH.ledger or not d then return end
+    local line = AH.ledger.PriceLine(d.link, d.key, d.name)
+    if ChatFrameEditBox and ChatFrameEditBox:IsVisible() then ChatFrameEditBox:Insert(line)
+    else DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r auctions: " .. line) end
+  end
   B.list:SetPoint("TOPLEFT", B, "TOPLEFT", 0, -28)
   B.list:SetPoint("RIGHT", B, "RIGHT", 0, 0)
   B.list.sortBy = "unit"
@@ -406,7 +414,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end
   function UI.PaintBuy()
     local d = UI.List().sel
-    local kind = UI.tab == "bidder" and UI.pages.bidder or B
+    local kind = UI.pages[UI.tab] or B
     local bid, buy = kind.bid, kind.buy
     if not bid then return end
     if d then
@@ -638,6 +646,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local rows = {}
     for _, r in ipairs(AH.rows) do if r.key == d.key then table.insert(rows, r) end end
     P.rivals.Set(rows, true)
+    if P.chart then P.chart.Set(d.key) end
     local n, why = UI.SellNumbers()
     if AH.job then
       P.sum:SetText("|cffffd24dPosting: " .. AH.job.posted .. " up, " .. AH.job.left .. " to go...|r")
@@ -745,6 +754,204 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   D.bid:SetPoint("RIGHT", D.buy, "LEFT", -6, 0)
   UI.lists.bidder = D.list
 
+  -- ---------------------------------------------------------------- Deals (phase 3)
+  -- auctions well under their item's usual price, the most profit first (AH.ledger.DealFilter)
+
+  local K = UI.pages.deals
+  local kl = Label(K, "Buyout under")
+  kl:SetPoint("TOPLEFT", K, "TOPLEFT", 2, -5)
+  K.pct = Edit(K, 44, nil, "70")
+  K.pct:SetPoint("TOPLEFT", K, "TOPLEFT", 90, 0)
+  local kl2 = Label(K, "% of the usual price,  profit a stack at least")
+  kl2:SetPoint("LEFT", K.pct, "RIGHT", 6, 0)
+  K.min = Edit(K, 90, nil, "50s")
+  K.min:SetPoint("LEFT", kl2, "RIGHT", 6, 0)
+  local kl3 = Label(K, "price known for")
+  kl3:SetPoint("LEFT", K.min, "RIGHT", 10, 0)
+  K.days = Edit(K, 34, nil, "3")
+  K.days:SetPoint("LEFT", kl3, "RIGHT", 6, 0)
+  local kl4 = Label(K, "days")
+  kl4:SetPoint("LEFT", K.days, "RIGHT", 6, 0)
+  K.go = Btn(K, "Find deals", 110, function()
+    if AH.Searching() then AH.Stop() return end
+    if not AH.ledger then return end
+    local pct = tonumber(K.pct:GetText()) or tonumber(S().dealpct) or 70
+    local min = AH.ParseMoney(K.min:GetText()) or 5000
+    local days = tonumber(K.days:GetText()) or 3
+    S().dealpct = tostring(pct)
+    UI.dealScan = true
+    AH.ledger.FindDeals(pct, min, days, function() UI.PaintDeals() end, function(why)
+      UI.dealScan = nil
+      UI.Note(table.getn(AH.rows) .. " deals found" .. ((why and why ~= "done") and (" (" .. why .. ")") or "") .. ".")
+      UI.PaintDeals()
+    end)
+    UI.PaintDeals()
+  end, "Goes through the whole auction house and lists what is up for well under its usual price. "
+    .. "Only items whose price has been seen on several days count, so run \"Read every auction\" on a few days first.")
+  K.go:SetPoint("LEFT", kl4, "RIGHT", 12, 0)
+  K.list = NewList(K, { { "Item", 270, "LEFT", "name" }, { "Seller", 100, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
+    { "Buyout each", 100, "RIGHT", "unit" }, { "Usual", 100, "RIGHT", "value" }, { "Of usual", 62, "RIGHT", "share" },
+    { "Profit a stack", 120, "RIGHT", "profit" } }, 22, function(r, d)
+    ItemCell(r, d, d.count)
+    r.cell[2]:SetText(d.owner or "")
+    r.cell[3]:SetText(AH.LEFT[d.left] or "")
+    r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "")
+    r.cell[5]:SetText(d.value and AH.Money(d.value) or "")
+    r.cell[6]:SetText(d.share and ("|cff40e060" .. math.floor(d.share * 100 + .5) .. "%|r") or "")
+    r.cell[7]:SetText(d.profit and ("|cff40e060+|r" .. AH.Money(d.profit)) or "")
+    for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
+  end, function(d, button)
+    UI.PaintBuy()
+    if button == "RightButton" then UI.PriceLine(d) elseif IsAltKeyDown() then UI.Buy("buyout") end
+  end)
+  K.list:SetPoint("TOPLEFT", K, "TOPLEFT", 0, -28)
+  K.list:SetPoint("RIGHT", K, "RIGHT", 0, 0)
+  K.list.sortBy, K.list.desc = "profit", true
+  K.status = Text(K, 11)
+  K.status:SetPoint("TOPLEFT", K.list, "BOTTOMLEFT", 4, -8)
+  K.status:SetTextColor(.62, .62, .67)
+  K.buy = Btn(K, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go.")
+  K.buy:SetPoint("TOPRIGHT", K.list, "BOTTOMRIGHT", 0, -4)
+  K.bid = Btn(K, "Bid", 190, function() UI.Buy("bid") end)
+  K.bid:SetPoint("RIGHT", K.buy, "LEFT", -6, 0)
+  UI.lists.deals = K.list
+  function UI.PaintDeals()
+    local rows = {}
+    for _, r in ipairs(AH.rows) do if r.profit then table.insert(rows, r) end end
+    K.list.Set(rows, true)
+    local s = AH.scan
+    if s then
+      K.status:SetText("Looking: page " .. (s.page + 1) .. (s.pages > 0 and (" of " .. s.pages) or "") .. "   " .. table.getn(rows) .. " deals so far")
+      K.go.text:SetText("Stop")
+    else
+      K.status:SetText(table.getn(rows) .. " deals   (prices known for " .. AH.Known() .. " items)")
+      K.go.text:SetText("Find deals")
+    end
+    UI.PaintBuy()
+  end
+
+  -- ---------------------------------------------------------------- Ledger (phase 3)
+  -- what sold, what you bought, what came back - as it happens (AH.ledger)
+
+  local G = UI.pages.ledger
+  G.worth = Text(G, 13)
+  G.worth:SetPoint("TOPLEFT", G, "TOPLEFT", 2, -2)
+  G.sums = Text(G, 12)
+  G.sums:SetPoint("TOPLEFT", G, "TOPLEFT", 2, -24)
+  G.sums:SetWidth(900)
+  UI.ledgerShow = "all"
+  G.filters = {}
+  local fx = 0
+  for _, t in ipairs({ { "all", "Everything" }, { "sold", "Sold" }, { "bought", "Bought" }, { "other", "Expired, outbid, posted" } }) do
+    local key = t[1]
+    local b = Btn(G, t[2], key == "other" and 170 or 90, function() UI.ledgerShow = key UI.PaintLedger() end)
+    b:SetPoint("TOPLEFT", G, "TOPLEFT", fx, -46)
+    fx = fx + (key == "other" and 174 or 94)
+    G.filters[key] = b
+  end
+  G.list = NewList(G, { { "When", 110, "LEFT", "t" }, { "What", 80, "LEFT", "k" }, { "Item", 330, "LEFT", "n" }, { "Count", 50, "RIGHT", "c" },
+    { "Gold", 150, "RIGHT", "a" }, { "With", 110, "LEFT", "who" } }, 20, function(r, d)
+    r.icon:SetTexture(nil)
+    r.cell[1]:SetText(date and date("%d %b %H:%M", d.t) or "")
+    local L = AH.ledger
+    r.cell[2]:SetText((L and L.KINDS[d.k]) or d.k)
+    r.cell[3]:SetText(d.n or "")
+    r.cell[4]:SetText((d.c and d.c > 1) and ("x" .. d.c) or "")
+    if d.a > 0 then r.cell[5]:SetText("|cff40e060+|r" .. AH.Money(d.a) .. (d.est and " |cff9a9aa0about|r" or ""))
+    elseif d.a < 0 then r.cell[5]:SetText("|cffff7060-|r" .. AH.Money(-d.a) .. (d.est and " |cff9a9aa0about|r" or ""))
+    else r.cell[5]:SetText("") end
+    r.cell[6]:SetText(d.who or "")
+    r.cell[1]:SetTextColor(.62, .62, .67)
+    if d.k == "sold" then r.cell[2]:SetTextColor(.3, .9, .4) elseif d.k == "bought" or d.k == "won" then r.cell[2]:SetTextColor(1, .5, .4)
+    else r.cell[2]:SetTextColor(.7, .7, .75) end
+    r.cell[3]:SetTextColor(1, 1, 1)
+    r.cell[6]:SetTextColor(.8, .8, .84)
+  end)
+  G.list:SetPoint("TOPLEFT", G, "TOPLEFT", 0, -74)
+  G.list:SetPoint("RIGHT", G, "RIGHT", 0, 0)
+  G.list.sortBy, G.list.desc = "t", true
+  UI.lists.ledger = G.list
+  function UI.PaintLedger()
+    local L = AH.ledger
+    if not L then G.worth:SetText("The ledger is switched off.") return end
+    local w = L.Worth()
+    G.worth:SetText("Worth now:  " .. AH.Money(w.total) .. "   |cff9a9aa0=  gold|r " .. AH.Money(w.gold) .. "  |cff9a9aa0+ bags|r " .. AH.Money(w.bags)
+      .. "  |cff9a9aa0+ on the auction house|r " .. AH.Money(w.up))
+    local function Line(label, s)
+      return "|cff9a9aa0" .. label .. ":|r  sold " .. AH.Money(s.sold) .. " (" .. s.sales .. ")   spent " .. AH.Money(s.spent) .. " (" .. s.buys .. ")   "
+        .. (s.net >= 0 and "|cff40e060+|r" or "|cffff7060-|r") .. AH.Money(math.abs(s.net))
+    end
+    G.sums:SetText(Line("Today", L.Sum(86400)) .. "      " .. Line("7 days", L.Sum(7 * 86400)))
+    local rows = {}
+    for _, e in ipairs(L.Entries()) do
+      local kind = (e.k == "sold" and "sold") or ((e.k == "bought" or e.k == "won") and "bought") or "other"
+      if UI.ledgerShow == "all" or UI.ledgerShow == kind then table.insert(rows, e) end
+    end
+    G.list.Set(rows, true)
+    for key, b in pairs(G.filters) do b.Lit(key == UI.ledgerShow) end
+  end
+
+  -- a small chart of an item's daily lows (oldest left, today right, the usual price as a line)
+  function UI.NewChart(parent, w, h)
+    local c = CreateFrame("Frame", nil, parent)
+    c:SetWidth(w)
+    c:SetHeight(h)
+    Flat(c, .5)
+    c.bars = {}
+    for i = 1, 11 do
+      c.bars[i] = c:CreateTexture(nil, "ARTWORK")
+      c.bars[i]:SetTexture(WHITE)
+    end
+    c.line = c:CreateTexture(nil, "OVERLAY")
+    c.line:SetTexture(1, .82, .2, .9)
+    c.line:SetHeight(1)
+    c.text = Text(c, 10)
+    c.text:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -3)
+    c.text:SetTextColor(.62, .62, .67)
+    function c.Set(key)
+      local r = key and AH.Store().h[key]
+      local list = {}
+      if r then
+        for _, v in ipairs(r.days) do table.insert(list, v) end
+        table.insert(list, r.min)
+      end
+      local n = table.getn(list)
+      local top = 0
+      for _, v in ipairs(list) do if v > top then top = v end end
+      local value = AH.Value(key)
+      local bw = (w - 12) / 11
+      local ar, ag, ab = Accent()
+      for i = 1, 11 do
+        local b = c.bars[i]
+        local v = list[i]
+        if v and top > 0 then
+          b:ClearAllPoints()
+          b:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 6 + (i - 1) * bw, 4)
+          b:SetWidth(math.max(2, bw - 3))
+          b:SetHeight(math.max(2, (h - 22) * v / top))
+          if i == n then b:SetVertexColor(1, .82, .2, 1) else b:SetVertexColor(ar, ag, ab, .9) end
+          b:Show()
+        else
+          b:Hide()
+        end
+      end
+      if value and top > 0 then
+        c.line:ClearAllPoints()
+        c.line:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 4, 4 + (h - 22) * math.min(1, value / top))
+        c.line:SetWidth(w - 8)
+        c.line:Show()
+        c.text:SetText("Lowest each, per day seen (" .. n .. ")   top " .. AH.Money(top, true))
+      else
+        c.line:Hide()
+        c.text:SetText(n == 0 and "No price history yet" or "")
+      end
+      return n
+    end
+    return c
+  end
+  P.chart = UI.NewChart(P.box, 260, 78)
+  P.chart:SetPoint("TOPLEFT", P.box, "TOPLEFT", 330, -94)
+
   -- ---------------------------------------------------------------- showing
 
   function UI.Refresh(event)
@@ -781,6 +988,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     elseif UI.tab == "bidder" then
       D.list.Set(AH.Bids(), true)
       UI.PaintBuy()
+    elseif UI.tab == "deals" then
+      UI.PaintDeals()
+    elseif UI.tab == "ledger" then
+      UI.PaintLedger()
     end
   end
   AH.onChange = UI.Refresh

@@ -144,6 +144,7 @@
   <Include file="..\modules\flight.lua"/>
   <Include file="..\modules\flight-options.lua"/>
   <Include file="..\modules\auction.lua"/>
+  <Include file="..\modules\auction-ledger.lua"/>
   <Include file="..\modules\auction-window.lua"/>
   <Include file="..\modules\auction-options.lua"/>
   <Include file="..\modules\minimap-options.lua"/>

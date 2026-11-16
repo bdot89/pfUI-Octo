@@ -1159,6 +1159,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    The bar, Putting them on again = W.KeyBind PFCONSUMENEXT). Tests: tests\consumes.lua. Unverified in game: the
    ClassicAPI aura returns, GetWeaponEnchantInfo times, SetHyperlink on items the client has not seen, the
    UseContainerItem / PickupContainerItem wraps next to other bag add-ons, every catalogue buff name on this server.
+   Joined items (15 Nov 2026, NOT seen in game; Wolfahrt: "fusion consumables that provides the same buff", +20 str
+   foods, Blackroot Brew / Winterfall Firewater): an entry's e.alts = { { item, name, buff, learned, cat } }. CS.Options(e)
+   = entry + alts; State = any of their buffs (longest), CS.Total = bags of all, CS.Pick = first one carried (icon,
+   use, learning). CS.Has returns index + the entry or alt. Catalogue 5th field = CS.SAME key (str20, ap35): CS.Add joins
+   such an item to the entry already on the list (third return = host). CS.Join(list, i, j) / CS.Split(list, i, k);
+   Tracker rows: "Join..." menu, "or <item>" sub-rows with Split. Blackroot Brew (42014) / Spicy Beef Burrito (51267)
+   ids from pfQuest; Blackroot Brew's buff name is a guess the learner fixes; the stats are Wolfahrt's word.
 28. Cooldown bars (15 Nov 2026, seen working in game the same day: bars, right-click menu, Add buttons, glows,
    animations; user with EllesmereUI's Cooldown Manager - its licence reserves all rights: feature list only).
    modules/cdm.lua (`pfUI.cdm` = CDM, module "cdm", /cdm, frames pfCDM1..6 = layout mode boxes) and
@@ -1227,3 +1234,18 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    per item up, red = undercut); AH.TooltipLine via a frame shown with GameTooltip (libtooltip, as sellvalue.lua);
    UseContainerItem wrapped: right-click a bag item while the window is up = UI.SellKey (C.auction.bagclick).
    Still not built: disenchant values, a scan snapshot to browse offline, auto-buy rules.
+   Phase 3 (16 Nov 2026, NOT seen in game; NEW FILE auction-ledger.lua = full client restart; Bread on Discord:
+   "a ledger for real-time sales", with Midas - MIT, Classic Era only, so written for 1.12 from its feature list).
+   modules/auction-ledger.lua (AH.ledger = L, module "auction-ledger", loaded between the engine and the window):
+   L.System reads the game's own lines (ERR_AUCTION_SOLD_S / WON_S / EXPIRED_S / OUTBID_S / REMOVED_S via L.LINES)
+   -> L.Add(kind, name, count, copper, est) into Store().ledger; a sale is priced from Store().mine (L.Snapshot of
+   the owner list + AH.onPosted; the cheapest of that name leaves first) less the 5% cut, marked est until
+   L.ReadMail finds the invoice (GetInboxInvoiceInfo: bid + deposit - cut; a mail is known again by kind, name, bid
+   and its expiry within 5 min, Store().mail); L.Toast = centre text + chat + LOOTWINDOWCOINSOUND. AH.onBought:
+   buyouts exact at once, bids kept in Store().bids for the "won" line. L.DealFilter(pct, profit, days) /
+   L.FindDeals; L.Worth (gold + bags at AH.Value or vendor + what is up less the cut); L.PriceLine; price sharing:
+   AH.Record is wrapped - a new low of today from your own search waits in L.out and goes to guild / group every
+   1.5 s (prefix pfAP, "Realm-Faction|day|key=copper,..."), L.Receive records others' without sending them on.
+   Window: 960 wide, tabs Browse / Deals / Sell / My auctions / My bids / Ledger; UI.NewChart on the Sell tab (a bar
+   per day seen, the usual price as a line); right-click a Browse / Deals row = the price line into chat.
+   Still not built: disenchant values, auto-buy rules, a watchlist, net worth over time. Tests: tests\auction-ledger.lua.
