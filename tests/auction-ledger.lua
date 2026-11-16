@@ -150,3 +150,49 @@ AH.rows, AH.scan = {}, nil
 L.out, L.outN = {}, 0
 pfUI_cache.auction = cacheWas
 for _, k in ipairs(NAMES) do _G[k] = keep[k] end
+
+-- item names offered while typing (16 Nov 2026)
+do
+  local AH = pfUI.auction
+  local dbWas, cacheWas2 = rawget(_G, "pfDB"), pfUI_cache.auction
+  pfUI_cache.auction = nil
+  _G.pfDB = { items = { enUS = { [6470] = "Deviate Scale", [6522] = "Deviate Fish", [6471] = "Perfect Deviate Scale", [10] = "OLD Deviate Thing",
+    [11] = "Scale of Onyxia", [12] = "Linen Cloth" }, ["enUS-turtle"] = { [90001] = "Deviate Delight Recipe", [6522] = "Deviate Fish" } } }
+  AH.names = nil
+  AH.Store().h["6522"] = { day = AH.Day(), min = 50, days = {} }
+  local list = AH.Complete("deviate", 10)
+  ok(table.getn(list) == 4 and list[1] == "Deviate Fish", "typing \"deviate\" offers four names, the one seen on the auction house first (" .. table.concat(list, ", ") .. ")")
+  ok(list[2] == "Deviate Scale" and list[3] == "Deviate Delight Recipe" and list[4] == "Perfect Deviate Scale", "then names starting with it (shortest first), then names holding it")
+  ok(table.getn(AH.Complete("d", 10)) == 0 and table.getn(AH.Complete("zzz", 10)) == 0, "one letter or no match: nothing offered")
+  ok(table.getn(AH.Complete("scale", 2)) == 2 and AH.Complete("scale", 2)[1] == "Deviate Scale", "a word of the name counts as a start; the list is capped")
+  local UI = AH.ui
+  local B = UI.pages.browse
+  ok(B.sug and UI.Suggest and UI.TakeSuggest, "the Browse box has its name list")
+  local h, n, t = UI.NamePart("linen cloth/exact; devi/max 2s")
+  ok(h == "linen cloth/exact;" and n == " devi" and t == "/max 2s", "the name being typed is the part after the last ; and before its /")
+  local searched
+  local realSearch = AH.Search
+  AH.Search = function(q, a, b, queue) searched = { q, queue } end
+  B.name:SetText("linen cloth/exact; devi/max 2s")
+  UI.Suggest()
+  ok(table.getn(UI.sugList) == 4 and B.sug:IsShown(), "the list shows under the box")
+  UI.StepSuggest(1)
+  UI.StepSuggest(1)
+  ok(UI.sugSel == 2, "Tab / arrow keys walk the list")
+  UI.EnterName()
+  ok(B.name:GetText() == "linen cloth/exact; Deviate Scale/max 2s" and not B.sug:IsShown(), "Enter takes the picked name and keeps the rest of the box (" .. tostring(B.name:GetText()) .. ")")
+  ok(searched and searched[1].name == "linen cloth" and searched[2][1].name == "Deviate Scale" and searched[2][1].maxUnit == 200, "and searches")
+  B.name:SetText("Deviate Fish")
+  UI.Suggest()
+  ok(table.getn(UI.sugList) == 0, "a name typed in full is not offered again")
+  pfUI_config.auction.suggest = "0"
+  B.name:SetText("devi")
+  UI.Suggest()
+  ok(table.getn(UI.sugList) == 0, "switched off: no list")
+  pfUI_config.auction.suggest = "1"
+  B.name:SetText("")
+  AH.Search = realSearch
+  AH.names = nil
+  _G.pfDB = dbWas
+  pfUI_cache.auction = cacheWas2
+end

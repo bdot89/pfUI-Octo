@@ -330,8 +330,108 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     UI.Status()
   end
   UI.Search = Search
-  B.name = Edit(B, 190, function() Search() end, "Item name (Enter = search)")
+  B.name = Edit(B, 190, function() UI.EnterName() end, "Item name (Enter = search)")
   B.name:SetPoint("TOPLEFT", B, "TOPLEFT", 0, 0)
+  -- Names offered under the box while you type (AH.Complete): click one, or Tab / the arrow keys
+  -- to walk the list and Enter to take it; Enter with none picked searches what is typed.
+  local SUG = 10
+  B.sug = CreateFrame("Frame", nil, f)
+  B.sug:SetFrameLevel(f:GetFrameLevel() + 30)
+  B.sug:SetWidth(280)
+  B.sug:SetPoint("TOPLEFT", B.name, "BOTTOMLEFT", 0, -2)
+  Flat(B.sug, .98, .35)
+  B.sug:EnableMouse(true)
+  B.sug:Hide()
+  B.sug.rows = {}
+  for ii = 1, SUG do
+    local i = ii
+    local r = CreateFrame("Button", nil, B.sug)
+    r:SetHeight(18)
+    r:SetPoint("TOPLEFT", B.sug, "TOPLEFT", 2, -3 - (i - 1) * 18)
+    r:SetPoint("RIGHT", B.sug, "RIGHT", -2, 0)
+    r.hl = r:CreateTexture(nil, "BACKGROUND")
+    r.hl:SetAllPoints(r)
+    r.hl:Hide()
+    r.text = Text(r, 12)
+    r.text:SetPoint("LEFT", r, "LEFT", 8, 0)
+    r:SetScript("OnEnter", function() UI.sugSel = i UI.PaintSuggest() end)
+    r:SetScript("OnClick", function() UI.TakeSuggest(i) end)
+    B.sug.rows[i] = r
+  end
+  -- the part of the box a name is being typed in: after the last ";" and before its first "/"
+  function UI.NamePart(text)
+    local head, part = "", text or ""
+    local _, _, h, p = string.find(part, "^(.*;)(.*)$")
+    if h then head, part = h, p end
+    local _, _, name, tail = string.find(part, "^(.-)(/.*)$")
+    if not name then name, tail = part, "" end
+    return head, name, tail
+  end
+  function UI.PaintSuggest()
+    local list = UI.sugList or {}
+    local ar, ag, ab = Accent()
+    for i = 1, SUG do
+      local r, name = B.sug.rows[i], list[i]
+      if name then
+        r.text:SetText(name)
+        if UI.sugSel == i then r.hl:SetTexture(ar, ag, ab, .35) r.hl:Show() else r.hl:Hide() end
+        r:Show()
+      else
+        r:Hide()
+      end
+    end
+    B.sug:SetHeight(table.getn(list) * 18 + 6)
+    if table.getn(list) > 0 then B.sug:Show() else B.sug:Hide() end
+  end
+  function UI.Suggest()
+    if UI.sugQuiet or S().suggest == "0" then return end
+    local _, name = UI.NamePart(B.name:GetText())
+    name = string.gsub(name, "^%s+", "")
+    local list = AH.Complete(name, SUG)
+    -- (the one name already typed in full is not offered again)
+    if table.getn(list) == 1 and string.lower(list[1]) == string.lower(name) then list = {} end
+    UI.sugList, UI.sugSel = list, nil
+    UI.PaintSuggest()
+  end
+  function UI.HideSuggest()
+    UI.sugList, UI.sugSel = {}, nil
+    B.sug:Hide()
+  end
+  -- put a name of the list in the box (the other searches and words in it stay) and search
+  function UI.TakeSuggest(i)
+    local name = UI.sugList and UI.sugList[i]
+    if not name then return false end
+    local head, _, tail = UI.NamePart(B.name:GetText())
+    UI.sugQuiet = true
+    B.name:SetText(head .. (head ~= "" and " " or "") .. name .. tail)
+    UI.sugQuiet = nil
+    UI.HideSuggest()
+    Search()
+    return true
+  end
+  function UI.StepSuggest(by)
+    local n = table.getn(UI.sugList or {})
+    if n == 0 then return end
+    local at = (UI.sugSel or (by > 0 and 0 or n + 1)) + by
+    if at < 1 then at = n elseif at > n then at = 1 end
+    UI.sugSel = at
+    UI.PaintSuggest()
+  end
+  function UI.EnterName()
+    if UI.sugSel and UI.TakeSuggest(UI.sugSel) then return end
+    UI.HideSuggest()
+    Search()
+  end
+  B.name.changed = function() UI.Suggest() end
+  B.name:SetScript("OnTabPressed", function() UI.StepSuggest(IsShiftKeyDown() and -1 or 1) end)
+  -- (arrow keys where the client has the script; Tab / Shift + Tab everywhere)
+  pcall(B.name.SetScript, B.name, "OnArrowPressed", function()
+    if arg1 == "UP" then UI.StepSuggest(-1) elseif arg1 == "DOWN" then UI.StepSuggest(1) end
+  end)
+  B.name:SetScript("OnEscapePressed", function()
+    if B.sug:IsShown() then UI.HideSuggest() else this:ClearFocus() end
+  end)
+  B.name:SetScript("OnEditFocusLost", function() UI.sugHideAt = GetTime() + .25 end)
   B.min = Edit(B, 34, function() Search() end, "lvl")
   B.min:SetPoint("LEFT", B.name, "RIGHT", 6, 0)
   B.max = Edit(B, 34, function() Search() end, "to")
@@ -1058,6 +1158,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     this.next = now + .25
     f.money:SetText(AH.Money(GetMoney()))
     if UI.noteAt and now > UI.noteAt then UI.noteAt = nil f.note:SetText("") end
+    -- (the name list goes a moment after the box loses focus: a click on one of its rows comes first)
+    if UI.sugHideAt and now > UI.sugHideAt then UI.sugHideAt = nil UI.HideSuggest() end
     if UI.tab == "sell" and (AH.bagsDirty or AH.job or AH.Searching()) then UI.Refresh() end
   end)
 end)

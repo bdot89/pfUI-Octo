@@ -192,6 +192,74 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     end
     return list
   end
+  -- Item names to offer while you type (16 Nov 2026; user: "it brings up the items in a drop down that
+  -- match the name we have typed so far ... deviate scale, deviate fish"). Names = the built-in quest
+  -- database's item list (this client's language, the server's own items too); built at the first
+  -- letter typed and dropped again when the auction house closes. Items the price history has seen
+  -- come first, then names that start with the text, then names that hold it.
+  local JUNK = { "^OLD", "^Deprecated", "^DEPRECATED", "^Monster %- ", "^TEST", "^Test ", "%(old%)", "%(OLD%)", "^%[", "^zzOLD" }
+  function AH.Names()
+    if AH.names then return AH.names end
+    local out = { low = {}, name = {}, seen = {} }
+    local db = rawget(_G, "pfDB")
+    local items = type(db) == "table" and db["items"]
+    local hist = AH.Store().h
+    if type(items) == "table" then
+      local loc = GetLocale and GetLocale() or "enUS"
+      local had = {}
+      for _, key in ipairs({ loc, loc .. "-turtle", "enUS", "enUS-turtle" }) do
+        local list = items[key]
+        if type(list) == "table" and not had[list] then
+          had[list] = true
+          for id, name in pairs(list) do
+            if type(name) == "string" and name ~= "" then
+              local junk = false
+              for _, p in ipairs(JUNK) do if string.find(name, p) then junk = true break end end
+              local low = string.lower(name)
+              if not junk and not had[low] then
+                had[low] = true
+                table.insert(out.low, low)
+                table.insert(out.name, name)
+                table.insert(out.seen, hist[tostring(id)] and true or false)
+              end
+            end
+          end
+        end
+      end
+    end
+    AH.names = out
+    return out
+  end
+  -- up to `max` names for what is typed (two letters or more)
+  function AH.Complete(text, max)
+    text = string.lower(Trim(text))
+    max = max or 10
+    if string.len(text) < 2 then return {} end
+    local n = AH.Names()
+    -- the name starts with it (seen on the auction house first), then a later word of the name starts
+    -- with it ("scale" finds Deviate Scale), then it is anywhere inside
+    local tiers = { {}, {}, {}, {}, {}, {} }
+    for i = 1, table.getn(n.low) do
+      local at = string.find(n.low[i], text, 1, true)
+      if at then
+        local base = (at == 1 and 1) or (string.sub(n.low[i], at - 1, at - 1) == " " and 3) or 5
+        table.insert(tiers[base + (n.seen[i] and 0 or 1)], n.name[i])
+      end
+    end
+    local out = {}
+    for _, t in ipairs(tiers) do
+      table.sort(t, function(a, b)
+        local la, lb = string.len(a), string.len(b)
+        if la ~= lb then return la < lb end
+        return a < b
+      end)
+      for _, name in ipairs(t) do
+        if table.getn(out) >= max then return out end
+        table.insert(out, name)
+      end
+    end
+    return out
+  end
   -- vendor price each (pfUI's own table), and about what posting costs: 5% of it per 2 hours
   function AH.Vendor(key)
     local _, _, id = string.find(key or "", "^(%d+)")
@@ -590,6 +658,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     elseif event == "AUCTION_HOUSE_CLOSED" then
       AH.open = false
       AH.scan, AH.fetch, AH.pending = nil, nil, nil
+      AH.names = nil
       if AH.Hide then AH.Hide() end
     elseif not AH.open then
       return
