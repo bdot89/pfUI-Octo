@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.52
+
+- 🧭 **Minimap preview fixed:** the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller.
+
 ## 📜 New in 1.1.51
 
 - 🪟 **Previews fold away:** every preview box has a clear "Hide preview" / "Show preview" button at the top right, so you can see the settings under it. The Minimap page's preview is now just the map, in a smaller box.

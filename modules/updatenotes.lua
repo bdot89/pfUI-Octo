@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.52", {
+    { "Minimap preview fixed", "the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller." },
+  } },
   { "1.1.51", {
     { "Previews fold away", "every preview box has a clear \"Hide preview\" / \"Show preview\" button at the top right, so you can see the settings under it. The Minimap page's preview is now just the map, in a smaller box." },
     { "Clean minimap looks", "Clean square, Square in your class colour or accent colour, Clean round and Round in class colour come first - a crisp solid border of 1-6 px in black, class, accent or your own colour. The spell-art looks follow." },
