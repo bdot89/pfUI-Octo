@@ -123,6 +123,9 @@ All optional: pfUI Octo works without them.
 ## 📜 New in 1.1.51
 
 - 🪟 **Previews fold away:** every preview box has a clear "Hide preview" / "Show preview" button at the top right, so you can see the settings under it. The Minimap page's preview is now just the map, in a smaller box.
+- 🗺️ **Clean minimap looks:** Clean square, Square in your class colour or accent colour, Clean round and Round in class colour come first - a crisp solid border of 1-6 px in black, class, accent or your own colour. The spell-art looks follow.
+- 🧭 **Side bar, tidied:** every button is the same neat box, zoom is a plain + / -, mail sits in a box of its own, and the strip behind them is off by default. The bar is its own setting now, so it goes with any look.
+- 🧹 **Tidier Minimap page:** plain two-column rows in sections (Display, Border, Buttons, Spell art) with dropdowns instead of tile grids.
 
 ## 📜 New in 1.1.50
 
