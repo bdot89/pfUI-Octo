@@ -68,6 +68,9 @@ see "Roadmap" below.
 - Unknown widget fields return a no-op function only when named like a method (Set*, Get*, Is*...,
   `IsMethodName` in mock.lua): pfUI stores data under CamelCase keys (gui.frames["General"]).
 - `..\OctoBG\tools\LuaCheck.ps1 -Files @(<full paths>) -Globals` on every changed Lua file.
+- Releases: after writing the README "New in x.y.z" section, run `tools\Make-UpdateNotes.ps1` (writes
+  modules\updatenotes.lua, the update window's "what's new"; tests\updatepopup.lua fails when its newest version is not
+  the toc's). Older clients get the titles over the addon channel ("N:<ver>" asks, "W^<ver>^title^..." answers).
 - tests\mock.lua is a copy of OctoBG's, changed so pfUI can run: absent 1.12 methods look up as nil
   (pfUI tests `if not frame.HookScript`), GetNumPoints / GetPoint / SetGradientAlpha exist (pfUI
   uses them on 1.12, so OctoBG's mock is wrong to refuse them), font sizes may be numeric strings.

@@ -309,16 +309,26 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
   -- ClassicAPI's events and timers pfUI now leans on: seen since login or not (17 Nov 2026). Until one is seen
   -- the old way stays in use, so "not seen" is never broken - only not faster yet.
   PW.EVENTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "ACTION_RANGE_CHECK_UPDATE",
-    "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING" }
+    "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING",
+    -- (17 Nov 2026) the action bars' own events, counted to see how often they come (pfActionBar's cost follows them)
+    "ACTIONBAR_UPDATE_USABLE", "ACTIONBAR_UPDATE_STATE", "ACTIONBAR_UPDATE_COOLDOWN", "ACTIONBAR_SLOT_CHANGED" }
+  do
+    -- (counted from login, so the "a second" figure is true; the hub only adds one tiny call per event)
+    local lc = pfUI.api and pfUI.api.libclient
+    if lc and lc.On then
+      for i = 7, table.getn(PW.EVENTS) do lc.On(PW.EVENTS[i], function() end) end
+    end
+  end
   function PW.EventLines()
     local lc = pfUI.api and pfUI.api.libclient
     local out = {}
+    local secs = math.max(1, GT() - (lc and lc.startAt or 0))
     local timed = lc and lc.timerSeen or 0
     table.insert(out, "C_Timer: " .. ((_G.C_Timer and _G.C_Timer.NewTicker) and (timed > 0 and (timed .. " tickers running on it")
       or "there, not fired yet") or "not there (no ClassicAPI)"))
     for _, e in ipairs(PW.EVENTS) do
       local n = lc and lc.Seen and lc.Seen(e)
-      table.insert(out, e .. ": " .. (n and (n .. " seen") or "not seen yet"))
+      table.insert(out, e .. ": " .. (n and (n .. " seen, " .. F(n / secs, 1) .. " a second") or "not seen yet"))
     end
     return out
   end

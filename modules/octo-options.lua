@@ -2647,6 +2647,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     W.Check(p, "Octo mark behind the pages", "The faint octopus emblem behind every page.",
       function() return B.Store().mark ~= false end,
       function(v) B.Store().mark = v and true or false if O.PaintMark then O.PaintMark() end end)
+    -- (17 Nov 2026) the update window (updatenotify.lua) is optional like everything else
+    W.Check(p, "Tell me when a new version is out", "A small window at login when someone in your guild or group "
+      .. "runs a newer pfUI Octo: the OctoLauncher link, what to do, and what is new. /octoupdate shows it any time.",
+      function() return C.global.updatepopup ~= "0" end,
+      function(v) C.global.updatepopup = v and "1" or "0" end)
     W.Card(p, "UI scale", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
       tip = "How big everything on the screen is. Kept per character, and applied at every login." })
     local wait = CreateFrame("Frame")

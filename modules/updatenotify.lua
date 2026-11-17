@@ -15,7 +15,9 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
     return tonumber(a) * 1000000 + (tonumber(b) or 0) * 1000 + (tonumber(c) or 0)
   end
   pfUI.octoUpdate = {
-    url = "https://github.com/bdot89/pfUI-Octo",
+    -- the link OctoLauncher takes (Addons > Add custom git addon); the About page's
+    -- "OctoLauncher link" is the same one
+    url = "https://github.com/bdot89/pfUI",
     Num = OctoNum,
     -- the newer version seen, or nil
     Newer = function()
@@ -102,13 +104,406 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
     return c
   end
 
+  -- (17 Nov 2026, user: "a warning to people if they are outdated that pops up when they login ... a link they
+  -- can copy and paste into the launcher ... what to do and what the new version offers from theirs ... neat tidy
+  -- window not intrusive") A small window at the top of the screen once a session, out of combat.
+  -- What's new: our own notes (updatenotes.lua, made from the README) can only know versions up to ours, so an
+  -- older client asks "N:<its version>" where it heard the newer one, and one newer client answers with the
+  -- titles of every version after it: "W^<version>^title^title" (no | in addon messages).
+  local UP = pfUI.octoUpdate
+  UP.heard = {}                -- heard[version] = { titles } from newer clients
+  local wq, wsent = {}, {}     -- answers waiting to be sent; wsent[chan] = when one was sent / heard there
+  local askedNotes = {}        -- askedNotes[chan] = when we asked there
+
+  function UP.Clean(s)
+    return (string.gsub(tostring(s or ""), "[|%^]", ""))
+  end
+
+  -- versions after `have`, newest first: { { v, items = { { title, text } } } }, own notes + heard titles
+  function UP.NotesSince(have)
+    local out, byv = {}, {}
+    local mine = UP.Num(have)
+    for _, e in ipairs(pfUI.octoNotes or {}) do
+      if UP.Num(e[1]) > mine then
+        local entry = { v = e[1], items = {} }
+        for _, it in ipairs(e[2] or {}) do table.insert(entry.items, { it[1], it[2] }) end
+        byv[e[1]] = entry
+        table.insert(out, entry)
+      end
+    end
+    for v, titles in pairs(UP.heard) do
+      if UP.Num(v) > mine then
+        local entry = byv[v]
+        if not entry then
+          entry = { v = v, items = {} }
+          byv[v] = entry
+          table.insert(out, entry)
+        end
+        for _, t in ipairs(titles) do
+          local known
+          for _, it in ipairs(entry.items) do if it[1] == t then known = true end end
+          if not known then table.insert(entry.items, { t }) end
+        end
+      end
+    end
+    table.sort(out, function(a, b) return UP.Num(a.v) > UP.Num(b.v) end)
+    return out
+  end
+
+  -- messages telling a pfUI Octo on version `have` what came after it (at most 6 versions, 240 chars each)
+  function UP.NoteMessages(have)
+    local msgs = {}
+    local list = UP.NotesSince(have)
+    for i = 1, math.min(6, table.getn(list)) do
+      local e = list[i]
+      local head = "W^" .. UP.Clean(e.v)
+      local msg = head
+      for _, it in ipairs(e.items) do
+        local t = UP.Clean(it[1])
+        if string.len(t) > 90 then t = string.sub(t, 1, 87) .. "..." end
+        if string.len(msg) + 1 + string.len(t) > 240 then
+          table.insert(msgs, msg)
+          msg = head
+        end
+        msg = msg .. "^" .. t
+      end
+      if msg ~= head then table.insert(msgs, msg) end
+    end
+    return msgs
+  end
+
+  function UP.ReadNotes(text)
+    local parts = {}
+    for p in string.gfind(text, "[^%^]+") do table.insert(parts, p) end
+    if parts[1] ~= "W" or not parts[2] then return end
+    local v = parts[2]
+    if UP.Num(v) <= UP.Num(pfUI.version.octo) then return end
+    local list = UP.heard[v] or {}
+    UP.heard[v] = list
+    for i = 3, table.getn(parts) do
+      local known
+      for _, t in ipairs(list) do if t == parts[i] then known = true end end
+      if not known and table.getn(list) < 20 then table.insert(list, parts[i]) end
+    end
+    if UP.frame and UP.frame:IsShown() then UP.Fill() end
+    return v
+  end
+
+  -- ask for the notes where a newer version was heard, once a minute per channel at most
+  function UP.Ask(chan)
+    if not chan or GetTime() - (askedNotes[chan] or -100) < 60 then return end
+    askedNotes[chan] = GetTime()
+    pcall(SendAddonMessage, OCTO_PREFIX, "N:" .. tostring(pfUI.version.octo), chan)
+  end
+
+  -- someone older asked: answer after 1-4 s unless another newer client answered there first
+  function UP.Asked(chan, have)
+    if not chan or UP.Num(have) <= 0 or UP.Num(have) >= UP.Num(pfUI.version.octo) then return end
+    if wq[chan] or GetTime() - (wsent[chan] or -100) < 60 then return end
+    wq[chan] = { at = GetTime() + 1 + math.random() * 3, have = have }
+  end
+
+  -- runs from the updater's OnUpdate
+  function UP.SendWaiting()
+    for chan, w in pairs(wq) do
+      if w.msgs then
+        if GetTime() >= w.at then
+          local m = table.remove(w.msgs, 1)
+          if m then pcall(SendAddonMessage, OCTO_PREFIX, m, chan) end
+          w.at = GetTime() + .3
+          if not w.msgs[1] then wq[chan] = nil end
+        end
+      elseif GetTime() >= w.at then
+        wsent[chan] = GetTime()
+        w.msgs = UP.NoteMessages(w.have)
+        if not w.msgs[1] then wq[chan] = nil end
+      end
+    end
+  end
+
+  -- the window -------------------------------------------------------------
+  local function Font(parent, size, r, g, b)
+    local t = parent:CreateFontString(nil, "OVERLAY")
+    t:SetFont(pfUI.font_default, size, "")
+    t:SetShadowColor(0, 0, 0, 1)
+    t:SetShadowOffset(1, -1)
+    t:SetTextColor(r or 1, g or 1, b or 1)
+    t:SetJustifyH("LEFT")
+    return t
+  end
+  local function Accent()
+    if pfUI.api.GetAccentColor then
+      local ok, r, g, b = pcall(pfUI.api.GetAccentColor)
+      if ok and r then return r, g, b end
+    end
+    return .35, .7, 1
+  end
+  local function Button(parent, text, w, r, g, b)
+    local bt = CreateFrame("Button", nil, parent)
+    bt:SetWidth(w)
+    bt:SetHeight(22)
+    bt:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
+    bt:SetBackdropColor(r * .18, g * .18, b * .18, 1)
+    bt:SetBackdropBorderColor(r * .8, g * .8, b * .8, 1)
+    bt.text = Font(bt, 11, r + (1 - r) * .5, g + (1 - g) * .5, b + (1 - b) * .5)
+    bt.text:SetPoint("CENTER", 0, 0)
+    bt.text:SetJustifyH("CENTER")
+    bt.text:SetText(text)
+    bt:SetScript("OnEnter", function() this:SetBackdropColor(r * .35, g * .35, b * .35, 1) end)
+    bt:SetScript("OnLeave", function() this:SetBackdropColor(r * .18, g * .18, b * .18, 1) GameTooltip:Hide() end)
+    return bt
+  end
+
+  local W_WIDTH, MAXLINES = 400, 10
+
+  function UP.Build()
+    if UP.frame then return UP.frame end
+    local ar, ag, ab = Accent()
+    local f = CreateFrame("Frame", "pfOctoUpdate", UIParent)
+    UP.frame = f
+    f:SetWidth(W_WIDTH)
+    f:SetHeight(300)
+    f:SetPoint("TOP", UIParent, "TOP", 0, -90)
+    f:SetFrameStrata("DIALOG")
+    f:SetClampedToScreen(true)
+    f:SetMovable(true)
+    f:EnableMouse(true)
+    f:RegisterForDrag("LeftButton")
+    f:SetScript("OnDragStart", function() this:StartMoving() end)
+    f:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
+    f:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
+    f:SetBackdropColor(.05, .055, .065, .94)
+    f:SetBackdropBorderColor(ar * .7, ag * .7, ab * .7, 1)
+    table.insert(UISpecialFrames, "pfOctoUpdate")
+
+    local bar = f:CreateTexture(nil, "ARTWORK")
+    bar:SetTexture("Interface\\BUTTONS\\WHITE8X8")
+    bar:SetVertexColor(ar, ag, ab, .9)
+    bar:SetPoint("TOPLEFT", 1, -1)
+    bar:SetPoint("TOPRIGHT", -1, -1)
+    bar:SetHeight(2)
+
+    local icon = f:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture("Interface\\Icons\\INV_Misc_Note_01")
+    icon:SetTexCoord(.08, .92, .08, .92)
+    icon:SetWidth(28)
+    icon:SetHeight(28)
+    icon:SetPoint("TOPLEFT", 12, -12)
+
+    f.title = Font(f, 15, ar + (1 - ar) * .3, ag + (1 - ag) * .3, ab + (1 - ab) * .3)
+    f.title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 10, 0)
+    f.title:SetText(T["A new pfUI Octo is out"])
+    f.versions = Font(f, 11, .75, .77, .8)
+    f.versions:SetPoint("BOTTOMLEFT", icon, "BOTTOMRIGHT", 10, 0)
+
+    local close = CreateFrame("Button", nil, f)
+    close:SetWidth(20)
+    close:SetHeight(20)
+    close:SetPoint("TOPRIGHT", -6, -6)
+    close.text = Font(close, 14, .6, .62, .66)
+    close.text:SetPoint("CENTER", 0, 0)
+    close.text:SetText("x")
+    close:SetScript("OnEnter", function() this.text:SetTextColor(1, .35, .35) end)
+    close:SetScript("OnLeave", function() this.text:SetTextColor(.6, .62, .66) end)
+    close:SetScript("OnClick", function() f:Hide() end)
+
+    -- how to update
+    local how = Font(f, 12, ar, ag, ab)
+    how:SetPoint("TOPLEFT", 14, -54)
+    how:SetText(T["How to update"])
+    f.steps = Font(f, 11, .88, .89, .92)
+    f.steps:SetPoint("TOPLEFT", how, "BOTTOMLEFT", 0, -4)
+    f.steps:SetWidth(W_WIDTH - 28)
+    f.steps:SetText("|cffffd24d1.|r " .. T["Copy the link below (Copy, or click it and press Ctrl+C)."] .. "\n"
+      .. "|cffffd24d2.|r " .. T["OctoLauncher: Addons > Add custom git addon, paste it, add."] .. "\n"
+      .. "|cffffd24d3.|r " .. T["The launcher installs it and keeps it up to date from then on. Restart the game after."])
+
+    local box = CreateFrame("EditBox", "pfOctoUpdateLink", f)
+    f.box = box
+    box:SetHeight(22)
+    box:SetPoint("TOPLEFT", f.steps, "BOTTOMLEFT", 0, -8)
+    box:SetPoint("RIGHT", f, "RIGHT", -96, 0)
+    box:SetAutoFocus(false)
+    box:SetFontObject(GameFontWhite)
+    box:SetFont(pfUI.font_default, 12, "")
+    box:SetTextInsets(6, 6, 0, 0)
+    box:SetBackdrop({ bgFile = "Interface\\BUTTONS\\WHITE8X8", edgeFile = "Interface\\BUTTONS\\WHITE8X8", edgeSize = 1 })
+    box:SetBackdropColor(0, 0, 0, .6)
+    box:SetBackdropBorderColor(ar * .8, ag * .8, ab * .8, 1)
+    box:SetText(UP.url)
+    box:SetScript("OnTextChanged", function() if this:GetText() ~= UP.url then this:SetText(UP.url) this:HighlightText() end end)
+    box:SetScript("OnEditFocusGained", function() this:HighlightText() end)
+    box:SetScript("OnEscapePressed", function() this:ClearFocus() end)
+    box:SetScript("OnEnterPressed", function() this:ClearFocus() end)
+
+    local copy = Button(f, T["Copy"], 74, .25, .85, .47)
+    copy:SetPoint("LEFT", box, "RIGHT", 8, 0)
+    copy:SetScript("OnClick", function()
+      local lc = pfUI.api.libclient
+      if lc and lc.Copy and lc.Copy(UP.url) then
+        f.copied:SetText("|cff40d977" .. T["Copied - now paste it in the launcher."] .. "|r")
+      else
+        box:SetFocus()
+        box:HighlightText()
+        f.copied:SetText("|cffffd24d" .. T["Selected - press Ctrl+C, then paste it in the launcher."] .. "|r")
+      end
+    end)
+    f.copied = Font(f, 10, .6, .62, .66)
+    f.copied:SetPoint("TOPLEFT", box, "BOTTOMLEFT", 0, -4)
+    f.copied:SetText(T["Already added it? The launcher's Update button gets the new version."])
+
+    -- what's new
+    local rule = f:CreateTexture(nil, "ARTWORK")
+    rule:SetTexture("Interface\\BUTTONS\\WHITE8X8")
+    rule:SetVertexColor(1, 1, 1, .08)
+    rule:SetHeight(1)
+    rule:SetPoint("TOPLEFT", f.copied, "BOTTOMLEFT", 0, -10)
+    rule:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+    f.newHead = Font(f, 12, ar, ag, ab)
+    f.newHead:SetPoint("TOPLEFT", rule, "BOTTOMLEFT", 0, -8)
+    f.lines = {}
+    for i = 1, MAXLINES do
+      local l = CreateFrame("Button", nil, f)
+      l:SetHeight(15)
+      l:SetPoint("LEFT", f, "LEFT", 14, 0)
+      l:SetPoint("RIGHT", f, "RIGHT", -14, 0)
+      if i == 1 then l:SetPoint("TOP", f.newHead, "BOTTOM", 0, -4) else l:SetPoint("TOP", f.lines[i - 1], "BOTTOM", 0, 0) end
+      l.text = Font(l, 11, .9, .91, .93)
+      l.text:SetPoint("LEFT", 0, 0)
+      l.text:SetPoint("RIGHT", 0, 0)
+      l:SetScript("OnEnter", function()
+        if not this.tip then return end
+        GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+        GameTooltip:SetText(this.tipTitle or "", 1, 1, 1)
+        GameTooltip:AddLine(this.tip, .8, .82, .86, 1)
+        GameTooltip:Show()
+      end)
+      l:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      f.lines[i] = l
+    end
+    f.more = Font(f, 10, .6, .62, .66)
+
+    -- bottom buttons
+    local later = Button(f, T["Remind me later"], 130, .55, .58, .62)
+    later:SetPoint("BOTTOMLEFT", 14, 12)
+    later:SetScript("OnClick", function() f:Hide() end)
+    later:SetScript("OnEnter", function()
+      this:SetBackdropColor(.55 * .35, .58 * .35, .62 * .35, 1)
+      GameTooltip:SetOwner(this, "ANCHOR_TOP")
+      GameTooltip:SetText(T["Shows again at your next login."], 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    f.skip = Button(f, T["Don't show for this version"], 190, .9, .3, .3)
+    f.skip:SetPoint("BOTTOMRIGHT", -14, 12)
+    f.skip:SetScript("OnClick", function()
+      pfUI_init.octoupdateskip = UP.Newer()
+      f:Hide()
+    end)
+    f.skip:SetScript("OnEnter", function()
+      this:SetBackdropColor(.9 * .35, .3 * .35, .3 * .35, 1)
+      GameTooltip:SetOwner(this, "ANCHOR_TOP")
+      GameTooltip:SetText(T["Quiet until an even newer version is out."], 1, 1, 1)
+      GameTooltip:AddLine(T["The About page still shows the link. Switch the window off: Settings > Scale, profiles and look."], .8, .82, .86, 1)
+      GameTooltip:Show()
+    end)
+    f:Hide()
+    return f
+  end
+
+  -- fill the window for the newest version heard; also used when notes come in while it shows
+  function UP.Fill()
+    local f = UP.Build()
+    local newer = UP.Newer() or pfUI.version.octo
+    f.versions:SetText(string.format(T["You have %s  -  %s is out"], "|cffff6060" .. tostring(pfUI.version.octo) .. "|r",
+      "|cff40d977" .. tostring(newer) .. "|r"))
+    local list = UP.NotesSince(pfUI.version.octo)
+    f.newHead:SetText(table.getn(list) > 0 and string.format(T["What's new since %s"], pfUI.version.octo) or T["What's new"])
+    -- headings + items, at most MAXLINES rows
+    local rows, total = {}, 0
+    for _, e in ipairs(list) do
+      table.insert(rows, { head = e.v })
+      for _, it in ipairs(e.items) do
+        total = total + 1
+        table.insert(rows, { title = it[1], text = it[2], v = e.v })
+      end
+    end
+    local shown, items = 0, 0
+    for i = 1, MAXLINES do
+      local l, r = f.lines[i], rows[i]
+      -- never end the list on a heading
+      if r and r.head and (not rows[i + 1] or i == MAXLINES) then r = nil end
+      if r then
+        shown = i
+        if r.head then
+          l.text:SetText("|cff8a8f99v" .. r.head .. "|r")
+          l.tip, l.tipTitle = nil, nil
+        else
+          items = items + 1
+          l.text:SetText("|cffffd24d-|r " .. r.title)
+          l.tip, l.tipTitle = r.text, r.title
+        end
+        l:Show()
+      else
+        l:Hide()
+      end
+    end
+    f.more:ClearAllPoints()
+    local last = shown > 0 and f.lines[shown] or f.newHead
+    f.more:SetPoint("TOPLEFT", last, "BOTTOMLEFT", shown > 0 and 0 or 0, -4)
+    f.more:SetWidth(W_WIDTH - 28)
+    if total == 0 then
+      f.more:SetText(T["Not known yet: it fills in as soon as someone on the new version is in your guild or group. The home page lists it too."])
+    elseif total > items then
+      f.more:SetText(string.format(T["... and %d more. Hover a line for more, the home page has it all."], total - items))
+    else
+      f.more:SetText(T["Hover a line for more."])
+    end
+    -- height: header and link area (the steps may wrap), the rows, the line under them, the buttons
+    local stepsH = tonumber(f.steps:GetHeight()) or 42
+    local moreH = tonumber(f.more:GetHeight()) or 14
+    if stepsH < 30 or stepsH > 120 then stepsH = 42 end
+    if moreH < 10 or moreH > 60 then moreH = 14 end
+    f:SetHeight(math.floor(54 + 18 + stepsH + 8 + 22 + 16 + 11 + 22 + shown * 15 + 4 + moreH + 46))
+    f.skip.text:SetText(string.format(T["Don't show for %s"], tostring(newer)))
+  end
+
+  function UP.Show()
+    UP.Fill()
+    UP.frame:Show()
+  end
+
+  -- may the window open by itself now?
+  function UP.Wanted()
+    if C.global and C.global.updatepopup == "0" then return end
+    local newer = UP.Newer()
+    if not newer or UP.shownThis then return end
+    if pfUI_init.octoupdateskip and UP.Num(pfUI_init.octoupdateskip) >= UP.Num(newer) then return end
+    return true
+  end
+  function UP.Check()
+    if not UP.Wanted() then return end
+    if UnitAffectingCombat and UnitAffectingCombat("player") then return end
+    UP.shownThis = true
+    UP.Show()
+  end
+
+  _G.SLASH_PFOCTOUPDATE1 = "/octoupdate"
+  _G.SlashCmdList["PFOCTOUPDATE"] = function() UP.Show() end
+
   pfUI.updater = CreateFrame("Frame")
   pfUI.updater:RegisterEvent("CHAT_MSG_ADDON")
   pfUI.updater:RegisterEvent("PLAYER_ENTERING_WORLD")
   pfUI.updater:RegisterEvent("PARTY_MEMBERS_CHANGED")
   -- answers to "Q" wait 1-4 s (so a guild does not answer all at once), one per channel each 30 s
   local answer, answered = {}, {}
+  pfUI.updater:RegisterEvent("PLAYER_REGEN_ENABLED")
   pfUI.updater:SetScript("OnUpdate", function()
+    UP.SendWaiting()
+    -- the update window: first look 6 s after the first loading screen, then whenever a newer one is heard
+    if this.popAt and GetTime() >= this.popAt then
+      this.popAt = nil
+      UP.Check()
+    end
     for chan, at in pairs(answer) do
       if GetTime() >= at then
         answer[chan] = nil
@@ -129,10 +524,27 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
         end
       end
       if arg1 ~= OCTO_PREFIX then return end
-      local _, _, v = string.find(arg2 or "", "^V:(.+)$")
-      if v and OctoNum(v) > OctoNum(pfUI.version.octo) and OctoNum(v) > OctoNum(pfUI_init.octoupdate) then
-        pfUI_init.octoupdate = v
+      if arg4 == me then return end
+      local msg = arg2 or ""
+      -- an older pfUI Octo asks what came after its version / a newer one tells us
+      local _, _, have = string.find(msg, "^N:(.+)$")
+      if have then UP.Asked(arg3, have) return end
+      if string.sub(msg, 1, 2) == "W^" then
+        if arg3 then wsent[arg3] = GetTime() wq[arg3] = nil end
+        UP.ReadNotes(msg)
+        return
       end
+      local _, _, v = string.find(msg, "^V:(.+)$")
+      if v and OctoNum(v) > OctoNum(pfUI.version.octo) then
+        if OctoNum(v) > OctoNum(pfUI_init.octoupdate) then pfUI_init.octoupdate = v end
+        UP.Ask(arg3)
+        if UP.Wanted() then this.popAt = math.max(GetTime() + 3, (this.loginAt or 0) + 6) end
+      end
+      return
+    end
+
+    if event == "PLAYER_REGEN_ENABLED" then
+      if UP.Wanted() then this.popAt = GetTime() + 2 end
       return
     end
 
@@ -151,11 +563,15 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
         for _, chan in pairs(loginchannels) do pcall(SendAddonMessage, OCTO_PREFIX, "Q", chan) end
         if GuildRoster then GuildRoster() end
       end
+      if not this.loginAt then
+        this.loginAt = GetTime()
+        this.popAt = GetTime() + 6
+      end
       local newer = pfUI.octoUpdate.Newer()
       if newer and not this.octoshown then
         this.octoshown = true
         DEFAULT_CHAT_FRAME:AddMessage("|cff33b3ffpfUI Octo|r: " .. string.format(T["version %s is out (you have %s)."], newer, pfUI.version.octo)
-          .. " " .. T["Open /pfui > About to copy the link for the OctoWoW launcher."])
+          .. " " .. T["Type /octoupdate (or open /pfui > About) for the link for the OctoWoW launcher."])
       end
     end
 

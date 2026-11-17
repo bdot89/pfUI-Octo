@@ -15,6 +15,7 @@
   <Include file="..\modules\keybinds.lua"/>
   <Include file="..\modules\unlock.lua"/>
   <Include file="..\modules\hoverbind.lua"/>
+  <Include file="..\modules\updatenotes.lua"/>
   <Include file="..\modules\updatenotify.lua"/>
   <Include file="..\modules\actionbar.lua"/>
   <Include file="..\modules\actionbar-octo.lua"/>

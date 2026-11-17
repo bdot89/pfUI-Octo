@@ -412,29 +412,10 @@ pfUI:RegisterModule("mail", "vanilla", function ()
     end
     if s.pause and now < s.pause then return end
     local total = table.getn(s.queue)
-    -- (17 Nov 2026, user: 16 items queued, Send, only the first went) After a mail goes, the client can still
-    -- show its item on the send mail for a moment. This used to read "something is attached" as "the next item
-    -- is attached" and sent mail 2 at once with the old item, which the server refused, and the run stopped.
-    -- Now: wait for the sent item to leave the bag and the send mail, take off whatever is still there (as
-    -- TurtleMail does), and send only once GetSendMailItem() names the item this mail is for.
-    local last = s.last
-    if last then
-      if GetContainerItemLink(last.bag, last.slot) ~= last.link and not GetSendMailItem() then
-        s.last = nil
-      elseif now - s.settleAt > 3 then
-        if GetSendMailItem() then
-          ClearCursor()
-          ClickSendMailItemButton()
-          ClearCursor()
-        end
-        s.last = nil
-        s.pause = now + .2
-        return
-      else
-        s.pause = now + .1
-        return
-      end
-    end
+    -- (17 Nov 2026, user, twice: queued items, Send, only the first went - "they should ALL send INSTANTLY ... one
+    -- press all mail goes".) As TurtleMail does it: the moment the server says a mail went (MAIL_SEND_SUCCESS), the
+    -- next frame takes whatever is left on the send mail off, puts the next item on, checks GetSendMailItem() names
+    -- it and sends - all in one go, no pauses. One mail per server answer is as fast as mail can go.
     local q = s.queue[s.k]
     if not q then
       M.AddName(s.to)
@@ -446,65 +427,47 @@ pfUI:RegisterModule("mail", "vanilla", function ()
       if M.onSent then M.onSent() end
       return
     end
-    if q.item and s.ready ~= s.k then
+    if q.item then
       local it = q.item
-      local onMail = GetSendMailItem()
-      if s.tried == s.k then
-        -- (16 Nov 2026, Lobo on Discord: "it just stays there doing nothing") an attached item is locked in its
-        -- bag: once ours is on the mail, the lock does not matter, so this asks the mail, not the bag
-        if onMail and (not it.name or onMail == it.name) then
-          s.ready = s.k
-        elseif now - s.attachAt > 4 then
-          ClearCursor()
-          M.StopSend("The item would not go on mail " .. s.k .. " of " .. total .. "; stopped after " .. s.sent .. " sent.")
-          return
-        else
-          s.pause = now + .1
-          return
-        end
-      else
-        if onMail then
-          -- (not ours: back into the bag first)
-          s.clearAt = s.clearAt or now
-          if now - s.clearAt > 3 then
-            M.StopSend("Something else stays on the mail; stopped after " .. s.sent .. " of " .. total .. " sent.")
-            return
-          end
-          ClearCursor()
-          ClickSendMailItemButton()
-          ClearCursor()
-          s.pause = now + .2
-          return
-        end
-        s.clearAt = nil
-        if GetContainerItemLink(it.bag, it.slot) ~= it.link then
-          -- (moved or gone since it was picked: skip it, not a wrong item; the end message counts it)
-          s.k, s.lockAt, s.skipped = s.k + 1, nil, s.skipped + 1
-          return
-        end
-        local _, _, locked = GetContainerItemInfo(it.bag, it.slot)
-        if locked then
-          s.lockAt = s.lockAt or now
-          if now - s.lockAt > 4 then
-            M.StopSend("That item stays locked in your bag; stopped after " .. s.sent .. " of " .. total .. " sent.")
-            return
-          end
-          s.pause = now + .1
-          return
-        end
-        s.lockAt = nil
-        ClearCursor()
-        PickupContainerItem(it.bag, it.slot)
-        ClickSendMailItemButton()
-        -- (the client refused it: it is back on the cursor; its UI error says why)
-        if CursorHasItem and CursorHasItem() then ClearCursor() end
-        s.tried, s.attachAt = s.k, now
-        s.pause = now + .1
+      if GetContainerItemLink(it.bag, it.slot) ~= it.link then
+        -- (moved or gone since it was picked: skip it, not a wrong item; the end message counts it)
+        s.k, s.lockAt, s.attachAt, s.skipped = s.k + 1, nil, nil, s.skipped + 1
         return
       end
+      -- whatever is still on the send mail goes back first (the sent item's leftover, or a refused try)
+      if GetSendMailItem() then
+        ClearCursor()
+        ClickSendMailItemButton()
+        ClearCursor()
+      end
+      local _, _, locked = GetContainerItemInfo(it.bag, it.slot)
+      if locked then
+        -- (an item just taken back off the mail is locked a moment: the next frame tries again)
+        s.lockAt = s.lockAt or now
+        if now - s.lockAt > 4 then
+          M.StopSend("That item stays locked in your bag; stopped after " .. s.sent .. " of " .. total .. " sent.")
+        end
+        return
+      end
+      s.lockAt = nil
+      ClearCursor()
+      PickupContainerItem(it.bag, it.slot)
+      ClickSendMailItemButton()
+      -- (the client refused it: it is back on the cursor; its UI error says why)
+      if CursorHasItem and CursorHasItem() then ClearCursor() end
+      local onMail = GetSendMailItem()
+      if not onMail or (it.name and onMail ~= it.name) then
+        s.attachAt = s.attachAt or now
+        if now - s.attachAt > 4 then
+          ClearCursor()
+          M.StopSend("The item would not go on mail " .. s.k .. " of " .. total .. "; stopped after " .. s.sent .. " sent.")
+        end
+        return
+      end
+      s.attachAt = nil
     end
-    SetSendMailCOD(q.cod and q.cod > 0 and q.cod or 0)
-    SetSendMailMoney(not (q.cod and q.cod > 0) and q.money or 0)
+    -- (money or cash on delivery only when there is some, as TurtleMail: the client clears both after each mail)
+    if q.cod and q.cod > 0 then SetSendMailCOD(q.cod) elseif q.money and q.money > 0 then SetSendMailMoney(q.money) end
     if GetSendMailPrice and GetSendMailPrice() + ((not (q.cod and q.cod > 0)) and q.money or 0) > GetMoney() then
       M.StopSend("Not enough money for the postage.")
       return
@@ -562,17 +525,24 @@ pfUI:RegisterModule("mail", "vanilla", function ()
         s.waiting = nil
         s.sent = s.sent + 1
         local q = s.queue[s.k]
-        if q and q.item then
-          q.item.sent = true
-          -- (the next one waits until the game has let go of this item: SendStep)
-          s.last, s.settleAt = q.item, GetTime()
-        end
-        s.k = s.k + 1
-        s.pause = GetTime() + .3
+        if q and q.item then q.item.sent = true end
+        -- (the next mail goes on the very next frame: SendStep)
+        s.k, s.pause, s.fails = s.k + 1, nil, 0
       end
       M.dirty = true
     elseif event == "MAIL_FAILED" then
-      if M.sending then M.StopSend("The mail did not go (" .. M.sending.sent .. " sent before it).") end
+      -- (a mail the server would not take: the same one is tried again half a second later, twice at most,
+      -- before the run stops - one refusal no longer ends a whole run)
+      local s = M.sending
+      if s and s.waiting then
+        s.waiting = nil
+        s.fails = (s.fails or 0) + 1
+        if s.fails > 2 then
+          M.StopSend("The mail did not go (" .. s.sent .. " sent before it).")
+        else
+          s.pause = GetTime() + .5
+        end
+      end
     elseif event == "UI_ERROR_MESSAGE" then
       local p = M.pending
       if p and (arg1 == ERR_INV_FULL or arg1 == ERR_ITEM_MAX_COUNT or arg1 == ERR_ITEM_LOCKED

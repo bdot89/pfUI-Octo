@@ -41,6 +41,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("global",     nil,           "uiscale",          "")
   pfUI:UpdateConfig("appearance", nil,           "charlook",         "1")
   pfUI:UpdateConfig("global",     nil,           "offscreen",        "0")
+  pfUI:UpdateConfig("global",     nil,           "updatepopup",      "1")
 
   pfUI:UpdateConfig("global",     nil,           "font_blizzard",    "0")
   pfUI:UpdateConfig("global",     nil,           "font_default",     "Interface\\AddOns\\pfUI\\fonts\\Myriad-Pro.ttf")

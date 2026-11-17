@@ -235,6 +235,7 @@ end
 --  libclient.On(event, fn)   fn(event, arg1, arg2, arg3, arg4) on each one (registered on first use)
 --  libclient.Seen(event)     how many have arrived since login (nil = none yet: keep the old way)
 libclient.seen, libclient.subs = {}, {}
+libclient.startAt = GetTime and GetTime() or 0
 local hub = CreateFrame("Frame", "pfClientEvents")
 libclient.hub = hub
 hub:SetScript("OnEvent", function()

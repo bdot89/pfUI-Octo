@@ -135,6 +135,38 @@ do
   ok(sent == 4 and table.concat(mailed, ",") == "1,2,3,4" and M.sending == nil,
     "4 items: 4 mails, each with its own item (" .. table.concat(mailed, ",") .. ")")
 
+  -- (17 Nov 2026) no pauses: right after a mail went, the next is attached and sent on the very next step
+  bag = { LINEN, LINEN, LINEN }
+  items = {}
+  for s = 1, 3 do table.insert(items, { bag = 0, slot = s, link = bag[s] }) end
+  staleUntil, mailed, sent = 0, {}, 0
+  M.Send("Bob", "", "", 0, 0, items)
+  for _ = 1, 3 do M.SendStep() end
+  ok(sent == 3, "3 mails in 3 steps - one per server answer, no waiting (" .. sent .. ")")
+  for _ = 1, 3 do M.SendStep() end
+  M.sending = nil
+  -- a mail the server refuses once (MAIL_FAILED) is tried again; the run goes on
+  bag = { LINEN, LINEN, LINEN }
+  items = {}
+  for s = 1, 3 do table.insert(items, { bag = 0, slot = s, link = bag[s] }) end
+  staleUntil, mailed, sent = 0, {}, 0
+  local failedOnce
+  _G.SendMail = function()
+    if onMail == 2 and not failedOnce then
+      failedOnce = true
+      _G.event = "MAIL_FAILED"
+      onEv()
+      return
+    end
+    table.insert(mailed, onMail or 0)
+    sent = sent + 1
+    success()
+  end
+  M.Send("Bob", "", "", 0, 0, items)
+  run()
+  ok(failedOnce and sent == 3 and table.concat(mailed, ",") == "1,2,3" and M.sending == nil,
+    "a mail refused once is tried again and the rest still go (" .. table.concat(mailed, ",") .. ")")
+
   -- a refused mail stops the run with a message; the sent item leaves the list, the rest stay
   bag = { LINEN, LINEN, LINEN }
   items = {}

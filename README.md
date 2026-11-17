@@ -119,6 +119,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.40
+
+- 📬 **Mail sends everything in one press:** every queued item goes back to back, the next mail the moment the server accepts the last one (no pauses). A mail the server refuses once is tried again instead of stopping the whole run.
+- 🔔 **Update window:** when someone in your guild or group runs a newer pfUI Octo, a small window at login shows the OctoLauncher link (Copy button), what to do, and what's new since your version. "Remind me later" or "Don't show for this version"; switch it off in Settings > Scale, profiles and look; `/octoupdate` opens it. New file: restart the game fully once.
+- 🔎 **`/pfperf events`** also counts how often the action bar events fire.
+
 ## 📜 New in 1.1.39
 
 - ⚙️ **Uses ClassicAPI to do less work:** 25 every-few-seconds checks run on ClassicAPI's timers instead of being asked every frame; cast bars wake on the game's cast events and rest when nobody casts; action bars learn range changes from the game instead of checking every button 5 times a second; the range scan stops (ClassicAPI already answers); gathering arrows and pfQuest's route rest while you stand still. Each one keeps the old way until its event has really been seen, so nothing changes without ClassicAPI.
