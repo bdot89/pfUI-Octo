@@ -473,6 +473,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     UI.Recent(text)
     UI.only = nil
     local q = table.remove(list, 1)
+    -- (the names searched for: when nothing is up, their last known prices show in the empty list)
+    UI.searched = {}
+    for _, one in ipairs({ q }) do if one and one.name and one.name ~= "" then table.insert(UI.searched, { one.name, one.exact }) end end
+    for _, one in ipairs(list) do if one.name and one.name ~= "" then table.insert(UI.searched, { one.name, one.exact }) end end
     AH.Search(q, function(s) UI.Status() end, function(why) UI.Status(why) end, list)
     UI.Status()
   end
@@ -852,6 +856,66 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       B.status:SetText((why and why ~= "done") and (n .. " found (" .. why .. ")") or (n .. " found" .. (AH.total > 0 and (" in " .. AH.total .. " auctions") or "")))
       B.go.text:SetText("Search")
     end
+    UI.PaintEmpty(not s and n == 0)
+  end
+  -- None up now: what they went for when last seen (price history) and your own last sale of them
+  B.empty = B.list:CreateFontString(nil, "OVERLAY")
+  B.empty:SetFont(pfUI.font_default, 13, "")
+  B.empty:SetPoint("TOPLEFT", B.list, "TOPLEFT", 16, -40)
+  B.empty:SetPoint("RIGHT", B.list, "RIGHT", -16, 0)
+  B.empty:SetJustifyH("LEFT")
+  B.empty:SetJustifyV("TOP")
+  B.empty:Hide()
+  local function Ago(d)
+    if not d or d <= 0 then return "today" end
+    if d == 1 then return "yesterday" end
+    return d .. " days ago"
+  end
+  -- your last sale of an item by name, from the ledger: count, copper in all, days ago
+  function UI.LastSale(name)
+    local L = AH.ledger
+    if not (L and L.Entries) or not name then return nil end
+    local list = L.Entries()
+    local low = string.lower(name)
+    for i = table.getn(list), 1, -1 do
+      local e = list[i]
+      if e.k == "sold" and e.n and string.lower(e.n) == low and (e.a or 0) > 0 then
+        local days = math.floor(((time and time() or 0) - (e.t or 0)) / 86400)
+        return e.c or 1, e.a, days
+      end
+    end
+  end
+  function UI.EmptyText()
+    local lines = {}
+    for _, s in ipairs(UI.searched or {}) do
+      local known = AH.LastKnown(s[1], s[2], 6)
+      if table.getn(known) == 0 then
+        local c, a, d = UI.LastSale(s[1])
+        if c then
+          table.insert(lines, "|cffffffff" .. s[1] .. "|r   you last sold " .. c .. " for " .. AH.Money(a) .. " (" .. Ago(d) .. ")")
+        else
+          table.insert(lines, "|cffffffff" .. s[1] .. "|r   |cff808080no price seen yet|r")
+        end
+      end
+      for _, k in ipairs(known) do
+        local line = "|cffffffff" .. k.name .. "|r   last seen " .. Ago(k.ago) .. " at " .. AH.Money(k.last) .. " each"
+        if k.value and k.days > 1 then line = line .. "   |cffa0a0a8usual " .. AH.Money(k.value) .. " (" .. k.days .. " days)|r" end
+        local c, a, d = UI.LastSale(k.name)
+        if c then line = line .. "\n      |cffa0a0a8you last sold " .. c .. " for " .. AH.Money(a) .. " (" .. Ago(d) .. ")|r" end
+        table.insert(lines, line)
+      end
+    end
+    if table.getn(lines) == 0 then return nil end
+    return "|cffffd24dNone up right now.|r  The last prices seen:\n\n" .. table.concat(lines, "\n")
+  end
+  function UI.PaintEmpty(on)
+    -- (worked out once per search: it reads the whole item list)
+    local text
+    if on then
+      if not UI.emptyOf or UI.emptyOf ~= UI.searched then UI.emptyOf, UI.emptyText = UI.searched, UI.EmptyText() end
+      text = UI.emptyText
+    end
+    if text then B.empty:SetText(text) B.empty:Show() else B.empty:Hide() end
   end
   function UI.PaintBuy()
     local d = UI.List().sel

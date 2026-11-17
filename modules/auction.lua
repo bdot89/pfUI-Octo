@@ -106,6 +106,50 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     if math.mod(n, 2) == 1 then return list[(n + 1) / 2], n end
     return math.floor((list[n / 2] + list[n / 2 + 1]) / 2 + .5), n
   end
+  -- (17 Nov 2026, user: "If there are no items on the AH of this type it should show how much the last
+  -- ones were priced") the price history of items by name: { name, key, value (usual each), days,
+  -- last (the lowest each on the last day seen), ago (days since) }, best known first. exact = the
+  -- whole name; else every item whose name holds the text (two letters or more).
+  function AH.LastKnown(text, exact, max)
+    text = string.lower((string.gsub(text or "", "^%s*(.-)%s*$", "%1")))
+    max = max or 6
+    local out = {}
+    if string.len(text) < 2 then return out end
+    local hist = AH.Store().h
+    local db = rawget(_G, "pfDB")
+    local items = type(db) == "table" and db["items"]
+    if type(items) ~= "table" then return out end
+    local loc = GetLocale and GetLocale() or "enUS"
+    local had, lists = {}, {}
+    for _, key in ipairs({ loc, loc .. "-turtle", "enUS", "enUS-turtle" }) do
+      local list = items[key]
+      if type(list) == "table" and not lists[list] then
+        lists[list] = true
+        for id, name in pairs(list) do
+          local key2 = tostring(id)
+          local r = hist[key2]
+          if r and type(name) == "string" and not had[key2] then
+            local low = string.lower(name)
+            if (exact and low == text) or (not exact and string.find(low, text, 1, true)) then
+              had[key2] = true
+              local value, days = AH.Value(key2)
+              table.insert(out, { name = name, key = key2, value = value, days = days or 0, last = r.min,
+                ago = math.max(0, AH.Day() - (r.day or AH.Day())), exactName = low == text })
+            end
+          end
+        end
+      end
+    end
+    -- the name itself first, then the most days of prices, then the most recent
+    table.sort(out, function(a, b)
+      if a.exactName ~= b.exactName then return a.exactName end
+      if a.days ~= b.days then return a.days > b.days end
+      if a.ago ~= b.ago then return a.ago < b.ago end
+      return a.name < b.name
+    end)
+    while table.getn(out) > max do table.remove(out) end
+    return out
+  end
   function AH.Known()
     local n = 0
     for _ in pairs(AH.Store().h) do n = n + 1 end

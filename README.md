@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.32
+
+- 🏦 **Auctions:** a search that finds nothing up now shows the last prices seen in the empty list - when it was last up, its lowest price each that day, the usual price, and what you last sold it for.
+
 ## 📜 New in 1.1.31
 
 - ⏱️ **Cooldown Manager:** macros can go on the bars ("A macro..." or by name): the macro's picture with the cooldown of what it casts, a click runs it.

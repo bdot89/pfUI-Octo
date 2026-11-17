@@ -311,6 +311,32 @@ do
   l.sel = l.rows[1].d
   UI.PaintBuy()
   ok(UI.pages.browse.buy.text:GetText() == "Buyout  " .. AH.Money(l.sel.buyout), "the Buyout button says what it costs")
+  -- (17 Nov 2026) nothing up: the last prices seen show in the empty list
+  do
+    local dbWas, rowsWas, scanWas = rawget(_G, "pfDB"), AH.rows, AH.scan
+    _G.pfDB = { items = { enUS = { [12359] = "Thorium Bar", [12360] = "Arcanite Bar", [3577] = "Gold Bar" } } }
+    local h = AH.Store().h
+    h["12359"] = { day = AH.Day() - 3, min = 5000, days = { 5200, 4800 } }
+    h["3577"] = { day = AH.Day(), min = 9000, days = {} }
+    local known = AH.LastKnown("thorium bar", true)
+    ok(table.getn(known) == 1 and known[1].name == "Thorium Bar" and known[1].last == 5000 and known[1].ago == 3 and known[1].value == 5000,
+      "last known price of an item by name")
+    ok(table.getn(AH.LastKnown("bar")) == 2 and AH.LastKnown("bar")[1].name == "Thorium Bar", "by part of the name: every one with prices, most days first")
+    AH.rows, AH.scan = {}, nil
+    UI.searched = { { "Thorium Bar", true } }
+    UI.Status("done")
+    local t = UI.pages.browse.empty:GetText() or ""
+    ok(UI.pages.browse.empty:IsShown() and string.find(t, "None up right now", 1, true) and string.find(t, "Thorium Bar", 1, true)
+      and string.find(t, "3 days ago", 1, true), "an empty search shows when it was last seen and at what price")
+    UI.searched = { { "Nothingite", true } }
+    UI.Status("done")
+    ok(string.find(UI.pages.browse.empty:GetText() or "", "no price seen yet", 1, true), "never seen: says so")
+    AH.rows = rowsWas
+    UI.Status("done")
+    ok(table.getn(AH.rows) == 0 or not UI.pages.browse.empty:IsShown(), "rows found: no note")
+    h["12359"], h["3577"] = nil, nil
+    _G.pfDB, AH.scan, UI.searched = dbWas, scanWas, nil
+  end
   -- (17 Nov 2026, Lobo) Ctrl + click tries the item on and never bids; Alt + click buys only while it is on
   do
     local dressed, bought
