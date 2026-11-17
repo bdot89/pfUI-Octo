@@ -202,9 +202,12 @@ pfUI:RegisterModule("mapreveal", "vanilla:tbc", function ()
     end
     for k in pairs(explorecaches) do explorecaches[k] = nil end
 
-    if ClassicReveal(mapFileName, alreadyknown, r, g, b, a) then return end
-
+    -- (17 Nov 2026, Wolfahrt: Thalassian Highlands drawn in patches) the measured table goes first:
+    -- OctoWoW's own zones keep their pictures in padded files (BRINTHILIEN1-4 = 512 x 512) while the
+    -- client's WorldMapOverlay.dbc gives the inside box (180 x 211 at 395, 450), so ClassicAPI's tiles
+    -- cut a quarter of each picture and put it in the wrong place. ClassicAPI only for zones not measured.
     local zoneData = this.overlayData[mapFileName]
+    if not zoneData[1] and ClassicReveal(mapFileName, alreadyknown, r, g, b, a) then return end
     local textureCount = 0
     local texturePixelWidth, textureFileWidth, texturePixelHeight, textureFileHeight
     for i, hash in ipairs(zoneData) do
