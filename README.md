@@ -119,6 +119,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.31
+
+- ⏱️ **Cooldown Manager:** macros can go on the bars ("A macro..." or by name): the macro's picture with the cooldown of what it casts, a click runs it.
+- ⌨️ **Cooldown Manager:** "Show keybinds" per bar - the key of the action button the spell, item or macro sits on.
+- 🖱️ **Cooldown Manager:** pick what a left-click and a right-click on an icon do, per bar (use it, open the options, or nothing).
+- 🩶 **Cooldown Manager:** "Not Usable State" per icon - grey, dim, red or blue while it cannot be used (no rage or mana, Overpower not up). All new options are off or as before by default.
+
 ## 📜 New in 1.1.30
 
 - 🏦 **Auctions:** Ctrl + click a row now tries the item on in the dressing room, like everywhere else in the game - it no longer bids. Alt + click instant buyout can be switched off (Auctions > "Alt + click a row buys it out").

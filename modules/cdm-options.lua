@@ -481,7 +481,14 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     O.PfChk(p, "Centred", "Icons that hide leave no hole: the rest close up round the middle. Off: they close up to the left.", B, "center", Up)
     O.PfSld(p, "Opacity", nil, .1, 1, .05, B, "alpha", Up, Pct)
     O.PfChk(p, "Dark panel behind", nil, B, "bg", Up)
-    O.PfChk(p, "Click an icon to use it", "Off: the bar is only a display and the mouse goes through it.", B, "click", Up)
+    O.PfChk(p, "Icons take the mouse", "On: clicks on the icons do what is picked below, and their tooltips show. "
+      .. "Off: the bar is only a display and the mouse goes through it.", B, "click", Up)
+    W.Dropdown(p, "Left-click an icon", "What a left-click on one of this bar's icons does (with the mouse on, above).", cd.CLICKS,
+      function() return cd.ClickDoes(bar, "LeftButton") end, function(v) bar.lclick = v Up() end)
+    W.Dropdown(p, "Right-click an icon", "What a right-click on one of this bar's icons does (with the mouse on, above).", cd.CLICKS,
+      function() return cd.ClickDoes(bar, "RightButton") end, function(v) bar.rclick = v Up() end)
+    O.PfChk(p, "Show keybinds", "The key of the action button the spell, item or macro sits on, in the icon's top right corner "
+      .. "(the main bar as it shows now first, then the other bars). Nothing when it is on no bound button.", B, "keys", Up)
 
     W.Card(p, "Look of all icons", { icon = "Interface\\Icons\\INV_Misc_Gem_Variety_01", tip = "Shared by every bar." })
     O.PfChk(p, "Time left on the icons", nil, G, "timers", Up)
@@ -518,8 +525,10 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
       what:SetWidth(200)
       what:SetJustifyH("LEFT")
       what:SetTextColor(.6, .6, .63)
-      what:SetText((not st.known) and (en.kind == "item" and "not in your bags" or "not learned") or
-        ((en.kind == "item" and "item" or (en.kind == "aura" and "effect" or Length(cd.BaseCD(en.name)))) .. (en.auto and "   filled in" or "")))
+      what:SetText((not st.known) and (en.kind == "item" and "not in your bags" or (en.kind == "macro" and "no such macro" or "not learned")) or
+        ((en.kind == "item" and "item" or (en.kind == "aura" and "effect"
+          or (en.kind == "macro" and ("macro" .. (st.target and (": " .. st.target) or "")) or Length(cd.BaseCD(en.name)))))
+          .. (en.auto and "   filled in" or "")))
       local del = W.Button(r, "X", 24, 20)
       del:SetPoint("RIGHT", r, "RIGHT", -4, 0)
       if W.Tint then W.Tint(del, "danger") end
@@ -592,13 +601,39 @@ pfUI:RegisterModule("cdm-options", "vanilla", function ()
     W.Tip(aura, "An effect or proc", "Any effect that is on you now - an item's proc, a trinket's effect, a buff from a talent. "
       .. "Its icon shows its time and stacks while it is up and hides otherwise (change that with its Non Active State). "
       .. "Not up right now? Type its exact name in \"By name\".")
-    W.Edit(p, "By name", "The exact name of a spell, an item or an effect; Enter adds it. An item if you carry or wear it, a spell if it is in your spell book, else an effect (a proc) followed by its name.",
+    local macro = W.Button(addrow, "A macro...", 110, 22)
+    macro:SetPoint("LEFT", aura, "RIGHT", 8, 0)
+    if W.Tint then W.Tint(macro, "pick") end
+    macro:SetScript("OnClick", function()
+      local opts = {}
+      for _, m in pairs(cd.Macros()) do
+        if not cd.Where(m.name) then
+          local t = cd.MacroTarget(m.body)
+          table.insert(opts, { key = m.name, label = m.name .. (t and ("  |cff9a9aa0" .. t .. "|r") or ""), icon = m.tex })
+        end
+      end
+      table.sort(opts, function(a, b) return a.key < b.key end)
+      if table.getn(opts) == 0 then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r cooldowns: no macro that is not on a bar already (make one with /macro).")
+        return
+      end
+      CP.Pop(this, opts, 260, false, function(key)
+        cd.Add(CP.bar, key, "macro")
+        CP.pick = key
+        Up() Again()
+      end)
+    end)
+    W.Tip(macro, "A macro", "One of your macros (/macro). It shows the macro's picture and the cooldown of the first spell or item it casts "
+      .. "(/cast, /use, CastSpellByName); a click runs the macro.")
+    W.Edit(p, "By name", "The exact name of a spell, an item, a macro or an effect; Enter adds it. An item if you carry or wear it, a spell if it is in your spell book, a macro if you have one by that name, else an effect (a proc) followed by its name.",
       function() return "" end, function(v)
         if not v or v == "" then return end
         cd.itemsDirty = true
         local key = cd.Lower(v)
-        local kind = cd.Items()[key] and "item" or (cd.book[key] and "spell" or "aura")
+        local m = cd.Macros()[key]
+        local kind = cd.Items()[key] and "item" or (cd.book[key] and "spell" or (m and "macro" or "aura"))
         if kind == "spell" then v = cd.book[key].name end
+        if kind == "macro" then v = m.name end
         local e = cd.Add(CP.bar, v, kind)
         if e then
           -- (a proc only shows while it is up, unless you change its Non Active State)

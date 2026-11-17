@@ -5,8 +5,9 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   -- licence reserves all rights: its feature list only, written fresh, no code or art.
   --
   -- C.cdm.bars = { { name, auto = "short" | "long" | "all" | "none", sort, size, spacing, per,
-  --   vertical, center, alpha, show = always | combat | target | never, click, bg,
-  --   spells = { { name, kind = "spell" | "item", auto, when = always | cd | ready,
+  --   vertical, center, alpha, show = always | combat | target | never, click, bg, keys,
+  --   lclick / rclick = use | options | none,
+  --   spells = { { name, kind = "spell" | "item" | "macro" | "aura", auto, nouse, when = always | cd | ready,
   --   glow = off | flash | ready | active | both, desat, swipe, active, buff, thresh, sound } } } }
   -- (pfUI_config is per character, so the bars are too). Frames pfCDM1..6, layout mode boxes.
   --
@@ -66,6 +67,11 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     { key = "idle", label = "Non Active State", def = "normal", tip = "How the icon looks while it is ready and nothing is running.",
       opts = { { key = "normal", label = "Normal" }, { key = "dim", label = "Dimmed" }, { key = "grey", label = "Grey" },
                { key = "hide", label = "Hidden" } } },
+    -- (17 Nov 2026, Bread: Heroic Strike and Slam did not grey out without rage; optional, off as before)
+    { key = "nouse", label = "Not Usable State", def = "normal", extra = true,
+      tip = "How the icon looks while it is ready but cannot be used now: not enough rage, mana or energy, or a reactive spell (Overpower, Execute) that is not up.",
+      opts = { { key = "normal", label = "Normal" }, { key = "grey", label = "Grey" }, { key = "dim", label = "Dimmed" },
+               { key = "red", label = "Tinted red" }, { key = "blue", label = "Tinted blue (like action buttons out of mana)" } } },
     { key = "desat", label = "Cooldown Saturation", def = "1",
       opts = { { key = "1", label = "Grey while on cooldown" }, { key = "0", label = "Keeps its colours" } } },
     { key = "cdfx", label = "Cooldown State Effect", def = "normal", tip = "How the icon looks while on cooldown, and when it comes off it.",
@@ -116,7 +122,15 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
 
   function CDM.NewBar(name, auto)
     return { name = name, auto = auto or "none", sort = "1", size = "36", spacing = "3", per = "12", vertical = "0",
-      center = "1", alpha = "1", show = "always", click = "0", bg = "0", spells = {} }
+      center = "1", alpha = "1", show = "always", click = "0", bg = "0", keys = "0", lclick = "use", rclick = "options", spells = {} }
+  end
+  -- what a click on an icon does (bar.lclick / bar.rclick; 17 Nov 2026, Bread: a click opened the options)
+  CDM.CLICKS = { { key = "use", label = "Use it (cast the spell, use the item, run the macro)" },
+                 { key = "options", label = "Open these options" }, { key = "none", label = "Nothing" } }
+  function CDM.ClickDoes(bar, button)
+    bar = bar or {}
+    if button == "RightButton" then return (bar.rclick and bar.rclick ~= "") and bar.rclick or "options" end
+    return (bar.lclick and bar.lclick ~= "") and bar.lclick or "use"
   end
   function CDM.Bars()
     local s = S()
@@ -156,7 +170,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     if not bi then return false end
     table.remove(CDM.Bars()[bi].spells, i)
     -- (a spell that fills in by itself stays away until it is added by hand)
-    if e.kind ~= "item" then S().removed[Lower(name)] = true end
+    if e.kind ~= "item" and e.kind ~= "macro" then S().removed[Lower(name)] = true end
     return true
   end
   function CDM.MoveTo(name, to)
@@ -387,6 +401,72 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     return out
   end
 
+  -- ---------------------------------------------------------------- macros
+  -- (17 Nov 2026, Bread: macros could not go on a bar.) A macro shows its own picture and the
+  -- cooldown of the first spell or item it casts (/cast, /use, CastSpellByName("..."), UseItemByName).
+
+  -- name (lower) -> { name, index, tex, body }; the game's 18 shared + 18 character macros
+  function CDM.Macros()
+    local out = {}
+    if not GetMacroInfo then return out end
+    for i = 1, 36 do
+      local name, tex, body = GetMacroInfo(i)
+      if name and name ~= "" then
+        local k = Lower(name)
+        if not out[k] then out[k] = { name = name, index = i, tex = tex, body = body or "" } end
+      end
+    end
+    return out
+  end
+  function CDM.Macro(name)
+    if not GetMacroIndexByName or not GetMacroInfo then return nil end
+    local i = GetMacroIndexByName(name or "")
+    if not i or i == 0 then return nil end
+    local n, tex, body = GetMacroInfo(i)
+    if not n then return nil end
+    return { name = n, index = i, tex = tex, body = body or "" }
+  end
+  -- the spell or item name a macro's body casts first
+  function CDM.MacroTarget(body)
+    if type(body) ~= "string" then return nil end
+    for line in string.gfind(body .. "\n", "([^\r\n]*)\r?\n") do
+      local _, _, what = string.find(line, "^%s*/[cC][aA][sS][tT]%s+(.+)$")
+      if not what then _, _, what = string.find(line, "^%s*/[uU][sS][eE]%s+(.+)$") end
+      if not what then _, _, what = string.find(line, "CastSpellByName%(%s*[\"'](.-)[\"']") end
+      if not what then _, _, what = string.find(line, "UseItemByName%(%s*[\"'](.-)[\"']") end
+      if what then
+        -- conditions ([mod:shift] ...), alternatives (a; b) and ranks go
+        -- (of "a; b", the first part with no condition: what it casts with no key held)
+        local pick
+        for part in string.gfind(what .. ";", "([^;]*);") do
+          if not string.find(part, "%[") and string.find(part, "%S") then pick = part break end
+        end
+        what = string.gsub(pick or what, "%b[]", "")
+        what = string.gsub(what, ";.*$", "")
+        what = string.gsub(what, "%(%s*[Rr]ank%s*%d+%s*%)", "")
+        what = string.gsub(what, "^%s*!?", "")
+        what = string.gsub(what, "%s*$", "")
+        if what ~= "" and not string.find(what, "^%d+%s*%d*$") then return what end
+      end
+    end
+  end
+  -- run a macro: the game's RunMacro where a DLL gives it, else each line through the chat box
+  -- as the game does when you press the macro's button
+  function CDM.RunMacro(m)
+    local run = rawget(_G, "RunMacro")
+    if type(run) == "function" and pcall(run, m.index) then return true end
+    local eb = rawget(_G, "ChatFrameEditBox")
+    local send = rawget(_G, "ChatEdit_SendText")
+    if not eb or type(send) ~= "function" then return false end
+    for line in string.gfind((m.body or "") .. "\n", "([^\r\n]*)\r?\n") do
+      if string.find(line, "%S") then
+        eb:SetText(line)
+        send(eb)
+      end
+    end
+    return true
+  end
+
   -- ---------------------------------------------------------------- an entry's state
 
   -- { known, tex, start, dur, left (cooldown), active, aleft, count, state = ready | cd | active }
@@ -397,6 +477,23 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     if e.kind == "aura" then
       -- (an effect or proc followed by its name alone: always "known"; its picture is kept once seen)
       st.known, st.tex = true, e.tex
+    elseif e.kind == "macro" then
+      local m = CDM.Macro(e.name)
+      if m then
+        st.known, st.tex = true, m.tex
+        local what = CDM.MacroTarget(m.body)
+        local wk = what and Lower(what)
+        local b = wk and CDM.book[wk]
+        local it = wk and not b and CDM.Items()[wk]
+        if b and GetSpellCooldown then start, dur = GetSpellCooldown(b.index, "spell")
+        elseif it then
+          if it.inv then start, dur = GetInventoryItemCooldown("player", it.inv)
+          else start, dur = GetContainerItemCooldown(it.bag, it.slot) end
+        end
+        st.target = b and b.name or (it and it.name) or nil
+        -- (its effect: the buff of what it casts, unless "Replace with Buff" says otherwise)
+        if st.target and not (e.buff and e.buff ~= "") then k = Lower(st.target) end
+      end
     elseif e.kind == "item" then
       local it = CDM.Items()[k]
       if it then
@@ -433,7 +530,8 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       end
     end
     st.state = st.active and "active" or (st.left and "cd" or "ready")
-    if st.known and st.state == "ready" and (CDM.Get(e, "proc") ~= "off" or CDM.Get(e, "anim_proc") ~= "none") then
+    if st.known and st.state == "ready" and (CDM.Get(e, "proc") ~= "off" or CDM.Get(e, "anim_proc") ~= "none"
+        or CDM.Get(e, "nouse") ~= "normal") then
       st.usable = CDM.Usable(e)
     end
     return st
@@ -450,28 +548,115 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   -- answers, else the action button that holds the spell; no button = yes
   CDM.slots = {}
   function CDM.Usable(e)
-    if e.kind == "item" then return true end
-    local b = CDM.book[Lower(e.name)]
+    if e.kind == "item" or e.kind == "aura" then return true end
+    local name = e.name
+    if e.kind == "macro" then
+      local m = CDM.Macro(e.name)
+      name = m and CDM.MacroTarget(m.body)
+      if not name or not CDM.book[Lower(name)] then return true end
+    end
+    local b = CDM.book[Lower(name)]
     if not b then return false end
     local cs = rawget(_G, "C_Spell")
     if type(cs) == "table" and type(cs.IsSpellUsable) == "function" then
-      local ok, usable = pcall(cs.IsSpellUsable, e.name)
+      local ok, usable = pcall(cs.IsSpellUsable, b.name)
       if ok and usable ~= nil then return usable and true or false end
     end
     if not (HasAction and GetActionTexture and IsUsableAction) then return true end
-    local now = GetTime()
-    if not CDM.slotsAt or now - CDM.slotsAt > 5 then
-      CDM.slotsAt, CDM.slots = now, {}
-      for slot = 1, 120 do
-        if HasAction(slot) and not (GetActionText and GetActionText(slot)) then
-          local tex = GetActionTexture(slot)
-          if tex and not CDM.slots[tex] then CDM.slots[tex] = slot end
-        end
-      end
-    end
+    CDM.ScanSlots(GetTime())
     local slot = b.tex and CDM.slots[b.tex]
     if not slot then return true end
     return IsUsableAction(slot) and true or false
+  end
+  -- the action bars, read at most every 5 s (and after a bar or binding change):
+  -- CDM.slots tex -> first slot, CDM.allslots tex -> { slots }, CDM.macroslots name -> { slots }
+  function CDM.ScanSlots(now)
+    if CDM.slotsAt and now - CDM.slotsAt <= 5 then return end
+    CDM.slotsAt, CDM.slots, CDM.allslots, CDM.macroslots, CDM.keys = now, {}, {}, {}, {}
+    if not (HasAction and GetActionTexture) then return end
+    for slot = 1, 120 do
+      if HasAction(slot) then
+        local text = GetActionText and GetActionText(slot)
+        if text then
+          local k = Lower(text)
+          if not CDM.macroslots[k] then CDM.macroslots[k] = {} end
+          table.insert(CDM.macroslots[k], slot)
+        else
+          local tex = GetActionTexture(slot)
+          if tex then
+            if not CDM.slots[tex] then CDM.slots[tex] = slot end
+            if not CDM.allslots[tex] then CDM.allslots[tex] = {} end
+            table.insert(CDM.allslots[tex], slot)
+          end
+        end
+      end
+    end
+  end
+
+  -- ---------------------------------------------------------------- keybinds
+  -- (17 Nov 2026, Bread: "an option to show what keybind it's on") the key of the action button that
+  -- holds the spell, item or macro: the main bar (or the stance page it shows now) first, then the others.
+  CDM.KEYCMD = { [2] = "PFPAGING", [3] = "MULTIACTIONBAR3BUTTON", [4] = "MULTIACTIONBAR4BUTTON",
+                 [5] = "MULTIACTIONBAR2BUTTON", [6] = "MULTIACTIONBAR1BUTTON", [7] = "PFSTANCEONE",
+                 [8] = "PFSTANCETWO", [9] = "PFSTANCETHREE", [10] = "PFSTANCEFOUR" }
+  -- a slot's key and whether it is on the main bar as it shows now
+  function CDM.SlotKey(slot)
+    if not GetBindingKey then return nil end
+    local bar = math.floor((slot - 1) / 12) + 1
+    local id = slot - (bar - 1) * 12
+    local off = tonumber(GetBonusBarOffset and GetBonusBarOffset() or 0) or 0
+    if (bar == 1 and off == 0) or (off > 0 and bar == 6 + off) then
+      local k = GetBindingKey("ACTIONBUTTON" .. id)
+      if k then return k, true end
+    end
+    -- (a page the main bar does not show now keeps its own bar's key, if any)
+    if bar == 1 then return nil end
+    local cmd = CDM.KEYCMD[bar]
+    return cmd and GetBindingKey(cmd .. id) or nil, false
+  end
+  -- "SHIFT-1" -> "S1", "CTRL-BUTTON4" -> "CM4", "NUMPAD5" -> "N5"
+  function CDM.ShortKey(k)
+    if not k then return nil end
+    k = string.upper(k)
+    k = string.gsub(k, "SHIFT%-", "S")
+    k = string.gsub(k, "CTRL%-", "C")
+    k = string.gsub(k, "ALT%-", "A")
+    k = string.gsub(k, "MOUSEWHEELUP", "WU")
+    k = string.gsub(k, "MOUSEWHEELDOWN", "WD")
+    k = string.gsub(k, "MIDDLEBUTTON", "M3")
+    k = string.gsub(k, "BUTTON", "M")
+    k = string.gsub(k, "NUMPADPLUS", "N+")
+    k = string.gsub(k, "NUMPADMINUS", "N-")
+    k = string.gsub(k, "NUMPAD", "N")
+    k = string.gsub(k, "SPACE", "Spc")
+    k = string.gsub(k, "BACKSPACE", "Bs")
+    k = string.gsub(k, "PAGEUP", "PU")
+    k = string.gsub(k, "PAGEDOWN", "PD")
+    return k
+  end
+  -- the short key of an entry ("" = on no bound button)
+  function CDM.Key(e)
+    CDM.ScanSlots(GetTime())
+    local k = Lower(e.name)
+    if CDM.keys[k] then return CDM.keys[k] end
+    local list
+    if e.kind == "macro" then
+      list = CDM.macroslots[k]
+    elseif e.kind == "item" then
+      local it = CDM.Items()[k]
+      list = it and it.tex and CDM.allslots[it.tex]
+    else
+      local b = CDM.book[k]
+      list = b and b.tex and CDM.allslots[b.tex]
+    end
+    local best
+    for _, slot in ipairs(list or {}) do
+      local key, main = CDM.SlotKey(slot)
+      if key and main then best = key break end
+      best = best or key
+    end
+    CDM.keys[k] = CDM.ShortKey(best) or ""
+    return CDM.keys[k]
   end
 
   -- talents: name (lower) -> points in it
@@ -549,6 +734,10 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b.count = b.over:CreateFontString(nil, "OVERLAY")
     b.count:SetFont(pfUI.font_default, 11, "OUTLINE")
     b.count:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -2, 2)
+    b.key = b.over:CreateFontString(nil, "OVERLAY")
+    b.key:SetFont(pfUI.font_default, 10, "OUTLINE")
+    b.key:SetPoint("TOPRIGHT", b, "TOPRIGHT", -2, -2)
+    b.key:SetTextColor(.85, .85, .9)
     b.glow = CreateFrame("Frame", nil, b)
     b.glow:SetPoint("TOPLEFT", b, "TOPLEFT", -5, 5)
     b.glow:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 5, -5)
@@ -578,17 +767,21 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     if preview then return b end
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     b:SetScript("OnClick", function()
-      if arg1 == "RightButton" then CDM.OpenOptions() return end
-      if this.e then CDM.Use(this.e) end
+      local does = CDM.ClickDoes(CDM.Bars()[this.bi or 0], arg1)
+      if does == "options" then CDM.OpenOptions()
+      elseif does == "use" and this.e then CDM.Use(this.e) end
     end)
     b:SetScript("OnEnter", function()
       local e = this.e
       if not e then return end
       GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
       local bk = CDM.book[Lower(e.name)]
-      if e.kind ~= "item" and bk and GameTooltip.SetSpell then GameTooltip:SetSpell(bk.index, "spell")
-      else GameTooltip:AddLine(e.name) end
-      GameTooltip:AddLine("Click: use it.  Right-click: options.", .35, .7, 1)
+      if e.kind ~= "item" and e.kind ~= "macro" and bk and GameTooltip.SetSpell then GameTooltip:SetSpell(bk.index, "spell")
+      else GameTooltip:AddLine(e.name .. (e.kind == "macro" and "  |cff9a9aa0macro|r" or "")) end
+      local bar = CDM.Bars()[this.bi or 0]
+      local said = { use = "use it", options = "options", none = "nothing" }
+      GameTooltip:AddLine("Click: " .. said[CDM.ClickDoes(bar, "LeftButton")] .. ".  Right-click: "
+        .. said[CDM.ClickDoes(bar, "RightButton")] .. ".", .35, .7, 1)
       GameTooltip:Show()
     end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -599,6 +792,11 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       local it = CDM.Items()[Lower(e.name)]
       if not it then return end
       if it.inv then UseInventoryItem(it.inv) else UseContainerItem(it.bag, it.slot) end
+    elseif e.kind == "macro" then
+      local m = CDM.Macro(e.name)
+      if m then CDM.RunMacro(m) end
+    elseif e.kind == "aura" then
+      return
     else
       CastSpellByName(e.name)
     end
@@ -615,8 +813,15 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b:SetBackdropBorderColor(r, g, bl, a)
     local oncd = st.state == "cd"
     local idle = st.state == "ready" and CDM.Get(e, "idle") or "normal"
-    if b.icon.SetDesaturated then b.icon:SetDesaturated((oncd and e.desat ~= "0") or idle == "grey") end
-    b.baseAlpha = ((oncd and CDM.Get(e, "cdfx") == "dim") or idle == "dim") and .4 or 1
+    local nouse = (st.state == "ready" and st.usable == false) and CDM.Get(e, "nouse") or "normal"
+    if b.icon.SetDesaturated then b.icon:SetDesaturated((oncd and e.desat ~= "0") or idle == "grey" or nouse == "grey") end
+    if nouse == "red" then b.icon:SetVertexColor(1, .3, .3)
+    elseif nouse == "blue" then b.icon:SetVertexColor(.4, .45, 1)
+    else b.icon:SetVertexColor(1, 1, 1) end
+    b.baseAlpha = ((oncd and CDM.Get(e, "cdfx") == "dim") or idle == "dim" or nouse == "dim") and .4 or 1
+    -- the keybind (bar.keys, set on b by Layout)
+    if b.showkey and b.key then b.key:SetText(CDM.Key(e) or "") b.key:Show()
+    elseif b.key then b.key:Hide() end
     b.zoom = zoom
     if oncd and e.swipe ~= "0" and st.dur and st.dur > 0 then
       b.shade:SetHeight(math.max(1, (size - 2) * math.min(1, st.left / st.dur)))
@@ -629,6 +834,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       b.fsize = fsize
       b.time:SetFont(pfUI.font_default, fsize, "OUTLINE")
       b.count:SetFont(pfUI.font_default, math.max(8, fsize - 2), "OUTLINE")
+      if b.key then b.key:SetFont(pfUI.font_default, math.max(8, fsize - 3), "OUTLINE") end
     end
     if S().timers == "0" or e.text == "0" then
       b.time:SetText("")
@@ -891,6 +1097,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
       b:ClearAllPoints()
       b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -y)
       b.host, b.bx, b.by, b.bsize = frame, x, y, size
+      b.showkey = bar.keys == "1"
       CDM.Paint(b, rows[i].e, rows[i].st, size, rows[i].flash, now, rows[i].at)
       b:Show()
     end
@@ -1002,6 +1209,7 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
         CDM.Layout(f, f.buttons, bar, rows, known, function() return CDM.NewButton(fr) end, now)
         local click = bar.click == "1" and not layout
         for _, b in ipairs(f.buttons) do
+          b.bi = i
           if b.clicky ~= click then b.clicky = click b:EnableMouse(click) end
         end
         f:SetAlpha(Num(bar.alpha, 1))
@@ -1027,11 +1235,14 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   local ev = CreateFrame("Frame")
   CDM.ev = ev
   for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED", "LEARNED_SPELL_IN_TAB", "PLAYER_AURAS_CHANGED", "BAG_UPDATE",
-                       "UNIT_INVENTORY_CHANGED", "CHARACTER_POINTS_CHANGED" }) do
+                       "UNIT_INVENTORY_CHANGED", "CHARACTER_POINTS_CHANGED", "ACTIONBAR_SLOT_CHANGED", "UPDATE_BINDINGS",
+                       "UPDATE_BONUS_ACTIONBAR", "UPDATE_MACROS" }) do
     pcall(ev.RegisterEvent, ev, e)
   end
   ev:SetScript("OnEvent", function()
     if event == "PLAYER_AURAS_CHANGED" then CDM.names = {} this.auras = true
+    elseif event == "ACTIONBAR_SLOT_CHANGED" or event == "UPDATE_BINDINGS" or event == "UPDATE_BONUS_ACTIONBAR"
+        or event == "UPDATE_MACROS" then CDM.slotsAt = nil
     elseif event == "BAG_UPDATE" then CDM.itemsDirty = true
     elseif event == "UNIT_INVENTORY_CHANGED" then if arg1 == "player" then CDM.itemsDirty = true end
     else this.book = GetTime() + .5 CDM.talents = nil CDM.slotsAt = nil end

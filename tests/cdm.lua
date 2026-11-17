@@ -323,6 +323,76 @@ do
   CDM.talents = nil
 end
 
+-- (17 Nov 2026, Bread) macros, keybinds, what a click does, the not-usable look - each optional
+do
+  local mk = {}
+  for _, k in ipairs({ "GetMacroInfo", "GetMacroIndexByName", "HasAction", "GetActionText", "GetActionTexture",
+                       "IsUsableAction", "GetBonusBarOffset", "C_Spell", "CastSpellByName", "RunMacro" }) do mk[k] = rawget(_G, k) end
+  local MACROS = { { "Fear", "Interface\\Icons\\Fear", "/stopcasting\n/cast [mod:shift] Fade; Psychic Scream(Rank 2)" },
+                   { "Hi", "Interface\\Icons\\Wave", "/wave" } }
+  _G.GetMacroInfo = function(i) local m = MACROS[i] if m then return m[1], m[2], m[3] end end
+  _G.GetMacroIndexByName = function(n) for i, m in ipairs(MACROS) do if m[1] == n then return i end end return 0 end
+  ok(CDM.MacroTarget(MACROS[1][3]) == "Psychic Scream" and CDM.MacroTarget("/script CastSpellByName(\"Fade\")") == "Fade"
+    and CDM.MacroTarget("/wave") == nil, "the spell a macro casts is read from its text")
+  local m = CDM.Add(1, "Fear", "macro")
+  running["Psychic Scream"] = { now - 5, 30 }
+  local st = CDM.State(m, now)
+  ok(m and st.known and st.tex == "Interface\\Icons\\Fear" and st.state == "cd" and math.abs(st.left - 25) < .01 and st.target == "Psychic Scream",
+    "a macro on a bar: its picture and the cooldown of what it casts")
+  ok(CDM.Macros()["hi"] and CDM.Macros()["hi"].index == 2, "the macro list for the menu")
+  local ran
+  _G.RunMacro = function(i) ran = i end
+  CDM.Use(m)
+  ok(ran == 1, "using it runs the macro")
+  _G.RunMacro = mk.RunMacro
+
+  -- keybinds: the button the spell sits on (main bar first)
+  local scream = CDM.book["psychic scream"]
+  local slots = { [5] = { tex = scream.tex }, [27] = { tex = scream.tex }, [30] = { text = "Fear", tex = "Interface\\Icons\\Fear" } }
+  _G.HasAction = function(s) return slots[s] and 1 or nil end
+  _G.GetActionText = function(s) return slots[s] and slots[s].text end
+  _G.GetActionTexture = function(s) return slots[s] and slots[s].tex end
+  _G.GetBonusBarOffset = function() return 0 end
+  local bindWas = Mock.bindings
+  Mock.bindings = { ["SHIFT-5"] = "ACTIONBUTTON5", ["F"] = "MULTIACTIONBAR3BUTTON3", ["CTRL-BUTTON4"] = "MULTIACTIONBAR3BUTTON6" }
+  CDM.slotsAt = nil
+  local _, _, se = CDM.Where("Psychic Scream")
+  ok(se and CDM.Key(se) == "S5", "a spell's key: the main bar's button first (" .. tostring(se and CDM.Key(se)) .. ")")
+  ok(CDM.Key(m) == "CM4", "a macro's key, shortened (" .. tostring(CDM.Key(m)) .. ")")
+  Mock.bindings = {}
+  CDM.slotsAt = nil
+  ok(CDM.Key(se) == "", "no bound button: no key")
+  Mock.bindings = bindWas
+  CDM.slotsAt = nil
+
+  -- clicks: left uses, right opens the options, unless changed
+  local bar = CDM.Bars()[1]
+  ok(CDM.ClickDoes(bar, "LeftButton") == "use" and CDM.ClickDoes(bar, "RightButton") == "options", "clicks as before by default")
+  bar.lclick, bar.rclick = "none", "use"
+  ok(CDM.ClickDoes(bar, "LeftButton") == "none" and CDM.ClickDoes(bar, "RightButton") == "use", "what a click does is a choice")
+  bar.lclick, bar.rclick = nil, nil
+
+  -- not usable (no rage): normal unless picked
+  _G.C_Spell = { IsSpellUsable = function() return false end }
+  running["Psychic Scream"] = nil
+  st = CDM.State(se, now)
+  ok(st.state == "ready" and st.usable == nil, "Not Usable State off: nothing asked")
+  se.nouse = "grey"
+  st = CDM.State(se, now)
+  local b = CDM.NewButton(UIParent, true)
+  local grey
+  b.icon.SetDesaturated = function(_, v) grey = v end
+  CDM.Paint(b, se, st, 36, false, now)
+  ok(st.usable == false and grey, "Not Usable State grey: greyed while it cannot be used")
+  se.nouse = "dim"
+  CDM.Paint(b, se, st, 36, false, now)
+  ok(b.baseAlpha < 1 and not grey, "dimmed instead")
+  se.nouse = nil
+  CDM.Remove("Fear")
+  for k, v in pairs(mk) do _G[k] = v end
+  CDM.slotsAt = nil
+end
+
 -- the page builds with a picked icon too
 if O and O.Rebuild and pfUI.cdmOptions then
   pfUI.cdmOptions.bar, pfUI.cdmOptions.pick = 1, "Fade"
