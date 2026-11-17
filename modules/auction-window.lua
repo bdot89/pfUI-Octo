@@ -114,6 +114,41 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.ofusual = (v and v > 0) and (unit / v * 100) or nil
     return r.ofusual
   end
+  -- price against the usual one, coloured as aux does (17 Nov 2026, Lobo: "green / yellow / red ... 102% still
+  -- shows white"): blue = a steal, green = cheap, yellow = about usual, orange = dear, red = far too dear
+  UI.PCTCOL = { { 50, "|cff4aa8ff", "under 50%: a steal" }, { 80, "|cff40e060", "under 80%: cheap" },
+    { 110, "|cffffe040", "80 - 110%: about the usual price" }, { 135, "|cffff9a30", "110 - 135%: dear" },
+    { nil, "|cffff4a3a", "over 135%: far too dear" } }
+  function UI.PctColor(p)
+    for _, c in ipairs(UI.PCTCOL) do
+      if not c[1] or p < c[1] then return c[2] end
+    end
+  end
+  function UI.PctText(p)
+    if not p then return "" end
+    return UI.PctColor(p) .. math.floor(p + .5) .. "%|r"
+  end
+  function UI.PctLegend(tip)
+    for _, c in ipairs(UI.PCTCOL) do tip:AddLine(c[2] .. c[3] .. "|r", 1, 1, 1) end
+  end
+  -- what each column holds (head tooltips), by its sort key
+  UI.HEADTIPS = {
+    name = "The item. Shift + click a row links it in chat, Ctrl + click tries it on.",
+    count = "How many are in the stack.",
+    level = "The level needed to use it (red: above yours).",
+    left = "How long until the auction ends.",
+    owner = "Who put it up (yours in green).",
+    bidunit = "What a bid costs now, for one.",
+    unit = "The buyout price for one.",
+    buyout = "The buyout price for the whole auction.",
+    ofusual = "Its price each against the usual price for this item (the middle of the daily lows seen). 100% = the usual price.",
+    bid = "The highest bid on it now.",
+    other = "The cheapest other seller of the same item (after Check for undercuts).",
+    low = "The cheapest buyout for one.",
+    auctions = "How many auctions of it are up.",
+    share = "Its price each against the usual price.",
+    profit = "What a stack would make sold at the usual price, less the cut.",
+  }
   local LEFTCOL = { "|cffff5a4a", "|cffffa040", "|cffe8e8a0", "|cff9ad0a0" }
   function UI.Left(left) return AH.LEFT[left] and ((LEFTCOL[left] or "") .. AH.LEFT[left] .. "|r") or "" end
   local ME
@@ -168,8 +203,21 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       h.arrow:SetHeight(8)
       h.arrow:SetPoint("RIGHT", h, "RIGHT", -1, 0)
       h.arrow:Hide()
-      h:SetScript("OnEnter", function() if this.key then this.hl:Show() end end)
-      h:SetScript("OnLeave", function() this.hl:Hide() end)
+      -- (17 Nov 2026, Lobo: "can these resize, or have a tooltip that says what it is?") every head names
+      -- itself in full and says what the column holds
+      h.label = label
+      h:SetScript("OnEnter", function()
+        if this.key then this.hl:Show() end
+        if not this.label or this.label == "" then return end
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText(this.label, 1, 1, 1)
+        local tip = this.key and UI.HEADTIPS[this.key]
+        if tip then GameTooltip:AddLine(tip, .8, .8, .84, 1) end
+        if this.key == "ofusual" then UI.PctLegend(GameTooltip) end
+        if this.key then GameTooltip:AddLine("Click: sort by this. Click again: the other way round.", .5, .7, 1, 1) end
+        GameTooltip:Show()
+      end)
+      h:SetScript("OnLeave", function() this.hl:Hide() GameTooltip:Hide() end)
       h:SetScript("OnClick", function()
         if not this.key then return end
         -- (a new column starts with its natural order: money and amounts biggest first)
@@ -255,12 +303,30 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         end
       end)
       r:SetScript("OnLeave", function() this.hl:Hide() GameTooltip:Hide() end)
+      -- (17 Nov 2026, Lobo: "hold shift and drag down to select multiple auctions") on lists made with
+      -- l.multi: Shift + press and drag over rows picks them all (the drag is followed by l's OnUpdate, as
+      -- other rows get no OnEnter while the button is held), Shift + click picks from the last picked row
+      r:SetScript("OnMouseDown", function()
+        if not l.multi or not this.d or not IsShiftKeyDown() then return end
+        if ChatFrameEditBox and ChatFrameEditBox:IsVisible() then return end
+        l.anchor = (l.sel and l.Index(l.sel)) and l.sel or this.d
+        l.dragging = true
+        l.PickRange(l.anchor, this.d)
+      end)
+      r:SetScript("OnMouseUp", function() l.dragging = nil end)
       r:SetScript("OnClick", function()
         if not this.d then return end
         if IsShiftKeyDown() and this.d.link and ChatFrameEditBox and ChatFrameEditBox:IsVisible() then
           ChatFrameEditBox:Insert(this.d.link)
           return
         end
+        if l.multi and IsShiftKeyDown() and arg1 ~= "RightButton" then
+          l.sel = this.d
+          l.Paint()
+          if onPick then onPick(this.d, arg1) end
+          return
+        end
+        if l.multi then l.picks = {} end
         -- Ctrl + click tries it on in the dressing room, as everywhere else in the game
         -- (17 Nov 2026, Lobo: it used to bid, and he bid without knowing)
         if IsControlKeyDown() and this.d.link then
@@ -294,7 +360,16 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       if not key then return end
       table.sort(l.data, function(a, b)
         local va, vb = a[key], b[key]
-        if va == vb then return (a.name or "") < (b.name or "") end
+        if va == vb then
+          -- (17 Nov 2026, Lobo: after a buyout "it jumps around to different auctions a bit eratic" - rows
+          -- of the same price had no fixed order and swapped places at every sort; now the name, the price
+          -- each, the stack and the order read decide, always the same way)
+          if (a.name or "") ~= (b.name or "") then return (a.name or "") < (b.name or "") end
+          local ua, ub = a.unit or 1e12, b.unit or 1e12
+          if ua ~= ub then return ua < ub end
+          if (a.count or 0) ~= (b.count or 0) then return (a.count or 0) < (b.count or 0) end
+          return (a.seq or 0) < (b.seq or 0)
+        end
         if va == nil then return false end
         if vb == nil then return true end
         if desc then return va > vb end
@@ -310,7 +385,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         r.d = d
         if d then
           draw(r, d)
-          if l.sel == d then r.pick:SetTexture(ar, ag, ab, .28) r.pick:Show() else r.pick:Hide() end
+          if l.sel == d then r.pick:SetTexture(ar, ag, ab, .28) r.pick:Show()
+          elseif l.picks[d] then r.pick:SetTexture(ar, ag, ab, .17) r.pick:Show()
+          else r.pick:Hide() end
           r:Show()
         else
           r:Hide()
@@ -348,13 +425,81 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     function l.Set(data, keep)
       l.data = data or {}
       if not keep then l.offset = 0 end
-      -- (the picked one stays picked while it is still listed)
-      local had = false
-      for _, d in ipairs(l.data) do if d == l.sel then had = true end end
-      if not had then l.sel = nil end
+      -- (the picked one stays picked while it is still listed; lists read afresh each time - My auctions -
+      -- find it again by what it is, l.same)
+      local inData = {}
+      for _, d in ipairs(l.data) do inData[d] = true end
+      local taken, moved = {}, {}
+      local function Again(old)
+        if not old then return nil end
+        if moved[old] ~= nil then return moved[old] or nil end
+        local found = false
+        if inData[old] then found = old
+        elseif l.same then
+          for _, d in ipairs(l.data) do
+            if not taken[d] and not inData[old] and l.same(old, d) then found = d break end
+          end
+        end
+        if found then taken[found] = true end
+        moved[old] = found
+        return found or nil
+      end
+      l.sel = Again(l.sel)
+      local picks = {}
+      for d in pairs(l.picks) do
+        local now = Again(d)
+        if now then picks[now] = true end
+      end
+      l.picks = picks
       l.Sort()
       l.Paint()
     end
+    -- several picked rows (multi lists)
+    l.picks = {}
+    function l.Index(d)
+      for i, e in ipairs(l.data) do if e == d then return i end end
+    end
+    function l.PickRange(a, b)
+      local ia, ib = l.Index(a), l.Index(b)
+      if not ia or not ib then return end
+      if ia > ib then ia, ib = ib, ia end
+      l.picks = {}
+      for i = ia, ib do l.picks[l.data[i]] = true end
+      l.sel = b
+      l.Paint()
+      if onPick then onPick(b, "LeftButton") end
+    end
+    -- the picked rows in the list's order: the Shift picks, or else the one picked row
+    function l.Picked()
+      local out = {}
+      for _, d in ipairs(l.data) do if l.picks[d] then table.insert(out, d) end end
+      if table.getn(out) == 0 and l.sel then table.insert(out, l.sel) end
+      return out
+    end
+    function l.ClearPicks() l.picks = {} l.Paint() end
+    l:SetScript("OnUpdate", function()
+      if not l.dragging then return end
+      if not IsShiftKeyDown() then l.dragging = nil return end
+      if not MouseIsOver then return end
+      for i = 1, l.shown do
+        local r = l.rows[i]
+        if r:IsShown() and r.d and MouseIsOver(r) and r.d ~= l.sel then l.PickRange(l.anchor, r.d) break end
+      end
+      -- dragging past the first / last row scrolls on
+      local now = GetTime()
+      if (l.scrollAt or 0) > now then return end
+      local first, last = l.rows[1], l.rows[l.shown]
+      local _, cy = GetCursorPosition()
+      local s = l:GetEffectiveScale()
+      cy = cy / s
+      if first and first:GetTop() and cy > first:GetTop() and l.offset > 0 then
+        l.offset = l.offset - 1 l.scrollAt = now + .06
+        l.PickRange(l.anchor, l.data[l.offset + 1])
+      elseif last and last:GetBottom() and cy < last:GetBottom() and l.offset + l.shown < table.getn(l.data) then
+        l.offset = l.offset + 1 l.scrollAt = now + .06
+        l.PickRange(l.anchor, l.data[l.offset + l.shown])
+      end
+    end)
     return l
   end
   local function ItemCell(r, d, count)
@@ -459,9 +604,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   local function PctCell(d)
     local v = d.unit and AH.Value(d.key)
     if not v or v <= 0 then return "" end
-    local p = d.unit / v * 100
-    local col = (p <= 80 and "|cff40e060") or (p <= 120 and "|cffffffff") or "|cffff7060"
-    return col .. math.floor(p + .5) .. "%|r"
+    return UI.PctText(d.unit / v * 100)
   end
   local function Search(first)
     local text = B.name:GetText()
@@ -658,7 +801,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   -- costs to buy out, beside the price each; sortable like the rest
   B.list = NewList(B, { { "Item", 236, "LEFT", "name", "count" }, { "Lvl", 28, "RIGHT", "level" }, { "Time left", 80, "LEFT", "left" },
     { "Seller", 86, "LEFT", "owner" }, { "Bid each", 92, "RIGHT", "bidunit" }, { "Buyout each", 96, "RIGHT", "unit" },
-    { "Total", 100, "RIGHT", "buyout" }, { "Of usual", 52, "RIGHT", "ofusual" } }, 22, function(r, d)
+    { "Total", 88, "RIGHT", "buyout" }, { "Of usual", 64, "RIGHT", "ofusual" } }, 22, function(r, d)
     ItemCell(r, d, d.count)
     -- (a level above yours in red, as the game marks what you cannot use yet)
     local mine = UnitLevel and UnitLevel("player") or 60
@@ -838,7 +981,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.status = Text(B, 11)
   B.status:SetPoint("TOPLEFT", B.list, "BOTTOMLEFT", 4, -8)
   B.status:SetTextColor(.62, .62, .67)
-  B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go (when that is on in the Auctions options)."), "buy")
+  B.list.multi = true
+  B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out, then the cheapest one left of the same item is picked. Alt + click a row does it in one go (when that is on in the Auctions options). Shift + drag (or Shift + click) picks several: they are bought cheapest first, one by one; click again to stop."), "buy")
   B.buy:SetPoint("TOPRIGHT", B.list, "BOTTOMRIGHT", 0, -4)
   B.bid = Btn(B, "Bid", 190, function() UI.Buy("bid") end, "Bid on the picked auction. (Ctrl + click a row tries the item on.)")
   B.bid:SetPoint("RIGHT", B.buy, "LEFT", -6, 0)
@@ -922,6 +1066,26 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local kind = UI.pages[UI.tab] or B
     local bid, buy = kind.bid, kind.buy
     if not bid then return end
+    local q = UI.queue
+    if q and q.kind ~= "cancel" then
+      buy.text:SetText("Stop (" .. math.max(0, (q.i or 1) - 1) .. " of " .. (q.total or 0) .. ")")
+      buy.Able(true)
+      bid.Able(false)
+      return
+    end
+    local picked = UI.List().Picked and UI.List().Picked() or {}
+    if table.getn(picked) > 1 then
+      local nb, cb, nd, cd = 0, 0, 0, 0
+      for _, r in ipairs(picked) do
+        if AH.CanBuy(r, "buyout") == "ok" then nb, cb = nb + 1, cb + r.buyout end
+        if AH.CanBuy(r, "bid") == "ok" then nd, cd = nd + 1, cd + r.next end
+      end
+      buy.text:SetText("Buy " .. nb .. "  " .. AH.Money(cb))
+      bid.text:SetText("Bid on " .. nd .. "  " .. AH.Money(cd))
+      buy.Able(nb > 0)
+      bid.Able(nd > 0)
+      return
+    end
     if d then
       bid.text:SetText("Bid  " .. AH.Money(d.next))
       buy.text:SetText(d.buyout > 0 and ("Buyout  " .. AH.Money(d.buyout)) or "No buyout")
@@ -933,30 +1097,126 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     end
   end
   function UI.List() return UI.lists[UI.tab] or B.list end
+  -- the row to pick after d was bought (16 Nov 2026, user: "it should then go to the item below so its possible
+  -- to spam buyout"; 17 Nov, Lobo: "my cursor jumped to a higher priced auction while the ones cheaper were still
+  -- there"): the cheapest auction left of the same item when it costs no more each than d did, else the row that
+  -- now stands where d stood (at = d's place before the buy)
+  function UI.NextAfter(l, d, at)
+    local best
+    for _, r in ipairs(l.data or {}) do
+      if r ~= d and not r.gone and r.key == d.key and r.unit and (not best or r.unit < best.unit) then best = r end
+    end
+    if best and d.unit and best.unit <= d.unit then return best end
+    local here = l.Index(d)
+    if here then return l.data[here + 1] end
+    return at and l.data[at] or nil
+  end
+  function UI.ScrollTo(l, d)
+    local n = d and l.Index(d)
+    if n and (n <= l.offset or n > l.offset + l.shown) then
+      l.offset = math.max(0, n - math.floor(l.shown / 2))
+      l.Paint()
+    end
+  end
   function UI.Buy(how)
     local l = UI.List()
+    if UI.queue then UI.StopQueue("Stopped.") return end
+    local picked = l.Picked()
+    if table.getn(picked) > 1 then UI.BuyMany(how, picked) return end
     local d = l.sel
-    -- (16 Nov 2026, user: "if i click buyout ... it should then go to the item below so its possible to spam
-    -- buyout": the row after it in the list's own order is picked next, and scrolled into view)
-    local at, nextRow
-    for i, r in ipairs(l.data or {}) do if r == d then at = i end end
-    if at then nextRow = l.data[at + 1] end
+    local at = l.Index(d)
     local ok, why = AH.Buy(d, how)
     if not ok then UI.Note("Cannot " .. (how == "buyout" and "buy" or "bid") .. ": " .. tostring(why) .. ".") UI.Refresh() return end
     if why then UI.Note(why .. "...")
     else UI.Note((how == "buyout" and "Bought " or "Bid on ") .. d.name .. " for " .. AH.Money(AH.Cost(d, how), true) .. ".") end
-    l.sel = nextRow
     UI.Refresh()
-    if nextRow and l.Show then
-      local n
-      for i, r in ipairs(l.data) do if r == nextRow then n = i end end
-      if n and (n <= l.offset or n > l.offset + l.shown) then
-        l.offset = math.max(0, n - math.floor(l.shown / 2))
-        l.Paint()
-      end
-    end
+    l.sel = UI.NextAfter(l, d, at)
+    l.picks = {}
+    l.Paint()
+    UI.ScrollTo(l, l.sel)
     UI.PaintBuy()
   end
+  -- Several at once: the picked auctions, cheapest each first, one after the other as the auction house takes
+  -- them (a buy whose page has to be fetched again waits for it). Clicking Buyout again stops it.
+  local Q = CreateFrame("Frame", nil, f)
+  function UI.StopQueue(note)
+    local q = UI.queue
+    UI.queue = nil
+    if q and note then UI.Note(note .. "  " .. q.done .. " of " .. q.total .. " done.") end
+    UI.PaintBuy()
+    UI.PaintOwner()
+  end
+  function UI.RunQueue(q)
+    UI.queue = q
+    q.i, q.done, q.spent, q.total, q.next = 1, 0, 0, table.getn(q.rows), 0
+    UI.PaintBuy()
+    UI.PaintOwner()
+  end
+  -- (pfUI's question box only closes itself when one is open already: close it first, then ask)
+  local function Ask(text, fn)
+    if not CreateQuestionDialog then fn() return end
+    local old = rawget(_G, "pfQuestionDialog")
+    if old and old.IsShown and old:IsShown() then old:Hide() _G["pfQuestionDialog"] = nil end
+    CreateQuestionDialog(text, fn)
+  end
+  function UI.BuyMany(how, rows)
+    local list, cost = {}, 0
+    for _, r in ipairs(rows) do
+      if AH.CanBuy(r, how) == "ok" or (AH.CanBuy(r, how) == "not enough money") then
+        table.insert(list, r)
+        cost = cost + AH.Cost(r, how)
+      end
+    end
+    if table.getn(list) == 0 then UI.Note("None of the picked auctions can be " .. (how == "buyout" and "bought out." or "bid on.")) return end
+    table.sort(list, function(a, b)
+      local ua, ub = (how == "buyout" and a.unit or a.bidunit) or 1e12, (how == "buyout" and b.unit or b.bidunit) or 1e12
+      if ua ~= ub then return ua < ub end
+      return (a.seq or 0) < (b.seq or 0)
+    end)
+    local text = (how == "buyout" and "Buy out " or "Bid on ") .. table.getn(list) .. " auctions for " .. AH.Money(cost, true) .. "?"
+    Ask(text, function() UI.RunQueue({ kind = how, rows = list }) end)
+  end
+  function UI.CancelMany(rows)
+    if table.getn(rows) == 0 then return end
+    local text = "Cancel " .. table.getn(rows) .. " of your auctions? Their deposits are lost."
+    Ask(text, function() UI.RunQueue({ kind = "cancel", rows = rows }) end)
+  end
+  function UI.QueueStep(now)
+    local q = UI.queue
+    if not q then return end
+    if not AH.open then UI.queue = nil return end
+    if now < q.next or AH.pending or AH.Searching() then return end
+    local r = q.rows[q.i]
+    if not r then
+      UI.queue = nil
+      if q.kind == "cancel" then UI.Note("Cancelled " .. q.done .. " of " .. q.total .. " auctions.")
+      else UI.Note((q.kind == "buyout" and "Bought " or "Bid on ") .. q.done .. " of " .. q.total .. " auctions for " .. AH.Money(q.spent, true) .. ".") end
+      UI.Refresh()
+      UI.PaintBuy()
+      UI.PaintOwner()
+      return
+    end
+    q.i = q.i + 1
+    if q.kind == "cancel" then
+      -- (the owner list is read again after each one: wait for it before the next)
+      q.next = now + .7
+      if AH.Cancel(r) then q.done = q.done + 1 end
+      UI.Note("Cancelling " .. (q.i - 1) .. " of " .. q.total .. "...")
+      return
+    end
+    q.next = now + .25
+    if r.gone then return end
+    local ok, why = AH.Buy(r, q.kind)
+    if not ok then
+      if why == "not enough money" then UI.StopQueue("Not enough money for the rest.") return end
+      if string.find(tostring(why), "wait", 1, true) then q.i = q.i - 1 return end
+      return
+    end
+    q.done = q.done + 1
+    q.spent = q.spent + AH.Cost(r, q.kind)
+    UI.Note((q.kind == "buyout" and "Buying " or "Bidding ") .. (q.i - 1) .. " of " .. q.total .. "...")
+  end
+  Q:SetScript("OnUpdate", function() if UI.queue then UI.QueueStep(GetTime()) end end)
   -- the last searches, newest first (per account)
   function UI.Recent(name)
     if not name or name == "" then return end
@@ -1227,17 +1487,32 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   end, function() UI.PaintOwner() end)
   O.list:SetPoint("TOPLEFT", O, "TOPLEFT", 0, 0)
   O.list:SetPoint("RIGHT", O, "RIGHT", 0, 0)
+  O.list.multi = true
+  O.list.same = AH.Same
   O.cancel = Btn(O, "Cancel this auction", 190, function()
+    if UI.queue then UI.StopQueue("Stopped.") return end
+    local picked = O.list.Picked()
+    if table.getn(picked) > 1 then UI.CancelMany(picked) return end
     local d = O.list.sel
     if not d then return end
     if AH.Cancel(d) then UI.Note("Cancelled " .. d.name .. ".") else UI.Note("That auction is gone.") end
-  end, "Takes the picked auction down. You lose its deposit; an auction with a bid on it costs more.")
+  end, "Takes the picked auction down. You lose its deposit; an auction with a bid on it costs more. Shift + drag (or Shift + click) picks several: they are cancelled one by one.")
   O.cancel:SetPoint("TOPRIGHT", O.list, "BOTTOMRIGHT", 0, -4)
   Role(O.cancel, "danger")
   O.sumText = Text(O, 11)
   O.sumText:SetPoint("TOPLEFT", O.list, "BOTTOMLEFT", 4, -8)
   O.sumText:SetTextColor(.62, .62, .67)
-  function UI.PaintOwner() O.cancel.Able(O.list.sel ~= nil) end
+  function UI.PaintOwner()
+    local q = UI.queue
+    if q and q.kind == "cancel" then
+      O.cancel.text:SetText("Stop (" .. math.max(0, (q.i or 1) - 1) .. " of " .. (q.total or 0) .. ")")
+      O.cancel.Able(true)
+      return
+    end
+    local n = table.getn(O.list.Picked())
+    O.cancel.text:SetText(n > 1 and ("Cancel " .. n .. " auctions") or "Cancel this auction")
+    O.cancel.Able(n > 0)
+  end
   -- one exact search per different item you have up, then every row shows the cheapest other seller
   function UI.CheckUndercuts()
     if AH.Searching() then AH.Stop() return end
@@ -1277,6 +1552,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.cell[6]:SetText(d.high and "|cff40e060yours|r" or "|cffff7060outbid|r")
     for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function() UI.PaintBuy() end)
+  D.list.multi = true
+  D.list.same = AH.Same
   D.list:SetPoint("TOPLEFT", D, "TOPLEFT", 0, 0)
   D.list:SetPoint("RIGHT", D, "RIGHT", 0, 0)
   D.buy = Role(Btn(D, "Buyout", 190, function() UI.Buy("buyout") end), "buy")
@@ -1395,7 +1672,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local v = d.low and AH.Value(d.key)
     if v and v > 0 then
       local p = d.low / v * 100
-      r.cell[5]:SetText(((p <= 80 and "|cff40e060") or (p <= 120 and "|cffffffff") or "|cffff7060") .. math.floor(p + .5) .. "%|r")
+      r.cell[5]:SetText(UI.PctText(p))
     else
       r.cell[5]:SetText("")
     end
@@ -1489,7 +1766,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "")
     r.cell[5]:SetText((d.buyout or 0) > 0 and AH.Money(d.buyout) or "")
     r.cell[6]:SetText(d.value and AH.Money(d.value) or "")
-    r.cell[7]:SetText(d.share and ("|cff40e060" .. math.floor(d.share * 100 + .5) .. "%|r") or "")
+    r.cell[7]:SetText(d.share and UI.PctText(d.share * 100) or "")
     r.cell[8]:SetText(d.profit and ("|cff40e060+|r" .. AH.Money(d.profit)) or "")
     for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)

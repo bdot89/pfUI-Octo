@@ -168,6 +168,9 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       minBid = minBid or 0, inc = inc or 0, buyout = buyout or 0, bid = bid or 0, high = high, owner = owner,
       link = link, key = AH.ItemKey(link), left = GetAuctionItemTimeLeft and GetAuctionItemTimeLeft(kind, i) or 0,
       page = page or 0, index = i }
+    -- (a number in the order read: equal rows keep one order when a list is sorted again)
+    AH.seqN = (AH.seqN or 0) + 1
+    row.seq = AH.seqN
     row.unit = row.buyout > 0 and (row.buyout / count) or nil
     -- what a bid costs now, in all and each
     row.next = (row.bid > 0) and (row.bid + row.inc) or row.minBid

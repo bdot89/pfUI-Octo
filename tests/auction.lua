@@ -357,6 +357,55 @@ do
     ok(bought == "buyout", "Alt + click on: bought out")
     _G.DressUpItemLink, UI.Buy, _G.this = dressWas, buyWas, thisWas
   end
+  -- (17 Nov 2026, Lobo) after a buyout, picks, several at once, colours
+  do
+    local dataWas, selWas = l.data, l.sel
+    local function R(seq, unit, count, owner) return { name = "Dense Blasting Powder", key = "15992", unit = unit, count = count, buyout = unit * count,
+      next = unit * count, bidunit = unit, minBid = unit, bid = 0, owner = owner, seq = seq, kind = "list", level = 1, left = 2, quality = 1, inc = 0, index = seq, page = 0 } end
+    local a, b, c, d, e = R(1, 1996, 10, "Claank"), R(2, 1998, 6, "Nyxthra"), R(3, 1996, 10, "Claank"), R(4, 2400, 5, "Bob"), R(5, 1996, 10, "Claank")
+    l.sortBy, l.desc = "unit", false
+    l.Set({ e, d, c, b, a })
+    ok(l.data[1] == a and l.data[2] == c and l.data[3] == e and l.data[4] == b and l.data[5] == d, "equal prices keep one order (as read)")
+    l.Set({ d, a, e, b, c })
+    ok(l.data[1] == a and l.data[2] == c and l.data[3] == e, "and the same order after sorting again")
+    -- bought the middle one of three equal ones: the cheapest left goes next, not the dearer one below
+    c.gone = true
+    l.Set({ a, e, b, d })
+    ok(UI.NextAfter(l, c, 2) == a, "after a buy: the cheapest of the same item left is picked [" .. tostring(UI.NextAfter(l, c, 2) and UI.NextAfter(l, c, 2).seq) .. "]")
+    ok(UI.NextAfter(l, d, 5) == nil or UI.NextAfter(l, d, 5).unit <= d.unit, "the dearest bought: a cheaper one is fine")
+    c.gone = nil
+    l.Set({ a, b, c, d, e })
+    l.PickRange(a, e)
+    ok(table.getn(l.Picked()) == 3 and l.sel == e, "Shift + drag over rows picks them all")
+    l.PickRange(c, a)
+    ok(table.getn(l.Picked()) == 2, "upwards too")
+    UI.PaintBuy()
+    ok(string.find(UI.pages.browse.buy.text:GetText() or "", "^Buy 2"), "the Buyout button says how many [" .. tostring(UI.pages.browse.buy.text:GetText()) .. "]")
+    -- several at once: cheapest first, one after the other
+    local buyWas, openWas, bought = AH.Buy, AH.open, {}
+    AH.Buy = function(r, how) table.insert(bought, r) r.gone = true return true end
+    AH.open = true
+    UI.RunQueue({ kind = "buyout", rows = { d, a, b } })
+    for t = 1, 10 do UI.QueueStep(1000 + t) end
+    ok(table.getn(bought) == 3 and not UI.queue, "the queue buys every picked one [" .. table.getn(bought) .. "]")
+    AH.Buy, AH.open = buyWas, openWas
+    for _, r in ipairs({ a, b, c, d, e }) do r.gone = nil end
+    -- My auctions are read afresh: picks are found again by what they are
+    local fresh = {}
+    for _, r in ipairs({ a, b, c }) do local n = {} for k, v in pairs(r) do n[k] = v end table.insert(fresh, n) end
+    l.same = AH.Same
+    l.Set({ a, b, c, d, e })
+    l.PickRange(a, b)
+    l.Set(fresh)
+    ok(table.getn(l.Picked()) == 3 and l.sel and l.sel ~= b and AH.Same(l.sel, b), "picks follow a list read again [" .. table.getn(l.Picked()) .. "]")
+    l.same, l.picks = nil, {}
+    -- prices against the usual one in colour
+    ok(string.find(UI.PctText(102), "ffe040", 1, true) and string.find(UI.PctText(60), "40e060", 1, true) and string.find(UI.PctText(150), "ff4a3a", 1, true),
+      "Of usual: 102% yellow, 60% green, 150% red")
+    ok(UI.HEADTIPS.ofusual and UI.HEADTIPS.unit, "column heads explain themselves")
+    l.Set(dataWas)
+    l.sel = selWas
+  end
   bags[0] = { { 2589, 20 }, { 2589, 20 } }
   AH.bagsDirty = true
   okay2, err2 = pcall(function()
