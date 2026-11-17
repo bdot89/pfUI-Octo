@@ -230,6 +230,37 @@ if PL and PL.Filtered then
   ok(PL.Filtered(Plate(0, 1, 0, "Herald")) == true, "bg: friendly NPC hidden")
   local tp = Plate(1, 0, 0, "Guard", "NPC") tp.istarget = true
   ok(PL.Filtered(tp) == false, "bg: your target is kept")
+  -- pets (17 Nov 2026): a friendly pet's bar is blue like a player's; enemy pets known by name without SuperWoW
+  local SP = pfUI_config.plates
+  local keep = { SP.bg_friendpet, SP.bg_friendplayer, SP.bg_enemypet, SP.bg_enemynpc }
+  SP.bg_friendpet, SP.bg_friendplayer, SP.bg_enemypet, SP.bg_enemynpc = "1", "0", "1", "0"
+  PL.groupPets = { Wolfie = true } PL.petsAt = GetTime() + 60
+  ok(PL.FilterKind(Plate(0, 0, 1, "Wolfie")) == "friendpet", "bg: blue plate of a group pet is a friendly pet")
+  ok(PL.Filtered(Plate(0, 0, 1, "Wolfie")) == true, "bg: friendly pet hidden with Friendly pets on")
+  ok(PL.Filtered(Plate(0, 0, 1, "Ally")) == false, "bg: friendly player still kept")
+  PL.petNames["Felguard Bob"] = true
+  ok(PL.FilterKind(Plate(1, 0, 0, "Felguard Bob")) == "enemypet", "bg: enemy pet known by name")
+  ok(PL.Filtered(Plate(1, 0, 0, "Felguard Bob")) == true, "bg: enemy pet hidden with only Enemy pets on")
+  ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == false, "bg: enemy NPC kept with Enemy NPCs off")
+  -- other add-ons' frames on a hidden plate go to alpha 0 and come back
+  local function Kid(a) local k = { a = a } function k:GetAlpha() return self.a end function k:SetAlpha(v) self.a = v end return k end
+  local other, mine = Kid(.8), Kid(1)
+  local gp = { GetChildren = function() return mine, other end, EnableMouse = function() end }
+  local pp = Plate(0, 0, 1, "Wolfie") pp.parent = gp
+  function pp:SetAlpha(v) mine.a = v end
+  function pp:GetAlpha() return mine.a end
+  gp.nameplate = pp
+  -- the plate itself is a child: it must not be noted as someone else's
+  local real = gp.GetChildren
+  gp.GetChildren = function() return pp, other end
+  PL.ApplyFilter(gp, pp)
+  ok(other.a == 0 and pp.octoFiltered, "bg filter: another add-on's frame on the plate hidden")
+  PL.groupPets = {}
+  PL.ApplyFilter(gp, pp)
+  ok(other.a == .8 and not pp.octoFiltered, "bg filter: its alpha put back when the plate shows again")
+  gp.GetChildren = real
+  PL.groupPets = {} PL.petsAt = 0 PL.petNames["Felguard Bob"] = nil
+  SP.bg_friendpet, SP.bg_friendplayer, SP.bg_enemypet, SP.bg_enemynpc = keep[1], keep[2], keep[3], keep[4]
   pfUI.context.Zone = function() return "world" end
   ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == false, "world: no filtering by default")
   pfUI.context.Zone = oldZone

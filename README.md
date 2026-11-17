@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.34
+
+- 🐾 **Nameplates in battlegrounds:** "Friendly pets" now hides your own and your team's pets (their bars are blue like players', so they counted as players). "Enemy pets" also works without SuperWoW for any pet you have targeted or moused over. A hidden plate now hides other add-ons' parts on it too.
+
 ## 📜 New in 1.1.33
 
 - ⎋ **Escape:** fixed Escape sometimes not opening the game menu after you had been at the auction house. A safety net also stops any other window from causing the same problem.

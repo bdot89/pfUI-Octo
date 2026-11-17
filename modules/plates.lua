@@ -1744,18 +1744,65 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   -- pfUI's cache (UnitIsPlayer while targeted / moused over, or SuperWoW's GUID) or pfUI_playerDB; pet =
   -- SuperWoW GUID controlled by a player (without SuperWoW pets count as NPCs). Hidden = alpha 0 and no
   -- clicks (bg_nameonly: only the bar goes).
+  -- Pet names (17 Nov 2026, user: pets still showed in battlegrounds with the pet switches on). A friendly
+  -- pet's bar is BLUE like a friendly player's, so every blue plate counted as a player. Names of pets:
+  -- your own, party / raid pets (refreshed every 2 s), and any unit seen as target / mouseover that a
+  -- player controls but is not a player (enemy pets without SuperWoW). Players' names are never pets.
+  P.petNames = P.petNames or {}
+  P.groupPets = {}
+  P.petsAt = 0
+  function P.NotePet(unit)
+    if not UnitExists(unit) or UnitIsPlayer(unit) then return end
+    if not (UnitPlayerControlled and UnitPlayerControlled(unit)) then return end
+    local n = (UnitName(unit))
+    if n and n ~= "" then P.petNames[n] = true end
+  end
+  function P.GroupPets()
+    local now = GetTime()
+    if now < P.petsAt then return P.groupPets end
+    P.petsAt = now + 2
+    local t = {}
+    local function add(u)
+      if UnitExists(u) then
+        local n = (UnitName(u))
+        if n and n ~= "" then t[n] = true end
+      end
+    end
+    add("pet")
+    for i = 1, 4 do add("partypet" .. i) end
+    for i = 1, (GetNumRaidMembers and GetNumRaidMembers() or 0) do add("raidpet" .. i) end
+    P.groupPets = t
+    return t
+  end
+  function P.IsPetName(name)
+    if not name or name == "" then return end
+    if pfUI_playerDB and pfUI_playerDB[name] and pfUI_playerDB[name].class then return end
+    return P.GroupPets()[name] or P.petNames[name]
+  end
+  local petwatch = CreateFrame("Frame")
+  petwatch:RegisterEvent("PLAYER_TARGET_CHANGED")
+  petwatch:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+  petwatch:SetScript("OnEvent", function()
+    P.NotePet(event == "PLAYER_TARGET_CHANGED" and "target" or "mouseover")
+  end)
+
   function P.FilterKind(plate)
     local hb = plate.original and plate.original.healthbar
     if not hb then return end
     local r, g, b = hb:GetStatusBarColor()
     r, g, b = r or 0, g or 0, b or 0
-    local guid = superwow_active and plate.parent and plate.parent.GetName and plate.parent:GetName(1)
+    local guid = (P.SuperWoW() or superwow_active) and plate.parent and plate.parent.GetName and plate.parent:GetName(1)
     if guid == "" then guid = nil end
     local name = plate.cache and plate.cache.name or (plate.name and plate.name:GetText()) or ""
-    local isPlayer = (plate.cache and plate.cache.player == "PLAYER")
+    local isPet
+    if guid and UnitExists(guid) then
+      isPet = not UnitIsPlayer(guid) and UnitPlayerControlled and UnitPlayerControlled(guid) and true
+    else
+      isPet = P.IsPetName(name) and true
+    end
+    local isPlayer = not isPet and ((plate.cache and plate.cache.player == "PLAYER")
       or (guid and UnitIsPlayer(guid))
-      or (pfUI_playerDB and pfUI_playerDB[name] and pfUI_playerDB[name].class and true)
-    local isPet = not isPlayer and guid and UnitPlayerControlled and UnitPlayerControlled(guid)
+      or (pfUI_playerDB and pfUI_playerDB[name] and pfUI_playerDB[name].class and true))
     local isTotem
     if not isPlayer and L and L["totems"] then
       for totem in pairs(L["totems"]) do
@@ -1765,7 +1812,7 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     local side
     if r > .9 and g > .9 and b < .2 then side = "neutral"
     elseif r > .9 and g < .2 and b < .2 then side = "enemy"
-    elseif b > .9 and r < .2 and g < .2 then side = "friend" isPlayer = true
+    elseif b > .9 and r < .2 and g < .2 then side = "friend" isPlayer = not isPet
     elseif g > .9 and r < .2 and b < .2 then side = "friend"
     else side = "enemy" end
     if side == "enemy" then
@@ -1796,21 +1843,53 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if not kind or kind == "enemyplayer" then return false end
     return S["bg_" .. kind] == "1"
   end
+  -- Other add-ons' frames on the same game plate (17 Nov 2026, user: the filter "should hard over write any
+  -- other addon"): while a plate is filtered they are held at alpha 0 (their own alpha noted once and put back
+  -- when the plate shows again). Only the plate's direct children; the game's own bars are left alone.
+  function P.HideOthers(parent, plate, on)
+    if not parent.GetChildren then return end
+    local own = plate.original or {}
+    local held = parent.octoHeld
+    if on then
+      local now = GetTime()
+      if not held or (parent.octoHeldAt or 0) <= now then
+        -- look for new frames once a second; between looks only the ones known are held at 0
+        held = held or {}
+        parent.octoHeld = held
+        parent.octoHeldAt = now + 1
+        local kids = { parent:GetChildren() }
+        for _, k in ipairs(kids) do
+          if k ~= plate and k ~= own.healthbar and k ~= own.castbar and k.GetAlpha and held[k] == nil then
+            held[k] = k:GetAlpha()
+          end
+        end
+      end
+      for k in pairs(held) do
+        if k:GetAlpha() ~= 0 then k:SetAlpha(0) end
+      end
+    elseif held then
+      for k, a in pairs(held) do if k.SetAlpha then k:SetAlpha(a) end end
+      parent.octoHeld = nil
+    end
+  end
   function P.ApplyFilter(parent, plate)
     if not plate then return end
     local hide = P.Filtered(plate)
     if hide then
       if S.bg_nameonly == "1" then
-        if plate.health then plate.health:Hide() end
+        if plate.health and plate.health:IsShown() then plate.health:Hide() plate.octoHidHealth = true end
       else
         plate:SetAlpha(0)
         if parent.EnableMouse then parent:EnableMouse(false) end
+        P.HideOthers(parent, plate, true)
       end
       plate.octoFiltered = true
     elseif plate.octoFiltered then
       plate.octoFiltered = nil
+      P.HideOthers(parent, plate, false)
       if parent.EnableMouse then parent:EnableMouse(true) end
       if plate:GetAlpha() == 0 then plate:SetAlpha(1) end
+      if plate.octoHidHealth then plate.octoHidHealth = nil if plate.health then plate.health:Show() end end
     end
   end
 
@@ -1818,7 +1897,14 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   NP.OnUpdate = function(frame)
     local parent = frame or this
     local plate = parent and parent.nameplate
-    if plate and P.Calm(parent, plate) then return end
+    if plate and P.Calm(parent, plate) then
+      -- a filtered plate stays hidden between redraws, whatever else touched it
+      if plate.octoFiltered and S.bg_nameonly ~= "1" then
+        if plate:GetAlpha() ~= 0 then plate:SetAlpha(0) end
+        P.HideOthers(parent, plate, true)
+      end
+      return
+    end
     OnUpdate(frame)
     if parent then P.Tick(parent.nameplate) P.ApplyFilter(parent, parent.nameplate) end
   end
