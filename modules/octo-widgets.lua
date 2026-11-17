@@ -514,10 +514,24 @@ function W.Pin(p, title, tip, build)
   local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 11, C.label[1], C.label[2], C.label[3])
   t:SetPoint("LEFT", arrow, "RIGHT", 6, 0)
   t:SetText(W.Caps(title))
+  -- (17 Nov 2026, user: "all preview boxes should be collapsable also with easy to see collapse menu")
+  -- a plain button at the right end of the label line: "Hide preview" / "Show preview"
+  local fold = CreateFrame("Button", nil, head)
+  fold:SetWidth(112)
+  fold:SetHeight(18)
+  fold:SetPoint("RIGHT", head, "RIGHT", -2, 0)
+  W.Flat(fold, C.field, 1, C.accent)
+  fold.arrow = W.Arrow(fold, 8, "up", C.accent)
+  fold.arrow:SetPoint("LEFT", fold, "LEFT", 8, 0)
+  fold.t = W.Font(fold:CreateFontString(nil, "OVERLAY"), 11, C.accent[1], C.accent[2], C.accent[3])
+  fold.t:SetPoint("LEFT", fold.arrow, "RIGHT", 6, 0)
+  fold:SetScript("OnEnter", function() this.t:SetTextColor(1, 1, 1) end)
+  fold:SetScript("OnLeave", function() this.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) end)
+  pin.fold = fold
   local rule = W.Fill(head, C.cardLine, 1, "ARTWORK")
   rule:SetHeight(1)
   rule:SetPoint("LEFT", t, "RIGHT", 10, 0)
-  rule:SetPoint("RIGHT", head, "RIGHT", -2, 0)
+  rule:SetPoint("RIGHT", fold, "LEFT", -8, 0)
   W.Tip(head, title, (tip and (tip .. "\n\n") or "") .. "Stays here while the page scrolls. Click to fold it away.")
   local tipEnter, tipLeave = head:GetScript("OnEnter"), head:GetScript("OnLeave")
   head:SetScript("OnEnter", function() t:SetTextColor(C.text[1], C.text[2], C.text[3]) tipEnter() end)
@@ -545,9 +559,13 @@ function W.Pin(p, title, tip, build)
       pin.contentH = content
       h = CARD_HEAD + content + 14
       W.Turn(arrow, "down")
+      W.Turn(fold.arrow, "up")
+      fold.t:SetText("Hide " .. string.lower(title))
     else
       inner:Hide()
       W.Turn(arrow, "right")
+      W.Turn(fold.arrow, "down")
+      fold.t:SetText("Show " .. string.lower(title))
     end
     pin:SetHeight(h)
     -- the scrolling part starts under the strip
@@ -559,6 +577,7 @@ function W.Pin(p, title, tip, build)
     Store()[key] = not Store()[key] or nil
     Layout()
   end)
+  fold:SetScript("OnClick", function() head:GetScript("OnClick")() end)
   -- measured once it is drawn (sizes come a frame late), and on every show
   pin:SetScript("OnShow", function() this.measure = 2 end)
   pin:SetScript("OnUpdate", function()

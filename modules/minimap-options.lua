@@ -153,7 +153,6 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
 
   -- ---------------------------------------------------------------- preview
 
-  local MAPPX = 150
   local SHAPES = {
     { key = "square", label = "Square" }, { key = "round", label = "Round" }, { key = "rounded", label = "Rounded square" },
     { key = "rounder", label = "Rounder square" }, { key = "squircle", label = "Squircle" }, { key = "octagon", label = "Octagon" },
@@ -199,11 +198,18 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     end
   end
 
-  local function Preview(p)
-    W.Pin(p, "Preview", "Your map with every part around it, where it sits in game. Click a part to pick it, drag it - "
+  -- (17 Nov 2026, user: "make this preview window just the map and smaller it should be clean so we can see
+  -- everything underneath") mapOnly = the Map page: the map alone in a short box, no parts, no help strip.
+  -- The Buttons and text page keeps the parts (you pick them there), in a shorter box too.
+  local function Preview(p, mapOnly)
+    local MAPPX = mapOnly and 110 or 130
+    local tip = mapOnly and "Your map's shape, border, art and side bar. Click it: shape and border; drag it: move the map; "
+      .. "Shift + wheel: bigger / smaller; right-click: size back to 140 px."
+      or ("Your map with every part around it, where it sits in game. Click a part to pick it, drag it - "
       .. "or the map - to move it, hold Shift and scroll the mouse wheel over it to make it bigger or smaller, right-click "
-      .. "it to put it back. Parts set to Never are left out until you pick them. Click this bar to fold it away.", function(pp)
-      local box = (W.ZoomBox or W.Box)(pp, 236)
+      .. "it to put it back. Parts set to Never are left out until you pick them.")
+    W.Pin(p, "Preview", tip, function(pp)
+      local box = (W.ZoomBox or W.Box)(pp, mapOnly and 140 or 190)
       local holder = CreateFrame("Frame", nil, box)
       holder:SetAllPoints(box)
       holder:SetFrameStrata("FULLSCREEN")
@@ -214,7 +220,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
       local mock = CreateFrame("Button", nil, holder)
       mock:SetWidth(MAPPX)
       mock:SetHeight(MAPPX)
-      mock:SetPoint("CENTER", box, "CENTER", 0, 14)
+      mock:SetPoint("CENTER", box, "CENTER", 0, mapOnly and 0 or 10)
       mock:SetFrameLevel(base + 2)
       local under = CreateFrame("Frame", nil, holder)
       under:SetAllPoints(mock)
@@ -357,7 +363,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
           h:SetPoint(pt, mock, map.Rel and map.Rel(part, pt) or pt, x * f, y * f)
           local mode = Mode(part.key)
           local picked = MO.sel == part.key
-          if mode == "hide" and not picked then
+          if mapOnly or (mode == "hide" and not picked) then
             h:Hide()
           else
             h:Show()
@@ -543,6 +549,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
         Layout()
       end)
       Layout()
+      if mapOnly then return end
 
       -- what the mouse does, on screen
       local band = W.Row(pp, 20, 0, 3)
@@ -635,7 +642,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
   local function BuildMap(p)
     W.Heading(p, "Minimap", { on = O.ModuleSwitch("minimap", "Minimap"), about = "The map's look: a ready-made look, its shape, border, "
       .. "size and opacity, the side bar for its buttons and the spell art around it. Buttons and texts round it are on \"Buttons and text\"." })
-    Preview(p)
+    Preview(p, true)
     local function Live() U() O:Refresh() if MO.Layout then MO.Layout() end end
 
     -- looks

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.51", {
+    { "Previews fold away", "every preview box has a clear \"Hide preview\" / \"Show preview\" button at the top right, so you can see the settings under it. The Minimap page's preview is now just the map, in a smaller box." },
+  } },
   { "1.1.50", {
     { "Minimap side bar", "tracking, mail, the battleground queue, zoom in / out and the addon buttons arrow in one tidy strip along any side of the map, all one size, no gaps. Try the look \"Clean, buttons at the side\", or set it up under Minimap > Buttons and text > Side bar." },
   } },
