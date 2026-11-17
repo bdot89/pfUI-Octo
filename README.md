@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.38
+
+- 📬 **Mail: sending many items works.** With several items queued, Send stopped after the first mail. Now every item goes, one mail each. If a mail can't go (wrong name, mailbox closed, an item that won't attach or stays locked), sending stops and says why and how many went. The items that went come off the list, so Send again only sends the rest.
+
 ## 📜 New in 1.1.37
 
 - 📟 **Performance HUD:** a small click-through text in a corner with FPS, latency, memory and the 5 busiest scripts right now, once a second (/pfperf window "HUD", Settings > Performance, or `/pfperf hud`; move it in layout mode).
