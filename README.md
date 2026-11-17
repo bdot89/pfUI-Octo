@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.54
+
+- 🧹 **Quest tracker error fixed:** no more "tracker.lua:281: attempt to index global 'pfQuestCompat'" spam. pfQuest's files now keep their own copy of what they need, so another add-on clearing it can't break them.
+
 ## 📜 New in 1.1.53
 
 - ⚡ **Gear sets swap at once:** every piece of a set goes on in the same click, as ItemRack does, so you can put on one set, do something and put on another straight away. Armour still waits for combat to end.
