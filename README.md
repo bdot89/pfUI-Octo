@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.49
+
+- 🛡️ **Cleaner mob info:** short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more "Resists: None". MobStats' own yellow lines are hidden while ours are on.
+- 🌿 **Profession lines only for you:** skinning, herb and ore lines show only if you have that profession (Shift shows them anyway).
+
 ## 📜 New in 1.1.48
 
 - 🗺️ **Where it drops:** item tooltips list who drops it (with zone and chance), where it is found and who sells it; Shift shows more. Left out when Atlas already names the boss.

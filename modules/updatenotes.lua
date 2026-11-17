@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.49", {
+    { "Cleaner mob info", "short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more \"Resists: None\". MobStats' own yellow lines are hidden while ours are on." },
+    { "Profession lines only for you", "skinning, herb and ore lines show only if you have that profession (Shift shows them anyway)." },
+  } },
   { "1.1.48", {
     { "Where it drops", "item tooltips list who drops it (with zone and chance), where it is found and who sells it; Shift shows more. Left out when Atlas already names the boss." },
     { "Disenchants into", "what an item turns into, the Enchanting it needs and what that is worth at the auction house - always for enchanters, with Shift for everyone else." },
