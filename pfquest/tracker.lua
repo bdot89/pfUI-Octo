@@ -279,8 +279,9 @@ tracker:SetScript("OnUpdate", function()
     this.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and 0.1 or (goal - alpha) < 0 and -0.1 or 0))
   end
 
-  if pfQuestCompat.QuestWatchFrame:IsShown() then
-    pfQuestCompat.QuestWatchFrame:Hide()
+  local qwatch = pfQuestCompat.QuestWatchFrame or QuestWatchFrame or WatchFrame
+  if qwatch and qwatch.IsShown and qwatch:IsShown() then
+    qwatch:Hide()
   end
 
   if tracker.mode == "QUEST_TRACKING" and GetQuestSortMode() == "distance" then

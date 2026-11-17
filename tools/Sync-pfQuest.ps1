@@ -138,6 +138,9 @@ $patches = @{
   # own frame now and sets the layout time itself.
   "tracker.lua" = { param($t)
     $t = Must $t 'this.sectionSignature = nil' 'pfQuestMapTracker.sectionSignature = nil'
+    # (17 Nov 2026, Wolfahrt: "tracker.lua:282: attempt to index a nil value", every frame) the game's quest
+    # watch frame was gone when pfQuest loaded (another add-on); look it up each time and skip it when missing
+    $t = Must $t "  if pfQuestCompat.QuestWatchFrame:IsShown() then`n    pfQuestCompat.QuestWatchFrame:Hide()" "  local qwatch = pfQuestCompat.QuestWatchFrame or QuestWatchFrame or WatchFrame`n  if qwatch and qwatch.IsShown and qwatch:IsShown() then`n    qwatch:Hide()"
     Must $t 'this:ScheduleLayout()' 'pfQuestMapTracker.layoutAt = GetTime() + 0.05'
   }
   # built in, its version comes from pfUI's toc; another player's VERSION message
