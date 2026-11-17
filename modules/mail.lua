@@ -340,13 +340,25 @@ pfUI:RegisterModule("mail", "vanilla", function ()
   end
 
   -- one mail, all of it (right-click a row, or the letter's Take button)
+  -- (17 Nov 2026, user: "the mail box isnt letting me pay cods ... without needing to click twice") one click pays:
+  -- the game's own window does the same, TakeInboxItem from its COD_CONFIRMATION box (FrameXML StaticPopup.lua)
+  function M.PayCOD(i)
+    local m = M.Header(i)
+    if not m or m.cod <= 0 then return false end
+    if m.cod > GetMoney() then
+      if M.onNote then M.onNote("Not enough money to pay " .. M.Money(m.cod) .. ".") end
+      return false
+    end
+    if GetInboxText then GetInboxText(i) end
+    TakeInboxItem(i)
+    if M.onNote then M.onNote("Paid " .. M.Money(m.cod) .. " for " .. (m.subject ~= "" and m.subject or "the item") .. ".") end
+    return true
+  end
+
   function M.TakeOne(i)
     local m = M.Header(i)
     if not m then return end
-    if m.cod > 0 then
-      if M.onNote then M.onNote("Cash on delivery: open the letter and pay with Take, or send it back.") end
-      return
-    end
+    if m.cod > 0 then return M.PayCOD(i) end
     M.job = { kind = "one", sig = m.sig, gold = 0, items = 0, deleted = 0, skipped = 0, why = {} }
     M.skip = {}
     for k = 1, (GetInboxNumItems() or 0) do

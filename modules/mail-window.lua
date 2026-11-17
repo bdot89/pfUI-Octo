@@ -307,25 +307,18 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     end
   end)
   L.item:SetScript("OnLeave", function() GameTooltip:Hide() end)
-  L.item:SetScript("OnClick", function() if UI.cur and UI.cur.item and not M.job then TakeInboxItem(UI.cur.i) end end)
+  L.item:SetScript("OnClick", function()
+    if not (UI.cur and UI.cur.item) or M.job then return end
+    if UI.cur.cod > 0 then M.PayCOD(UI.cur.i) else TakeInboxItem(UI.cur.i) end
+  end)
   L.cash = Text(L, 13)
   L.cash:SetPoint("LEFT", L.item, "RIGHT", 10, 0)
   L.take = Btn(L, "Take", 64, function()
     local m = UI.cur
     if not m or M.job then return end
-    if m.cod > 0 then
-      if m.cod > GetMoney() then UI.Note("Not enough money to pay " .. M.Money(m.cod) .. ".") return end
-      if UI.payAt and GetTime() < UI.payAt then
-        UI.payAt = nil
-        TakeInboxItem(m.i)
-      else
-        UI.payAt = GetTime() + 3
-        UI.Note("Cash on delivery: click Take again within 3 s to pay " .. M.Money(m.cod) .. ".")
-      end
-      return
-    end
+    if m.cod > 0 then M.PayCOD(m.i) return end
     M.TakeOne(m.i)
-  end, "Takes the gold and the item, then throws the letter away if it is empty.")
+  end, "Takes the gold and the item, then throws the letter away if it is empty. Cash on delivery: pays it and takes the item.")
   L.take:SetPoint("BOTTOMLEFT", L, "BOTTOMLEFT", 10, 10)
   L.reply = Btn(L, "Reply", 64, function()
     local m = UI.cur
@@ -387,6 +380,8 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     if m.money > 0 then cash = M.Money(m.money) end
     if m.cod > 0 then cash = "|cffff6060Pay|r " .. M.Money(m.cod) end
     L_.cash:SetText(cash)
+    -- a COD letter's button says what it does
+    L_.take.text:SetText(m.cod > 0 and "|cffff8060Pay|r" or "Take")
     L_.take.Off(not (m.item or m.money > 0) or M.job and true)
     L_.reply.Off(not m.reply)
     L_.ret.Off(not m.reply or m.returned)

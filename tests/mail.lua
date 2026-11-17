@@ -234,3 +234,28 @@ st.names, st.count, st.alts = oldNames, oldCount, oldAlts
 
 for k, v in pairs(keep) do _G[k] = v end
 M.open, M.sending, M.people = nil, nil, nil
+
+-- (17 Nov 2026) cash on delivery: one click pays, as the game's own COD box does (TakeInboxItem)
+do
+  local k2 = {}
+  for _, k in ipairs({ "GetInboxHeaderInfo", "GetInboxItem", "GetInboxNumItems", "GetInboxText", "TakeInboxItem", "GetMoney" }) do k2[k] = rawget(_G, k) end
+  local took, money = {}, 1000
+  _G.GetInboxNumItems = function() return 1 end
+  _G.GetInboxHeaderInfo = function(i) return "pack", "stat", "Shemp", "4x Dense Stone", 0, 6000, 2, 1, 1, nil, 1, 1 end
+  _G.GetInboxItem = function() return "Dense Stone", "tex", 4, 1 end
+  _G.GetInboxText = function() return "C.O.D. delivery" end
+  _G.TakeInboxItem = function(i) table.insert(took, i) end
+  _G.GetMoney = function() return money end
+  local notes = {}
+  local oldNote = M.onNote
+  M.onNote = function(t) table.insert(notes, t) end
+  ok(M.PayCOD and M.PayCOD(1) == false and table.getn(took) == 0 and string.find(notes[1] or "", "Not enough", 1, true), "COD: not enough money - nothing taken")
+  money = 100000
+  ok(M.PayCOD(1) == true and took[1] == 1, "COD: one click pays and takes the item")
+  took = {}
+  M.TakeOne(1)
+  ok(took[1] == 1, "COD: right-click on the row pays too")
+  M.onNote = oldNote
+  M.job = nil
+  for k, v in pairs(k2) do _G[k] = v end
+end
