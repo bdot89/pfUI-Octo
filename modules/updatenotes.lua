@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.42", {
+    { "NPCs no longer click for you", "OctoLazy's \"Skip the menu\" (flight masters, vendors, bankers, battle masters) is now off unless you switch it on - /lazy NPCs & quests. It is switched off once for everyone, with a chat line saying where it is." },
+    { "Map icons stay after a relog", "herb / ore / fish marks are no longer put back to old values by a UI layout switch, and the quest database's tracking lists (herbs, mines, rares...) come back by themselves a few seconds after you log in." },
+  } },
   { "1.1.41", {
     { "OctoRinse (UpsiRinse built in)", "one key cures the most important debuff on your group with the right spell, in range. Its own section at the top of Combat & Items. Every UpsiRinse setting is there, and your UpsiRinse settings, lists and learned debuffs are copied over the first time both are loaded. New files: restart the game fully once." },
     { "Boss lists, per boss only", "every raid and dungeon from UpsiRinse with each boss's curable debuffs, under the zone's loading-screen art. Skip school / Hide / Cure first on a boss count only while you fight that boss - never in PvP or anywhere else. \"Everywhere\" holds the lists that count in every fight." },

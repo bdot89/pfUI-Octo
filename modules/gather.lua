@@ -1100,6 +1100,42 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     marks:SetHeight(table.getn(list) * 18 + 8)
     return list
   end
+  -- (17 Nov 2026, Barbeque_Squirrel: "resource icons on the map dissapear after relog and have to turn them back on")
+  -- pfQuest puts its tracking lists back once at the first loading screen; when that pass did not draw them, they stayed
+  -- off until switched again. A few seconds after each login / loading screen every list saved in pfQuest_track that has
+  -- no marks on the map is tracked again (pfDatabase:TrackMeta with its saved min / max).
+  function GF.RestoreTracks()
+    local db, data, track = QuestDB()
+    local map = rawget(_G, "pfMap")
+    if type(db) ~= "table" or type(db.TrackMeta) ~= "function" or type(track) ~= "table" or type(map) ~= "table" then return 0 end
+    local names, n = {}, 0
+    for name in pairs(track) do table.insert(names, name) end
+    for _, name in ipairs(names) do
+      local nodes = map.nodes and map.nodes["TRACK_" .. string.upper(name)]
+      if not (type(nodes) == "table" and next(nodes)) then
+        local saved = track[name]
+        local state = true
+        if type(saved) == "table" and type(saved[1]) == "table" then
+          state = {}
+          for k, v in pairs(saved[1]) do if k ~= "name" then state[k] = v end end
+          if not next(state) then state = true end
+        end
+        if pcall(db.TrackMeta, db, name, state) then n = n + 1 end
+      end
+    end
+    if n > 0 and map.UpdateNodes then pcall(map.UpdateNodes, map) end
+    return n
+  end
+  local restore = CreateFrame("Frame")
+  restore:RegisterEvent("PLAYER_ENTERING_WORLD")
+  restore:SetScript("OnEvent", function() this.at = GetTime() + 4 this:Show() end)
+  restore:SetScript("OnUpdate", function()
+    if not this.at or GetTime() < this.at then return end
+    this.at = nil
+    this:Hide()
+    GF.RestoreTracks()
+  end)
+  restore:Hide()
   if WorldMapButton then
     local btn = CreateFrame("Button", "pfMapMarksButton", WorldMapButton)
     GF.marksButton = btn

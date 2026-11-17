@@ -27,6 +27,16 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
   local lower, find, gsub = string.lower, string.find, string.gsub
   local function G() return C.octolazy end
   local function On(k) return G()[k] == "1" end
+  -- (17 Nov 2026, Barbeque_Squirrel: "some vendors and flightmasters still automatically press buttons for you") skipping
+  -- NPC menus is now off unless you switch it on (OctoLazy > NPCs & quests > Skip the menu). It was on for everyone;
+  -- switched off once here, with a line saying where it is.
+  if G().gossipoff ~= "1" then
+    G().gossipoff = "1"
+    if G().gossip == "1" then
+      G().gossip = "0"
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33b3ffOctoLazy|r: NPC menus are no longer skipped for you. Want it back? /lazy > NPCs & quests > Skip the menu.")
+    end
+  end
   local function Num(k, d) return tonumber(G()[k]) or d end
   local function Now() return GetTime and GetTime() or 0 end
   function LZ.Say(msg) if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoLazy|r " .. msg) end end

@@ -206,8 +206,16 @@ ok(not LZ.OnDuel("Bob"), "Shift: you see it")
 shift = false
 S.duel = "0"
 
--- gossip: one flight master line is opened, Ctrl shows the menu
+-- gossip: off unless switched on (17 Nov 2026: it pressed vendor / flight master buttons for players who never asked)
+ok(S.gossip == "0" and S.gossipoff == "1", "skipping NPC menus is off by default")
 local picked
+_G.SelectGossipOption = function(i) picked = i end
+_G.GetGossipActiveQuests = function() return nil end
+_G.GetGossipAvailableQuests = function() return nil end
+_G.GetGossipOptions = function() return "Hello", "gossip", "I need a ride", "taxi" end
+ok(LZ.OnGossip() == nil and picked == nil, "switched off: the flight master's menu shows")
+S.gossip = "1"
+-- switched on: one flight master line is opened, Ctrl shows the menu
 _G.SelectGossipOption = function(i) picked = i end
 _G.GetGossipActiveQuests = function() return nil end
 _G.GetGossipAvailableQuests = function() return nil end

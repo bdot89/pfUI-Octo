@@ -770,7 +770,7 @@ function pfUI:LoadConfig()
     rez = "1", rezwhere = "instance", rezcombat = "1", duel = "0", duelfriends = "1",
     bgenter = "0", bgentermode = "late", bgwait = "5", bgafk = "1", bgleave = "0", bgleavewait = "5", bgrelease = "0",
     bgqueue = "0", bgannounce = "0", bgquest = "1",
-    gossip = "1", gtaxi = "1", gvendor = "1", gbank = "1", gbattle = "1", gtrainer = "0", gtext = "Teleport me to the Molten Core",
+    gossip = "0", gtaxi = "1", gvendor = "1", gbank = "1", gbattle = "1", gtrainer = "0", gtext = "Teleport me to the Molten Core",
     quests = "shift", questaccept = "1", questchoice = "ask", questrepeat = "1",
     rightclick = "1", split = "1", splitsize = "1",
     chatrolls = "0", chatjunk = "0", chatmoney = "0",

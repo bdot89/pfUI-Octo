@@ -281,12 +281,26 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
   -- in every layout - the layouts themselves, gear (sets, specs, queues),
   -- places (kept as .pos) and the version.
   L.SHARED = { layouts = true, position = true, gear = true, version = true }
+  -- (17 Nov 2026, Barbeque_Squirrel: map resource icons "dissapear after relog and have to turn them back on") single
+  -- settings every layout shares: the world map's marks. A layout switch (by zone, at login) put back the marks the layout
+  -- was saved with. Never saved with a layout, never put back from one (older saved layouts still hold them: skipped).
+  L.SHAREDKEYS = { gather = { mappins = true, pinherbs = true, pinore = true, pinfish = true } }
+  local function StripShared(out)
+    for part, keys in pairs(L.SHAREDKEYS) do
+      if type(out[part]) == "table" then
+        local t = {}
+        for k, v in pairs(out[part]) do if not keys[k] then t[k] = v end end
+        out[part] = t
+      end
+    end
+    return out
+  end
   function L.CfgCopy()
     local out = {}
     for k, v in pairs(pfUI_config) do
       if not L.SHARED[k] then out[k] = Copy(v) end
     end
-    return out
+    return StripShared(out)
   end
   local function Same(a, b)
     if type(a) ~= "table" or type(b) ~= "table" then return a == b end
@@ -352,9 +366,18 @@ pfUI:RegisterModule("octo-layouts", "vanilla", function ()
   -- change without a reload, by name
   function L.ApplyCfg(cfg)
     if type(cfg) ~= "table" then return {} end
+    -- (a copy without the shared keys, so a layout saved before them cannot put them back)
+    local copy = {}
+    for k, v in pairs(cfg) do copy[k] = v end
+    cfg = StripShared(copy)
     local changed, needs = {}, {}
+    local live = {}
+    for part in pairs(L.SHAREDKEYS) do live[part] = pfUI_config[part] end
+    live = StripShared(live)
     for k, v in pairs(cfg) do
-      if not L.SHARED[k] and not Same(pfUI_config[k], v) then changed[k] = true end
+      local now = pfUI_config[k]
+      if L.SHAREDKEYS[k] then now = live[k] end
+      if not L.SHARED[k] and not Same(now, v) then changed[k] = true end
     end
     -- (the bottom bars' own texts take a reload; the arrow's settings do not)
     if changed.panel and type(cfg.panel) == "table" and type(pfUI_config.panel) == "table" then

@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.42
+
+- 🗣️ **NPCs no longer click for you:** OctoLazy's "Skip the menu" (flight masters, vendors, bankers, battle masters) is now off unless you switch it on - `/lazy` → NPCs & quests. It is switched off once for everyone, with a chat line saying where it is.
+- 🗺️ **Map icons stay after a relog:** herb / ore / fish marks are no longer put back to old values by a UI layout switch, and the quest database's tracking lists (herbs, mines, rares...) come back by themselves a few seconds after you log in.
+
 ## 📜 New in 1.1.41
 
 - 💧 **OctoRinse (UpsiRinse built in):** one key cures the most important debuff on your group with the right spell, in range. Its own section at the top of Combat & Items. Every UpsiRinse setting is there, and your UpsiRinse settings, lists and learned debuffs are copied over the first time both are loaded. New files: restart the game fully once.
