@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.50
+
+- 🧭 **Minimap side bar:** tracking, mail, the battleground queue, zoom in / out and the addon buttons arrow in one tidy strip along any side of the map, all one size, no gaps. Try the look "Clean, buttons at the side", or set it up under Minimap > Buttons and text > Side bar.
+
 ## 📜 New in 1.1.49
 
 - 🛡️ **Cleaner mob info:** short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more "Resists: None". MobStats' own yellow lines are hidden while ours are on.

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.50", {
+    { "Minimap side bar", "tracking, mail, the battleground queue, zoom in / out and the addon buttons arrow in one tidy strip along any side of the map, all one size, no gaps. Try the look \"Clean, buttons at the side\", or set it up under Minimap > Buttons and text > Side bar." },
+  } },
   { "1.1.49", {
     { "Cleaner mob info", "short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more \"Resists: None\". MobStats' own yellow lines are hidden while ours are on." },
     { "Profession lines only for you", "skinning, herb and ore lines show only if you have that profession (Shift shows them anyway)." },
