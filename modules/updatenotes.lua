@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.55", {
+    { "World map drawn right again", "OctoWoW's own zones (Thalassian Highlands and others) no longer show in wrong patches with ClassicAPI installed. The map reveal uses pieces that match the real map pictures." },
+  } },
   { "1.1.54", {
     { "Quest tracker error fixed", "no more \"tracker.lua:281: attempt to index global 'pfQuestCompat'\" spam. pfQuest's files now keep their own copy of what they need, so another add-on clearing it can't break them." },
   } },

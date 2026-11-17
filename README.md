@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.55
+
+- 🗺️ **World map drawn right again:** OctoWoW's own zones (Thalassian Highlands and others) no longer show in wrong patches with ClassicAPI installed. The map reveal uses pieces that match the real map pictures.
+
 ## 📜 New in 1.1.54
 
 - 🧹 **Quest tracker error fixed:** no more "tracker.lua:281: attempt to index global 'pfQuestCompat'" spam. pfQuest's files now keep their own copy of what they need, so another add-on clearing it can't break them.
