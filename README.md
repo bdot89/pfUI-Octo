@@ -119,6 +119,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.30
+
+- 🏦 **Auctions:** Ctrl + click a row now tries the item on in the dressing room, like everywhere else in the game - it no longer bids. Alt + click instant buyout can be switched off (Auctions > "Alt + click a row buys it out").
+- 🗺️ **Quests:** "Only this zone (map + tracker)" in Quests & map: the quest tracker and map pins keep to the zone you are in.
+
 ## 📜 New in 1.1.29
 
 - 🐛 **Heal prediction:** fixed the "libpredict.lua:860: bad argument #2 to 'insert'" error with ClassicAPI when a priest casts Prayer of Healing in a 5-player group.

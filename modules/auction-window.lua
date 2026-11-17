@@ -9,6 +9,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   local UI = { tab = "browse", lists = {} }
   AH.ui = UI
   local function S() return C.auction end
+  -- Alt + click a row = buy it out at once (C.auction.altbuy, on unless switched off)
+  function UI.QuickBuy() return S().altbuy ~= "0" end
   local WHITE = "Interface\\Buttons\\WHITE8X8"
   local function Accent()
     if GetAccentColor then return GetAccentColor() end
@@ -257,6 +259,13 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         if not this.d then return end
         if IsShiftKeyDown() and this.d.link and ChatFrameEditBox and ChatFrameEditBox:IsVisible() then
           ChatFrameEditBox:Insert(this.d.link)
+          return
+        end
+        -- Ctrl + click tries it on in the dressing room, as everywhere else in the game
+        -- (17 Nov 2026, Lobo: it used to bid, and he bid without knowing)
+        if IsControlKeyDown() and this.d.link then
+          local _, _, item = string.find(this.d.link, "(item:%d+:%d*:%d*:%d*)")
+          if DressUpItemLink and item then DressUpItemLink(item) end
           return
         end
         l.sel = this.d
@@ -659,9 +668,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     for i = 2, 4 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)
     UI.PaintBuy()
-    -- (right-click = its price as a line for chat; Alt + click = buy it out at once; Ctrl + click = bid)
+    -- (right-click = its price as a line for chat; Alt + click = buy it out at once when that is on;
+    -- Ctrl + click is the dressing room, taken in the list's own click)
     if button == "RightButton" then UI.PriceLine(d)
-    elseif IsAltKeyDown() then UI.Buy("buyout") elseif IsControlKeyDown() then UI.Buy("bid") end
+    elseif IsAltKeyDown() and UI.QuickBuy() then UI.Buy("buyout") end
   end)
   -- "[item]: usual 1s each (6 days), cheapest now 98c": into the chat box when it is open, else to you
   function UI.PriceLine(d)
@@ -824,9 +834,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.status = Text(B, 11)
   B.status:SetPoint("TOPLEFT", B.list, "BOTTOMLEFT", 4, -8)
   B.status:SetTextColor(.62, .62, .67)
-  B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go."), "buy")
+  B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out. Alt + click a row does it in one go (when that is on in the Auctions options)."), "buy")
   B.buy:SetPoint("TOPRIGHT", B.list, "BOTTOMRIGHT", 0, -4)
-  B.bid = Btn(B, "Bid", 190, function() UI.Buy("bid") end, "Bid on the picked auction. Ctrl + click a row does it in one go.")
+  B.bid = Btn(B, "Bid", 190, function() UI.Buy("bid") end, "Bid on the picked auction. (Ctrl + click a row tries the item on.)")
   B.bid:SetPoint("RIGHT", B.buy, "LEFT", -6, 0)
   B.allAt = B.bid
   function UI.Status(why)
@@ -1420,7 +1430,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     for i = 2, 3 do r.cell[i]:SetTextColor(.8, .8, .84) end
   end, function(d, button)
     UI.PaintBuy()
-    if button == "RightButton" then UI.PriceLine(d) elseif IsAltKeyDown() then UI.Buy("buyout") end
+    if button == "RightButton" then UI.PriceLine(d) elseif IsAltKeyDown() and UI.QuickBuy() then UI.Buy("buyout") end
   end)
   K.list:SetPoint("TOPLEFT", K, "TOPLEFT", 0, -28)
   K.list:SetPoint("RIGHT", K, "RIGHT", 0, 0)

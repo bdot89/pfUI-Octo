@@ -51,6 +51,8 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
     O.PfChk(p, "Categories on the Browse tab", "The game's list of kinds, sorts and slots on the left of Browse (also the Categories button there).", G, "tree", function() if ah.ui and ah.ui.PlaceTree then ah.ui.PlaceTree() end end)
     O.PfChk(p, "Search when I pick a category or rarity", "Off: pick them, then press Search.", G, "treesearch")
     O.PfChk(p, "Offer item names while I type", "A list of matching item names under the search box: click one, or Tab / arrow keys and Enter. Items seen on the auction house come first.", G, "suggest")
+    O.PfChk(p, "Alt + click a row buys it out", "In the auction lists, Alt + click buys the auction out at once, with no Buyout button press. "
+      .. "Off: only the Buyout button buys. (Ctrl + click always tries the item on.)", G, "altbuy")
     O.PfChk(p, "Right-click a bag item to sell it", "While the auction window is up, right-clicking an item in your bags puts it on the Sell tab.", G, "bagclick")
     O.PfChk(p, "Auction price in item tooltips", "An item's usual auction price (each, and for the stack) in its tooltip, everywhere.", G, "tooltip")
     W.Buttons(p, { { "Back to its first place", function() G().x, G().y = "", "" end, 170, "Forget where you dragged the window." } })
@@ -98,7 +100,8 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
       .. "|cffffffffexact|r, |cffffffffusable|r, |cffffffffuncommon|r / |cffffffffrare|r / |cffffffffepic|r (and better), "
       .. "|cffffffff20-30|r (levels), |cffffffffmax 1g 20s|r (price each), or a kind of item (|cffffffffweapon|r, |cffffffffarmor|r...). "
       .. "Example: |cffffd24dlinen cloth/exact; silk cloth/max 2s; /rare/40-50/weapon|r. \"Saved\" keeps the ones you use often.")
-    W.Note(p, "In the window: Alt + click a row buys it out at once, Ctrl + click bids, Shift + click links the item in chat. "
+    W.Note(p, "In the window: Ctrl + click a row tries the item on (dressing room), Shift + click links it in chat, "
+      .. "right-click puts its price in chat, Alt + click buys it out at once (when on, above). "
       .. "\"Game window\" in its title bar shows the game's own auction window beside it.")
   end
 

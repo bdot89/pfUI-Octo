@@ -311,6 +311,26 @@ do
   l.sel = l.rows[1].d
   UI.PaintBuy()
   ok(UI.pages.browse.buy.text:GetText() == "Buyout  " .. AH.Money(l.sel.buyout), "the Buyout button says what it costs")
+  -- (17 Nov 2026, Lobo) Ctrl + click tries the item on and never bids; Alt + click buys only while it is on
+  do
+    local dressed, bought
+    local dressWas, buyWas, thisWas = rawget(_G, "DressUpItemLink"), UI.Buy, rawget(_G, "this")
+    _G.DressUpItemLink = function(link) dressed = link end
+    UI.Buy = function(how) bought = how end
+    local r = l.rows[1]
+    r.d.link = r.d.link or "|cffffffff|Hitem:2589:0:0:0|h[Linen Cloth]|h|r"
+    _G.this = r
+    Mock.ctrl = true  r:GetScript("OnClick")()  Mock.ctrl = nil
+    ok(dressed and string.find(dressed, "^item:%d+") and not bought, "Ctrl + click a row tries the item on, no bid")
+    _G.arg1 = "LeftButton"
+    S.altbuy = "0"
+    Mock.alt = true  r:GetScript("OnClick")()
+    ok(not bought, "Alt + click switched off: nothing bought")
+    S.altbuy = "1"
+    r:GetScript("OnClick")()  Mock.alt = nil
+    ok(bought == "buyout", "Alt + click on: bought out")
+    _G.DressUpItemLink, UI.Buy, _G.this = dressWas, buyWas, thisWas
+  end
   bags[0] = { { 2589, 20 }, { 2589, 20 } }
   AH.bagsDirty = true
   okay2, err2 = pcall(function()

@@ -38,6 +38,9 @@ pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
   local TRACKING = {
     { key = 1, label = "All quests" }, { key = 2, label = "Tracked quests" },
     { key = 3, label = "Only what I pick" }, { key = 4, label = "Hide" },
+    -- pfQuest's own "Current Zone Only": map pins and the tracker keep to quests with
+    -- something to do in the zone you are in (17 Nov 2026, Lobo: 25 old quests in his tracker)
+    { key = 5, label = "Only this zone (map + tracker)" },
   }
   local function PQ() return _G.pfQuest_config or {} end
   local function Pct(v) return math.floor((tonumber(v) or 0) * 100 + .5) .. "%" end
@@ -75,9 +78,15 @@ pfUI:RegisterModule("questing-options", "vanilla:tbc", function ()
     if not live or not def then return end
 
     W.Card(p, "What it shows", { icon = "INV_Misc_Map_01" })
-    W.Dropdown(p, "Quests on the map", "Which quests get their objectives drawn.", TRACKING,
+    W.Dropdown(p, "Quests on the map and tracker", "Which quests get their objectives drawn and listed in the "
+      .. "quest tracker. \"Only this zone\" keeps both to the zone you are in. (Also in the world map's top right.)", TRACKING,
       function() return tonumber(PQ().trackingmethod) or 1 end,
-      function(v) PQ().trackingmethod = v Reload() end)
+      function(v)
+        PQ().trackingmethod = v
+        -- as pfQuest's own world map menu does it: at once, no reload
+        local pq = _G.pfQuest
+        if not (pq and pq.ResetAll and pcall(pq.ResetAll, pq)) then Reload() end
+      end)
 
     -- the rest straight from pfQuest's own list, its headings as cards
     for _, d in ipairs(def) do
