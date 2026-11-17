@@ -80,6 +80,37 @@ list = D.Scan()
 ok(table.getn(list) == 2, "ignore list")
 S.ignore = {}
 
+-- (user, 17 Nov 2026) the order is locked in combat: changing target or health never moves a row
+do
+  local function Order(l) local t = {} for i, x in ipairs(l) do t[i] = x.guid end return table.concat(t, ",") end
+  local oldExists = _G.UnitExists
+  S.lockorder = "1"
+  list = D.Scan()
+  local before = Order(list)
+  local tg = "0xC"
+  _G.UnitExists = function(u) if u == "target" then return 1, tg end return oldExists(u) end
+  MOBS["0xC"].mark = 8
+  MOBS["0xA"].mark = nil
+  list = D.Scan()
+  ok(Order(list) == before, "locked: a new target and new marks keep every row where it was")
+  MOBS["0xD"] = { name = "Son of Flame", hp = 95, mark = 7 }
+  D.Add("0xD")
+  list = D.Scan()
+  ok(Order(list) == before .. ",0xD", "locked: a new mob joins at the bottom")
+  _G.UnitAffectingCombat = function() return nil end
+  list = D.Scan()
+  ok(list[1].guid == "0xC" and D.nextPlace == 0, "out of combat: sorted again (target on top)")
+  S.lockorder = "0"
+  _G.UnitAffectingCombat = function() return 1 end
+  list = D.Scan()
+  ok(list[1].guid == "0xC", "lock off: the target goes to the top in combat")
+  D.Remove("0xD")
+  MOBS["0xD"] = nil
+  MOBS["0xC"].mark, MOBS["0xA"].mark = nil, 8
+  _G.UnitExists = oldExists
+  S.lockorder = "1"
+end
+
 -- multi-DoT: Corruption goes to the mob that lacks it
 local cast
 _G.CastSpellByName = function(s, g) cast = { s, g } end

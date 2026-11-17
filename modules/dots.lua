@@ -215,6 +215,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
       D.n = math.max(0, D.n - 1)
     end
     D.cast[g], D.seen[g], D.maxarmor[g] = nil, nil, nil
+    if D.place then D.place[g] = nil end
     D.dirty = true
   end
   function D.Clear()
@@ -514,8 +515,23 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   end
   -- sort: the target first (C.dots.targettop), then the order picked
   local ORDER, TG
+  -- Locked order in combat (C.dots.lockorder; user 17 Nov 2026: rows "jumping around as you change
+  -- target ... should just be locked and added to"): a mob keeps the place it first got in the
+  -- list, new ones join at the end, the target is not lifted to the top. Places are forgotten
+  -- once you are out of combat.
+  D.place, D.nextPlace = {}, 0
+  local LOCKED
+  function D.Locked()
+    return C.dots.lockorder == "1" and UnitAffectingCombat("player") and true or false
+  end
   local function Before(a, b)
-    if TG and C.dots.targettop == "1" then
+    if LOCKED then
+      local pa, pb = D.place[a.guid], D.place[b.guid]
+      if pa and pb then return pa < pb end
+      if pa then return true end
+      if pb then return false end
+    end
+    if TG and C.dots.targettop == "1" and not LOCKED then
       if a.guid == TG then return b.guid ~= TG end
       if b.guid == TG then return false end
     end
@@ -559,9 +575,16 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     Wipe(list)
     Wipe(POOL)
     if D.SuperWoW() then TG = Guid("target") else D.Plain() TG = "target" end
+    LOCKED = D.Locked()
+    if not LOCKED and D.nextPlace > 0 then Wipe(D.place) D.nextPlace = 0 end
     for _, u in pairs(D.units) do
       D.Info(u)
-      if D.Wanted(u, TG) then table.insert(POOL, u) end
+      -- a placed row stays while the mob lives and can be attacked (the "show current target"
+      -- row would otherwise vanish when you click the next one)
+      if D.Wanted(u, TG) or (LOCKED and D.place[u.guid] and u.attackable and u.hp > 0
+                             and C.dots.onlytarget ~= "1" and not D.Ignored(u.name)) then
+        table.insert(POOL, u)
+      end
     end
     ORDER = C.dots.order or "marks"
     table.sort(POOL, Before)
@@ -579,6 +602,10 @@ pfUI:RegisterModule("dots", "vanilla", function ()
           u.far = nil
         end
         table.insert(list, u)
+        if LOCKED and not D.place[u.guid] then
+          D.nextPlace = D.nextPlace + 1
+          D.place[u.guid] = D.nextPlace
+        end
       end
     end
     D.dirty = nil

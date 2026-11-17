@@ -667,7 +667,7 @@ function pfUI:LoadConfig()
   -- DoT Tracker (modules/dots.lua, 16 Nov 2026; Cursive-Raid's options, in its tab order)
   for k, v in pairs({
     -- general: display
-    healthbar = "1", name = "1", hp = "1", marks = "1", invert = "0", grow = "DOWN", alwaystarget = "1", targettop = "1",
+    healthbar = "1", name = "1", hp = "1", marks = "1", invert = "0", grow = "DOWN", alwaystarget = "1", targettop = "1", lockorder = "1",
     highlight = "1", ccfade = "1", stripes = "1", striperange = "30", title = "0", backdrop = "0", clicks = "1", show = "rows",
     -- general: borders by group (off green red black classcolor), order of the groups
     border_ownclass = "green", border_ownraid = "green", border_otherclass = "off", border_otherraid = "classcolor",
