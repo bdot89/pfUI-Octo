@@ -384,9 +384,9 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
     elseif not string.find(name, "Vein") and not string.find(name, "Deposit") then
       prof = "Herbalism"
     end
-    if C.tooltip.x_gather == "0" then return end
+    if not TX.ProfWanted("x_gather", prof) then return end
     SkillLine(tt, prof, sk[2])
-    if loot and Want("x_gather") then
+    if loot then
       local more = IsShiftKeyDown()
       if loot.taps and loot.taps[2] and loot.taps[2] > 1 then
         tt:AddLine("  " .. Count(loot.taps[1], loot.taps[2]) .. " times before it is gone", .6, .6, .6)
@@ -422,8 +422,17 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
     if level <= 20 then return (level - 10) * 10 end
     return level * 5
   end
+  -- profession lines: "1" only if you have the profession (or Shift is held), "all" for everyone,
+  -- "shift" only with Shift, "0" never (user 17 Nov 2026: "i don't need to see skinning info im not a skinner")
+  function TX.ProfWanted(key, prof)
+    local v = C.tooltip[key]
+    if v == "0" then return false end
+    if v == "all" then return true end
+    if v == "shift" then return IsShiftKeyDown() and true or false end
+    return (TX.Skill(prof) or IsShiftKeyDown()) and true or false
+  end
   function TX.Skinning(tt, unit, guid)
-    if C.tooltip.x_skin == "0" or not D.skinningLoot then return end
+    if not D.skinningLoot or not TX.ProfWanted("x_skin", "Skinning") then return end
     local cid = TX.CreatureID(guid)
     local loot = cid and D.skinningLoot(cid)
     if not loot then return end
@@ -456,9 +465,35 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
     local ratio = amount / cap
     return (.75 * ratio - (3 / 16) * math.max(0, ratio - 2 / 3)) * 100
   end
+  -- MobStats itself (if it is on) draws its own lines in the game's yellow; while ours are on, its
+  -- reader answers nothing, so the tooltip shows one clean set (ours)
+  function TX.MuteMobStats()
+    local ms = _G.MobStats
+    local app = type(ms) == "table" and rawget(ms, "ApplicationService")
+    if type(app) ~= "table" or TX.msOrig or type(app.GetMobStats) ~= "function" then return end
+    TX.msOrig = app.GetMobStats
+    app.GetMobStats = function(self, unit)
+      if C.tooltip.x_mobstats ~= "0" then return nil end
+      return TX.msOrig(self, unit)
+    end
+  end
+  TX.MuteMobStats()
+  -- whole numbers as 1,234
+  local function Thousands(n)
+    local s = tostring(math.floor(n + .5))
+    local out = ""
+    while string.len(s) > 3 do
+      out = "," .. string.sub(s, -3) .. out
+      s = string.sub(s, 1, -4)
+    end
+    return s .. out
+  end
+  -- (17 Nov 2026, user: "the mob info is alot more important can we make it clearer and better looking"):
+  -- three short lines, a soft label left, the number in white right with its meaning in grey after it;
+  -- the mob's hit as a share of your health, coloured by how hard it hits you; no "Resists: None" line
   function TX.MobStats(tt, unit)
     if not Want("x_mobstats") then return end
-    if _G.MobStats and IsAddOnLoaded and IsAddOnLoaded("MobStats") then return end
+    TX.MuteMobStats()
     if not (UnitCanAttack("player", unit) and not UnitIsFriend("player", unit) and not UnitIsPlayer(unit)) then return end
     if not UnitResistance then return end
     local plevel = UnitLevel("player") or 60
@@ -467,24 +502,30 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
       mlevel = UnitClassification(unit) == "worldboss" and 63 or math.min(plevel + 10, 60)
     end
     local shown = false
-    local _, armor = UnitResistance(unit, 0)
-    armor = tonumber(armor)
-    if armor then
-      armor = math.max(0, armor)
-      local right = armor == 0 and "none" or (armor .. DIM .. "  -" .. math.floor(TX.ArmorCut(armor, plevel) + .5) .. "% physical|r")
-      tt:AddDoubleLine("Armor", right, HEAD[1], HEAD[2], HEAD[3], 1, 1, 1)
-      shown = true
-    end
     if UnitDamage and UnitAttackSpeed then
       local lo, hi = UnitDamage(unit)
       local speed = UnitAttackSpeed(unit)
       lo, hi, speed = tonumber(lo), tonumber(hi), tonumber(speed)
       if lo and hi and speed and lo > 0 and speed > 0 then
         local dps = (lo + hi) / 2 / speed
-        tt:AddDoubleLine("Melee", math.floor(lo + .5) .. "-" .. math.floor(hi + .5) .. DIM .. "  every "
-          .. string.format("%.1f", speed) .. " s, " .. string.format("%.0f", dps) .. " dps|r", HEAD[1], HEAD[2], HEAD[3], 1, 1, 1)
+        local maxhp = UnitHealthMax("player") or 0
+        local share = maxhp > 0 and (lo + hi) / 2 / maxhp * 100 or nil
+        local r, g, b = 1, 1, 1
+        if share then
+          if share >= 20 then r, g, b = 1, .3, .25 elseif share >= 8 then r, g, b = 1, .8, .25 end
+        end
+        tt:AddDoubleLine("Hits", Thousands(lo) .. "-" .. Thousands(hi) .. DIM .. "  every " .. string.format("%.1f", speed)
+          .. "s  " .. Thousands(dps) .. " dps|r", HEAD[1], HEAD[2], HEAD[3], r, g, b)
         shown = true
       end
+    end
+    local _, armor = UnitResistance(unit, 0)
+    armor = tonumber(armor)
+    if armor then
+      armor = math.max(0, armor)
+      local right = armor == 0 and (DIM .. "none|r") or (Thousands(armor) .. DIM .. "  stops " .. math.floor(TX.ArmorCut(armor, plevel) + .5) .. "% of physical|r")
+      tt:AddDoubleLine("Armor", right, HEAD[1], HEAD[2], HEAD[3], 1, 1, 1)
+      shown = true
     end
     -- resistances: only the ones that take something; all the same = "All x%"
     local list, same, first = {}, true, nil

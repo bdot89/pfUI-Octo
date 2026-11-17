@@ -73,10 +73,33 @@ TX.Skill = function(n) if n == "Herbalism" then return 250 end end
 tt = Tip()
 TX.Node(tt, "Black Lotus")
 ok(tt:Has("Herbalism | 300") and tt:Has("Black Lotus"), "a herb node: skill needed and what it gives")
+-- (user, 17 Nov 2026: "i don't need to see skinning info im not a skinner") a profession you don't have:
+-- nothing, unless set to "all" or Shift is held
+local oldShift = IsShiftKeyDown
+IsShiftKeyDown = function() return nil end
 tt = Tip()
 TX.Node(tt, "Rich Thorium Vein")
-ok(tt:Has("Mining | 275") and tt:Has("you don't have it"), "an ore node: Mining, and you don't have it")
+ok(tt:NumLines() == 0, "an ore node for a non-miner: nothing")
+pfUI_config.tooltip.x_gather = "all"
+TX.Node(tt, "Rich Thorium Vein")
+ok(tt:Has("Mining | 275") and tt:Has("you don't have it"), "set to everyone: Mining, and you don't have it")
+pfUI_config.tooltip.x_gather = "1"
+ok(not TX.ProfWanted("x_skin", "Skinning"), "skinning lines hidden for a non-skinner")
+IsShiftKeyDown = function() return 1 end
+ok(TX.ProfWanted("x_skin", "Skinning"), "Shift shows them anyway")
+IsShiftKeyDown = oldShift
 TX.Skill = oldSkill
+
+-- MobStats' own lines are muted while ours are on
+local oldMS = _G.MobStats
+_G.MobStats = { ApplicationService = { GetMobStats = function() return { armor = 1 } end } }
+TX.msOrig = nil
+TX.MuteMobStats()
+ok(_G.MobStats.ApplicationService:GetMobStats("mouseover") == nil, "MobStats answers nothing while ours are on")
+pfUI_config.tooltip.x_mobstats = "0"
+ok(_G.MobStats.ApplicationService:GetMobStats("mouseover") ~= nil, "ours off: MobStats draws again")
+pfUI_config.tooltip.x_mobstats = "1"
+_G.MobStats, TX.msOrig = oldMS, nil
 local r = TX.SkillColor(250, 300)
 ok(r == 1, "skill colour: red below what it needs")
 
