@@ -163,7 +163,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if modekey == "threat" then
       local tank = 21400 * 2.2
       if C.meters.threatpull ~= "0" then
-        table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = 100, max = 100,
+        table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = 8600 * 3.4, max = tank * 1.1,
                              extra = Num(tank * 1.1), text = "+" .. Num(tank * 1.1 - 8600 * 3.4), gap = tank * 1.1 - 8600 * 3.4, at = tank * 1.1 })
       end
       table.insert(rows, { name = "Garrosh", class = "WARRIOR", value = 100, max = 100, extra = Num(tank), text = "100%", tank = true })
@@ -413,7 +413,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if TH.Pull then kind, a, b = TH.Pull() end
       if kind and C.meters.threatpull ~= "0" then
         if kind == "pull" then
-          table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = top, max = top,
+          -- (17 Nov 2026) the bar fills with your threat towards the pull point
+          table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = math.max(0, a - b), max = math.max(1, a),
                                extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a })
         else
           table.insert(rows, { name = T["Your lead on"] .. " " .. b.name, pullrow = kind, value = top, max = top,
@@ -1015,6 +1016,13 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   -- (12 Nov 2026, user: another threat meter "looks a bit neater") threat rows get the threat and the % in two
   -- columns of their own, right-aligned, so the numbers line up down the window (they shared one text). The pull
   -- line: the threat you pull at, then how far off it is - green with room, gold when close, red past it.
+  -- the pull line's state colour: green with room (or holding aggro), gold within 10%, red past it
+  function M.PullColor(row)
+    local gap = row.gap or 0
+    if gap < 0 then return 1, .3, .25 end
+    if row.pullrow == "lead" or gap > (row.at or 0) * .1 then return .3, .9, .4 end
+    return 1, .8, .2
+  end
   local function ThreatColumns(b, s, row, vsize, font, outline, rightpad)
     if not b.mid then
       b.mid = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
@@ -1045,16 +1053,17 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       -- the left side, the gap gets the room of both right columns, so nothing is cut off
       b.left:SetPoint("RIGHT", b.pct, "LEFT", -4, 0)
       b.pct:SetWidth(floor(vsize * 5))
-      b.left:SetText(row.name .. "  |cffffffff" .. (row.extra or "") .. "|r")
-      row = { pullrow = row.pullrow, gap = row.gap, at = row.at, text = row.text, extra = "" }
-      b.left:SetTextColor(1, .82, 0)
-      b.mid:SetTextColor(.8, .8, .8)
-      local gap = row.gap or 0
-      local good = row.pullrow == "lead" and gap > 0 or (row.pullrow == "pull" and gap > (row.at or 0) * .1)
-      local r, g, bb = 1, .82, 0
-      if gap < 0 then r, g, bb = 1, .25, .2 elseif good then r, g, bb = .3, 1, .4 end
-      b.pct:SetTextColor(r, g, bb)
-      if row.pullrow == "lead" then b.mid:SetTextColor(r, g, bb) end
+      -- (17 Nov 2026, user: "cleaner ... easier to see") a short grey label, the number in white, the
+      -- room left in its state colour (the bar under it fills in the same colour, M.PullColor)
+      if row.pullrow == "pull" then
+        b.left:SetText("|cffb8b8b8" .. T["Pull at"] .. "|r  " .. (row.extra or ""))
+      else
+        b.left:SetText("|cffb8b8b8" .. T["Lead on"] .. "|r  " .. (string.gsub(row.name, "^.- on ", "")))
+      end
+      row = { pullrow = row.pullrow, gap = row.gap, at = row.at, text = row.text ~= "" and row.text or ("+" .. (row.extra or "")), extra = "" }
+      b.left:SetTextColor(1, 1, 1)
+      b.pct:SetTextColor(M.PullColor(row))
+      b.pct:SetWidth(floor(vsize * 5))
     end
     b.mid:SetText(row.extra or "")
     b.pct:SetText(row.text or "")
@@ -1426,7 +1435,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if win.mode == "threat" then
           -- you: green -> yellow -> red towards the pull point; the tank: dark red
           local share = row.name == me and M.threat and M.threat.Mine()
-          if row.pullrow then r, g, bb = .16, .19, .26
+          if row.pullrow then
+            -- a dim fill in the line's state colour, so the white words stay easy to read
+            local pr, pg, pb = M.PullColor(row)
+            r, g, bb = pr * .45, pg * .45, pb * .45
           elseif row.tank then r, g, bb = .6, .15, .15
           elseif share then r, g, bb = min(1, share * 2), min(1, 2 - share * 2), .1 end
         end
