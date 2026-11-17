@@ -163,9 +163,7 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   clock.text = clock:CreateFontString(nil, "OVERLAY", "GameFontWhite")
   clock.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
   clock.text:SetAllPoints()
-  clock:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + 1
+  libclient.Every(clock, 1, function()
     local h, m
     if S.clocktime ~= "server" then
       h, m = tonumber(date("%H")), tonumber(date("%M"))

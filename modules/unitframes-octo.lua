@@ -702,9 +702,25 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     else
       this.solo = nil
     end
+    local anyUp
     for _, f in ipairs(pfUI.uf.frames or {}) do
       -- (a bar still up is ticked to hide it; otherwise only frames that can be seen)
-      if f.label and ((f.octoCast and f.octoCast:IsShown()) or (CastOn(f) and f:IsVisible())) then pcall(UO.CastTick, f) end
+      if f.label and ((f.octoCast and f.octoCast:IsShown()) or (CastOn(f) and f:IsVisible())) then
+        pcall(UO.CastTick, f)
+        if f.octoCast and f.octoCast:IsShown() then anyUp = true end
+      end
     end
+    -- (ClassicAPI) once a group member's cast event has come, nobody casting = one look a second; an event wakes it
+    if not anyUp and UO.castEvents then this.t = GetTime() + 1 end
   end)
+  if libclient and libclient.On then
+    for _, e in ipairs({ "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_STOP",
+        "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED", "UNIT_SPELLCAST_DELAYED" }) do
+      libclient.On(e, function(_, unit)
+        if type(unit) ~= "string" or not (string.find(unit, "^party%d") or string.find(unit, "^raid%d")) then return end
+        UO.castEvents = true
+        castDriver.t = 0
+      end)
+    end
+  end
 end)

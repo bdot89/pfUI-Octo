@@ -183,10 +183,7 @@ pfUI:RegisterModule("gear-queue", "vanilla", function ()
   end
 
   local tick = CreateFrame("Frame")
-  tick:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < 1 then return end
-    this.t = 0
+  libclient.Every(tick, 1, function()
     local any
     for _, inv in ipairs({ 13, 14 }) do
       if Q.Slot(inv).on == "1" then any = true end

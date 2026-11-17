@@ -203,9 +203,7 @@ pfUI:RegisterModule("range", "vanilla", function ()
   function RG.Test(seconds) RG.testUntil = GetTime() + (seconds or 8) end
 
   local driver = CreateFrame("Frame")
-  driver:SetScript("OnUpdate", function()
-    if (this.t or 0) > GetTime() then return end
-    this.t = GetTime() + .05
+  libclient.Every(driver, .05, function()
     local now = GetTime()
     if not On("enable") then f:Hide() return end
     -- Move Frames: a made-up reading, so there is something to see and drag

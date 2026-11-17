@@ -173,20 +173,14 @@ pfUI:RegisterModule("gear-slots", "vanilla", function ()
   ev:RegisterEvent("PLAYER_REGEN_ENABLED")
   ev:SetScript("OnEvent", function() GR.UpdateSlots() end)
   -- cooldowns, and the bar shown while layout mode is open
-  bar:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .2 then return end
-    this.t = 0
+  libclient.Every(bar, .2, function()
     for _, inv in ipairs(GR.SlotList()) do GR.PaintCooldown(this.buttons[inv]) end
   end)
   -- what is worn, looked at by the bar itself: the inventory event did not
   -- arrive in game when the staff went back to the bag (24 Oct 2026)
   local seen
   local look = CreateFrame("Frame")
-  look:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .25 then return end
-    this.t = 0
+  libclient.Every(look, .25, function()
     local s = ""
     for _, inv in ipairs(GR.SlotList()) do s = s .. inv .. "=" .. (GetInventoryItemLink("player", inv) or "-") .. ";" end
     s = s .. "16=" .. (GetInventoryItemLink("player", 16) or "-")

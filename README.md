@@ -119,6 +119,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.39
+
+- ⚙️ **Uses ClassicAPI to do less work:** 25 every-few-seconds checks run on ClassicAPI's timers instead of being asked every frame; cast bars wake on the game's cast events and rest when nobody casts; action bars learn range changes from the game instead of checking every button 5 times a second; the range scan stops (ClassicAPI already answers); gathering arrows and pfQuest's route rest while you stand still. Each one keeps the old way until its event has really been seen, so nothing changes without ClassicAPI.
+- 🔎 **`/pfperf events`** (and the end of Copy all) shows which ClassicAPI events and timers are in use.
+
 ## 📜 New in 1.1.38
 
 - 📬 **Mail: sending many items works.** With several items queued, Send stopped after the first mail. Now every item goes, one mail each. If a mail can't go (wrong name, mailbox closed, an item that won't attach or stays locked), sending stops and says why and how many went. The items that went come off the list, so Send again only sends the rest.

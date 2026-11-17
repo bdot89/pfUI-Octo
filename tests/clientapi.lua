@@ -474,3 +474,76 @@ do
   end
   octo_ok(table.getn(bad) == 0, "no table.insert(..., UnitName(...)) without brackets" .. (bad[1] and (": " .. table.concat(bad, ", ")) or ""))
 end
+
+-- (17 Nov 2026) ClassicAPI's timers and change events (libclient.Every / On / Seen, and their users)
+do
+  local LCx = pfUI.api.libclient
+  -- Every without C_Timer: a throttled OnUpdate, `this` = the frame
+  local keepCT = rawget(_G, "C_Timer")
+  _G.C_Timer = nil
+  local fr = CreateFrame("Frame")
+  local runs, who = 0, nil
+  LCx.Every(fr, 1, function() runs = runs + 1 who = _G.this end)
+  local up = fr:GetScript("OnUpdate")
+  local t0 = Mock.now
+  _G.this = fr up()
+  Mock.now = t0 + .5 _G.this = fr up()
+  Mock.now = t0 + 1.1 _G.this = fr up()
+  octo_ok(runs == 2 and who == fr, "Every without ClassicAPI: a throttled OnUpdate (" .. runs .. " runs)")
+  -- with C_Timer: the OnUpdate goes once the ticker has fired; the ticker runs fn with this = the frame
+  local made = {}
+  _G.C_Timer = { NewTicker = function(secs, cb) local t = { secs = secs, cb = cb } table.insert(made, t) return t end }
+  local fr2 = CreateFrame("Frame")
+  local n2, who2 = 0, nil
+  LCx.Every(fr2, .25, function() n2 = n2 + 1 who2 = _G.this end)
+  octo_ok(made[1] and made[1].secs == .25 and fr2:GetScript("OnUpdate") ~= nil, "Every with C_Timer: ticker made, OnUpdate kept until it fires")
+  _G.this = nil
+  made[1].cb()
+  octo_ok(n2 == 1 and who2 == fr2 and _G.this == nil, "the ticker runs it with this = the frame (and puts this back)")
+  _G.this = fr2 fr2:GetScript("OnUpdate")()
+  octo_ok(fr2:GetScript("OnUpdate") == nil, "after the ticker has fired the OnUpdate is gone")
+  fr2:Hide()
+  made[1].cb()
+  octo_ok(n2 == 1, "a hidden frame's ticker does nothing (as an OnUpdate would not run)")
+  _G.C_Timer = keepCT
+  -- the event hub: counts and hands on
+  local got
+  LCx.On("OCTO_TEST_EVENT", function(ev, a1) got = a1 end)
+  octo_ok(LCx.Seen("OCTO_TEST_EVENT") == nil, "an event not seen yet reads nil (the old way stays)")
+  local h = LCx.hub:GetScript("OnEvent")
+  _G.event, _G.arg1 = "OCTO_TEST_EVENT", "x"
+  h()
+  octo_ok(got == "x" and LCx.Seen("OCTO_TEST_EVENT") == 1, "the hub hands an event on and counts it")
+  -- moving / standing
+  _G.event = "PLAYER_STOPPED_MOVING" h()
+  octo_ok(LCx.Moving() == false, "standing still from PLAYER_STOPPED_MOVING")
+  _G.event = "PLAYER_STARTED_MOVING" h()
+  octo_ok(LCx.Moving() == true, "moving from PLAYER_STARTED_MOVING")
+  LCx.moving = nil
+  -- cast bars: an event for the bar's unit wakes it, and from then it rests a second when idle
+  local cb = pfUI.castbar and pfUI.castbar.player
+  if cb then
+    cb.restUntil = Mock.now + 5
+    _G.event, _G.arg1 = "UNIT_SPELLCAST_START", "player"
+    h()
+    octo_ok(cb.restUntil == nil and pfUI.castbar.evSeen.player, "UNIT_SPELLCAST_START for the player wakes the player cast bar")
+    _G.event, _G.arg1 = "UNIT_SPELLCAST_START", "raid7"
+    cb.restUntil = Mock.now + 5
+    h()
+    octo_ok(cb.restUntil ~= nil, "another unit's cast leaves it resting")
+    cb.restUntil = nil
+  end
+  -- action bars: the range event marks the bar as event-driven
+  local bars = _G.pfActionBar
+  if bars and rawget(_G, "C_ActionBar") then
+    _G.event, _G.arg1 = "ACTION_RANGE_CHECK_UPDATE", 5
+    h()
+    octo_ok(bars.rangeEvents, "ACTION_RANGE_CHECK_UPDATE: the action bars go by the event")
+  end
+  _G.event, _G.arg1 = nil, nil
+  local PWx = pfUI.perf and pfUI.perf.win
+  if PWx and PWx.EventLines then
+    local lines = PWx.EventLines()
+    octo_ok(string.find(lines[1], "C_Timer", 1, true) and table.getn(lines) == table.getn(PWx.EVENTS) + 1, "/pfperf events lists the timers and events")
+  end
+end

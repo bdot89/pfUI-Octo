@@ -1013,10 +1013,7 @@ pfUI:RegisterModule("gear-specs", "vanilla", function ()
       if later then GS.Apply(later) end
     end
   end)
-  ev:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .2 then return end
-    this.t = 0
+  libclient.Every(ev, .2, function()
     if watch or GS.pendingNotice then GS.Tick() end
   end)
   GR.listeners.specs = function() GS.Paint() end

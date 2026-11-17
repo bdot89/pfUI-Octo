@@ -161,9 +161,7 @@ pfUI:RegisterModule("meters-clog", "vanilla", function ()
   end
 
   -- everyone has left: forget kills nobody saw die
-  f:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + 10
+  libclient.Every(f, 10, function()
     local old = GetTime() - 10
     for k, v in pairs(kills) do if v[2] < old then kills[k] = nil end end
   end)

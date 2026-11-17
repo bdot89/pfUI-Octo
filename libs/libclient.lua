@@ -227,5 +227,77 @@ function libclient.SpellIcon(id)
   end
 end
 
+-- ---------------------------------------------------------------- ClassicAPI's change events
+-- (17 Nov 2026, user: use the DLLs wherever they take work off the game.) ClassicAPI sends events for things
+-- pfUI otherwise looks at on its own clock (casts, action range, moving, modifier keys). One frame registers
+-- each once, counts what really arrives (libclient.Seen: the /pfperf events probe) and hands it on.
+--
+--  libclient.On(event, fn)   fn(event, arg1, arg2, arg3, arg4) on each one (registered on first use)
+--  libclient.Seen(event)     how many have arrived since login (nil = none yet: keep the old way)
+libclient.seen, libclient.subs = {}, {}
+local hub = CreateFrame("Frame", "pfClientEvents")
+libclient.hub = hub
+hub:SetScript("OnEvent", function()
+  local ev = _G.event
+  libclient.seen[ev] = (libclient.seen[ev] or 0) + 1
+  local list = libclient.subs[ev]
+  if not list then return end
+  for i = 1, table.getn(list) do list[i](ev, _G.arg1, _G.arg2, _G.arg3, _G.arg4) end
+end)
+function libclient.On(ev, fn)
+  local list = libclient.subs[ev]
+  if not list then
+    list = {}
+    libclient.subs[ev] = list
+    pcall(hub.RegisterEvent, hub, ev)
+  end
+  table.insert(list, fn)
+end
+function libclient.Seen(ev) return libclient.seen[ev] end
+
+-- ---------------------------------------------------------------- timers
+--  libclient.Every(frame, secs, fn)
+--    Runs fn every secs seconds while the frame can be seen, with `this` = the frame (as its OnUpdate had).
+--    Starts as a throttled OnUpdate; ClassicAPI's C_Timer.NewTicker is started too, and once it has fired the
+--    OnUpdate is taken away - from then on the frame costs nothing between runs (an OnUpdate is called every
+--    frame just to ask "is it time yet?"). Without ClassicAPI (or if its ticker never fires) the OnUpdate stays.
+local function Report(err)
+  local h = _G.geterrorhandler and _G.geterrorhandler()
+  if h then h(err) elseif DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffff5555pfUI|r " .. tostring(err)) end
+end
+function libclient.Every(frame, secs, fn)
+  if not frame or not fn then return end
+  frame.octoEvery = fn
+  local nextAt = 0
+  frame:SetScript("OnUpdate", function()
+    if frame.octoTimed then frame:SetScript("OnUpdate", nil) return end
+    local now = GetTime()
+    if nextAt > now then return end
+    nextAt = now + secs
+    fn()
+  end)
+  local CT = _G.C_Timer
+  if frame.octoTicker or not CT or type(CT.NewTicker) ~= "function" then return end
+  local ok, t = pcall(CT.NewTicker, secs, function()
+    if not frame.octoTimed then
+      frame.octoTimed = true
+      libclient.timerSeen = (libclient.timerSeen or 0) + 1
+    end
+    if not frame:IsVisible() then return end
+    local keep = _G.this
+    _G.this = frame
+    local good, err = pcall(fn)
+    _G.this = keep
+    if not good then Report(err) end
+  end)
+  if ok and t then frame.octoTicker = t end
+end
+
+-- ---------------------------------------------------------------- moving and standing (ClassicAPI)
+--  libclient.Moving()  true / false from PLAYER_STARTED_MOVING / STOPPED_MOVING, nil until one has arrived
+libclient.On("PLAYER_STARTED_MOVING", function() libclient.moving = true end)
+libclient.On("PLAYER_STOPPED_MOVING", function() libclient.moving = false end)
+function libclient.Moving() return libclient.moving end
+
 -- add libclient to pfUI API
 pfUI.api.libclient = libclient

@@ -4274,10 +4274,14 @@ do
       kind, inBG = "pvp", true
       X.Check()
       ok(X.zone == "bg", "the old zone name still reads as a battleground on the way in")
+      -- (the poll runs on libclient.Every since 17 Nov 2026: one run starts its 2 s)
+      Mock.now = Mock.now + 2.1
+      Mock.Run(X.ev, "OnUpdate", 2.1)
       zone = "Blood Ring"
-      X.ev.t = 0
+      Mock.now = Mock.now + 1.5
       Mock.Run(X.ev, "OnUpdate", 1.5)
       ok(X.zone == "bg", "the poll is not due yet at 1.5 s")
+      Mock.now = Mock.now + 0.6
       Mock.Run(X.ev, "OnUpdate", 0.6)
       ok(X.zone == "arena" and told[table.getn(told)] == "bg>arena", "the 2 s poll corrects it to arena (" .. tostring(X.zone) .. ")")
       -- so arenas go by their own map setting, not the battleground's

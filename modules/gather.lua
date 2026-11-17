@@ -566,9 +566,13 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   function GF.Follow()
     local f = GF.frame
     if not f or not f:IsShown() or GF.preview then return end
+    -- (17 Nov 2026, ClassicAPI PLAYER_STOPPED_MOVING) standing still and not turning: nothing to move
+    -- (a new look, GF.Draw, still sets the rows; GF.followSid makes the first frame after it run)
+    local facing = GF.Facing()
+    if libclient and libclient.Moving and libclient.Moving() == false and facing == GF.lastFacing and GF.followSid == GF.sid then return end
+    GF.lastFacing, GF.followSid = facing, GF.sid
     local px, py, pz = Pos()
     if not px then return end
-    local facing = GF.Facing()
     for i = 1, 5 do
       local r, e = f.rows[i], GF.found[i]
       if r:IsShown() and e and e.x then

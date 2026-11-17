@@ -246,10 +246,7 @@ pfUI:RegisterModule("gear-events", "vanilla", function ()
   end
 
   local ticker = CreateFrame("Frame")
-  ticker:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .5 then return end
-    this.t = 0
+  libclient.Every(ticker, .5, function()
     if next(C.gear.events) then GE.Check() end
   end)
   -- (a change of form, zone or combat is looked at at once, not half a second later)

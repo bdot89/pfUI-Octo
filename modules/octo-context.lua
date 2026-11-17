@@ -55,10 +55,7 @@ pfUI:RegisterModule("octo-context", "vanilla", function ()
   for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA", "UPDATE_BATTLEFIELD_STATUS",
                        "RAID_ROSTER_UPDATE", "PARTY_MEMBERS_CHANGED" }) do pcall(ev.RegisterEvent, ev, e) end
   ev:SetScript("OnEvent", Check)
-  ev:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < 2 then return end
-    this.t = 0
+  libclient.Every(ev, 2, function()
     Check()
   end)
 
@@ -110,10 +107,7 @@ pfUI:RegisterModule("octo-context", "vanilla", function ()
   end
   -- (something showing the map or a button again while it should be hidden)
   local keep = CreateFrame("Frame")
-  keep:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < 1 then return end
-    this.t = 0
+  libclient.Every(keep, 1, function()
     if X.mapHidden or (C.mapauto[X.zone or "world"] == "1") then Apply() end
   end)
 

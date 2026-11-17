@@ -70,8 +70,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
           widget.timerFrame.Snapshot = GetTime()
         end
       end
-      widget:SetScript("OnUpdate",function()
-        if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + 1 end
+      libclient.Every(widget, 1, function()
 
         local h, m = GetGameTime()
         local noon = "AM"
@@ -152,9 +151,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
           pfUI.panel:OutputPanel("combat", T["Combat"] .. ": " .. NOT_APPLICABLE)
         end
       end)
-      widget.combat:SetScript("OnUpdate", function()
-        if not this.tick then this.tick = GetTime() end
-        if GetTime() <= this.tick + 1 then return else this.tick = GetTime() end
+      libclient.Every(widget.combat, 1, function()
         if this.combat then
           pfUI.panel:OutputPanel("combat", "|cffffaaaa" .. SecondsToTime(ceil(GetTime() - this.combat)))
         end
@@ -202,8 +199,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
           pfUI.addons:Show()
         end
       end
-      widget:SetScript("OnUpdate",function()
-        if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + 1 end
+      libclient.Every(widget, 1, function()
 
         fps = floor(GetFramerate())
         _, _, lag = GetNetStats()
@@ -460,8 +456,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
         end
       end)
 
-      widget:SetScript("OnUpdate",function()
-        if ( this.tick or 60) > GetTime() then return else this.tick = GetTime() + 60 end
+      libclient.Every(widget, 60, function()
         if GetGuildInfo("player") then GuildRoster() end
       end)
     end
@@ -1036,10 +1031,7 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
   end
   -- the docked windows follow the panel's width (login, chat resized, UI scale)
   pfUI.panel.arrowWatch = CreateFrame("Frame")
-  pfUI.panel.arrowWatch:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .5 then return end
-    this.t = 0
+  libclient.Every(pfUI.panel.arrowWatch, .5, function()
     local chat = pfUI.panel.DockHolder()
     if not chat or C.panel.arrowmode ~= "meters" or C.panel.arrowopen ~= "1" then return end
     local l, r = chat:GetLeft(), chat:GetRight()

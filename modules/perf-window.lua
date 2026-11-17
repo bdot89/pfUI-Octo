@@ -296,11 +296,31 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
         table.insert(out, Pad(F(e[2].mem, 0), 11) .. " | " .. Pad(PF.profiling and F(e[2].cpu, 0) or "-", 12) .. " | " .. e[1])
       end
     end
+    table.insert(out, "")
+    table.insert(out, "CLASSICAPI EVENTS AND TIMERS")
+    for _, l in ipairs(PW.EventLines()) do table.insert(out, "  " .. l) end
     return out
   end
   function PW.Text()
     local out = PW.Lines()
     return table.concat(out, "\n"), table.getn(out)
+  end
+
+  -- ClassicAPI's events and timers pfUI now leans on: seen since login or not (17 Nov 2026). Until one is seen
+  -- the old way stays in use, so "not seen" is never broken - only not faster yet.
+  PW.EVENTS = { "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_STOP", "UNIT_SPELLCAST_CHANNEL_START", "ACTION_RANGE_CHECK_UPDATE",
+    "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING" }
+  function PW.EventLines()
+    local lc = pfUI.api and pfUI.api.libclient
+    local out = {}
+    local timed = lc and lc.timerSeen or 0
+    table.insert(out, "C_Timer: " .. ((_G.C_Timer and _G.C_Timer.NewTicker) and (timed > 0 and (timed .. " tickers running on it")
+      or "there, not fired yet") or "not there (no ClassicAPI)"))
+    for _, e in ipairs(PW.EVENTS) do
+      local n = lc and lc.Seen and lc.Seen(e)
+      table.insert(out, e .. ": " .. (n and (n .. " seen") or "not seen yet"))
+    end
+    return out
   end
 
   -- a frozen report cut into parts: { lines, parts = { { from, to } }, done = { [k] = true }, at = k }
@@ -916,6 +936,11 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
     if m == "" or m == "window" or m == "show" then PW.Toggle() return end
     if m == "chat" then if old then old("") end return end
     if m == "hud" then PW.SetHUD(not PW.HUDOn()) PW.Refresh(true) return end
+    if m == "events" then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r ClassicAPI events and timers in use:")
+      for _, l in ipairs(PW.EventLines()) do DEFAULT_CHAT_FRAME:AddMessage("  " .. l) end
+      return
+    end
     if m == "scan" then PW.Toggle(true) PW.frame.scan:Click() return end
     if m == "stop" then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r performance: " .. PW.Unhook() .. " scripts put back.") return end
     if old then old(msg) end

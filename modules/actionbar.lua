@@ -833,7 +833,9 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
       updatecache[id] = nil
     end
 
-    if ( this.tick or .2) > GetTime() then return else this.tick = GetTime() + .2 end
+    -- (octo: once ClassicAPI's range event has come, it re-checks each slot as it changes - the full pass below
+    -- is then a once-a-second safety net)
+    if ( this.tick or .2) > GetTime() then return else this.tick = GetTime() + (this.rangeEvents and 1 or .2) end
 
     -- octo (17 Nov 2026, the live performance window: 5 ms a second here): only buttons that can be seen
     -- (IsShown was true for every button on hidden bars and pages), and none at all while the range colour is
@@ -860,6 +862,30 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
 
   -- update actionbar buttons
   bars:SetScript("OnUpdate", BarsUpdate)
+
+  -- octo (17 Nov 2026): ClassicAPI tells when an action slot goes in or out of range (ACTION_RANGE_CHECK_UPDATE,
+  -- after C_ActionBar.EnableActionRangeCheck(slot, true)). Only the buttons on that slot are checked again - with
+  -- the plain IsActionInRange, so the event's own arguments do not matter. A page change re-checks all at once.
+  local CAB = rawget(_G, "C_ActionBar")
+  if libclient and libclient.On and CAB and type(CAB.EnableActionRangeCheck) == "function" then
+    local enabled
+    libclient.On("PLAYER_ENTERING_WORLD", function()
+      if enabled then return end
+      enabled = true
+      for slot = 1, 120 do pcall(CAB.EnableActionRangeCheck, slot, true) end
+    end)
+    libclient.On("ACTION_RANGE_CHECK_UPDATE", function(_, slot)
+      bars.rangeEvents = true
+      slot = tonumber(slot)
+      if not slot then return end
+      for _, button in pairs(buttoncache) do
+        if button.id == slot and button:IsVisible() then ButtonRangeUpdate(button) end
+      end
+    end)
+    for _, e in ipairs({ "ACTIONBAR_PAGE_CHANGED", "UPDATE_BONUS_ACTIONBAR", "ACTIONBAR_SLOT_CHANGED" }) do
+      libclient.On(e, function() bars.tick = 0 end)
+    end
+  end
 
   -- enable bar paging via secure functions
   local function ButtonSwitch(self, att, value)

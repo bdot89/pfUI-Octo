@@ -347,9 +347,7 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
 
   local ticker = CreateFrame("Frame")
   BZ.ticker = ticker
-  ticker:SetScript("OnUpdate", function()
-    if (this.t or 0) > GetTime() then return end
-    this.t = GetTime() + .25
+  libclient.Every(ticker, .25, function()
     for _, f in ipairs(pfUI.uf.frames or {}) do
       local c = f.config
       if c and f:IsVisible() then

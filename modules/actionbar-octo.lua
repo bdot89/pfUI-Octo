@@ -821,9 +821,7 @@ pfUI:RegisterModule("actionbar-octo", "vanilla:tbc", function ()
   watch:RegisterEvent("PLAYER_AURAS_CHANGED")
   watch:RegisterEvent("PLAYER_ENTERING_WORLD")
   watch:SetScript("OnEvent", ScanProcs)
-  watch:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + .2
+  libclient.Every(watch, .2, function()
     for i = 1, 10 do
       local bar = BARS[i]
       if bar and bar:IsShown() then

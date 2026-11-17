@@ -239,7 +239,8 @@ pfUI:RegisterModule("castbar", "vanilla:tbc", function ()
       if cast then
         this.idle = nil
       elseif this.idle and (this:GetAlpha() or 0) <= 0 then
-        this.restUntil = GetTime() + 1 / 30
+        local trusted = this.unitstr and pfUI.castbar.evSeen and pfUI.castbar.evSeen[this.unitstr]
+        this.restUntil = GetTime() + (trusted and 1 or 1 / 30)
       end
     end)
 
@@ -443,5 +444,29 @@ pfUI:RegisterModule("castbar", "vanilla:tbc", function ()
     end)
 
     UpdateMovable(pfUI.castbar.focus)
+  end
+
+  -- octo (17 Nov 2026): ClassicAPI's UNIT_SPELLCAST_* events (arg1 = the unit token; each token a caster has
+  -- gets its own copy) wake the bar of that unit at once. Once one has come for a unit, that bar trusts them:
+  -- idle and faded out it looks only once a second (a safety net) instead of 30 times. Until then: 30 times.
+  pfUI.castbar.evSeen = pfUI.castbar.evSeen or {}
+  local function Wake(unit)
+    for _, key in ipairs({ "player", "target", "focus" }) do
+      local cb = pfUI.castbar[key]
+      if cb and cb.unitstr and cb.unitstr ~= "" and cb.unitstr == unit then cb.restUntil = nil end
+    end
+  end
+  if libclient and libclient.On then
+    for _, e in ipairs({ "UNIT_SPELLCAST_START", "UNIT_SPELLCAST_CHANNEL_START", "UNIT_SPELLCAST_STOP",
+        "UNIT_SPELLCAST_CHANNEL_STOP", "UNIT_SPELLCAST_DELAYED", "UNIT_SPELLCAST_CHANNEL_UPDATE",
+        "UNIT_SPELLCAST_INTERRUPTED", "UNIT_SPELLCAST_FAILED" }) do
+      libclient.On(e, function(_, unit)
+        if type(unit) ~= "string" then return end
+        pfUI.castbar.evSeen[unit] = true
+        Wake(unit)
+      end)
+    end
+    libclient.On("PLAYER_TARGET_CHANGED", function() Wake("target") end)
+    libclient.On("PLAYER_FOCUS_CHANGED", function() Wake("focus") end)
   end
 end)

@@ -121,6 +121,11 @@ $patches = @{
     $t = Must $t 'if pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster then' "if (pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster) and (pfMap.octoAnimAt or 0) <= GetTime() then`r`n    pfMap.octoAnimAt = GetTime() + 1 / 30"
     Must $t 'fps = math.max(0.2, GetFramerate() / 30)' 'fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)'
   }
+  # (17 Nov 2026) the route reads your map position every frame: standing still (ClassicAPI's
+  # PLAYER_STOPPED_MOVING, pfUI's libclient.moving) it waits for its own 1 s refresh instead
+  "route.lua" = { param($t)
+    Must $t "pfQuest.route:SetScript(`"OnUpdate`", function()`n  local xplayer, yplayer = GetPlayerMapPosition(`"player`")" "pfQuest.route:SetScript(`"OnUpdate`", function()`n  -- pfUI Octo: standing still (ClassicAPI PLAYER_STOPPED_MOVING) - no position to read until the 1 s refresh`n  local octoLC = pfUI and pfUI.api and pfUI.api.libclient`n  if octoLC and octoLC.moving == false and (this.tick or 5) > GetTime() then return end`n  local xplayer, yplayer = GetPlayerMapPosition(`"player`")"
+  }
   # (16 Nov 2026, Wolfahrt: "pfquest\tracker.lua:313: attempt to call method 'ScheduleLayout' (a nil value)"
   # while splitting stacks at the auction house) the tracker's QUEST_LOG_UPDATE code trusted the game's
   # `this`; called with another frame in it (an add-on passing events on by hand) it errored. It names its

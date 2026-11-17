@@ -308,6 +308,9 @@ local function sortfunc(a, b)
   return tostring(an) < tostring(bn)
 end
 pfQuest.route:SetScript("OnUpdate", function()
+  -- pfUI Octo: standing still (ClassicAPI PLAYER_STOPPED_MOVING) - no position to read until the 1 s refresh
+  local octoLC = pfUI and pfUI.api and pfUI.api.libclient
+  if octoLC and octoLC.moving == false and (this.tick or 5) > GetTime() then return end
   local xplayer, yplayer = GetPlayerMapPosition("player")
   local wrongmap = xplayer == 0 and yplayer == 0 and true or nil
   local curpos = xplayer + yplayer

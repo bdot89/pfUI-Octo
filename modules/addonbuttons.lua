@@ -550,9 +550,7 @@ pfUI:RegisterModule("addonbuttons", "vanilla:tbc", function ()
   -- was opened (user, 23 Oct 2026: "why is this button still there"): look
   -- again now and then while the panel is shut, and keep hidden ones hidden.
   local watch = CreateFrame("Frame", nil, UIParent)
-  watch:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + 3
+  libclient.Every(watch, 3, function()
     this.count = (this.count or 0) + 1
     if not pfUI.addonbuttons:IsShown() and math.mod(this.count, 3) == 1 then
       pfUI.addonbuttons:ProcessButtons()

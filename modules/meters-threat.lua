@@ -699,9 +699,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   -- the label follows the plate ten times a second
   local tick = CreateFrame("Frame")
-  tick:SetScript("OnUpdate", function()
-    if (this.t or 0) > GetTime() then return end
-    this.t = GetTime() + .1
+  libclient.Every(tick, .1, function()
     if TH.list or label:IsShown() or TH.sampleUntil or (pfUI.unlock and pfUI.unlock:IsShown()) then TH.Draw() end
     if TH.sampleUntil and GetTime() >= TH.sampleUntil then TH.sampleUntil = nil end
   end)

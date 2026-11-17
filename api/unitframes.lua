@@ -184,9 +184,18 @@ end
 
 local visibilityscan = CreateFrame("Frame", "pfUnitFrameVisibility", UIParent)
 visibilityscan.frames = {}
+local function VisibilityScan()
+  for frame in pairs(visibilityscan.frames) do frame:UpdateVisibility() end
+end
 visibilityscan:SetScript("OnUpdate", function()
+  -- (octo, 17 Nov 2026) libclient loads after this file: on the first frame the scan moves onto libclient.Every
+  -- (ClassicAPI's timer, so nothing runs between scans), five times a second as before
+  if pfUI.api.libclient and pfUI.api.libclient.Every then
+    pfUI.api.libclient.Every(this, .2, VisibilityScan)
+    return
+  end
   if ( this.limit or 1) > GetTime() then return else this.limit = GetTime() + .2 end
-  for frame in pairs(this.frames) do frame:UpdateVisibility() end
+  VisibilityScan()
 end)
 
 local aggrodata = { }

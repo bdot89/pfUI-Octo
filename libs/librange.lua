@@ -126,6 +126,13 @@ librange:SetScript("OnEvent", function()
     return
   end
 
+  -- octo (17 Nov 2026, /pfperf: 1.6 ms a second): with ClassicAPI, UnitInSpellRange asks its UnitInRange
+  -- directly and never reads this scan's results - the scan has nothing to do
+  if C_UnitAuras and _G.UnitInRange then
+    this:Hide()
+    return
+  end
+
   this.interval = tonumber(C.unitframes.rangechecki)/numunits
 
   if event == "ACTIONBAR_SLOT_CHANGED" or event == "PLAYER_ENTERING_WORLD" then

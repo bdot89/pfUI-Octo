@@ -330,9 +330,7 @@ pfUI:RegisterModule("chat-plus", "vanilla:tbc", function ()
     WrapWheels()
   end)
   -- (pfUI sets each window's wheel again when chat is arranged)
-  watch:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + 2
+  libclient.Every(watch, 2, function()
     WrapWheels()
     -- (pfUI or another addon may set its own link handler later)
     WrapLinks()

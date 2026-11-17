@@ -636,10 +636,7 @@ pfUI:RegisterModule("gear-sheet", "vanilla", function ()
   end
   GR.listeners.trinkets = GR.UpdateTrinkets
   -- cooldowns: the game's swipe, and numbers if wanted
-  bar:SetScript("OnUpdate", function()
-    this.t = (this.t or 0) + arg1
-    if this.t < .2 then return end
-    this.t = 0
+  libclient.Every(bar, .2, function()
     for _, b in ipairs(this.slots) do GR.PaintCooldown(b) end
   end)
   if UpdateMovable then UpdateMovable(bar) end

@@ -122,11 +122,7 @@ pfUI:RegisterModule("autoattack", "vanilla", function ()
       AA.Check()
     end
   end)
-  f:SetScript("OnUpdate", function()
-    if (this.t or 0) > GetTime() then return end
-    this.t = GetTime() + .1
-    AA.Check()
-  end)
+  libclient.Every(f, .1, function() AA.Check() end)
 
   function AA.Toggle(on)
     if on == nil then on = G().enable ~= "1" end
