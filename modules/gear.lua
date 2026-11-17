@@ -402,7 +402,8 @@ pfUI:RegisterModule("gear", "vanilla", function ()
   end
 
   -- one move for a slot of the queue; true = something was done
-  local function Step(inv, want, keep)
+  local function Step(inv, want, keep, used)
+    used = used or {}
     if want == "empty" then
       local bag, slot = FreeBagSlot()
       if not bag then Say("no room in your bags to take off " .. GR.NAME[inv] .. ".") return "fail" end
@@ -420,7 +421,11 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     end
     local from = GR.Find(want, keep)
     if not from then return "missing" end
-    if Locked(inv, from) then return false end
+    -- (a copy already moved in this pass still shows where it was until the
+    -- server answers: wait for it rather than pick it up twice)
+    local k = from.inv and ("i" .. from.inv) or (from.bag .. ":" .. from.slot)
+    if used[k] or Locked(inv, from) then return false end
+    used[k] = true
     if from.inv then
       PickupInventoryItem(from.inv)
       PickupInventoryItem(inv)
@@ -513,6 +518,12 @@ pfUI:RegisterModule("gear", "vanilla", function ()
         end
       end
     end
+    -- (17 Nov 2026, Wolfahrt: "it doesnt change every piece of stuff instantly where ItemRack
+    -- does ... not able to equip one set, do something, then immediately equip another") every
+    -- slot that can move goes in this one pass, as ItemRack does - each move locks only its own
+    -- two items, so the others need not wait for the server. A slot whose item is still locked
+    -- (a set just before this one) is looked at again next tick.
+    local moved = {}
     for _, inv in ipairs(q.order) do
       local want = q.slots[GR.Key(inv)]
       if not keep[inv] and not q.skip[inv] and q.sent and (q.sent[inv] or 0) > now then
@@ -526,15 +537,18 @@ pfUI:RegisterModule("gear", "vanilla", function ()
           if q.tries[inv] > 40 then
             q.skip[inv] = true
           else
-            local r = Step(inv, want, keep)
+            local r = Step(inv, want, keep, moved)
             if r == "missing" then
               q.skip[inv] = true
               q.missing = (q.missing and (q.missing .. ", ") or "") .. (type(want) == "table" and want.name or GR.NAME[inv])
             elseif r == "fail" then
               q.skip[inv] = true
+            elseif r == false or (r == true and not Done(inv, want)) then
+              -- not right yet: the server still has to answer (or a lock to clear)
+              pending = true
+              -- (something left on the cursor: stop this pass, the next tick tidies up)
+              if Busy() then return end
             end
-            -- (one move a tick: the next waits for this one's locks)
-            if r == true or r == false then return end
           end
         end
       end

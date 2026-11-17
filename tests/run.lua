@@ -5255,6 +5255,26 @@ do
       pfUI_config.gear.instant = "1"
       C_UnitAuras, _G.C_Item, _G.PickupContainerItem = savedAuras, savedItem, realPick
     end
+    -- without ClassicAPI too, every piece in the click itself (17 Nov 2026, Wolfahrt: "it doesnt
+    -- change every piece of stuff instantly where ItemRack does"), and a second set right after
+    do
+      GR.Equip("Tank")
+      Run()
+      GR.Equip("Swift")
+      ok(inv[16] == axe and inv[11] == ring2, "a set goes on in one pass with the cursor")
+      GR.Equip("Tank")
+      ok(GR.IsEquipped("Tank"), "and another set straight after goes on at once too")
+      -- a slot still locked from the last swap waits; the others go now
+      local realLock = IsInventoryItemLocked
+      _G.IsInventoryItemLocked = function(i) return i == 16 end
+      GR.Equip("Swift")
+      ok(inv[11] == ring2 and inv[16] == sword and GR.queue, "a locked slot waits, the rest go")
+      _G.IsInventoryItemLocked = realLock
+      GR.Tick()
+      ok(inv[16] == axe and not GR.queue, "and it goes on when the lock clears")
+      GR.Equip("Tank")
+      Run()
+    end
     -- key bindings and /gear
     sets.Tank.key = "3"
     GR.Changed()
