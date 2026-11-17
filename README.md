@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.56
+
+- 🧹 **Quest tracker error fixed for real:** no more "tracker.lua:282: attempt to index a nil value". The real cause was the game's quest watch frame going missing (another add-on), and the tracker now copes without it.
+
 ## 📜 New in 1.1.55
 
 - 🗺️ **World map drawn right again:** OctoWoW's own zones (Thalassian Highlands and others) no longer show in wrong patches with ClassicAPI installed. The map reveal uses pieces that match the real map pictures.
