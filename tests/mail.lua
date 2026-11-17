@@ -47,9 +47,11 @@ local keep = {}
 for _, k in ipairs({ "GetTime", "GetContainerItemInfo", "GetContainerItemLink", "GetSendMailItem", "PickupContainerItem",
   "ClickSendMailItemButton", "ClearCursor", "SetSendMailCOD", "SetSendMailMoney", "GetSendMailPrice", "GetMoney", "SendMail",
   "ClearSendMail", "UnitName", "GetNumRaidMembers", "GetNumPartyMembers", "GetNumFriends", "GetFriendInfo", "IsInGuild",
-  "GetNumGuildMembers", "GetGuildRosterInfo", "pfUI_playerDB" }) do keep[k] = rawget(_G, k) end
+  "GetNumGuildMembers", "GetGuildRosterInfo", "pfUI_playerDB", "CursorHasItem", "event", "arg1",
+  "ERR_MAIL_TARGET_NOT_FOUND" }) do keep[k] = rawget(_G, k) end
 local now = 100
 _G.GetTime = function() return now end
+_G.CursorHasItem = function() return false end
 -- (Lobo, 16 Nov 2026) the item is attached, so the bag shows it locked: the mail must still go
 local attached, sent, locked = nil, 0, false
 _G.GetContainerItemInfo = function() return "tex", 1, locked end
@@ -81,6 +83,91 @@ for _ = 1, 60 do
   M.SendStep()
 end
 ok(sent == 0 and M.sending == nil, "an item that will not attach stops the send with a message")
+
+-- (17 Nov 2026, user: 16 items queued, only the first went) many items: every one goes, one mail each, even
+-- when the client still shows the sent item on the mail for a moment after MAIL_SEND_SUCCESS
+do
+  local onEv = M.ev:GetScript("OnEvent")
+  local LINEN = "|cffffffff|Hitem:2589:0:0:0|h[Linen Cloth]|h|r"
+  local bag = { LINEN, LINEN, "|cffffffff|Hitem:2592:0:0:0|h[Wool Cloth]|h|r", LINEN }
+  local cursor, onMail, staleUntil, mailed = nil, nil, 0, {}
+  _G.GetContainerItemLink = function(b, s) return bag[s] end
+  _G.GetContainerItemInfo = function(b, s) if bag[s] then return "tex", 20, onMail == s end end
+  _G.PickupContainerItem = function(b, s) cursor = s end
+  _G.CursorHasItem = function() return cursor ~= nil end
+  _G.ClearCursor = function() cursor = nil end
+  _G.GetSendMailItem = function()
+    if onMail then return (string.gsub(bag[onMail], "^.-%[(.-)%].*$", "%1")) end
+    if now < staleUntil then return "Linen Cloth" end
+  end
+  _G.ClickSendMailItemButton = function()
+    if cursor then onMail, cursor = cursor, nil
+    elseif onMail then cursor, onMail = onMail, nil
+    elseif now < staleUntil then staleUntil = 0 end
+  end
+  _G.ClearSendMail = function() onMail = nil end
+  local function success()
+    local s = onMail
+    onMail = nil
+    if s then bag[s] = nil end
+    _G.event = "MAIL_SEND_SUCCESS"
+    onEv()
+  end
+  _G.SendMail = function()
+    table.insert(mailed, onMail or 0)
+    sent = sent + 1
+    success()
+    -- (the client still shows the sent item on the mail for a second)
+    staleUntil = now + 1
+  end
+  local function run()
+    for _ = 1, 300 do
+      now = now + .15
+      M.SendStep()
+      if not M.sending then return end
+    end
+  end
+  sent, M.sending = 0, nil
+  local items = {}
+  for s = 1, 4 do table.insert(items, { bag = 0, slot = s, link = bag[s] }) end
+  M.Send("Bob", "", "", 0, 0, items)
+  run()
+  ok(sent == 4 and table.concat(mailed, ",") == "1,2,3,4" and M.sending == nil,
+    "4 items: 4 mails, each with its own item (" .. table.concat(mailed, ",") .. ")")
+
+  -- a refused mail stops the run with a message; the sent item leaves the list, the rest stay
+  bag = { LINEN, LINEN, LINEN }
+  items = {}
+  for s = 1, 3 do table.insert(items, { bag = 0, slot = s, link = bag[s] }) end
+  staleUntil, mailed = 0, {}
+  local n = 0
+  _G.ERR_MAIL_TARGET_NOT_FOUND = "Cannot find player"
+  _G.SendMail = function()
+    n = n + 1
+    table.insert(mailed, onMail or 0)
+    if n == 1 then success() return end
+    _G.event, _G.arg1 = "UI_ERROR_MESSAGE", ERR_MAIL_TARGET_NOT_FOUND
+    onEv()
+  end
+  M.Send("Bob", "", "", 0, 0, items)
+  run()
+  ok(M.sending == nil and n == 2 and table.getn(items) == 2 and items[1].slot == 2,
+    "a refused mail stops the run; the sent item leaves the list, the rest stay (" .. table.getn(items) .. " left)")
+
+  -- the mailbox closing mid-run stops it
+  _G.SendMail = function() end
+  M.Send("Bob", "", "", 0, 0, { { bag = 0, slot = 2, link = bag[2] } })
+  for _ = 1, 5 do now = now + .15 M.SendStep() end
+  _G.event = "MAIL_CLOSED"
+  onEv()
+  ok(M.sending == nil and not M.open, "closing the mailbox stops a run")
+  M.open = true
+  -- (the finished run noted "Bob" as someone you mail: off again for the name tests below)
+  local st = M.Store()
+  st.names.Bob = nil
+  if st.count then st.count.Bob = nil end
+  M.people = nil
+end
 
 -- names: guild, friends, seen people; starts-with first, online first
 _G.UnitName = function(u) if u == "player" then return "Me" end end
