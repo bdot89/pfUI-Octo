@@ -130,7 +130,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
-    ["OctoRinse"] = "Cure your group's debuffs with one key, with per-boss lists of what to skip, hide or cure first (UpsiRinse, built in).",
+    ["OctoRinse"] = "One key cures your group's debuffs, with boss lists of what to skip, hide or cure first.",
     ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
     ["ItemRack"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
