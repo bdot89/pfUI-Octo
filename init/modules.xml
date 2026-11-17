@@ -106,6 +106,7 @@
   <Include file="..\modules\gather-options.lua"/>
   <Include file="..\modules\qol-options.lua"/>
   <Include file="..\modules\perf-options.lua"/>
+  <Include file="..\modules\perf-window.lua"/>
   <Include file="..\modules\questing-options.lua"/>
   <Include file="..\modules\art-options.lua"/>
   <Include file="..\modules\range.lua"/>

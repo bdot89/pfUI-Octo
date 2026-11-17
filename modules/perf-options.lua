@@ -23,6 +23,8 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
       return s
     end, 2)
     PF.Watch(true, O.frame)
+    W.Buttons(p, { { "Open the live window", function() if PF.win then PF.win.Toggle(true) end end, 170,
+      "A window of its own (/pfperf): FPS, memory, every script's time and memory like pfDebug, and each add-on's CPU and memory - safe to scan." } })
 
     W.Card(p, "Smooth fights", { icon = "Interface\\Icons\\Spell_Nature_TimeStop",
       tip = "The game cleans its Lua memory all at once and the picture stops while it does: kept out of fights here." })
@@ -63,7 +65,7 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
           "Switches the game's profiler (scriptProfile) and reloads." },
         { "Reset numbers", function() PF.Reset() end, 130, "Counts from now on: reset before the pull." },
       })
-      W.Note(p, "Or in chat: /pfperf on, /pfperf (the top lines in chat), /pfperf reset, /pfperf off. A screenshot of these lines after a raid boss shows what to make faster next.")
+      W.Note(p, "Or in chat: /pfperf on, /pfperf (the live window), /pfperf chat (the top lines in chat), /pfperf reset, /pfperf off. A screenshot of these lines after a raid boss shows what to make faster next.")
     end
 
     W.Card(p, "More frames outside the add-on", { folded = true, icon = "Interface\\Icons\\INV_Gizmo_02",

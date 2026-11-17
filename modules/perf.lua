@@ -132,6 +132,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end
     return f.GetObjectType and f:GetObjectType() or "?"
   end
+  PF.Label = Label
   -- -> { secs, pfui = ms, addons = { { name, ms } }, frames = { { label, ms } }, parts = { { module, ms } } }
   function PF.Measure()
     if not PF.CanMeasure() then return nil end

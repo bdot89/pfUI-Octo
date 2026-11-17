@@ -118,5 +118,78 @@ local lines = PF.Lines(r, 5)
 ok(string.find(lines[1], "40.00 ms/s", 1, true) ~= nil, "per second (" .. lines[1] .. ")")
 PF.tags[fb] = nil
 
+-- the live window (perf-window.lua, 17 Nov 2026): scripts found through EnumerateFrames, never by walking tables
+local PW = PF.win
+ok(PW and PW.Scan and PW.Unhook and PW.Rows and PW.Toggle, "live window loaded (pfUI.perf.win)")
+if PW then
+  local keep2 = { debugprofilestop = rawget(_G, "debugprofilestop"), GetAddOnMemoryUsage = rawget(_G, "GetAddOnMemoryUsage"),
+    UpdateAddOnMemoryUsage = rawget(_G, "UpdateAddOnMemoryUsage"), IsAddOnLoaded = rawget(_G, "IsAddOnLoaded") }
+  local clock = 0
+  _G.debugprofilestop = function() return clock end
+  local function Frame(name)
+    local fr = { s = {} }
+    fr.GetName = function() return name end
+    fr.GetParent = function() return nil end
+    fr.GetObjectType = function() return "Frame" end
+    fr.GetScript = function(self, s) return self.s[s] end
+    fr.SetScript = function(self, s, fn) self.s[s] = fn end
+    return fr
+  end
+  local f1, f2 = Frame("BusyFrame"), Frame("QuietFrame")
+  local ran, got = 0, nil
+  local up = function(a) ran = ran + 1 got = a clock = clock + 4 kb = kb + 10 end
+  local ev = function() end
+  f1.s.OnUpdate = up
+  f2.s.OnEvent = ev
+  local frames = { f1, f2 }
+  _G.EnumerateFrames = function(f)
+    if not f then return frames[1] end
+    for i = 1, 2 do if frames[i] == f then return frames[i + 1] end end
+  end
+  PW.Reset()
+  local seen, added = PW.Scan()
+  ok(seen == 2 and added == 2 and f1.s.OnUpdate ~= up and PW.Hooked() == 2, "Scan wraps every frame's OnUpdate / OnEvent (" .. tostring(seen) .. ", " .. tostring(added) .. ")")
+  local s2, a2 = PW.Scan()
+  ok(a2 == 0, "scanning again wraps nothing twice")
+  f1.s.OnUpdate("x") f1.s.OnUpdate("x")
+  local rec = PW.data["BusyFrame:OnUpdate()"]
+  ok(ran == 2 and got == "x" and rec and rec.calls == 2 and rec.ms == 8 and rec.kb == 20, "a wrapped script still runs (arguments kept) and is counted: calls, ms, KB")
+  PW.Step(2)
+  ok(rec.nc == 1 and rec.nm == 4, "now = per second since the last refresh")
+  PW.sort = "ms"
+  local rows = PW.Rows()
+  ok(rows[1] and rows[1].label == "BusyFrame:OnUpdate()" and table.getn(rows) == 1, "list sorted by time, scripts that never ran left out")
+  PW.on = false
+  f1.s.OnUpdate()
+  ok(rec.calls == 2 and ran == 3, "paused: runs, not counted")
+  PW.on = true
+  -- an add-on swapped its script after the scan: scanned again, the new one is wrapped
+  local newup = function() end
+  f1.s.OnUpdate = newup
+  local _, a3 = PW.Scan()
+  ok(a3 == 1 and f1.s.OnUpdate ~= newup, "a script swapped since the scan is wrapped again")
+  local n = PW.Unhook()
+  ok(n == 2 and f1.s.OnUpdate == newup and f2.s.OnEvent == ev and PW.Hooked() == 0, "Stop puts every script back")
+  -- add-ons tab
+  _G.IsAddOnLoaded = function() return true end
+  local mem = { 2048, 300 }
+  _G.GetAddOnMemoryUsage = function(i) return mem[i] end
+  _G.UpdateAddOnMemoryUsage = function() end
+  PW.addons = {}
+  PW.StepAddons(1)
+  mem[1] = 2148
+  PW.StepAddons(2)
+  PW.mode, PW.sort = "addons", "mem"
+  rows = PW.Rows()
+  ok(rows[1] and rows[1].label == "pfUI" and rows[1].cols[4] == "2.1 MB" and rows[1].v.grow == 50, "add-ons: memory and KB/s per add-on (" .. tostring(rows[1] and rows[1].cols[4]) .. ")")
+  PW.mode, PW.sort = "scripts", "now"
+  PW.Toggle(true)
+  ok(PW.frame and PW.frame:IsShown(), "the window opens")
+  PW.Refresh()
+  PW.Toggle(false)
+  PW.Reset()
+  for k, v in pairs(keep2) do rawset(_G, k, v) end
+end
+
 for k, v in pairs(keep) do rawset(_G, k, v) end
 pfUI_cache.perfsaved = nil

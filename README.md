@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.35
+
+- 📈 **Live performance window** (`/pfperf`, or Settings > Performance > "Open the live window"): FPS, latency and Lua memory every second; a Scripts tab that measures every frame's scripts like pfDebug (calls, ms per second, total, memory made) without walking the game's tables, so it cannot crash the way pfDebug's Scan now does; an Add-ons tab with memory per add-on and, with the CPU profiler, CPU per add-on. `/pfperf chat` prints the old summary. New file: restart the game fully once.
+
 ## 📜 New in 1.1.34
 
 - 🐾 **Nameplates in battlegrounds:** "Friendly pets" now hides your own and your team's pets (their bars are blue like players', so they counted as players). "Enemy pets" also works without SuperWoW for any pet you have targeted or moused over. A hidden plate now hides other add-ons' parts on it too.
