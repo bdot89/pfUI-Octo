@@ -221,6 +221,8 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     battlefield = function() return MiniMapBattlefieldFrame end,
     abutton = function() return pfMinimapButton end,
     clock = function() return clock end,
+    -- the side bar: shown always or while the mouse is over the map (S.dockshow)
+    dockshow = function() return map.dock and map.DockOn and map.DockOn() and map.dock or nil end,
   }
 
   local hover = CreateFrame("Frame", nil, map)
@@ -341,11 +343,16 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
 
   -- where a part is now (x, y from its point of the map), as stored or as it sits
   function map.PartPoint(p)
+    if map.Docked and map.Docked(p.key) and map.DockSpot(p.key) then return "CENTER" end
     if tonumber(S[p.key .. "x"] or "") and S[p.key .. "pt"] and S[p.key .. "pt"] ~= "" then return S[p.key .. "pt"] end
     return p.point()
   end
 
   function map.PartOffset(p)
+    if map.Docked and map.Docked(p.key) then
+      local dx, dy = map.DockSpot(p.key)
+      if dx then return dx, dy end
+    end
     local sx, sy = tonumber(S[p.key .. "x"] or ""), tonumber(S[p.key .. "y"] or "")
     if sx and sy then return sx, sy end
     local f = p.get()
@@ -364,11 +371,21 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   -- the map's point a part hangs from (the bar: its top from the map's bottom)
   function map.Rel(p, pt) return (p.rel and pt == p.point()) and p.rel or pt end
 
-  function map.PartScale(p) return (tonumber(S[p.key .. "scale"]) or 100) / 100 end
+  function map.PartScale(p)
+    -- docked: as big as the side bar's buttons
+    if map.Docked and map.Docked(p.key) then
+      local f = p.get()
+      local w = f and f:GetWidth() or 0
+      if w > 0 and w <= 64 then return (tonumber(S.docksize) or 22) / w end
+    end
+    return (tonumber(S[p.key .. "scale"]) or 100) / 100
+  end
 
   local function PlacePart(p)
     local f = p.get()
     if not f then return end
+    -- (in the side bar: the bar places it)
+    if map.Docked and map.Docked(p.key) then return end
     local sc = map.PartScale(p)
     f:SetScale(sc)
     local sx, sy = tonumber(S[p.key .. "x"] or ""), tonumber(S[p.key .. "y"] or "")
@@ -435,14 +452,14 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   -- the options' preview moves and sizes parts with these
   function map.MovePart(key, x, y)
     local p = map.Part(key)
-    if not p then return end
+    if not p or (map.Docked and map.Docked(key)) then return end
     S[key .. "pt"] = map.PartPoint(p)
     S[key .. "x"], S[key .. "y"] = tostring(math.floor(x + .5)), tostring(math.floor(y + .5))
     PlacePart(p)
   end
   function map.SizePart(key, pct)
     local p = map.Part(key)
-    if not p then return end
+    if not p or (map.Docked and map.Docked(key)) then return end
     S[key .. "scale"] = tostring(math.max(50, math.min(250, math.floor(pct + .5))))
     PlacePart(p)
   end
@@ -481,6 +498,218 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
       process(self)
       local p = map.Part("abutton")
       if p then PlacePart(p) end
+      if map.LayoutDock then map.LayoutDock() end
+    end
+  end
+
+  -- ---------------------------------------------------------------- the side bar
+  -- (17 Nov 2026, user with another client's map: "how clean it looks with the buttons on the side this
+  -- should be an option in ours"; EllesmereUI's button row as the idea, nothing copied.) The map's
+  -- buttons - tracking, mail, battleground queue, the addon buttons arrow, zoom - in one strip along a
+  -- side of the map, each the same size, packed with no gaps (mail and the queue only while the game
+  -- shows them). C.mapstyle: dock ("0" | left | right | top | bottom), dockbtns (order), docksize,
+  -- dockgap (between buttons), dockdist (from the map), dockalign (start | center | end), dockbg,
+  -- dockshow (show | hover).
+  map.DOCKABLE = { "tracking", "mail", "battlefield", "abutton", "zoom" }
+  local dock = CreateFrame("Frame", "pfMinimapDock", map)
+  map.dock = dock
+  dock:SetFrameLevel(Minimap:GetFrameLevel() + 3)
+  dock:Hide()
+  dock.bg = dock:CreateTexture(nil, "BACKGROUND")
+  dock.bg:SetAllPoints(dock)
+  dock.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+  dock.edge = {}
+  for i = 1, 4 do
+    dock.edge[i] = dock:CreateTexture(nil, "BORDER")
+    dock.edge[i]:SetTexture("Interface\\Buttons\\WHITE8X8")
+    dock.edge[i]:SetVertexColor(0, 0, 0, 1)
+  end
+  dock.edge[1]:SetPoint("TOPLEFT", dock, "TOPLEFT", 0, 0) dock.edge[1]:SetPoint("TOPRIGHT", dock, "TOPRIGHT", 0, 0) dock.edge[1]:SetHeight(1)
+  dock.edge[2]:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0) dock.edge[2]:SetPoint("BOTTOMRIGHT", dock, "BOTTOMRIGHT", 0, 0) dock.edge[2]:SetHeight(1)
+  dock.edge[3]:SetPoint("TOPLEFT", dock, "TOPLEFT", 0, 0) dock.edge[3]:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0) dock.edge[3]:SetWidth(1)
+  dock.edge[4]:SetPoint("TOPRIGHT", dock, "TOPRIGHT", 0, 0) dock.edge[4]:SetPoint("BOTTOMRIGHT", dock, "BOTTOMRIGHT", 0, 0) dock.edge[4]:SetWidth(1)
+
+  -- zoom buttons of our own (only in the side bar)
+  local function ZoomButton(name, tex, delta)
+    local b = CreateFrame("Button", name, map)
+    b:SetWidth(24)
+    b:SetHeight(24)
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetAllPoints(b)
+    b.icon:SetTexture(tex)
+    b.icon:SetTexCoord(.22, .78, .22, .78)
+    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    b:SetScript("OnClick", function()
+      local z = Minimap:GetZoom() + delta
+      if z >= 0 and z <= Minimap:GetZoomLevels() - 1 then Minimap:SetZoom(z) end
+    end)
+    b:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_LEFT")
+      GameTooltip:AddLine(delta > 0 and (ZOOM_IN or "Zoom in") or (ZOOM_OUT or "Zoom out"))
+      GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:Hide()
+    return b
+  end
+  map.zoomin = ZoomButton("pfMinimapZoomIn", "Interface\\Minimap\\UI-Minimap-ZoomInButton-Up", 1)
+  map.zoomout = ZoomButton("pfMinimapZoomOut", "Interface\\Minimap\\UI-Minimap-ZoomOutButton-Up", -1)
+
+  local DOCKGET = {
+    tracking = function() return pfUITracking end,
+    mail = function() return MiniMapMailFrame end,
+    battlefield = function() return MiniMapBattlefieldFrame end,
+    abutton = function() return pfMinimapButton end,
+  }
+  local function DockList()
+    local list = {}
+    for k in string.gfind(S.dockbtns or "", "[^,]+") do table.insert(list, k) end
+    return list
+  end
+  function map.DockOn() return S.dock and S.dock ~= "0" and S.dock ~= "" end
+  function map.Docked(key)
+    if not map.DockOn() then return false end
+    for _, k in ipairs(DockList()) do if k == key then return true end end
+    return false
+  end
+  -- the frames the bar holds now, in order (a frame the game hides, or set to Never, takes no place)
+  function map.DockFrames(all)
+    local out = {}
+    for _, k in ipairs(DockList()) do
+      if k == "zoom" then
+        table.insert(out, { key = "zoom", f = map.zoomin, icon = "Interface\\Minimap\\UI-Minimap-ZoomInButton-Up" })
+        table.insert(out, { key = "zoom", f = map.zoomout, icon = "Interface\\Minimap\\UI-Minimap-ZoomOutButton-Up" })
+      else
+        local get = DOCKGET[k]
+        local f = get and get()
+        if f and S[k] ~= "hide" and (all or f:IsShown()) then table.insert(out, { key = k, f = f }) end
+      end
+    end
+    return out
+  end
+  -- where the bar and each of its buttons sit, from the centre of the game's Minimap, in its units:
+  -- bar = { x, y, w, h }, spots[i] = { x, y } (centres); n buttons
+  function map.DockRect(n)
+    local side = S.dock
+    local size = tonumber(S.docksize) or 22
+    local gap = tonumber(S.dockgap) or 4
+    local dist = tonumber(S.dockdist) or 4
+    local pad = 3
+    local w = Minimap:GetWidth() or 140
+    local _, border = GetBorderSize()
+    border = tonumber(border) or 1
+    local half = w / 2 + border
+    local thick = size + pad * 2
+    local len = w + border * 2
+    -- bottom: under the bar under the map, when it shows
+    local extra = 0
+    if side == "bottom" and pfUI.panel and pfUI.panel.minimap and pfUI.panel.minimap:IsShown() then
+      extra = (pfUI.panel.minimap:GetHeight() or 0) + border * 3
+    end
+    local run = n * size + math.max(0, n - 1) * gap
+    local start
+    if S.dockalign == "center" then start = -run / 2
+    elseif S.dockalign == "end" then start = len / 2 - pad - run
+    else start = -len / 2 + pad end
+    local bar, spots = {}, {}
+    local across = half + dist + thick / 2 + extra
+    if side == "left" or side == "right" then
+      bar.x, bar.y, bar.w, bar.h = (side == "left" and -across or across), 0, thick, len
+      for i = 1, n do
+        -- (from the top down)
+        spots[i] = { bar.x, -(start + size / 2 + (i - 1) * (size + gap)) }
+      end
+    else
+      bar.x, bar.y, bar.w, bar.h = 0, (side == "top" and across or -across), len, thick
+      for i = 1, n do spots[i] = { start + size / 2 + (i - 1) * (size + gap), bar.y } end
+    end
+    return bar, spots, size
+  end
+  local dockSig
+  -- a button out of the bar: its own parent again, and its place (the one you gave it, else pfUI's)
+  local function Undock(key, f)
+    if not f.octoDockParent then return end
+    f:SetParent(f.octoDockParent)
+    f.octoDockParent = nil
+    f:SetScale(1)
+    if f:IsShown() then f:Hide() f:Show() end
+    local p = map.Part(key)
+    if not p then return end
+    if tonumber(S[key .. "x"] or "") and tonumber(S[key .. "y"] or "") then
+      PlacePart(p)
+    elseif key == "abutton" and pfUI.addonbuttons and pfUI.addonbuttons.ProcessButtons then
+      pfUI.addonbuttons:ProcessButtons()
+    else
+      local pt = p.point()
+      local x, y = p.def()
+      f:ClearAllPoints()
+      f:SetPoint(pt, Minimap, map.Rel(p, pt), x, y)
+      f:SetScale(map.PartScale(p))
+    end
+  end
+  function map.LayoutDock()
+    for key, get in pairs(DOCKGET) do
+      local f = get()
+      if f and f.octoDockParent and not map.Docked(key) then Undock(key, f) end
+    end
+    if not map.DockOn() then
+      dock:Hide()
+      map.zoomin:Hide()
+      map.zoomout:Hide()
+      dockSig = nil
+      return
+    end
+    local list = map.DockFrames()
+    local bar, spots, size = map.DockRect(table.getn(list))
+    dock:ClearAllPoints()
+    dock:SetPoint("CENTER", Minimap, "CENTER", bar.x, bar.y)
+    dock:SetWidth(bar.w)
+    dock:SetHeight(bar.h)
+    local r, g, b, a = GetStringColor(C.appearance.border.background)
+    if S.dockbg == "0" then dock.bg:Hide() for i = 1, 4 do dock.edge[i]:Hide() end
+    else
+      dock.bg:SetVertexColor(tonumber(r) or 0, tonumber(g) or 0, tonumber(b) or 0, tonumber(a) or .8)
+      dock.bg:Show()
+      for i = 1, 4 do dock.edge[i]:Show() end
+    end
+    dock:Show()
+    map.zoomin:Hide()
+    map.zoomout:Hide()
+    local sig = ""
+    for i, e in ipairs(list) do
+      local f = e.f
+      if f.GetParent and f:GetParent() ~= dock then
+        if not f.octoDockParent then f.octoDockParent = f:GetParent() or map end
+        f:SetParent(dock)
+        if f:IsShown() then f:Hide() f:Show() end
+      end
+      if e.key == "zoom" then f:Show() end
+      -- every button as big as the bar's size (its own art at that size)
+      local fw = f:GetWidth() or size
+      if fw <= 0 then fw = size end
+      local sc = size / fw
+      f:SetScale(sc)
+      f:ClearAllPoints()
+      f:SetPoint("CENTER", Minimap, "CENTER", spots[i][1] / sc * (Minimap:GetEffectiveScale() / dock:GetEffectiveScale()),
+        spots[i][2] / sc * (Minimap:GetEffectiveScale() / dock:GetEffectiveScale()))
+      f:SetFrameLevel(dock:GetFrameLevel() + 2)
+      sig = sig .. e.key .. ","
+    end
+    dockSig = sig
+  end
+  -- mail and the battleground queue come and go: the bar closes up behind them
+  libclient.Every(dock, .3, function()
+    if not map.DockOn() then return end
+    local sig = ""
+    for _, e in ipairs(map.DockFrames()) do sig = sig .. e.key .. "," end
+    if sig ~= dockSig then map.LayoutDock() end
+  end)
+  -- (the options' preview asks a docked part's place with these)
+  function map.DockSpot(key)
+    local list = map.DockFrames(true)
+    local bar, spots, size = map.DockRect(table.getn(list))
+    for i, e in ipairs(list) do
+      if e.key == key then return spots[i][1], spots[i][2], size end
     end
   end
 
@@ -534,6 +763,7 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     -- every part in its place (clock and ping lines too)
     HookButtons()
     map.PlaceParts()
+    map.LayoutDock()
 
     ApplyElements()
     map:SetAlpha(UnitAffectingCombat("player") and (tonumber(S.combatalpha) or 1) or (tonumber(S.alpha) or 1))
@@ -576,6 +806,9 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   -- SexyMap-style looks in one click: only the style keys change
   local PRESETS = {
     { "pfui", T["pfUI square"], { shape = "square", border = "pfui", art1 = "none", art2 = "none", art3 = "none" } },
+    -- (17 Nov 2026) the clean square map with every button in a bar down its left side
+    { "sidebar", T["Clean, buttons at the side"], { shape = "square", border = "pfui", art1 = "none", art2 = "none", art3 = "none",
+        dock = "left", dockbg = "1", dockalign = "start", dockshow = "show" } },
     { "clean", T["Clean round"], { shape = "round", border = "outline", outlinecolor = "0,0,0,1", outlineaccent = "0",
         art1 = "Spells\\GENERICGLOW64", art1size = "125", art1color = "0,0,0,0.8", art1blend = "BLEND", art1speed = "0", art1above = "0",
         art2 = "none", art3 = "none" } },

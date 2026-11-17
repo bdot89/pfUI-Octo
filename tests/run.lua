@@ -1431,7 +1431,7 @@ if MAP and MAP.ApplyStyle then
   Minimap.SetZoom = function(self, z) zoom = z end
   MS.autozoom = "5"
   local hoverFrame
-  for _, f in ipairs(Mock.frames) do if f._parent == MAP and f.alpha ~= nil and f.scripts.OnUpdate and f ~= pfMinimapPing and f ~= pfMinimapClock and f ~= pfMinimapArtAbove then hoverFrame = f end end
+  for _, f in ipairs(Mock.frames) do if f._parent == MAP and f.alpha ~= nil and f.scripts.OnUpdate and f ~= pfMinimapPing and f ~= pfMinimapClock and f ~= pfMinimapArtAbove and f ~= pfMinimapDock then hoverFrame = f end end
   ok(hoverFrame, "map hover / zoom timer found")
   if hoverFrame then
     Mock.now = Mock.now + 1
@@ -1452,6 +1452,27 @@ if MAP and MAP.ApplyStyle then
   ok(MS.mailscale == "150" and MiniMapMailFrame:GetScale() == 1.5, "a part can be bigger")
   MAP.ResetPart("mail")
   ok(MS.mailx == "" and MS.mailscale == "100" and MiniMapMailFrame:GetScale() == 1, "right-click puts it back")
+  -- (17 Nov 2026) the side bar: buttons in one strip down a side of the map
+  ok(MS.dock == "0" and pfMinimapDock and not pfMinimapDock:IsShown(), "side bar off by default")
+  MS.dock = "left"
+  MS.dockbtns = "tracking,mail,zoom"
+  MAP.ApplyStyle()
+  ok(pfMinimapDock:IsShown() and MiniMapMailFrame:GetParent() == pfMinimapDock, "side bar on: mail sits in it")
+  local bar, spots = MAP.DockRect(4)
+  ok(bar.x < 0 and bar.h > bar.w and spots[1][2] > spots[2][2], "left side: a tall strip, buttons from the top down")
+  ok(MAP.Docked("mail") and not MAP.Docked("battlefield"), "only the ticked buttons are in it")
+  MAP.MovePart("mail", 50, 50)
+  ok(MS.mailx == "", "a docked button is not dragged away")
+  local px, py = MAP.PartOffset(MAP.Part("mail"))
+  ok(MAP.PartPoint(MAP.Part("mail")) == "CENTER" and px and px < 0, "the preview finds a docked button in the bar")
+  MS.dockbtns = "tracking,zoom"
+  MAP.ApplyStyle()
+  ok(MiniMapMailFrame:GetParent() ~= pfMinimapDock, "taken out of the bar: back on the map")
+  MS.dock = "0"
+  MS.dockbtns = "tracking,mail,battlefield,zoom,abutton"
+  MAP.ApplyStyle()
+  ok(not pfMinimapDock:IsShown() and not pfMinimapZoomIn:IsShown(), "side bar off again")
+
   -- the zone name always follows its setting; the coordinates' corner is live
   MAP.MovePart("zone", 0, -20)
   ok(pfMinimapZone.point and pfMinimapZone.point[5] == -20, "zone name moved")

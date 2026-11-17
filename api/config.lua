@@ -475,6 +475,15 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("mapstyle",   nil,           "clocktime",        "local")
   pfUI:UpdateConfig("mapstyle",   nil,           "clockpos",         "bottom")
   pfUI:UpdateConfig("mapstyle",   nil,           "ping",             "1")
+  -- octo (17 Nov 2026): the map's buttons in a bar along one side (minimap-style.lua map.LayoutDock)
+  pfUI:UpdateConfig("mapstyle",   nil,           "dock",             "0")      -- 0 | left | right | top | bottom
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockbtns",         "tracking,mail,battlefield,zoom,abutton")
+  pfUI:UpdateConfig("mapstyle",   nil,           "docksize",         "22")
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockgap",          "4")
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockdist",         "4")
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockalign",        "start")  -- start | center | end
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockbg",           "1")
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockshow",         "show")   -- show | hover
   pfUI:UpdateConfig("mapstyle",   nil,           "autozoom",         "0")
   pfUI:UpdateConfig("mapstyle",   nil,           "alpha",            "1")
   pfUI:UpdateConfig("mapstyle",   nil,           "combatalpha",      "1")

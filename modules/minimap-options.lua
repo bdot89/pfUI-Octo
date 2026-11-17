@@ -282,6 +282,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
         return MAPPX / size
       end
 
+      local dockf, zoomf
       local function Layout()
         local s = S()
         local f = Scale()
@@ -366,7 +367,53 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
           end
           if picked then h.pick:Show() else h.pick:Hide() end
         end
+        -- the side bar behind its buttons, and its zoom buttons
+        if map.DockOn and map.DockOn() then
+          local list = map.DockFrames(true)
+          local bar, spots, size = map.DockRect(table.getn(list))
+          dockf:ClearAllPoints()
+          dockf:SetPoint("CENTER", mock, "CENTER", bar.x * f, bar.y * f)
+          dockf:SetWidth(bar.w * f)
+          dockf:SetHeight(bar.h * f)
+          if s.dockbg == "0" then dockf:Hide() else dockf:Show() end
+          zoomf:SetAlpha(s.dockshow == "hover" and .6 or 1)
+          local z = 0
+          for i, e in ipairs(list) do
+            if e.key == "zoom" then
+              z = z + 1
+              local t = dockf.zoom[z]
+              t:SetTexture(e.icon)
+              t:ClearAllPoints()
+              t:SetPoint("CENTER", mock, "CENTER", spots[i][1] * f, spots[i][2] * f)
+              t:SetWidth(size * f)
+              t:SetHeight(size * f)
+              t:Show()
+            end
+          end
+          for k = z + 1, 2 do dockf.zoom[k]:Hide() end
+        else
+          dockf:Hide()
+          dockf.zoom[1]:Hide()
+          dockf.zoom[2]:Hide()
+        end
       end
+      -- (a backdrop of its own, drawn under the part spots: never a fill above the preview)
+      dockf = CreateFrame("Button", nil, holder)
+      dockf:SetFrameLevel(base + 5)
+      CreateBackdrop(dockf)
+      if W.Underlay then W.Underlay(dockf) end
+      dockf.zoom = {}
+      zoomf = CreateFrame("Frame", nil, holder)
+      zoomf:SetAllPoints(holder)
+      zoomf:SetFrameLevel(base + 6)
+      for k = 1, 2 do
+        local t = zoomf:CreateTexture(nil, "OVERLAY")
+        t:SetTexCoord(.22, .78, .22, .78)
+        dockf.zoom[k] = t
+      end
+      dockf:SetScript("OnClick", function() if MO.OpenDock then MO.OpenDock() end end)
+      W.Tip(dockf, "Side bar", "The map's buttons in one bar. Click: its settings.")
+      dockf:Hide()
       table.insert(MO.previews, { hots = hots, Layout = Layout, holder = holder })
 
       -- mouse: click = pick, drag = move, Shift + wheel = size, right-click = back
@@ -752,6 +799,49 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     W.Heading(p, "Buttons and text", { about = "Everything on and around the map. Pick a part - here or by clicking it "
       .. "in the preview - then set when it shows, its size and its place. Drag parts in the preview to fit any shape." })
     Preview(p)
+
+    -- (17 Nov 2026, user: "how clean it looks with the buttons on the side this should be an option in ours")
+    W.Card(p, "Side bar", { tip = "The map's buttons in one tidy bar along a side of the map, all the same size. "
+      .. "Mail and the battleground queue take a place only while they show." })
+    local SIDES = { { key = "0", label = "Off" }, { key = "left", label = "Left" }, { key = "right", label = "Right" },
+                    { key = "top", label = "Top" }, { key = "bottom", label = "Bottom" } }
+    Tiles(p, SIDES, 5, 126, 22, function(key) return (S().dock or "0") == key end,
+      function(key) S().dock = key U() O:Refresh() if MO.Layout then MO.Layout() end end, "Where the bar goes. Off: each button sits on the map.")
+    local DOCKNAMES = { tracking = "Tracking", mail = "Mail", battlefield = "Battleground queue", zoom = "Zoom in / out", abutton = "Addon buttons arrow" }
+    local function InBar(key)
+      for k in string.gfind(S().dockbtns or "", "[^,]+") do if k == key then return true end end
+      return false
+    end
+    local function SetInBar(key, on)
+      local out = {}
+      for _, k in ipairs(map.DOCKABLE or {}) do
+        if (k == key and on) or (k ~= key and InBar(k)) then table.insert(out, k) end
+      end
+      S().dockbtns = table.concat(out, ",")
+      U()
+      if MO.Layout then MO.Layout() end
+    end
+    for _, k in ipairs(map.DOCKABLE or {}) do
+      local key = k
+      W.Check(p, DOCKNAMES[key] or key, "In the bar. Off: it sits on the map as before.",
+        function() return InBar(key) end, function(v) SetInBar(key, v) end)
+    end
+    W.Slider(p, "Button size", nil, 14, 40, 1, function() return tonumber(S().docksize) or 22 end,
+      function(v) S().docksize = tostring(v) U() if MO.Layout then MO.Layout() end end, Px)
+    W.Slider(p, "Gap between buttons", nil, 0, 16, 1, function() return tonumber(S().dockgap) or 4 end,
+      function(v) S().dockgap = tostring(v) U() if MO.Layout then MO.Layout() end end, Px)
+    W.Slider(p, "Distance from the map", nil, -10, 30, 1, function() return tonumber(S().dockdist) or 4 end,
+      function(v) S().dockdist = tostring(v) U() if MO.Layout then MO.Layout() end end, Px)
+    W.Dropdown(p, "Buttons start", "From which end of the bar the buttons line up.",
+      { { key = "start", label = "Top / left end" }, { key = "center", label = "Middle" }, { key = "end", label = "Bottom / right end" } },
+      function() return S().dockalign or "start" end, function(v) S().dockalign = v U() if MO.Layout then MO.Layout() end end)
+    W.Dropdown(p, "Shows", nil, { { key = "show", label = "Always" }, { key = "hover", label = "Mouse over the map" } },
+      function() return S().dockshow or "show" end, function(v) S().dockshow = v U() end)
+    W.Check(p, "Background", "A dark strip behind the buttons, in pfUI's frame colour.",
+      function() return S().dockbg ~= "0" end, function(v) S().dockbg = v and "1" or "0" U() if MO.Layout then MO.Layout() end end)
+    MO.OpenDock = function()
+      if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("mmparts", "Side bar") else O:Open("mmparts") end
+    end
 
     W.Card(p, "Part", { tip = "The part you picked. Click a part in the preview to pick it there." })
     local list = {}
