@@ -508,7 +508,7 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   -- buttons - tracking, mail, battleground queue, the addon buttons arrow, zoom - in one strip along a
   -- side of the map, each the same size, packed with no gaps (mail and the queue only while the game
   -- shows them). C.mapstyle: dock ("0" | left | right | top | bottom), dockbtns (order), docksize,
-  -- dockgap (between buttons), dockdist (from the map), dockalign (start | center | end), dockbg,
+  -- dockgap (between buttons), dockdist (from the map), dockalign (start | center | end), dockstrip (a strip behind them),
   -- dockshow (show | hover).
   map.DOCKABLE = { "tracking", "mail", "battlefield", "abutton", "zoom" }
   local dock = CreateFrame("Frame", "pfMinimapDock", map)
@@ -529,31 +529,50 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   dock.edge[3]:SetPoint("TOPLEFT", dock, "TOPLEFT", 0, 0) dock.edge[3]:SetPoint("BOTTOMLEFT", dock, "BOTTOMLEFT", 0, 0) dock.edge[3]:SetWidth(1)
   dock.edge[4]:SetPoint("TOPRIGHT", dock, "TOPRIGHT", 0, 0) dock.edge[4]:SetPoint("BOTTOMRIGHT", dock, "BOTTOMRIGHT", 0, 0) dock.edge[4]:SetWidth(1)
 
+  -- (17 Nov 2026, user: "it looks aweful" - the game's gold zoom rings, a tiny mail icon in a big frame,
+  -- a strip the whole map's height.) Now every button is the same pfUI box: its own frame sized to the
+  -- box (never scaled, so borders stay 1 px), the icon filling it inset 3 px, plain +/- glyphs for zoom;
+  -- the strip behind them (off by default) is only as long as the buttons.
+  local function Glyph(b, plus)
+    b.glyphH = b:CreateTexture(nil, "ARTWORK")
+    b.glyphH:SetTexture("Interface\\Buttons\\WHITE8X8")
+    b.glyphH:SetPoint("CENTER", b, "CENTER", 0, 0)
+    if plus then
+      b.glyphV = b:CreateTexture(nil, "ARTWORK")
+      b.glyphV:SetTexture("Interface\\Buttons\\WHITE8X8")
+      b.glyphV:SetPoint("CENTER", b, "CENTER", 0, 0)
+    end
+    function b.PaintGlyph(lit)
+      local c = lit and 1 or .8
+      local s = math.max(6, math.floor((b:GetWidth() or 22) * .46 + .5))
+      b.glyphH:SetWidth(s) b.glyphH:SetHeight(2) b.glyphH:SetVertexColor(c, c, c, 1)
+      if b.glyphV then b.glyphV:SetWidth(2) b.glyphV:SetHeight(s) b.glyphV:SetVertexColor(c, c, c, 1) end
+    end
+  end
   -- zoom buttons of our own (only in the side bar)
-  local function ZoomButton(name, tex, delta)
+  local function ZoomButton(name, delta)
     local b = CreateFrame("Button", name, map)
-    b:SetWidth(24)
-    b:SetHeight(24)
-    b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetAllPoints(b)
-    b.icon:SetTexture(tex)
-    b.icon:SetTexCoord(.22, .78, .22, .78)
-    b:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square", "ADD")
+    b:SetWidth(22)
+    b:SetHeight(22)
+    CreateBackdrop(b, nil, true)
+    Glyph(b, delta > 0)
+    b.PaintGlyph(false)
     b:SetScript("OnClick", function()
       local z = Minimap:GetZoom() + delta
       if z >= 0 and z <= Minimap:GetZoomLevels() - 1 then Minimap:SetZoom(z) end
     end)
     b:SetScript("OnEnter", function()
+      this.PaintGlyph(true)
       GameTooltip:SetOwner(this, "ANCHOR_LEFT")
       GameTooltip:AddLine(delta > 0 and (ZOOM_IN or "Zoom in") or (ZOOM_OUT or "Zoom out"))
       GameTooltip:Show()
     end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:SetScript("OnLeave", function() this.PaintGlyph(false) GameTooltip:Hide() end)
     b:Hide()
     return b
   end
-  map.zoomin = ZoomButton("pfMinimapZoomIn", "Interface\\Minimap\\UI-Minimap-ZoomInButton-Up", 1)
-  map.zoomout = ZoomButton("pfMinimapZoomOut", "Interface\\Minimap\\UI-Minimap-ZoomOutButton-Up", -1)
+  map.zoomin = ZoomButton("pfMinimapZoomIn", 1)
+  map.zoomout = ZoomButton("pfMinimapZoomOut", -1)
 
   local DOCKGET = {
     tracking = function() return pfUITracking end,
@@ -561,6 +580,20 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     battlefield = function() return MiniMapBattlefieldFrame end,
     abutton = function() return pfMinimapButton end,
   }
+  -- the icon inside a button that has no box of its own (gets one from us: dock.slot[key])
+  local ICONOF = {
+    mail = function() return MiniMapMailIcon end,
+    battlefield = function() return MiniMapBattlefieldIcon end,
+  }
+  dock.slot = {}
+  local function Slot(key)
+    if not dock.slot[key] then
+      local s = CreateFrame("Frame", nil, dock)
+      CreateBackdrop(s, nil, true)
+      dock.slot[key] = s
+    end
+    return dock.slot[key]
+  end
   local function DockList()
     local list = {}
     for k in string.gfind(S.dockbtns or "", "[^,]+") do table.insert(list, k) end
@@ -577,8 +610,8 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     local out = {}
     for _, k in ipairs(DockList()) do
       if k == "zoom" then
-        table.insert(out, { key = "zoom", f = map.zoomin, icon = "Interface\\Minimap\\UI-Minimap-ZoomInButton-Up" })
-        table.insert(out, { key = "zoom", f = map.zoomout, icon = "Interface\\Minimap\\UI-Minimap-ZoomOutButton-Up" })
+        table.insert(out, { key = "zoom", f = map.zoomin, plus = true })
+        table.insert(out, { key = "zoom", f = map.zoomout })
       else
         local get = DOCKGET[k]
         local f = get and get()
@@ -588,50 +621,81 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     return out
   end
   -- where the bar and each of its buttons sit, from the centre of the game's Minimap, in its units:
-  -- bar = { x, y, w, h }, spots[i] = { x, y } (centres); n buttons
+  -- bar = { x, y, w, h }, spots[i] = { x, y } (centres); n buttons. The strip is as long as its buttons
+  -- and lines up with the map's top / left end, its middle or its bottom / right end.
   function map.DockRect(n)
     local side = S.dock
     local size = tonumber(S.docksize) or 22
     local gap = tonumber(S.dockgap) or 4
     local dist = tonumber(S.dockdist) or 4
-    local pad = 3
+    local pad = S.dockstrip == "1" and 3 or 0
     local w = Minimap:GetWidth() or 140
     local _, border = GetBorderSize()
     border = tonumber(border) or 1
     local half = w / 2 + border
     local thick = size + pad * 2
-    local len = w + border * 2
     -- bottom: under the bar under the map, when it shows
     local extra = 0
     if side == "bottom" and pfUI.panel and pfUI.panel.minimap and pfUI.panel.minimap:IsShown() then
       extra = (pfUI.panel.minimap:GetHeight() or 0) + border * 3
     end
     local run = n * size + math.max(0, n - 1) * gap
-    local start
-    if S.dockalign == "center" then start = -run / 2
-    elseif S.dockalign == "end" then start = len / 2 - pad - run
-    else start = -len / 2 + pad end
+    local len = run + pad * 2
+    -- the strip's middle along the side (+ = towards the top / right end of the side, from the top-left
+    -- for the start): start = flush with the map's top (left) edge
+    local mid
+    if S.dockalign == "center" then mid = 0
+    elseif S.dockalign == "end" then mid = -(half - len / 2)
+    else mid = half - len / 2 end
     local bar, spots = {}, {}
     local across = half + dist + thick / 2 + extra
     if side == "left" or side == "right" then
-      bar.x, bar.y, bar.w, bar.h = (side == "left" and -across or across), 0, thick, len
-      for i = 1, n do
-        -- (from the top down)
-        spots[i] = { bar.x, -(start + size / 2 + (i - 1) * (size + gap)) }
-      end
+      bar.x, bar.y, bar.w, bar.h = (side == "left" and -across or across), mid, thick, len
+      local top = mid + len / 2 - pad
+      for i = 1, n do spots[i] = { bar.x, top - size / 2 - (i - 1) * (size + gap) } end
     else
-      bar.x, bar.y, bar.w, bar.h = 0, (side == "top" and across or -across), len, thick
-      for i = 1, n do spots[i] = { start + size / 2 + (i - 1) * (size + gap), bar.y } end
+      -- (along the top / bottom, "start" is the left end)
+      bar.x, bar.y, bar.w, bar.h = -mid, (side == "top" and across or -across), len, thick
+      local left = -mid - len / 2 + pad
+      for i = 1, n do spots[i] = { left + size / 2 + (i - 1) * (size + gap), bar.y } end
     end
     return bar, spots, size
   end
   local dockSig
-  -- a button out of the bar: its own parent again, and its place (the one you gave it, else pfUI's)
+  -- a button's own size and its icon's points, kept the first time it goes in the bar
+  local function Keep(key, f)
+    if f.octoDockKept then return end
+    f.octoDockKept = { w = f:GetWidth(), h = f:GetHeight(), scale = f:GetScale() }
+    local icon = ICONOF[key] and ICONOF[key]()
+    if icon then
+      local pts = {}
+      for i = 1, (icon.GetNumPoints and icon:GetNumPoints() or 0) do
+        local a, rel, b, x, y = icon:GetPoint(i)
+        table.insert(pts, { a, rel, b, x, y })
+      end
+      f.octoDockKept.icon = { w = icon:GetWidth(), h = icon:GetHeight(), pts = pts }
+    end
+  end
+  -- a button out of the bar: its own parent, size and icon again, and its place (yours, else pfUI's)
   local function Undock(key, f)
     if not f.octoDockParent then return end
     f:SetParent(f.octoDockParent)
     f.octoDockParent = nil
+    local k = f.octoDockKept
+    if k then
+      if k.w and k.w > 0 then f:SetWidth(k.w) end
+      if k.h and k.h > 0 then f:SetHeight(k.h) end
+      local icon = ICONOF[key] and ICONOF[key]()
+      if icon and k.icon then
+        icon:ClearAllPoints()
+        for _, pt in ipairs(k.icon.pts) do icon:SetPoint(pt[1], pt[2], pt[3], pt[4], pt[5]) end
+        if k.icon.w and k.icon.w > 0 then icon:SetWidth(k.icon.w) end
+        if k.icon.h and k.icon.h > 0 then icon:SetHeight(k.icon.h) end
+      end
+      f.octoDockKept = nil
+    end
     f:SetScale(1)
+    if dock.slot[key] then dock.slot[key]:Hide() end
     if f:IsShown() then f:Hide() f:Show() end
     local p = map.Part(key)
     if not p then return end
@@ -652,6 +716,7 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
       local f = get()
       if f and f.octoDockParent and not map.Docked(key) then Undock(key, f) end
     end
+    for _, s in pairs(dock.slot) do s:Hide() end
     if not map.DockOn() then
       dock:Hide()
       map.zoomin:Hide()
@@ -661,38 +726,53 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     end
     local list = map.DockFrames()
     local bar, spots, size = map.DockRect(table.getn(list))
+    local k = (Minimap:GetEffectiveScale() or 1) / (dock:GetEffectiveScale() or 1)
     dock:ClearAllPoints()
-    dock:SetPoint("CENTER", Minimap, "CENTER", bar.x, bar.y)
-    dock:SetWidth(bar.w)
-    dock:SetHeight(bar.h)
-    local r, g, b, a = GetStringColor(C.appearance.border.background)
-    if S.dockbg == "0" then dock.bg:Hide() for i = 1, 4 do dock.edge[i]:Hide() end
-    else
+    dock:SetPoint("CENTER", Minimap, "CENTER", bar.x * k, bar.y * k)
+    dock:SetWidth(math.max(1, bar.w * k))
+    dock:SetHeight(math.max(1, bar.h * k))
+    if S.dockstrip == "1" and table.getn(list) > 0 then
+      local r, g, b, a = GetStringColor(C.appearance.border.background)
       dock.bg:SetVertexColor(tonumber(r) or 0, tonumber(g) or 0, tonumber(b) or 0, tonumber(a) or .8)
       dock.bg:Show()
       for i = 1, 4 do dock.edge[i]:Show() end
+    else
+      dock.bg:Hide()
+      for i = 1, 4 do dock.edge[i]:Hide() end
     end
     dock:Show()
     map.zoomin:Hide()
     map.zoomout:Hide()
+    local px = size * k
     local sig = ""
     for i, e in ipairs(list) do
       local f = e.f
+      if e.key ~= "zoom" then Keep(e.key, f) end
       if f.GetParent and f:GetParent() ~= dock then
         if not f.octoDockParent then f.octoDockParent = f:GetParent() or map end
         f:SetParent(dock)
         if f:IsShown() then f:Hide() f:Show() end
       end
       if e.key == "zoom" then f:Show() end
-      -- every button as big as the bar's size (its own art at that size)
-      local fw = f:GetWidth() or size
-      if fw <= 0 then fw = size end
-      local sc = size / fw
-      f:SetScale(sc)
+      f:SetScale(1)
+      f:SetWidth(px)
+      f:SetHeight(px)
       f:ClearAllPoints()
-      f:SetPoint("CENTER", Minimap, "CENTER", spots[i][1] / sc * (Minimap:GetEffectiveScale() / dock:GetEffectiveScale()),
-        spots[i][2] / sc * (Minimap:GetEffectiveScale() / dock:GetEffectiveScale()))
-      f:SetFrameLevel(dock:GetFrameLevel() + 2)
+      f:SetPoint("CENTER", Minimap, "CENTER", spots[i][1] * k, spots[i][2] * k)
+      f:SetFrameLevel(dock:GetFrameLevel() + 3)
+      if f.PaintGlyph then f.PaintGlyph(false) end
+      -- an icon with no box of its own: one of ours behind it, the icon filling it
+      local icon = ICONOF[e.key] and ICONOF[e.key]()
+      if icon then
+        local s = Slot(e.key)
+        s:ClearAllPoints()
+        s:SetAllPoints(f)
+        s:SetFrameLevel(dock:GetFrameLevel() + 1)
+        s:Show()
+        icon:ClearAllPoints()
+        icon:SetPoint("TOPLEFT", f, "TOPLEFT", 3, -3)
+        icon:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -3, 3)
+      end
       sig = sig .. e.key .. ","
     end
     dockSig = sig
@@ -806,9 +886,6 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   -- SexyMap-style looks in one click: only the style keys change
   local PRESETS = {
     { "pfui", T["pfUI square"], { shape = "square", border = "pfui", art1 = "none", art2 = "none", art3 = "none" } },
-    -- (17 Nov 2026) the clean square map with every button in a bar down its left side
-    { "sidebar", T["Clean, buttons at the side"], { shape = "square", border = "pfui", art1 = "none", art2 = "none", art3 = "none",
-        dock = "left", dockbg = "1", dockalign = "start", dockshow = "show" } },
     { "clean", T["Clean round"], { shape = "round", border = "outline", outlinecolor = "0,0,0,1", outlineaccent = "0",
         art1 = "Spells\\GENERICGLOW64", art1size = "125", art1color = "0,0,0,0.8", art1blend = "BLEND", art1speed = "0", art1above = "0",
         art2 = "none", art3 = "none" } },

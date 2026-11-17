@@ -1460,6 +1460,11 @@ if MAP and MAP.ApplyStyle then
   ok(pfMinimapDock:IsShown() and MiniMapMailFrame:GetParent() == pfMinimapDock, "side bar on: mail sits in it")
   local bar, spots = MAP.DockRect(4)
   ok(bar.x < 0 and bar.h > bar.w and spots[1][2] > spots[2][2], "left side: a tall strip, buttons from the top down")
+  -- (user, 17 Nov 2026: "looks aweful") as long as its buttons, every button one box of the same size
+  ok(bar.h == 4 * 22 + 3 * 4, "the strip is only as long as its buttons (" .. tostring(bar.h) .. ")")
+  ok(math.abs(MiniMapMailFrame:GetWidth() - 22) < .01 and MiniMapMailFrame:GetScale() == 1, "mail: a 22 px box, not scaled")
+  ok(MAP.dock.slot.mail and MAP.dock.slot.mail:IsShown(), "mail gets a box of its own behind its icon")
+  for _, pr in ipairs(MAP.PRESETS) do ok(pr[3].dock == nil, "look " .. pr[1] .. " leaves the side bar alone") end
   ok(MAP.Docked("mail") and not MAP.Docked("battlefield"), "only the ticked buttons are in it")
   MAP.MovePart("mail", 50, 50)
   ok(MS.mailx == "", "a docked button is not dragged away")

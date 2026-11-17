@@ -482,7 +482,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("mapstyle",   nil,           "dockgap",          "4")
   pfUI:UpdateConfig("mapstyle",   nil,           "dockdist",         "4")
   pfUI:UpdateConfig("mapstyle",   nil,           "dockalign",        "start")  -- start | center | end
-  pfUI:UpdateConfig("mapstyle",   nil,           "dockbg",           "1")
+  pfUI:UpdateConfig("mapstyle",   nil,           "dockstrip",        "0")      -- a dark strip behind the boxes
   pfUI:UpdateConfig("mapstyle",   nil,           "dockshow",         "show")   -- show | hover
   pfUI:UpdateConfig("mapstyle",   nil,           "autozoom",         "0")
   pfUI:UpdateConfig("mapstyle",   nil,           "alpha",            "1")

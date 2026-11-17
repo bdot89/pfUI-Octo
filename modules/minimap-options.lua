@@ -282,7 +282,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
         return MAPPX / size
       end
 
-      local dockf, zoomf
+      local dockf
       local function Layout()
         local s = S()
         local f = Scale()
@@ -367,53 +367,56 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
           end
           if picked then h.pick:Show() else h.pick:Hide() end
         end
-        -- the side bar behind its buttons, and its zoom buttons
+        -- the side bar: a box per button (the zoom ones with their +/- glyph), the strip behind them
         if map.DockOn and map.DockOn() then
           local list = map.DockFrames(true)
           local bar, spots, size = map.DockRect(table.getn(list))
           dockf:ClearAllPoints()
           dockf:SetPoint("CENTER", mock, "CENTER", bar.x * f, bar.y * f)
-          dockf:SetWidth(bar.w * f)
-          dockf:SetHeight(bar.h * f)
-          if s.dockbg == "0" then dockf:Hide() else dockf:Show() end
-          zoomf:SetAlpha(s.dockshow == "hover" and .6 or 1)
-          local z = 0
-          for i, e in ipairs(list) do
-            if e.key == "zoom" then
-              z = z + 1
-              local t = dockf.zoom[z]
-              t:SetTexture(e.icon)
-              t:ClearAllPoints()
-              t:SetPoint("CENTER", mock, "CENTER", spots[i][1] * f, spots[i][2] * f)
-              t:SetWidth(size * f)
-              t:SetHeight(size * f)
-              t:Show()
+          dockf:SetWidth(math.max(1, bar.w * f))
+          dockf:SetHeight(math.max(1, bar.h * f))
+          if s.dockstrip == "1" then dockf:Show() else dockf:Hide() end
+          for i = 1, 8 do
+            local box, e = dockf.boxes[i], list[i]
+            if e then
+              box:ClearAllPoints()
+              box:SetPoint("CENTER", mock, "CENTER", spots[i][1] * f, spots[i][2] * f)
+              box:SetWidth(size * f)
+              box:SetHeight(size * f)
+              box:SetAlpha(s.dockshow == "hover" and .6 or 1)
+              box.text:SetFont(pfUI.font_default, math.max(6, size * f * .7), "OUTLINE")
+              box.text:SetText(e.key == "zoom" and (e.plus and "+" or "-") or "")
+              box:Show()
+            else
+              box:Hide()
             end
           end
-          for k = z + 1, 2 do dockf.zoom[k]:Hide() end
         else
           dockf:Hide()
-          dockf.zoom[1]:Hide()
-          dockf.zoom[2]:Hide()
+          for i = 1, 8 do dockf.boxes[i]:Hide() end
         end
       end
-      -- (a backdrop of its own, drawn under the part spots: never a fill above the preview)
+      -- (backdrops of their own, under the part spots: never a fill above the preview)
       dockf = CreateFrame("Button", nil, holder)
-      dockf:SetFrameLevel(base + 5)
+      dockf:SetFrameLevel(base + 4)
       CreateBackdrop(dockf)
       if W.Underlay then W.Underlay(dockf) end
-      dockf.zoom = {}
-      zoomf = CreateFrame("Frame", nil, holder)
-      zoomf:SetAllPoints(holder)
-      zoomf:SetFrameLevel(base + 6)
-      for k = 1, 2 do
-        local t = zoomf:CreateTexture(nil, "OVERLAY")
-        t:SetTexCoord(.22, .78, .22, .78)
-        dockf.zoom[k] = t
-      end
       dockf:SetScript("OnClick", function() if MO.OpenDock then MO.OpenDock() end end)
       W.Tip(dockf, "Side bar", "The map's buttons in one bar. Click: its settings.")
       dockf:Hide()
+      dockf.boxes = {}
+      for i = 1, 8 do
+        local box = CreateFrame("Button", nil, holder)
+        box:SetFrameLevel(base + 5)
+        CreateBackdrop(box)
+        if W.Underlay then W.Underlay(box) end
+        box.text = box:CreateFontString(nil, "OVERLAY")
+        box.text:SetPoint("CENTER", box, "CENTER", 0, 1)
+        box:SetScript("OnClick", function() if MO.OpenDock then MO.OpenDock() end end)
+        W.Tip(box, "Side bar", "The map's buttons in one bar. Click: its settings.")
+        box:Hide()
+        dockf.boxes[i] = box
+      end
       table.insert(MO.previews, { hots = hots, Layout = Layout, holder = holder })
 
       -- mouse: click = pick, drag = move, Shift + wheel = size, right-click = back
@@ -655,6 +658,11 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     end
     Tiles(p, looks, 5, 126, 22, LookOn, function(key) map.ApplyPreset(key) O:Refresh() end,
       "Shape, border and art in one click.")
+    -- (user, 17 Nov 2026: "the bar should be seperate") the side bar goes with any look
+    W.Dropdown(p, "Buttons in a side bar", "The map's buttons in a row of boxes along one side. More on Buttons and text > Side bar.",
+      { { key = "0", label = "Off" }, { key = "left", label = "Left" }, { key = "right", label = "Right" },
+        { key = "top", label = "Top" }, { key = "bottom", label = "Bottom" } },
+      function() return S().dock or "0" end, function(v) S().dock = v U() O:Refresh() if MO.Layout then MO.Layout() end end)
 
     W.Card(p, "Shape and border", { tip = "Every part around the map can be dragged to fit any shape." })
     local shapes = {}
@@ -837,8 +845,8 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
       function() return S().dockalign or "start" end, function(v) S().dockalign = v U() if MO.Layout then MO.Layout() end end)
     W.Dropdown(p, "Shows", nil, { { key = "show", label = "Always" }, { key = "hover", label = "Mouse over the map" } },
       function() return S().dockshow or "show" end, function(v) S().dockshow = v U() end)
-    W.Check(p, "Background", "A dark strip behind the buttons, in pfUI's frame colour.",
-      function() return S().dockbg ~= "0" end, function(v) S().dockbg = v and "1" or "0" U() if MO.Layout then MO.Layout() end end)
+    W.Check(p, "Strip behind the buttons", "A dark strip round all the boxes, in pfUI's frame colour. Off: just the boxes.",
+      function() return S().dockstrip == "1" end, function(v) S().dockstrip = v and "1" or "0" U() if MO.Layout then MO.Layout() end end)
     MO.OpenDock = function()
       if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("mmparts", "Side bar") else O:Open("mmparts") end
     end
