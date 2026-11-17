@@ -1465,6 +1465,15 @@ if MAP and MAP.ApplyStyle then
   ok(math.abs(MiniMapMailFrame:GetWidth() - 22) < .01 and MiniMapMailFrame:GetScale() == 1, "mail: a 22 px box, not scaled")
   ok(MAP.dock.slot.mail and MAP.dock.slot.mail:IsShown(), "mail gets a box of its own behind its icon")
   for _, pr in ipairs(MAP.PRESETS) do ok(pr[3].dock == nil, "look " .. pr[1] .. " leaves the side bar alone") end
+  -- (user, 17 Nov 2026: "more profesional skins") the clean square look: a solid line of its own size and colour
+  MAP.ApplyPreset("solid")
+  ok(MS.border == "solid" and pfMinimapOutline:IsShown(), "Clean square: a solid line round the map")
+  MS.bordercolor = "custom"
+  MS.outlinecolor = "1,0,0,1"
+  local br = MAP.BorderColor()
+  ok(br == 1, "the border takes your own colour")
+  MS.bordercolor = "black"
+  MAP.ApplyPreset("pfui")
   ok(MAP.Docked("mail") and not MAP.Docked("battlefield"), "only the ticked buttons are in it")
   MAP.MovePart("mail", 50, 50)
   ok(MS.mailx == "", "a docked button is not dragged away")

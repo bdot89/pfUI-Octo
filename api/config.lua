@@ -459,6 +459,8 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("mapstyle",   nil,           "border",           "pfui")
   pfUI:UpdateConfig("mapstyle",   nil,           "outlinecolor",     "0,0,0,1")
   pfUI:UpdateConfig("mapstyle",   nil,           "outlineaccent",    "0")
+  pfUI:UpdateConfig("mapstyle",   nil,           "bordercolor",      "black")  -- black | class | accent | custom (outlinecolor)
+  pfUI:UpdateConfig("mapstyle",   nil,           "bordersize",       "1")      -- the solid line on the square map, px
   for i = 1, 3 do
     pfUI:UpdateConfig("mapstyle", nil,           "art" .. i,         "none")
     pfUI:UpdateConfig("mapstyle", nil,           "art" .. i .. "size",  "140")

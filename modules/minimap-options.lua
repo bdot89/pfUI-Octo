@@ -295,11 +295,9 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
         mock.shade:SetWidth(MAPPX * .7)
         mock.shade:SetHeight(MAPPX * .7)
         if s.border == "pfui" and shape == "square" then frame:Show() else frame:Hide() end
-        if s.border == "outline" then
+        if s.border == "outline" or s.border == "solid" then
           outline:SetTexture(pfUI.media["img:minimap\\outline-" .. shape])
-          local r, g, b, a = ColorOf(s.outlinecolor)
-          if s.outlineaccent == "1" then r, g, b = Accent() end
-          outline:SetVertexColor(r, g, b, a)
+          if map.BorderColor then outline:SetVertexColor(map.BorderColor()) else outline:SetVertexColor(ColorOf(s.outlinecolor)) end
           outline:Show()
         else
           outline:Hide()
@@ -631,84 +629,86 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     return "None"
   end
 
+  -- (17 Nov 2026, user with EllesmereUI's Minimap page: "look at this menu compared so much better") the page
+  -- is plain sections of two-column rows - label left, control right - with dropdowns where tile grids were
+  -- (looks, shapes, art layers); the preview stays on top.
   local function BuildMap(p)
-    W.Heading(p, "Minimap", { on = O.ModuleSwitch("minimap", "Minimap"), about = "The map's look: a ready-made style, its shape, border, the spell art around it, "
-      .. "size and opacity. Buttons and texts around it are on \"Buttons and text\"." })
+    W.Heading(p, "Minimap", { on = O.ModuleSwitch("minimap", "Minimap"), about = "The map's look: a ready-made look, its shape, border, "
+      .. "size and opacity, the side bar for its buttons and the spell art around it. Buttons and texts round it are on \"Buttons and text\"." })
     Preview(p)
-    -- (31 Oct 2026, user: menus "overwhelming")
-    O.CardTabs(p, {
-      { "look", "Look", "INV_Misc_Gem_Variety_01", { "Looks", "Shape and border", "Size, opacity and zoom" } },
-      { "art", "Art", "Spell_Holy_InnerFire", { "Art" } },
-      { "hide", "Hide by itself", "INV_Misc_Eye_01", { "Hide by itself" } },
-    })
-    -- (user, 24 Oct 2026: hidden by itself in battlegrounds, raids...)
-    if pfUI.context and pfUI.context.MapCard then pfUI.context.MapCard(p, W) end
+    local function Live() U() O:Refresh() if MO.Layout then MO.Layout() end end
 
-    W.Card(p, "Looks", { tip = "Shape, border and art in one click. Buttons, sizes and places stay as they are." })
+    -- looks
     local looks = {}
     for _, pr in ipairs(map.PRESETS or {}) do table.insert(looks, { key = pr[1], label = pr[2], set = pr[3] }) end
-    local function LookOn(key)
+    local function LookNow()
       local s = S()
       for _, l in ipairs(looks) do
-        if l.key == key then
-          for k, v in pairs(l.set) do if s[k] ~= v then return false end end
-          return true
-        end
+        local same = true
+        for k, v in pairs(l.set) do if s[k] ~= v then same = false end end
+        if same then return l.key end
       end
+      return "own"
     end
-    Tiles(p, looks, 5, 126, 22, LookOn, function(key) map.ApplyPreset(key) O:Refresh() end,
-      "Shape, border and art in one click.")
-    -- (user, 17 Nov 2026: "the bar should be seperate") the side bar goes with any look
-    W.Dropdown(p, "Buttons in a side bar", "The map's buttons in a row of boxes along one side. More on Buttons and text > Side bar.",
+    local LOOKS = {}
+    for _, l in ipairs(looks) do table.insert(LOOKS, { key = l.key, label = l.label }) end
+    table.insert(LOOKS, { key = "own", label = "Your own mix" })
+
+    W.Card(p, "Display", { tip = "The map itself." })
+    W.Dropdown(p, "Look", "A ready-made look: shape, border and art in one pick. Buttons, sizes and places stay as they are. "
+      .. "Plain looks first, spell-art looks after.", LOOKS, LookNow, function(v) if v ~= "own" then map.ApplyPreset(v) end Live() end)
+    W.Dropdown(p, "Shape", nil, SHAPES, function() return S().shape or "square" end, function(v) S().shape = v Live() end)
+    Sld(p, "Size", "Or Shift + wheel over the map in the preview.", 80, 400, 5, MM, "size", Px, MapSize)
+    Sld(p, "Your arrow", "The size of your own arrow on the map.", .5, 3, .1, MM, "arrowscale", Alpha, MapSize)
+    Sld(p, "Opacity", nil, .1, 1, .05, S, "alpha", Alpha)
+    Sld(p, "Opacity in combat", nil, .1, 1, .05, S, "combatalpha", Alpha)
+    Sld(p, "Zoom back out after", "The map zooms all the way out after this long (0 = never).", 0, 60, 1, S, "autozoom", Sec)
+
+    W.Card(p, "Border", { tip = "A crisp line round the map, or pfUI's frame." })
+    W.Dropdown(p, "Border style", "Solid line: a line of its own size on the square map, the shape's outline on the others. "
+      .. "pfUI frame: the square map only.", {
+        { key = "solid", label = "Solid line" }, { key = "pfui", label = "pfUI frame" }, { key = "none", label = "None" },
+      }, function() local b = S().border return (b == "outline") and "solid" or (b or "pfui") end,
+      function(v) S().border = v Live() end)
+    W.Dropdown(p, "Border colour", nil, {
+        { key = "black", label = "Black" }, { key = "class", label = "Class colour" }, { key = "accent", label = "Accent colour" },
+        { key = "custom", label = "Your own colour" },
+      }, function() local m = S().bordercolor or "black" if S().outlineaccent == "1" and m == "black" then m = "accent" end return m end,
+      function(v) S().bordercolor = v S().outlineaccent = "0" Live() end)
+    Sld(p, "Line size", "On the square map.", 1, 6, 1, S, "bordersize", Px)
+    Color(p, "Your own colour", "Used when the colour is \"Your own colour\".", function() return "outlinecolor" end)
+
+    W.Card(p, "Buttons", { tip = "Where the map's buttons go. Each button's own settings are on Buttons and text." })
+    W.Dropdown(p, "Side bar", "The map's buttons in a row of boxes along one side, each the same size. Off: each on the map.",
       { { key = "0", label = "Off" }, { key = "left", label = "Left" }, { key = "right", label = "Right" },
         { key = "top", label = "Top" }, { key = "bottom", label = "Bottom" } },
-      function() return S().dock or "0" end, function(v) S().dock = v U() O:Refresh() if MO.Layout then MO.Layout() end end)
+      function() return S().dock or "0" end, function(v) S().dock = v Live() end)
+    W.Slider(p, "Button size", nil, 14, 40, 1, function() return tonumber(S().docksize) or 22 end,
+      function(v) S().docksize = tostring(v) U() if MO.Layout then MO.Layout() end end, Px)
+    W.Buttons(p, { { "More button settings", function() if MO.OpenDock then MO.OpenDock() else O:Open("mmparts") end end, 170,
+      "Which buttons, gaps, the strip, mouse-over - and every button and text round the map." } })
 
-    W.Card(p, "Shape and border", { tip = "Every part around the map can be dragged to fit any shape." })
-    local shapes = {}
-    for _, s in ipairs(SHAPES) do table.insert(shapes, { key = s.key, label = s.label, icon = ShapeArt(s.key) }) end
-    Tiles(p, shapes, 11, 52, 40, function(key) return (S().shape or "square") == key end,
-      function(key) S().shape = key U() O:Refresh() end, "Click to give the map this shape.")
-    Drop(p, "Border", "pfUI's frame works on the square map only.", {
-      { key = "pfui", label = "pfUI frame (square only)" }, { key = "outline", label = "Outline of the shape" }, { key = "none", label = "None" },
-    }, S, "border")
-    Color(p, "Outline colour", nil, function() return "outlinecolor" end)
-    Chk(p, "Accent colour outline", "The outline takes pfUI Octo's accent colour.", S, "outlineaccent")
-
-    W.Card(p, "Art", { tip = "Up to three layers of the game's spell art round the map. Pick a layer, then its art." })
-    local layers = {}
-    for i = 1, 3 do table.insert(layers, { key = i, label = "Layer " .. i }) end
-    local tabs = Tiles(p, layers, 3, 140, 22, function(key) return MO.layer == key end,
-      function(key) MO.layer = key O:Refresh() end, "Pick the layer to change.")
-    -- the layer's art in its tab's name
-    table.insert(p.items, { Refresh = function()
-      for i, b in ipairs(tabs) do
-        local tex = S()["art" .. i]
-        b:SetText("Layer " .. i .. ((tex and tex ~= "none") and (": " .. ArtName(tex)) or ": off"))
-      end
-    end })
+    W.Card(p, "Spell art", { tip = "Up to three layers of the game's spell art round the map (the spell-art looks set these)." })
+    local LAYERS = {}
+    for i = 1, 3 do table.insert(LAYERS, { key = i, label = "Layer " .. i }) end
+    W.Dropdown(p, "Layer", "Pick a layer, then its art below. None switches a layer off.", LAYERS,
+      function() return MO.layer end, function(v) MO.layer = v O:Refresh() end)
     local function L(suffix) return function() return "art" .. MO.layer .. suffix end end
-    W.Dropdown(p, "Art", "Each choice shows its picture. None switches the layer off.", ArtList(),
-      function() return S()[L("")()] end, function(v) S()[L("")()] = v U() O:Refresh() end)
+    W.Dropdown(p, "Art", nil, ArtList(), function() return S()[L("")()] end, function(v) S()[L("")()] = v Live() end)
     W.Check(p, "Over the map", "Off: under the map, showing only round its edge.",
       function() return S()[L("above")()] == "1" end, function(v) S()[L("above")()] = v and "1" or "0" U() end)
     Color(p, "Colour and opacity", nil, L("color"))
     W.Dropdown(p, "Blend", "Glow brightens what is under it; Normal paints over it.",
       { { key = "ADD", label = "Glow (add)" }, { key = "BLEND", label = "Normal" } },
       function() return S()[L("blend")()] end, function(v) S()[L("blend")()] = v U() end)
-    W.Slider(p, "Size", "% of the map's size.", 50, 250, 5,
+    W.Slider(p, "Art size", "% of the map's size.", 50, 250, 5,
       function() return tonumber(S()[L("size")()]) or 130 end, function(v) S()[L("size")()] = tostring(v) U() end, Pct)
     W.Slider(p, "Spin", "Degrees a second; minus turns the other way.", -90, 90, 1,
       function() return tonumber(S()[L("speed")()]) or 0 end, function(v) S()[L("speed")()] = tostring(v) U() end,
       function(v) return v .. " / s" end)
 
-    W.Card(p, "Size, opacity and zoom")
-    Sld(p, "Map size", "Or Shift + wheel over the map in the preview.", 80, 400, 5, MM, "size", Px, MapSize)
-    Sld(p, "Your arrow", "The size of your own arrow on the map.", .5, 3, .1, MM, "arrowscale", Alpha, MapSize)
-    Sld(p, "Opacity", nil, .1, 1, .05, S, "alpha", Alpha)
-    Sld(p, "Opacity in combat", nil, .1, 1, .05, S, "combatalpha", Alpha)
-    Sld(p, "Zoom back out after", "The map zooms all the way out after this long (0 = never).", 0, 60, 1, S, "autozoom", Sec)
-    O.TabFilter(p)
+    -- (user, 24 Oct 2026: hidden by itself in battlegrounds, raids...)
+    if pfUI.context and pfUI.context.MapCard then pfUI.context.MapCard(p, W) end
   end
 
   -- ---------------------------------------------------------------- buttons and text page
@@ -813,8 +813,8 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
       .. "Mail and the battleground queue take a place only while they show." })
     local SIDES = { { key = "0", label = "Off" }, { key = "left", label = "Left" }, { key = "right", label = "Right" },
                     { key = "top", label = "Top" }, { key = "bottom", label = "Bottom" } }
-    Tiles(p, SIDES, 5, 126, 22, function(key) return (S().dock or "0") == key end,
-      function(key) S().dock = key U() O:Refresh() if MO.Layout then MO.Layout() end end, "Where the bar goes. Off: each button sits on the map.")
+    W.Dropdown(p, "Side", "Where the bar goes. Off: each button sits on the map.", SIDES,
+      function() return S().dock or "0" end, function(v) S().dock = v U() O:Refresh() if MO.Layout then MO.Layout() end end)
     local DOCKNAMES = { tracking = "Tracking", mail = "Mail", battlefield = "Battleground queue", zoom = "Zoom in / out", abutton = "Addon buttons arrow" }
     local function InBar(key)
       for k in string.gfind(S().dockbtns or "", "[^,]+") do if k == key then return true end end
@@ -853,9 +853,9 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
 
     W.Card(p, "Part", { tip = "The part you picked. Click a part in the preview to pick it there." })
     local list = {}
-    for _, k in ipairs(ORDER) do table.insert(list, { key = k, label = SHORT[k] }) end
-    Tiles(p, list, 5, 126, 22, function(key) return MO.sel == key end,
-      function(key) MO.sel = key O:Refresh() if MO.Layout then MO.Layout() end end, "Pick this part.")
+    for _, k in ipairs(ORDER) do table.insert(list, { key = k, label = NAMES[k] or SHORT[k] }) end
+    W.Dropdown(p, "Part", "The part to change. Or click it in the preview.", list,
+      function() return MO.sel end, function(v) MO.sel = v O:Refresh() if MO.Layout then MO.Layout() end end)
     W.Live(p, function()
       return "Editing: |cffffffff" .. (NAMES[MO.sel] or MO.sel) .. "|r   shows " .. (MODEWORD[Mode(MO.sel)] or "always")
     end)

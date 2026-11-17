@@ -124,6 +124,40 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
   outline:SetFrameLevel(Minimap:GetFrameLevel() + 3)
   outline.tex = outline:CreateTexture(nil, "OVERLAY")
   outline.tex:SetAllPoints()
+  -- (17 Nov 2026, user: "find more profesional skins"; EllesmereUI's "Solid" border with a size and a
+  -- black / class / custom colour as the idea) a crisp line round the square map, drawn outside it
+  outline.edge = {}
+  for i = 1, 4 do
+    outline.edge[i] = outline:CreateTexture(nil, "OVERLAY")
+    outline.edge[i]:SetTexture("Interface\\Buttons\\WHITE8X8")
+  end
+  function map.BorderColor()
+    local mode = S.bordercolor or "black"
+    if S.outlineaccent == "1" and mode == "black" then mode = "accent" end
+    if mode == "class" then
+      local _, class = UnitClass("player")
+      local c = class and RAID_CLASS_COLORS[class]
+      if c then return c.r, c.g, c.b, 1 end
+    elseif mode == "accent" then
+      local r, g, b = GetAccentColor()
+      return r, g, b, 1
+    elseif mode == "custom" then
+      local r, g, b, a = GetStringColor(S.outlinecolor or "0,0,0,1")
+      return tonumber(r) or 0, tonumber(g) or 0, tonumber(b) or 0, tonumber(a) or 1
+    end
+    return 0, 0, 0, 1
+  end
+  local function SolidEdges(show)
+    local e = outline.edge
+    if not show then for i = 1, 4 do e[i]:Hide() end return end
+    local px = math.max(1, tonumber(S.bordersize) or 1)
+    local r, g, b, a = map.BorderColor()
+    e[1]:ClearAllPoints() e[1]:SetPoint("BOTTOMLEFT", Minimap, "TOPLEFT", -px, 0) e[1]:SetPoint("BOTTOMRIGHT", Minimap, "TOPRIGHT", px, 0) e[1]:SetHeight(px)
+    e[2]:ClearAllPoints() e[2]:SetPoint("TOPLEFT", Minimap, "BOTTOMLEFT", -px, 0) e[2]:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", px, 0) e[2]:SetHeight(px)
+    e[3]:ClearAllPoints() e[3]:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", 0, 0) e[3]:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMLEFT", 0, 0) e[3]:SetWidth(px)
+    e[4]:ClearAllPoints() e[4]:SetPoint("TOPLEFT", Minimap, "TOPRIGHT", 0, 0) e[4]:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMRIGHT", 0, 0) e[4]:SetWidth(px)
+    for i = 1, 4 do e[i]:SetVertexColor(r, g, b, a) e[i]:Show() end
+  end
 
   local above = CreateFrame("Frame", "pfMinimapArtAbove", map)
   above:SetAllPoints(Minimap)
@@ -806,13 +840,21 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     local frame = S.border == "pfui" and shape == "square"
     if map.backdrop then if frame then map.backdrop:Show() else map.backdrop:Hide() end end
     if map.backdrop_shadow then if frame then map.backdrop_shadow:Show() else map.backdrop_shadow:Hide() end end
-    if S.border == "outline" then
-      outline.tex:SetTexture(pfUI.media["img:minimap\\outline-" .. shape])
-      local r, g, b, a = Color(S.outlinecolor)
-      if S.outlineaccent == "1" then r, g, b = GetAccentColor() end
-      outline.tex:SetVertexColor(r, g, b, a)
+    -- solid: a crisp line of its own size on the square map, the shape's outline on the others
+    local line = S.border == "outline" or S.border == "solid"
+    if line then
+      if shape == "square" then
+        outline.tex:Hide()
+        SolidEdges(true)
+      else
+        SolidEdges(false)
+        outline.tex:SetTexture(pfUI.media["img:minimap\\outline-" .. shape])
+        outline.tex:SetVertexColor(map.BorderColor())
+        outline.tex:Show()
+      end
       outline:Show()
     else
+      SolidEdges(false)
       outline:Hide()
     end
 
@@ -885,34 +927,43 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
 
   -- SexyMap-style looks in one click: only the style keys change
   local PRESETS = {
+    -- (17 Nov 2026, user: "find more profesional skins and looks for our map clean") plain looks first:
+    -- one crisp line, no art; the spell-art looks after them
+    { "solid", T["Clean square"], { shape = "square", border = "solid", bordercolor = "black", bordersize = "1", outlineaccent = "0",
+        art1 = "none", art2 = "none", art3 = "none" } },
+    { "classline", T["Square, class colour"], { shape = "square", border = "solid", bordercolor = "class", bordersize = "1", outlineaccent = "0",
+        art1 = "none", art2 = "none", art3 = "none" } },
+    { "accentline", T["Square, accent line"], { shape = "square", border = "solid", bordercolor = "accent", bordersize = "2", outlineaccent = "0",
+        art1 = "none", art2 = "none", art3 = "none" } },
     { "pfui", T["pfUI square"], { shape = "square", border = "pfui", art1 = "none", art2 = "none", art3 = "none" } },
-    { "clean", T["Clean round"], { shape = "round", border = "outline", outlinecolor = "0,0,0,1", outlineaccent = "0",
-        art1 = "Spells\\GENERICGLOW64", art1size = "125", art1color = "0,0,0,0.8", art1blend = "BLEND", art1speed = "0", art1above = "0",
-        art2 = "none", art3 = "none" } },
-    { "accent", T["Accent round"], { shape = "round", border = "outline", outlineaccent = "1", outlinecolor = "1,1,1,1",
+    { "clean", T["Clean round"], { shape = "round", border = "solid", bordercolor = "black", outlineaccent = "0",
         art1 = "none", art2 = "none", art3 = "none" } },
-    { "rounded", T["Rounded square"], { shape = "rounded", border = "outline", outlinecolor = "0,0,0,1", outlineaccent = "0",
+    { "roundclass", T["Round, class colour"], { shape = "round", border = "solid", bordercolor = "class", outlineaccent = "0",
         art1 = "none", art2 = "none", art3 = "none" } },
-    { "runes", T["Rune circle"], { shape = "round", border = "outline", outlinecolor = "0.85,0.65,0.2,1", outlineaccent = "0",
+    { "accent", T["Accent round"], { shape = "round", border = "outline", outlineaccent = "0", bordercolor = "accent", outlinecolor = "1,1,1,1",
+        art1 = "none", art2 = "none", art3 = "none" } },
+    { "rounded", T["Rounded square"], { shape = "rounded", border = "outline", outlinecolor = "0,0,0,1", outlineaccent = "0", bordercolor = "custom",
+        art1 = "none", art2 = "none", art3 = "none" } },
+    { "runes", T["Rune circle"], { shape = "round", border = "outline", outlinecolor = "0.85,0.65,0.2,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\AuraRune256", art1size = "140", art1color = "1,0.82,0.3,0.9", art1blend = "ADD", art1speed = "6", art1above = "1",
         art2 = "none", art3 = "none" } },
-    { "arcane", T["Arcane"], { shape = "round", border = "outline", outlinecolor = "0.4,0.6,1,1", outlineaccent = "0",
+    { "arcane", T["Arcane"], { shape = "round", border = "outline", outlinecolor = "0.4,0.6,1,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\AuraRune_A", art1size = "145", art1color = "0.4,0.6,1,0.9", art1blend = "ADD", art1speed = "-8", art1above = "1",
         art2 = "Spells\\Blue_GlowB", art2size = "135", art2color = "0.3,0.5,1,0.7", art2blend = "ADD", art2speed = "0", art2above = "0",
         art3 = "none" } },
-    { "holy", T["Holy"], { shape = "round", border = "outline", outlinecolor = "1,0.9,0.5,1", outlineaccent = "0",
+    { "holy", T["Holy"], { shape = "round", border = "outline", outlinecolor = "1,0.9,0.5,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\Holy_Rune_128", art1size = "145", art1color = "1,0.9,0.5,0.9", art1blend = "ADD", art1speed = "5", art1above = "1",
         art2 = "Spells\\GENERICGLOW64", art2size = "140", art2color = "1,0.85,0.4,0.6", art2blend = "ADD", art2speed = "0", art2above = "0",
         art3 = "none" } },
-    { "fel", T["Fel"], { shape = "round", border = "outline", outlinecolor = "0.3,1,0.2,1", outlineaccent = "0",
+    { "fel", T["Fel"], { shape = "round", border = "outline", outlinecolor = "0.3,1,0.2,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\DemonRune6", art1size = "150", art1color = "0.3,1,0.2,0.9", art1blend = "ADD", art1speed = "-10", art1above = "1",
         art2 = "Spells\\GREEN_GLOW2", art2size = "135", art2color = "0.2,1,0.2,0.6", art2blend = "ADD", art2speed = "0", art2above = "0",
         art3 = "none" } },
-    { "frost", T["Frost"], { shape = "round", border = "outline", outlinecolor = "0.6,0.85,1,1", outlineaccent = "0",
+    { "frost", T["Frost"], { shape = "round", border = "outline", outlinecolor = "0.6,0.85,1,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\Ice_Rune_128", art1size = "145", art1color = "0.6,0.85,1,0.9", art1blend = "ADD", art1speed = "4", art1above = "1",
         art2 = "Spells\\WhiteRingThin128", art2size = "118", art2color = "0.7,0.9,1,0.8", art2blend = "ADD", art2speed = "0", art2above = "1",
         art3 = "none" } },
-    { "fire", T["Fire"], { shape = "round", border = "outline", outlinecolor = "1,0.45,0.1,1", outlineaccent = "0",
+    { "fire", T["Fire"], { shape = "round", border = "outline", outlinecolor = "1,0.45,0.1,1", outlineaccent = "0", bordercolor = "custom",
         art1 = "Spells\\Fire_Rune_128", art1size = "145", art1color = "1,0.5,0.15,0.9", art1blend = "ADD", art1speed = "12", art1above = "1",
         art2 = "Spells\\FireRing128", art2size = "125", art2color = "1,0.4,0.1,0.7", art2blend = "ADD", art2speed = "-6", art2above = "0",
         art3 = "none" } },
