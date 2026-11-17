@@ -45,6 +45,12 @@ function Octo([string]$t) {
   $t = $t.Replace("GetAddOnMetadata(", "pfQuestOctoMeta(")
   # the player-arrow search never errors on another add-on's model (guard.lua: pfQuestOctoModel)
   $t = $t.Replace("strlower(v:GetModel())", "pfQuestOctoModel(v)")
+  # (17 Nov 2026, Wolfahrt: "tracker.lua:281: attempt to index global 'pfQuestCompat'" over and over -
+  # something on his side cleared the global after login) every file that uses it keeps its own copy,
+  # taken when it loads; compat\client.lua makes it, so it keeps the global
+  if ($t.Contains("pfQuestCompat.") -and -not $t.Contains("pfQuestCompat = {}")) {
+    $t = "local pfQuestCompat = pfQuestCompat -- pfUI Octo: kept even if the global goes`r`n" + $t
+  }
   return $t.Replace('Interface\\AddOns\\pfQuest-turtle\\img', 'Interface\\AddOns\\pfUI\\pfquest\\turtle-img')
 }
 function Copy-Lua([string]$from, [string]$rel, [scriptblock]$patch, [bool]$code) {

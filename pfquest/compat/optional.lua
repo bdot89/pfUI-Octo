@@ -1,4 +1,5 @@
 if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
+local pfQuestCompat = pfQuestCompat -- pfUI Octo: kept even if the global goes
 -- Optional client extensions. These are DLL-provided APIs, not addon
 -- dependencies, so every call is guarded and the normal 1.12 path remains
 -- the default when they are absent.

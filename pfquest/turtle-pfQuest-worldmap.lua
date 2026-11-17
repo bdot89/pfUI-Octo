@@ -1,4 +1,5 @@
 if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
+local pfQuestCompat = pfQuestCompat -- pfUI Octo: kept even if the global goes
 local original_UpdateNodes = pfMap.UpdateNodes
 local original_UpdateNode = pfMap.UpdateNode
 

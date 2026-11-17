@@ -48,6 +48,19 @@ for i = 2, table.getn(files) - 1 do
 end
 ok(table.getn(missing) == 0, "every listed file is there " .. table.concat(missing, ", "))
 ok(table.getn(unguarded) == 0, "every pfQuest file starts with the guard " .. table.concat(unguarded, ", "))
+-- (17 Nov 2026, Wolfahrt: "tracker.lua:281: attempt to index global 'pfQuestCompat'") every file that uses
+-- pfQuestCompat keeps its own copy, so nothing that clears the global later can break it
+local loose = {}
+for i = 2, table.getn(files) - 1 do
+  local h = io.open(DIR .. "/pfquest/" .. files[i], "rb")
+  if h then
+    local s = h:read("*a")
+    h:close()
+    if string.find(s, "pfQuestCompat.", 1, true) and not string.find(s, "pfQuestCompat = {}", 1, true)
+      and not string.find(s, "\nlocal pfQuestCompat = pfQuestCompat", 1, true) then table.insert(loose, files[i]) end
+  end
+end
+ok(table.getn(loose) == 0, "every file using pfQuestCompat keeps its own copy " .. table.concat(loose, ", "))
 local want = { "db/meta.lua", "db/meta-turtle.lua", "db/objects.lua", "db/enUS/objects-turtle.lua", "slashcmd.lua", "database.lua", "turtle-patchtable.lua" }
 local have = {}
 for i = 1, table.getn(files) do have[files[i]] = true end

@@ -1,4 +1,5 @@
 if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
+local pfQuestCompat = pfQuestCompat -- pfUI Octo: kept even if the global goes
 local GRID_COLUMNS = 6
 local ICON_SIZE = 26
 local ICON_PADDING = 6

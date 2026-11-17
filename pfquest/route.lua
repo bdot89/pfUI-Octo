@@ -1,4 +1,5 @@
 if pfQuestOctoSkip then return end -- pfUI Octo: the standalone pfQuest is loaded
+local pfQuestCompat = pfQuestCompat -- pfUI Octo: kept even if the global goes
 -- Performance: cache frequently-used globals
 local pairs = pairs
 local floor, ceil, sqrt, abs = math.floor, math.ceil, math.sqrt, math.abs
