@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.45
+
+- 🔒 **DoT Tracker rows stay put in a fight:** every enemy keeps its row and new ones join at the bottom, so clicking through them never makes the list jump; it sorts again when the fight ends. Switch: DoT Tracker > General > "Lock the order in combat".
+
 ## 📜 New in 1.1.44
 
 - 🔥 **Totem damage in combat text:** your totems' hits (Searing, Magma, Fire Nova...) now show, with their own switch, colour and area under Combat Text > Messages ("Your totems' damage"). Only your own totems, never another shaman's.

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.45", {
+    { "DoT Tracker rows stay put in a fight", "every enemy keeps its row and new ones join at the bottom, so clicking through them never makes the list jump; it sorts again when the fight ends. Switch: DoT Tracker > General > \"Lock the order in combat\"." },
+  } },
   { "1.1.44", {
     { "Totem damage in combat text", "your totems' hits (Searing, Magma, Fire Nova...) now show, with their own switch, colour and area under Combat Text > Messages (\"Your totems' damage\"). Only your own totems, never another shaman's." },
   } },
