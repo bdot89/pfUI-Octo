@@ -835,9 +835,17 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
 
     if ( this.tick or .2) > GetTime() then return else this.tick = GetTime() + .2 end
 
+    -- octo (17 Nov 2026, the live performance window: 5 ms a second here): only buttons that can be seen
+    -- (IsShown was true for every button on hidden bars and pages), and none at all while the range colour is
+    -- off and no button still carries it
+    local wantRange = C.bars.glowrange == "1"
+    if not wantRange and not this.anyOut then return end
+    local anyOut
     for id, button in pairs(buttoncache) do
-      if button:IsShown() then ButtonRangeUpdate(button) end
+      if button.outofrange or (wantRange and button:IsVisible()) then ButtonRangeUpdate(button) end
+      if button.outofrange then anyOut = true end
     end
+    this.anyOut = anyOut
   end
 
   -- create the main event and update handler for pfUI actionbars

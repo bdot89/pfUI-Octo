@@ -122,6 +122,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     local name = f.GetName and f:GetName()
     if tag then return tag .. (name and (" (" .. name .. ")") or "") end
     if name then return name end
+    -- (17 Nov 2026) pfUI's own unnamed frames: the file and line that made them (profiler.lua notes them at load)
+    local where = pfUI.prof and pfUI.prof.where and pfUI.prof.where[f]
+    if where then return "pfUI " .. where end
     local p = f.GetParent and f:GetParent()
     local depth = 0
     while p and depth < 6 do

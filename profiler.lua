@@ -104,6 +104,12 @@ end
 function P.Init()
   local list = P.load
   P.load = nil
+  -- (17 Nov 2026) where each frame made while pfUI loaded came from, kept by frame (weak) so the live performance
+  -- window (/pfperf) can name pfUI's unnamed frames ("libs\libcast.lua:40") instead of "Frame"
+  P.where = setmetatable({}, { __mode = "k" })
+  for i = 1, table.getn(list or {}) do
+    if list[i][1] and list[i][2] then P.where[list[i][1]] = list[i][2] end
+  end
   clock, gc = debugprofilestop, gcinfo
   if not (pfUI_cache and pfUI_cache.profile and type(clock) == "function" and type(gc) == "function") then
     CreateFrame = P.make

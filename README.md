@@ -119,6 +119,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.36
+
+- ⚡ **Smoother:** the swing timer no longer makes memory garbage every frame (about 480 KB a minute before); the unit frame extras only work every frame while something fades or flashes; the action bars' range check only looks at buttons you can see.
+- 📈 **Performance window** (`/pfperf`): a scroll bar with "21-40 of 2679", columns that fit inside the window (long names cut, full name on hover), wrapping tooltips, pfUI's unnamed frames named by the file that made them, and its own measuring cost taken off the numbers.
+- 📋 **Copy all:** every script and add-on as text, frozen when pressed and cut into parts of 400 lines - Previous / Next, copied parts marked green, "Copy this part" or "Copy all at once" with ClassicAPI.
+
 ## 📜 New in 1.1.35
 
 - 📈 **Live performance window** (`/pfperf`, or Settings > Performance > "Open the live window"): FPS, latency and Lua memory every second; a Scripts tab that measures every frame's scripts like pfDebug (calls, ms per second, total, memory made) without walking the game's tables, so it cannot crash the way pfDebug's Scan now does; an Add-ons tab with memory per add-on and, with the CPU profiler, CPU per add-on. `/pfperf chat` prints the old summary. New file: restart the game fully once.

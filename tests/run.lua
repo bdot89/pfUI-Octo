@@ -2849,10 +2849,13 @@ do
     -- (the bar's value, as pfUI sets it from the unit)
     f.hp.bar:SetMinMaxValues(0, 100)
     f.hp.bar:SetValue(100)
+    X.watch.next = 0
     Mock.Run(X.watch, "OnUpdate", .1)
+    ok(X.watch.next and X.watch.next > Mock.now, "nothing moving: the watcher waits a tenth of a second")
     f.hp.bar:SetValue(40)
-    Mock.now = Mock.now + .05
-    Mock.Run(X.watch, "OnUpdate", .05)
+    Mock.now = Mock.now + .11
+    Mock.Run(X.watch, "OnUpdate", .11)
+    ok(X.watch.next == 0, "a bar fading: every frame again")
     ok(f.octoGhost:IsShown() and f.octoGhostFrac > .4, "the lost health shows a moment (" .. tostring(f.octoGhostFrac) .. ")")
     for i = 1, 40 do
       Mock.now = Mock.now + .05

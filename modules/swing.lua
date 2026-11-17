@@ -20,9 +20,20 @@ pfUI:RegisterModule("swing", "vanilla", function ()
   pfUI.swing = ST
   local function S(bar) return C.swing[bar] end
   local function L() return C.swing.look end
+  -- colour strings read once (17 Nov 2026: the live performance window showed swing making ~480 KB a minute -
+  -- GetStringColor splits the setting text into new strings, up to six times a frame)
+  local colCache, colCount = {}, 0
   local function Col(str, fb)
-    local r, g, b, a = GetStringColor(str or fb or "1,1,1,1")
-    return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
+    local key = str or fb or "1,1,1,1"
+    local c = colCache[key]
+    if not c then
+      local r, g, b, a = GetStringColor(key)
+      c = { tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1 }
+      if colCount > 300 then colCache, colCount = {}, 0 end
+      colCache[key] = c
+      colCount = colCount + 1
+    end
+    return c[1], c[2], c[3], c[4]
   end
 
   -- ---------------------------------------------------------------- looks
@@ -319,8 +330,10 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     else
       p.spark:Hide()
     end
-    p.left:SetText(lefttext or "")
-    p.right:SetText(righttext or "")
+    -- (texts only when they change: setting a text lays it out again)
+    lefttext, righttext = lefttext or "", righttext or ""
+    if p.lt ~= lefttext then p.lt = lefttext p.left:SetText(lefttext) end
+    if p.rt ~= righttext then p.rt = righttext p.right:SetText(righttext) end
   end
   ST.Draw = Draw
 
@@ -528,8 +541,21 @@ pfUI:RegisterModule("swing", "vanilla", function ()
   end
   ST.UpdateConfig = ST.ApplyLayout
 
-  local function Hex(r, g, b) return string.format("|cff%02x%02x%02x", math.floor(r * 255), math.floor(g * 255), math.floor(b * 255)) end
-  local function Left(t) return string.format("%.1f", math.max(0, t)) end
+  -- (both cached: they ran every frame)
+  local hexCache, leftCache = {}, {}
+  local function Hex(r, g, b)
+    local R, G, B = math.floor(r * 255), math.floor(g * 255), math.floor(b * 255)
+    local k = R * 65536 + G * 256 + B
+    local h = hexCache[k]
+    if not h then h = string.format("|cff%02x%02x%02x", R, G, B) hexCache[k] = h end
+    return h
+  end
+  local function Left(t)
+    local n = math.floor(math.max(0, t) * 10 + .5)
+    local s = leftCache[n]
+    if not s then s = string.format("%.1f", n / 10) if n < 3000 then leftCache[n] = s end end
+    return s
+  end
 
   -- how see-through a bar is: in / out of combat, fading when idle
   local function Alpha(set, idle)
@@ -690,6 +716,20 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     return kind == "test" or (kind and C.swing.cast[kind] == "1")
   end
 
+  -- one bar each frame (was a new function made inside OnUpdate every frame)
+  local function Run(bar, show, t, testing)
+    local f = ST.bars[bar]
+    if not (show or testing) or S(bar).enabled ~= "1" then
+      if f:IsShown() then f:Hide() end
+      return
+    end
+    if not f:IsShown() then f:Show() end
+    local idle = ST.Paint(f, bar, t)
+    -- (a test shows at the in-combat opacity: out of combat some bars are see-through)
+    local a = testing and math.max(.5, tonumber(S(bar).alpha) or 1) or Alpha(S(bar), idle)
+    if math.abs((f:GetAlpha() or 1) - a) > .005 then f:SetAlpha(a) end
+  end
+
   local ticker = CreateFrame("Frame")
   ST.ticker = ticker
   ticker:SetScript("OnUpdate", function()
@@ -728,21 +768,13 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       s.tgSeen, s.rgSeen, s.cast = 0, 0, nil
     end
     s.wasTesting = testing
-    local function Run(bar, show)
-      local f = ST.bars[bar]
-      if not (show or testing) or S(bar).enabled ~= "1" then f:Hide() return end
-      f:Show()
-      local idle = ST.Paint(f, bar, t)
-      -- (a test shows at the in-combat opacity: out of combat some bars are see-through)
-      f:SetAlpha(testing and math.max(.5, tonumber(S(bar).alpha) or 1) or Alpha(S(bar), idle))
-    end
-    Run("player", not (pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("swing")))
+    Run("player", not (pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("swing")), t, testing)
     Run("target", UnitExists("target") and UnitCanAttack("player", "target") and (s.tgSeen or 0) > 0
-      and t - (s.tgSeen or 0) < 10)
-    Run("ranged", s.ranged and (s.rgSeen or 0) > 0 and t - (s.rgSeen or 0) < 10)
+      and t - (s.tgSeen or 0) < 10, t, testing)
+    Run("ranged", s.ranged and (s.rgSeen or 0) > 0 and t - (s.rgSeen or 0) < 10, t, testing)
     -- the shot being cast (dropped a moment after it should have ended)
     if s.cast and t > s.cast.start + s.cast.dur + .3 then s.cast = nil end
-    Run("cast", s.cast and ST.CastWanted(s.cast.kind))
+    Run("cast", s.cast and ST.CastWanted(s.cast.kind), t, testing)
   end)
 
   -- ---------------------------------------------------------------- events
@@ -955,9 +987,12 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     if not s.dual and S("player").offhand == "1" then s.dual = true s.ohSpeed = s.ohSpeed or 1.5 end
     ST.ApplyLayout()
   end
+  -- (only ticks while a test runs; ST.Test wakes it)
   local test = CreateFrame("Frame")
-  test:SetScript("OnUpdate", function()
-    if not ST.testUntil or now() > ST.testUntil then return end
+  ST.testFrame = test
+  local TestTick
+  TestTick = function()
+    if not ST.testUntil or now() > ST.testUntil then test:SetScript("OnUpdate", nil) return end
     local t = now()
     if t - s.mhStart >= s.mhSpeed then s.mhStart = t s.lastSwing = t end
     if s.dual and t - s.ohStart >= s.ohSpeed then s.ohStart = t end
@@ -967,5 +1002,10 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     if not s.cast or s.cast.kind == "test" and t > s.cast.start + s.cast.dur + 1 then
       s.cast = { name = "Aimed Shot", kind = "test", start = t, dur = 3 }
     end
-  end)
+  end
+  local rawTest = ST.Test
+  function ST.Test(secs)
+    rawTest(secs)
+    test:SetScript("OnUpdate", TestTick)
+  end
 end)

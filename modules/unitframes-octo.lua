@@ -474,6 +474,7 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     f.octoFlash.start = GetTime()
     f.octoFlash:SetAlpha(1)
     f.octoFlash:Show()
+    if UO.watch then UO.watch.next = 0 end
   end
 
   local ev = CreateFrame("Frame")
@@ -509,10 +510,15 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
   -- fading bars, flash fade-out, expiring buffs, unhappy pet
   local watch = CreateFrame("Frame")
   UO.watch = watch
+  -- (17 Nov 2026, the live performance window: 11 ms a second walking every frame every frame. Every frame only
+  -- while something moves - a flash, a fading bar, a pulsing buff or pet mark; else ten times a second. A flash
+  -- (UO.Flash) wakes it at once.)
   watch:SetScript("OnUpdate", function()
     local now = GetTime()
+    if (this.next or 0) > now then return end
     local dt = now - (this.last or now)
     this.last = now
+    local busy = false
     local pulse = .45 + .55 * math.abs(math.sin(now * 4))
     for _, f in ipairs(pfUI.uf.frames) do
       local c = f.config
@@ -521,7 +527,7 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
         local fl = f.octoFlash
         if fl and fl:IsShown() then
           local k = (now - (fl.start or 0)) / .5
-          if k >= 1 then fl:Hide() else fl:SetAlpha(1 - k) end
+          if k >= 1 then fl:Hide() else fl:SetAlpha(1 - k) busy = true end
         end
         -- fading bar
         local gh = f.octoGhost
@@ -551,8 +557,9 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
             local vertical = c.verticalbar == "1"
             local size = vertical and (f.hp.bar:GetHeight() or 0) or (f.hp.bar:GetWidth() or 0)
             if vertical then gh:SetHeight(math.max(.1, size * g)) else gh:SetWidth(math.max(.1, size * g)) end
-            gh:Show()
-          else
+            if not gh:IsShown() then gh:Show() end
+            busy = true
+          elseif gh:IsShown() then
             gh:Hide()
           end
         end
@@ -561,17 +568,21 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
           for _, b in pairs(f.buffs) do
             if b:IsShown() and b.id then
               local left = GetPlayerBuffTimeLeft(GetPlayerBuff(PLAYER_BUFF_START_ID + b.id, "HELPFUL")) or 0
-              b:SetAlpha((left > 0 and left < 30) and pulse or 1)
+              local flash = left > 0 and left < 30
+              if flash then busy = true end
+              b:SetAlpha(flash and pulse or 1)
             end
           end
         end
         -- an unhappy pet's mark flashes
         if f.label == "pet" and f.happinessIcon and f.happinessIcon:IsShown() and C.unitframes.pet.o_happyflash == "1" then
           local h = GetPetHappiness and GetPetHappiness()
+          if h and h < 3 then busy = true end
           f.happinessIcon:SetAlpha((h and h < 3) and pulse or 1)
         end
       end
     end
+    this.next = busy and 0 or now + .1
   end)
 
   -- ---------------------------------------------------------------- hook pfUI

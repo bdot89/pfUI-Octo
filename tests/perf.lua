@@ -186,9 +186,84 @@ if PW then
   PW.Toggle(true)
   ok(PW.frame and PW.frame:IsShown(), "the window opens")
   PW.Refresh()
+  -- many rows: the scroll bar and the "x-y of n" count follow the wheel
+  PW.data = {}
+  for i = 1, 45 do local r = PW.Rec("Row" .. i .. ":OnUpdate()") r.calls, r.ms = i, i end
+  PW.offset = 0
+  PW.Refresh()
+  local lo, hi = PW.frame.bar:GetMinMaxValues()
+  ok(PW.frame.bar:IsShown() and hi == 25 and PW.frame.count:GetText() == "1-20 of 45", "scroll bar: 45 rows, 20 shown (" .. tostring(hi) .. ", " .. tostring(PW.frame.count:GetText()) .. ")")
+  _G.arg1 = -1
+  PW.frame:GetScript("OnMouseWheel")()
+  ok(PW.frame.bar:GetValue() == 3 and PW.frame.count:GetText() == "4-23 of 45", "the wheel moves the list and the bar")
+  -- Copy all: one plain text with every script by time, then the add-ons
+  local text, lines = PW.Text()
+  ok(type(text) == "string" and string.find(text, "SCRIPTS", 1, true) and string.find(text, "Row45:OnUpdate()", 1, true)
+    and string.find(text, "ADD-ONS", 1, true) and not string.find(text, "|c", 1, true), "Copy all: plain text, scripts and add-ons")
+  ok(string.find(text, "Row45", 1, true) < string.find(text, "Row1:", 1, true), "Copy all: costliest script first")
+  -- every script goes in, also ones that never ran (17 Nov 2026: "over 2500 scripts ... get all of them")
+  PW.data = {}
+  for i = 1, 950 do local r = PW.Rec("S" .. i .. ":OnEvent()") r.calls, r.ms = (i > 900) and 0 or i, (i > 900) and 0 or i end
+  local all = PW.Lines()
+  local listed = 0
+  for _, l in ipairs(all) do if string.find(l, ":OnEvent()", 1, true) then listed = listed + 1 end end
+  ok(listed == 950, "Copy all: every script listed, also the 50 that never ran (" .. listed .. ")")
+  -- frozen into parts of 400 lines; the box steps through them and marks the copied ones
+  local copied
+  local lcl = pfUI.api.libclient
+  local oldCopy = lcl.Copy
+  lcl.Copy = function(t) copied = t return true end
+  PW.snap = nil
+  PW.CopyAll()
+  local snap = PW.snap
+  local parts = snap and table.getn(snap.parts) or 0
+  ok(parts == math.ceil(table.getn(snap.lines) / 400) and parts >= 3 and PW.copybox:IsShown() and snap.at == 1, "Copy all: frozen, cut into " .. parts .. " parts, part 1 shown")
+  ok(string.find(PW.PartText(2), "part 2 of " .. parts, 1, true) ~= nil, "each part says which it is")
+  PW.CopyPart()
+  ok(snap.done[1] and copied and string.find(copied, "part 1 of", 1, true), "Copy this part: on the clipboard, marked copied")
+  -- new numbers after the snapshot do not change it
+  PW.Rec("Late:OnUpdate()").calls = 5
+  PW.copybox.next:Click()
+  ok(snap.at == 2 and not string.find(PW.PartText(2) .. PW.PartText(3), "Late:", 1, true), "Next: part 2, the numbers stay frozen")
+  -- Ctrl+C in the box marks the shown part
+  local ctrl = rawget(_G, "IsControlKeyDown")
+  _G.IsControlKeyDown = function() return true end
+  _G.arg1 = "C"
+  PW.copybox.edit:GetScript("OnKeyDown")()
+  _G.IsControlKeyDown = ctrl
+  ok(snap.done[2], "Ctrl+C in the box: that part marked copied")
+  PW.copybox:Hide()
+  PW.CopyAll()
+  ok(PW.snap == snap and snap.at == 2, "Copy all again before the end: carries on where you were")
+  PW.copybox.all:Click()
+  local alldone = true
+  for k = 1, parts do if not snap.done[k] then alldone = false end end
+  ok(alldone and string.find(copied, "Late:", 1, true) == nil, "Copy all at once: every part marked")
+  lcl.Copy = oldCopy
+  PW.copybox:Hide()
+  -- text fits its column: long names are cut with "..."
+  local fsx = PW.frame.rows[1].cols[1]
+  local oldW = fsx.GetStringWidth
+  fsx.GetStringWidth = function(self) return string.len(self:GetText() or "") * 6 end
+  PW.Fit(fsx, string.rep("x", 100), 270)
+  local cut = fsx:GetText()
+  fsx.GetStringWidth = oldW
+  ok(string.len(cut) * 6 <= 270 and string.sub(cut, -3) == "...", "a long name is cut to fit its column (" .. string.len(cut) .. ")")
   PW.Toggle(false)
   PW.Reset()
   for k, v in pairs(keep2) do rawset(_G, k, v) end
+end
+
+-- (17 Nov 2026) the swing timer's test ticker only runs during a test
+local ST = pfUI.swing
+if ST and ST.testFrame then
+  ST.testUntil = 0
+  local tick = ST.testFrame:GetScript("OnUpdate")
+  if tick then _G.this = ST.testFrame tick() end
+  ok(ST.testFrame:GetScript("OnUpdate") == nil, "swing: no test running, its ticker sleeps")
+  ST.Test(1)
+  ok(ST.testFrame:GetScript("OnUpdate") ~= nil, "swing: a test wakes it")
+  ST.testUntil = 0
 end
 
 for k, v in pairs(keep) do rawset(_G, k, v) end
