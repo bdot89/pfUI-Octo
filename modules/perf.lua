@@ -184,6 +184,32 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     return out
   end
 
+  -- ---------------------------------------------------------------- the game's own UI ticker
+  -- (17 Nov 2026, /pfperf: UIParent's OnUpdate was the costliest script, 10 ms a second.) The game runs it every
+  -- frame: fades, flashes, the chat frames' mouse check, button pulses, popup menus, battleground map dots, the
+  -- ready check. With C.perf.uitick on it runs 30 times a second and is given all the time since its last run,
+  -- so fades and flashes keep their speed. Off = every frame again at once.
+  PF.UITICK = 1 / 30
+  function PF.WrapUIParent()
+    local p = rawget(_G, "UIParent")
+    if not p or PF.uiWrapped or not p.GetScript then return end
+    local orig = p:GetScript("OnUpdate")
+    if type(orig) ~= "function" then return end
+    PF.uiWrapped, PF.uiOrig = true, orig
+    local acc = 0
+    p:SetScript("OnUpdate", function()
+      local e = tonumber(_G.arg1) or 0
+      if not On("uitick") then acc = 0 return orig() end
+      acc = acc + e
+      if acc < PF.UITICK then return end
+      _G.arg1 = acc
+      acc = 0
+      orig()
+      _G.arg1 = e
+    end)
+  end
+  PF.WrapUIParent()
+
   -- ---------------------------------------------------------------- memory growth (KB a second)
   local lastKB, lastAt = nil, 0
   function PF.Sample()

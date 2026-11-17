@@ -25,6 +25,8 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
     PF.Watch(true, O.frame)
     W.Buttons(p, { { "Open the live window", function() if PF.win then PF.win.Toggle(true) end end, 170,
       "A window of its own (/pfperf): FPS, memory, every script's time and memory like pfDebug, and each add-on's CPU and memory - safe to scan." } })
+    Chk(p, "Performance HUD", "A small click-through text in a corner: FPS, latency, memory and the 5 busiest scripts right now, "
+      .. "updated once a second. Move it in layout mode. Also /pfperf hud.", "hud", function() if PF.win then PF.win.SetHUD(G().hud == "1") end end)
 
     W.Card(p, "Smooth fights", { icon = "Interface\\Icons\\Spell_Nature_TimeStop",
       tip = "The game cleans its Lua memory all at once and the picture stops while it does: kept out of fights here." })
@@ -33,6 +35,9 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
     Chk(p, "Clean up two seconds after a fight", nil, "gcafter")
     Chk(p, "Clean up after a loading screen", nil, "gcload")
     W.Buttons(p, { { "Clean up now", function() PF.Clean("by hand") end, 130, "Runs the clean-up at once (a short hitch)." } })
+    Chk(p, "Game's own UI ticker 30 times a second", "The game runs its fades, flashes, chat-frame mouse check, button pulses and "
+      .. "battleground map dots every frame - the costliest script in /pfperf. This runs them 30 times a second at their real speed. "
+      .. "Off = every frame, as the game does.", "uitick")
     if not PF.CanGC() then W.Note(p, "|cffffcc00This client does not let add-ons steer the clean-up.|r") end
 
     W.Card(p, "Raid graphics", { icon = "Interface\\Icons\\Spell_Holy_PrayerOfHealing02",

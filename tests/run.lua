@@ -2855,7 +2855,7 @@ do
     f.hp.bar:SetValue(40)
     Mock.now = Mock.now + .11
     Mock.Run(X.watch, "OnUpdate", .11)
-    ok(X.watch.next == 0, "a bar fading: every frame again")
+    ok(X.watch.next and X.watch.next - Mock.now < .04, "a bar fading: 30 times a second again")
     ok(f.octoGhost:IsShown() and f.octoGhostFrac > .4, "the lost health shows a moment (" .. tostring(f.octoGhostFrac) .. ")")
     for i = 1, 40 do
       Mock.now = Mock.now + .05

@@ -582,7 +582,8 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
         end
       end
     end
-    this.next = busy and 0 or now + .1
+    -- (moving: 30 times a second is smooth for a fade or a pulse; still: 10)
+    this.next = busy and now + 1 / 30 or now + .1
   end)
 
   -- ---------------------------------------------------------------- hook pfUI
@@ -692,8 +693,18 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
   castDriver:SetScript("OnUpdate", function()
     if (this.t or 0) > GetTime() then return end
     this.t = GetTime() + 1 / 15
+    -- (17 Nov 2026, /pfperf) only raid / party frames carry these bars: alone, one last pass hides any still up,
+    -- then nothing until you are in a group
+    local grouped = (GetNumRaidMembers and GetNumRaidMembers() or 0) > 0 or (GetNumPartyMembers and GetNumPartyMembers() or 0) > 0
+    if not grouped then
+      if this.solo then return end
+      this.solo = true
+    else
+      this.solo = nil
+    end
     for _, f in ipairs(pfUI.uf.frames or {}) do
-      if f.label and (f.octoCast or CastOn(f)) then pcall(UO.CastTick, f) end
+      -- (a bar still up is ticked to hide it; otherwise only frames that can be seen)
+      if f.label and ((f.octoCast and f.octoCast:IsShown()) or (CastOn(f) and f:IsVisible())) then pcall(UO.CastTick, f) end
     end
   end)
 end)

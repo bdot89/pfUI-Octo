@@ -2411,9 +2411,10 @@ nodeUpdateDriver:Show()
 
 pfMap:SetScript("OnUpdate", function()
   -- handle highlights and animations
-  if pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster then
+  if (pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster) and (pfMap.octoAnimAt or 0) <= GetTime() then
+    pfMap.octoAnimAt = GetTime() + 1 / 30
     hlstate, shiftstate, transition = pfMap.highlight, hidecluster, nil
-    fps = math.max(0.2, GetFramerate() / 30)
+    fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)
 
     for frame, data in pairs(pfMap.highlightdb) do
       local highlight = pfMap.highlightdb[frame][pfMap.highlight] and true or nil

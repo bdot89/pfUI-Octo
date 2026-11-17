@@ -396,6 +396,11 @@ pfUI:RegisterModule("gather", "vanilla", function ()
 
   -- ---------------------------------------------------------- one look
   GF.found, GF.seen = {}, {}
+  -- (one sort function, not a new one each look)
+  function GF.Order(a, b)
+    if a.prio ~= b.prio then return a.prio and true or false end
+    return a.dist < b.dist
+  end
   function GF.Scan(now)
     local found = {}
     if not GF.Available() then GF.found = found return found end
@@ -403,7 +408,9 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     if not px then GF.found = found return found end
     local facing = GF.Facing()
     GF.Learn(px, py, facing)
-    local best = {}
+    GF.best = GF.best or {}
+    local best = GF.best
+    for k in pairs(best) do best[k] = nil end
     local list = GF.WantedCached(now)
     local n = table.getn(list)
     -- a batch of the list each look (GF.BATCH calls), the rest remembered
@@ -411,33 +418,46 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     GF.cache = GF.cache or {}
     local cache = GF.cache
     local cursor = GF.cursor or 1
+    -- (17 Nov 2026, /pfperf: 1.8 MB of garbage in 4 minutes) a place is kept in its own table, filled again
+    -- in place; "nothing there" = an empty one, not a new table every look
     for _ = 1, math.min(n, GF.BATCH) do
       if cursor > n then cursor = 1 end
       local _, _, _, nx, ny = GF.Locate(list[cursor].id, px, py, pz)
-      cache[cursor] = nx and { nx, ny } or false
+      local c = cache[cursor]
+      if not c then c = {} cache[cursor] = c end
+      c[1], c[2] = nx, nx and ny or nil
       cursor = cursor + 1
     end
     GF.cursor = cursor
+    -- (17 Nov 2026, second /pfperf look: still ~7 KB a second) the nearest node of each name is kept in one
+    -- table per name (GF.pool), filled again each look; sid marks the look it was filled in
+    GF.pool = GF.pool or {}
+    local pool = GF.pool
+    local sid = (GF.sid or 0) + 1
+    GF.sid = sid
     for i = 1, n do
       local c = cache[i]
-      if c then
+      if c and c[1] then
         local w = list[i]
         local dx, dy = c[1] - px, c[2] - py
         local d = math.sqrt(dx * dx + dy * dy)
-        local cur = best[w.name]
-        if d <= RANGE and (not cur or d < cur.dist) then
-          best[w.name] = { name = w.name, prof = w.prof, prio = w.prio, extra = w.extra, dist = d, turn = GF.Turn(dx, dy, facing),
-            x = c[1], y = c[2] }
+        if d <= RANGE then
+          local e = pool[w.name]
+          if not e then e = {} pool[w.name] = e end
+          if e.sid ~= sid or d < e.dist then
+            if e.sid ~= sid then best[w.name] = e end
+            e.sid, e.name, e.prof, e.prio, e.extra = sid, w.name, w.prof, w.prio, w.extra
+            e.dist, e.turn, e.x, e.y = d, GF.Turn(dx, dy, facing), c[1], c[2]
+          end
         end
       end
     end
     for _, e in pairs(best) do table.insert(found, e) end
-    table.sort(found, function(a, b)
-      if a.prio ~= b.prio then return a.prio and true or false end
-      return a.dist < b.dist
-    end)
-    -- a priority node that was not in sight last look
-    local seen = {}
+    table.sort(found, GF.Order)
+    -- a priority node that was not in sight last look (two "seen" tables taking turns, emptied, not made anew)
+    local seen = GF.seenSpare or {}
+    for k in pairs(seen) do seen[k] = nil end
+    GF.seenSpare = GF.seen
     for i = 1, table.getn(found) do
       local e = found[i]
       seen[e.name] = true

@@ -19,7 +19,10 @@ local function Where()
   local ok, s = pcall(debugstack)
   if not ok or type(s) ~= "string" then return nil end
   for file, line in string.gfind(s, "AddOns\\pfUI\\([^:\n]+):(%d+)") do
-    if file ~= "profiler.lua" then return file .. ":" .. line end
+    -- (17 Nov 2026: modules\perf.lua's CreateFrame wrapper sits in the stack too while measuring - every frame
+    -- made then was named "modules\perf.lua:23" in /pfperf; skip it like this file)
+    -- (and pfquest\guard.lua's CreateFrame, which notes pfQuest's frames while its files load)
+    if file ~= "profiler.lua" and file ~= "modules\\perf.lua" and file ~= "pfquest\\guard.lua" then return file .. ":" .. line end
   end
   return nil
 end

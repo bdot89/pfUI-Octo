@@ -77,6 +77,12 @@ pfUI:RegisterModule("castbar", "vanilla:tbc", function ()
         this:SetAlpha(1)
         return
       end
+      -- octo (17 Nov 2026, /pfperf: 6.6 ms a second over the three bars with nothing cast): a bar that is idle and
+      -- faded out asks for a cast 30 times a second, not every frame; a cast event (OnEvent) wakes it at once
+      if this.restUntil then
+        if this.restUntil > GetTime() then return end
+        this.restUntil = nil
+      end
 
       if not UnitExists(this.unitstr) then
         this:SetAlpha(0)
@@ -230,7 +236,11 @@ pfUI:RegisterModule("castbar", "vanilla:tbc", function ()
         this.delay = 0
         this.bar.push:Hide()
       end
-      if cast then this.idle = nil end
+      if cast then
+        this.idle = nil
+      elseif this.idle and (this:GetAlpha() or 0) <= 0 then
+        this.restUntil = GetTime() + 1 / 30
+      end
     end)
 
     -- your own cast interrupted or failed (vanilla events): the bar flashes red
@@ -251,6 +261,7 @@ pfUI:RegisterModule("castbar", "vanilla:tbc", function ()
     cb:RegisterEvent(CASTBAR_EVENT_CAST_START)
     cb:RegisterEvent(CASTBAR_EVENT_CHANNEL_START)
     cb:SetScript("OnEvent", function()
+      this.restUntil = nil
       if this.unitstr and not UnitIsUnit(this.unitstr, "player") then return end
       playerarg = pfUI.client <= 11200 or arg1 == "player" and true or nil
 

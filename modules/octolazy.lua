@@ -891,6 +891,10 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
   local roster, combo, comboAt, comboDone = 0, nil, 0, nil
   f:SetScript("OnUpdate", function()
     local now = Now()
+    -- (17 Nov 2026, /pfperf: 1.8 ms a second) 20 looks a second: roll delays, summons and key combos held
+    -- .35 s need no more
+    if (this.nextAt or 0) > now then return end
+    this.nextAt = now + .05
     for id, p in pairs(LZ.pending) do if now >= p.at then LZ.Roll(id, p.act, p.why) end end
     for id, o in pairs(LZ.open) do if o.ends and now > o.ends + 5 then LZ.open[id] = nil end end
     if LZ.summonAt and now >= LZ.summonAt then LZ.DoSummon() end

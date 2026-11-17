@@ -609,6 +609,10 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
       "Every script and add-on as text, in parts of " .. PW.PARTLINES .. " lines: the numbers are frozen when you press it, "
       .. "a box steps through the parts (Ctrl+C or Copy this part) and marks the ones copied. Made only when pressed, so it costs nothing while you play.")
     f.copy:SetPoint("LEFT", f.prof, "RIGHT", 4, 0)
+    f.hud = Btn(f, "HUD: off", 72, function() PW.SetHUD(not PW.HUDOn()) PW.Refresh(true) end,
+      "A small text in a corner of the screen with FPS, latency, memory and the 5 busiest scripts right now - at any time, "
+      .. "also with this window shut. Click-through; move it in layout mode (/moveui). Switches measuring on (Scan) if it is not.")
+    f.hud:SetPoint("TOPRIGHT", f, "TOPRIGHT", -30, -6)
 
     -- column heads (click = sort)
     f.heads = {}
@@ -714,6 +718,7 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
       if fs then if k == PW.mode then fs:SetTextColor(1, 1, 1) else fs:SetTextColor(.6, .6, .6) end end
     end
     f.pause:SetText(PW.on and "Pause" or "Resume")
+    f.hud:SetText(PW.HUDOn() and "HUD: on" or "HUD: off")
     f.prof:SetText(PF.profiling and "CPU profiler: on" or "CPU profiler: off")
     local scripts = PW.mode == "scripts"
     f.scan:Show() f.stop:Show()
@@ -783,10 +788,125 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
     PW.Fit(f.note, note, (f:GetWidth() or 680) - 150)
   end
 
+  -- ---------------------------------------------------------------- the HUD
+  -- (17 Nov 2026, user: "a HuD option ... a small text overlay showing the top 5 at anytime ... small and easy to read
+  -- and not intrusive"). C.perf.hud: a click-through text, once a second: FPS / latency / memory, then the 5 scripts
+  -- with the most ms a second now. The top 5 is one pass over the records into a fixed list (no sort, no tables).
+  PW.HUDN = 5
+  local top = {}
+  function PW.Top(n)
+    for i = 1, n do top[i] = nil end
+    local count = 0
+    for label, r in pairs(PW.data) do
+      local v = r.nm or 0
+      if v > 0 then
+        -- insert into the short sorted list, dropping the last
+        local pos = count + 1
+        while pos > 1 and (top[pos - 1].nm or 0) < v do pos = pos - 1 end
+        if pos <= n then
+          local last = math.min(count + 1, n)
+          for i = last, pos + 1, -1 do top[i] = top[i - 1] end
+          r.label = r.label or label
+          top[pos] = r
+          if count < n then count = count + 1 end
+        end
+      end
+    end
+    return top, count
+  end
+  -- short names for the HUD, made once per label
+  local short = {}
+  local function Short(label)
+    local s = short[label]
+    if not s then
+      s = string.gsub(label, "^unnamed (%a+) %(other add%-ons / game%)", "other %1")
+      s = string.gsub(s, ":OnUpdate%(%)$", "")
+      s = string.gsub(s, ":OnEvent%(%)$", " (events)")
+      if string.len(s) > 34 then s = string.sub(s, 1, 33) .. "..." end
+      short[label] = s
+    end
+    return s
+  end
+  function PW.HUDOn() return C.perf.hud == "1" end
+  function PW.HUDText()
+    local fps = math.floor((GetFramerate and tonumber(GetFramerate()) or 0) + .5)
+    local lag = 0
+    if GetNetStats then local _, _, l = GetNetStats() lag = tonumber(l) or 0 end
+    local lines = { "|cff33ccff" .. fps .. " fps|r  " .. lag .. " ms  " .. F(Mem() / 1024, 0) .. " MB  +" .. F(PF.rate or 0, 0) .. " KB/s" }
+    local list, n = PW.Top(PW.HUDN)
+    if n == 0 then
+      table.insert(lines, "|cff888888" .. (PW.scanned and "nothing busy" or "not measuring") .. "|r")
+    end
+    for i = 1, n do
+      local r = list[i]
+      local v = r.nm or 0
+      local col = v >= 1 and "|cffff6666" or v >= .25 and "|cffffd24d" or "|cffdddddd"
+      table.insert(lines, col .. F(v, 2) .. "|r  " .. Short(r.label or "?"))
+    end
+    return table.concat(lines, "\n")
+  end
+  function PW.BuildHUD()
+    if PW.hudFrame then return PW.hudFrame end
+    local h = CreateFrame("Frame", "pfOctoPerfHUD", UIParent)
+    PW.hudFrame = h
+    h:SetFrameStrata("HIGH")
+    h:SetWidth(230) h:SetHeight(84)
+    h:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 12, -160)
+    h:EnableMouse(false)
+    h.bg = h:CreateTexture(nil, "BACKGROUND")
+    h.bg:SetAllPoints(h)
+    h.bg:SetTexture(0, 0, 0, .35)
+    h.text = h:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+    h.text:SetFont(pfUI.font_default, 10, "OUTLINE")
+    h.text:SetJustifyH("LEFT")
+    h.text:SetJustifyV("TOP")
+    h.text:SetPoint("TOPLEFT", h, "TOPLEFT", 5, -4)
+    if UpdateMovable then UpdateMovable(h) end
+    local last = GT()
+    h:SetScript("OnUpdate", function()
+      local now = GT()
+      if now - (this.at or 0) < 1 then return end
+      this.at = now
+      -- the window steps the numbers while it is open; otherwise the HUD does
+      if not (PW.frame and PW.frame:IsShown()) and PW.on then PW.Step(now - last) end
+      last = now
+      if PF.Sample then PF.Sample() end
+      this.text:SetText(PW.HUDText())
+      this:SetWidth(math.max(150, (this.text:GetStringWidth() or 200) + 10))
+      this:SetHeight((this.text:GetHeight() or 70) + 8)
+    end)
+    h:Hide()
+    return h
+  end
+  function PW.SetHUD(on)
+    C.perf.hud = on and "1" or "0"
+    local h = PW.BuildHUD()
+    if on then
+      if not PW.scanned then PW.Scan() end
+      h.at = 0
+      h:Show()
+    else
+      h:Hide()
+    end
+  end
+
   function PW.Toggle(show)
     local f = PW.Build()
     if show == nil then show = not f:IsShown() end
     if show then f:Show() else f:Hide() end
+  end
+
+  -- the HUD comes back after a reload: 5 s after the loading screen (frames made by then are measured)
+  if PW.HUDOn() then
+    local wait = CreateFrame("Frame")
+    wait:RegisterEvent("PLAYER_ENTERING_WORLD")
+    wait:SetScript("OnEvent", function() this.at = GT() + 5 end)
+    wait:SetScript("OnUpdate", function()
+      if not this.at or GT() < this.at then return end
+      this:SetScript("OnUpdate", nil)
+      this:UnregisterAllEvents()
+      if PW.HUDOn() then PW.SetHUD(true) end
+    end)
   end
 
   -- /pfperf now opens the window; the chat lines stay as /pfperf chat
@@ -795,6 +915,7 @@ pfUI:RegisterModule("perf-window", "vanilla", function ()
     local m = string.lower(msg or "")
     if m == "" or m == "window" or m == "show" then PW.Toggle() return end
     if m == "chat" then if old then old("") end return end
+    if m == "hud" then PW.SetHUD(not PW.HUDOn()) PW.Refresh(true) return end
     if m == "scan" then PW.Toggle(true) PW.frame.scan:Click() return end
     if m == "stop" then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r performance: " .. PW.Unhook() .. " scripts put back.") return end
     if old then old(msg) end

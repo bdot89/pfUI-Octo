@@ -119,6 +119,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.37
+
+- 📟 **Performance HUD:** a small click-through text in a corner with FPS, latency, memory and the 5 busiest scripts right now, once a second (/pfperf window "HUD", Settings > Performance, or `/pfperf hud`; move it in layout mode).
+- ⚡ **Smoother:** the game's own UI ticker runs 30 times a second (option, Settings > Performance); swing timer and idle cast bars rest when nothing happens; unit frame extras, octolazy, transports and pfQuest's map pins tick less often at the same speed; the gathering finder no longer makes garbage.
+- 🔎 **/pfperf** names pfQuest's and pfUI's own frames by the file that made them.
+
 ## 📜 New in 1.1.36
 
 - ⚡ **Smoother:** the swing timer no longer makes memory garbage every frame (about 480 KB a minute before); the unit frame extras only work every frame while something fades or flashes; the action bars' range check only looks at buttons you can see.

@@ -115,7 +115,11 @@ $patches = @{
   # ticker made above it errored for good. Octo() swaps the call for pfQuestOctoModel(v) in every file;
   # this only makes the sync stop if pfQuest's line ever changes.
   "map.lua" = { param($t)
-    Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel())'
+    $t = Must $t 'strlower(v:GetModel())' 'strlower(v:GetModel())'
+    # (17 Nov 2026, /pfperf: pfQuestMap 5 ms a second) the pin highlight / fade pass walked every map and minimap
+    # pin every frame while anything moved; now 30 times a second, with its step for 30 fps so pins move as fast
+    $t = Must $t 'if pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster then' "if (pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster) and (pfMap.octoAnimAt or 0) <= GetTime() then`r`n    pfMap.octoAnimAt = GetTime() + 1 / 30"
+    Must $t 'fps = math.max(0.2, GetFramerate() / 30)' 'fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)'
   }
   # (16 Nov 2026, Wolfahrt: "pfquest\tracker.lua:313: attempt to call method 'ScheduleLayout' (a nil value)"
   # while splitting stacks at the auction house) the tracker's QUEST_LOG_UPDATE code trusted the game's

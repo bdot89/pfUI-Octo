@@ -241,6 +241,25 @@ if PW then
   ok(alldone and string.find(copied, "Late:", 1, true) == nil, "Copy all at once: every part marked")
   lcl.Copy = oldCopy
   PW.copybox:Hide()
+  -- the HUD: top 5 by ms a second now, short names, on / off kept in C.perf.hud
+  PW.data = {}
+  local vals = { 0.3, 4.2, 0, 1.5, 0.9, 7.1, 0.05, 2.2 }
+  for i, v in ipairs(vals) do local r = PW.Rec("S" .. i .. ":OnUpdate()") r.calls, r.nm = 10, v end
+  PW.Rec("unnamed Frame (other add-ons / game):OnUpdate()").nm = 0.5
+  local t5, n5 = PW.Top(5)
+  ok(n5 == 5 and t5[1].nm == 7.1 and t5[2].nm == 4.2 and t5[3].nm == 2.2 and t5[4].nm == 1.5 and t5[5].nm == 0.9,
+    "HUD: the five busiest now, in order (" .. n5 .. ")")
+  local txt = PW.HUDText()
+  ok(string.find(txt, "fps", 1, true) and string.find(txt, "7.10", 1, true) and string.find(txt, "S6", 1, true)
+    and not string.find(txt, ":OnUpdate()", 1, true) and not string.find(txt, "S3", 1, true), "HUD text: fps line + top 5, short names")
+  PW.data = {}
+  PW.Rec("unnamed Frame (other add-ons / game):OnUpdate()").nm = 3
+  ok(string.find(PW.HUDText(), "other Frame", 1, true) ~= nil, "HUD: other add-ons' frames named shortly")
+  PW.SetHUD(true)
+  ok(pfUI_config.perf.hud == "1" and PW.hudFrame:IsShown() and not PW.hudFrame:IsMouseEnabled(), "HUD on: shown, click-through")
+  PW.SetHUD(false)
+  ok(pfUI_config.perf.hud == "0" and not PW.hudFrame:IsShown(), "HUD off: hidden")
+  PW.Unhook()
   -- text fits its column: long names are cut with "..."
   local fsx = PW.frame.rows[1].cols[1]
   local oldW = fsx.GetStringWidth
@@ -254,7 +273,43 @@ if PW then
   for k, v in pairs(keep2) do rawset(_G, k, v) end
 end
 
--- (17 Nov 2026) the swing timer's test ticker only runs during a test
+-- (17 Nov 2026) the game's own UI ticker 30 times a second, given all the time since its last run
+if PF.WrapUIParent and UIParent and UIParent.SetScript then
+  local runs, seen = 0, {}
+  UIParent:SetScript("OnUpdate", function() runs = runs + 1 table.insert(seen, _G.arg1) end)
+  PF.uiWrapped = nil
+  PF.WrapUIParent()
+  local tick = UIParent:GetScript("OnUpdate")
+  S.uitick = "1"
+  for _ = 1, 10 do _G.arg1 = 1 / 120 tick() end
+  ok(runs == 2 and math.abs(seen[1] - 4 / 120) < 1e-6, "UI ticker: 10 frames at 120 fps = 2 runs, each given its 1/30 s (" .. runs .. ")")
+  S.uitick = "0"
+  runs = 0
+  for _ = 1, 3 do _G.arg1 = 1 / 120 tick() end
+  ok(runs == 3, "UI ticker off: every frame, as the game does")
+  S.uitick = "1"
+end
+
+-- the swing timer rests at four draws a second when nothing happens (its clock is the mock's Mock.now)
+local SW = pfUI.swing
+if SW and SW.ticker and Mock then
+  local tk = SW.ticker:GetScript("OnUpdate")
+  local paints, rawPaint = 0, SW.Paint
+  SW.Paint = function(a, b, c, d) paints = paints + 1 return rawPaint(a, b, c, d) end
+  SW.testUntil = 0
+  local keepNow, keepCombat = Mock.now, rawget(_G, "UnitAffectingCombat")
+  _G.UnitAffectingCombat = function() return false end
+  Mock.now = Mock.now + 1000
+  _G.this = SW.ticker
+  SW.ticker.calmAt = 0
+  for _ = 1, 30 do Mock.now = Mock.now + 1 / 120 tk() end
+  ok(paints >= 1 and paints <= 8, "swing: nothing happening, a quarter second = a few draws, not 30 a bar (" .. paints .. ")")
+  Mock.now = keepNow
+  _G.UnitAffectingCombat = keepCombat
+  SW.Paint = rawPaint
+end
+
+-- the swing timer's test ticker only runs during a test
 local ST = pfUI.swing
 if ST and ST.testFrame then
   ST.testUntil = 0

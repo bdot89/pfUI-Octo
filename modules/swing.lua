@@ -768,6 +768,17 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       s.tgSeen, s.rgSeen, s.cast = 0, 0, nil
     end
     s.wasTesting = testing
+    -- (17 Nov 2026, /pfperf: 7.8 ms a second drawing bars nobody was using) nothing happening - no swing for a
+    -- while, no target / ranged / cast bar, out of combat, no test: four redraws a second. A swing (its event
+    -- sets lastSwing) makes the very next frame draw again.
+    local calm = not testing and not s.cast and t - (s.lastSwing or 0) > (s.mhSpeed or 2) + 1
+      and t - (s.tgSeen or 0) > 10 and t - (s.rgSeen or 0) > 10 and not UnitAffectingCombat("player")
+    if calm then
+      if (this.calmAt or 0) > t then return end
+      this.calmAt = t + .25
+    else
+      this.calmAt = 0
+    end
     Run("player", not (pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("swing")), t, testing)
     Run("target", UnitExists("target") and UnitCanAttack("player", "target") and (s.tgSeen or 0) > 0
       and t - (s.tgSeen or 0) < 10, t, testing)

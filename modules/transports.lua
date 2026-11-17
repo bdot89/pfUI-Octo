@@ -888,6 +888,10 @@ pfUI:RegisterModule("transports", "vanilla", function ()
   end)
   f:SetScript("OnUpdate", function()
     local clock = GetTime()
+    -- (17 Nov 2026, /pfperf: 1.9 ms a second) 10 looks a second while the world map is shut, 30 while it is open
+    -- (its pins are drawn 5 times a second anyway)
+    if (this.nextAt or 0) > clock then return end
+    this.nextAt = clock + ((WorldMapFrame and WorldMapFrame:IsShown()) and (1 / 30) or .1)
     TR.ShareTick(clock)
     if not TR.On() then
       if layer and layer:IsShown() then layer:Hide() end
