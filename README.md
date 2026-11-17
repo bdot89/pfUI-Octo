@@ -1,7 +1,7 @@
 <p align="center"><img src="docs/banner.png" alt="pfUI Octo by Bdot89: one addon for your whole interface" width="100%"></p>
 
 <h1 align="center">🐙 pfUI Octo for OctoWoW</h1>
-<p align="center"><b>One addon. Everything.</b> Your whole interface, 25 add-ons' worth, in one window that runs smooth in every raid. ✨</p>
+<p align="center"><b>One addon. Everything.</b> Your whole interface, 26 add-ons' worth, in one window that runs smooth in every raid. ✨</p>
 
 <p align="center">
 <a href="https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip"><b>⬇️ Download pfUI Octo (ZIP)</b></a> &nbsp;·&nbsp;
@@ -40,6 +40,7 @@ Fewer add-ons = fewer clashes and more frames. Everything below is **built in**,
 | 🏦 **Auctions** | aux, Auctionator | Search every page at once, sell at the going price, price history, deals, ledger |
 | 📬 **Mail** | TurtleMail, Postal | Whole inbox in one list, **Collect all** that never stalls, send many items at once |
 | 🩸 **OctoDoTs** | Cursive | Every enemy with its DoTs and real timers, multi-DoT macros |
+| 💧 **OctoRinse** | UpsiRinse / Rinse / Decursive | One-key decursing, per-boss lists, quick class / group / player rules |
 | ⏳ **CoolDownManager** | cooldown bars | Your cooldowns fill the bars by themselves, glows when ready |
 | 🧪 **OctoConsumes** | consume trackers | Flasks, elixirs, food: what's missing, one key to put it on |
 | 🧭 **pfQuest built in** | pfQuest, Questie | Quest givers and objectives on the map, tracker, `/db` search |
@@ -118,6 +119,14 @@ All optional: pfUI Octo works without them.
 | `/keymap`, `/sct` | the Key Map, combat text |
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
+
+## 📜 New in 1.1.41
+
+- 💧 **OctoRinse (UpsiRinse built in):** one key cures the most important debuff on your group with the right spell, in range. Its own section at the top of Combat & Items. Every UpsiRinse setting is there, and your UpsiRinse settings, lists and learned debuffs are copied over the first time both are loaded. New files: restart the game fully once.
+- 📖 **Boss lists, per boss only:** every raid and dungeon from UpsiRinse with each boss's curable debuffs, under the zone's loading-screen art. Skip school / Hide / Cure first on a boss count only while you fight that boss - never in PvP or anywhere else. "Everywhere" holds the lists that count in every fight.
+- 👥 **Quick menu in combat:** click the Players picture on the bar - class pictures, raid groups and every player. Left-click = cure first, right-click = never cure, plus My group first and Pets.
+- ⚡ **Faster with DLLs:** cures react the moment a debuff lands; ClassicAPI reads every debuff's school and caster, UnitXP / ClassicAPI check range and sight, SuperWoW cures without swapping your target.
+- 🗿 **Cleansing totems** for shamans on by default, with the totem's own icon. Choose where it runs (raids, dungeons, battlegrounds, arenas, world); title bar can hide until you mouse over it; right-click its box in layout mode for its options.
 
 ## 📜 New in 1.1.40
 

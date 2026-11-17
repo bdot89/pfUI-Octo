@@ -1367,3 +1367,27 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   SetupButtons (lit = in use) on General ("1. Where your numbers go" + a what-goes-where list; cards numbered 1-4),
   Nameplates (in use / not in use line first) and Messages; scroll area tabs show "Incoming 14" or grey, with an
   in use / not in use / switched off line. The old AllOut buttons are gone.
+- OctoRinse (17 Nov 2026, NOT seen in game; NEW FILES = full client restart; user: UpsiRinse "FULLY implement it into
+  pfUI keeping all the settings ... classicAPI or any DLL ... all boss lists ... ignore a spell on the boss list ... only for
+  that boss ... wont affect PvP ... dont generalise spells", sidebar top of Combat & Items, featured like OctoDoTs, page
+  "its own clean layout", "all options where you want it enabled", "use art"). UpsiRinse (..\UpsiRinse, MIT: Otari's Rinse
+  + Upsilon's encounter browser) rebuilt: modules\rinse-data.lua = its EncounterDB.lua unchanged (pfUI.rinseData.zones);
+  modules\rinse.lua (module "rinse", pfUI.rinse = R, bar pfRinse = layout-mode box, /orinse, /rinse + Rinse() while
+  UpsiRinse is not loaded, bindings PFRINSE / PFRINSEBOSSES / PFRINSEOPTIONS); modules\rinse-options.lua (section
+  "OctoRinse": General, Boss lists, Everywhere, Players). Rules: C.rinse.black / hide / priority / prioclass / hideclass =
+  "Everywhere" (UpsiRinse's global lists; hide also takes a school name); C.rinse.boss["<zone>^<boss>"][spell] = { b, h,
+  p, pc = {CLASS}, hc = {CLASS} } count ONLY while that key is in R.active (R.UpdateActive: boss / R.ALIAS names seen
+  hostile + in combat via target / mouseover / focus / raidNtarget / aura casters, in one of the zone's GetRealZoneText
+  names; stays on while you stay in combat, 8 s after; "Trash & Adds" / "* Wing Trash" = in that zone while no boss of it
+  is on; World Bosses = any zone). Key separator "^" (never "|": edit boxes eat it). R.Seed puts UpsiRinse's shipped
+  defaults on the bosses that list them (Wyvern Sting -> Huhuran, Mutating Injection -> Grobbulus), the rest Everywhere;
+  R.Import copies RINSE_CONFIG / RINSE_CHAR_CONFIG / RINSE_ENCOUNTERS once (boss debuffs onto their bosses) when UpsiRinse
+  is loaded, then ours stands aside (R.aside) and asks to DisableAddOn it. Learned debuffs + icons per account:
+  pfUI_cache.rinselearned / rinseicons. Instant: UNIT_AURA -> rescan next frame (<= 20/s), else every .25 s. Debuffs from
+  ClassicAPI C_UnitAuras.UnitAura (school + caster, > 16 debuffs), else SuperWoW UnitDebuff spell id, else tooltip; range
+  UnitXP -> ClassicAPI IsSpellInRange -> libclient.Distance (33) -> CheckInteractDistance; LOS UnitXP / ClassicAPI; cast
+  SuperWoW CastSpellByName(spell, unit) -> ClassicAPI C_Spell.CastAtUnit(spell, unit) (args unverified, pcall) -> target
+  swap. Where it runs: C.rinse.inraid / indungeon / inbg / inarena / inworld via pfUI.context.Zone(). Boss browser: zone
+  icons + loading-screen banners (RO.ZONEART, names checked in the listfile), pills Skip school / Hide / Cure first,
+  Classes menu, "Everywhere" = UpsiRinse's "Unsorted" zone writing the global lists. Sidebar rows may now be 12 px
+  (24 rows at 600 px). Tests: tests\rinse.lua. Unverified in game: all of it, the alias names, loading-screen crop.

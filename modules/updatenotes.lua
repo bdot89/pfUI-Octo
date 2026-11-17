@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.41", {
+    { "OctoRinse (UpsiRinse built in)", "one key cures the most important debuff on your group with the right spell, in range. Its own section at the top of Combat & Items. Every UpsiRinse setting is there, and your UpsiRinse settings, lists and learned debuffs are copied over the first time both are loaded. New files: restart the game fully once." },
+    { "Boss lists, per boss only", "every raid and dungeon from UpsiRinse with each boss's curable debuffs, under the zone's loading-screen art. Skip school / Hide / Cure first on a boss count only while you fight that boss - never in PvP or anywhere else. \"Everywhere\" holds the lists that count in every fight." },
+    { "Quick menu in combat", "click the Players picture on the bar - class pictures, raid groups and every player. Left-click = cure first, right-click = never cure, plus My group first and Pets." },
+    { "Faster with DLLs", "cures react the moment a debuff lands; ClassicAPI reads every debuff's school and caster, UnitXP / ClassicAPI check range and sight, SuperWoW cures without swapping your target." },
+    { "Cleansing totems", "for shamans on by default, with the totem's own icon. Choose where it runs (raids, dungeons, battlegrounds, arenas, world); title bar can hide until you mouse over it; right-click its box in layout mode for its options." },
+  } },
   { "1.1.40", {
     { "Mail sends everything in one press", "every queued item goes back to back, the next mail the moment the server accepts the last one (no pauses). A mail the server refuses once is tried again instead of stopping the whole run." },
     { "Update window", "when someone in your guild or group runs a newer pfUI Octo, a small window at login shows the OctoLauncher link (Copy button), what to do, and what's new since your version. \"Remind me later\" or \"Don't show for this version\"; switch it off in Settings > Scale, profiles and look; /octoupdate opens it. New file: restart the game fully once." },

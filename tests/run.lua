@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "transports", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "perf-window", "autoattack", "escapefix" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-options", "rinse", "rinse-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
 
@@ -3848,7 +3848,8 @@ do
     -- (9 Nov 2026) Questing after it
     -- (11 Nov 2026) Consumables after Gear
     -- (16 Nov 2026, user: "make the important ones be top of order dots are high up the combat list")
-    ok(heads[1] == "UI layouts" and heads[2] == "Settings" and heads[3] == "Auctions" and heads[4] == "OctoLazy" and heads[5] == "Quality of Life" and heads[8] == "CoolDownManager" and heads[9] == "Unit Frames" and heads[15] == "OctoDoTs" and heads[16] == "Meters" and heads[table.getn(heads)] == "About",
+    -- (17 Nov 2026, user: OctoRinse "top of the combat list")
+    ok(heads[1] == "UI layouts" and heads[2] == "Settings" and heads[3] == "Auctions" and heads[4] == "OctoLazy" and heads[5] == "Quality of Life" and heads[8] == "CoolDownManager" and heads[9] == "Unit Frames" and heads[15] == "OctoRinse" and heads[16] == "OctoDoTs" and heads[17] == "Meters" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -6380,6 +6381,7 @@ dofile(DIR .. "/tests/bagcats.lua")
 dofile(DIR .. "/tests/consumes.lua")
 dofile(DIR .. "/tests/cdm.lua")
 dofile(DIR .. "/tests/dots.lua")
+dofile(DIR .. "/tests/rinse.lua")
 dofile(DIR .. "/tests/flight.lua")
 dofile(DIR .. "/tests/auction.lua")
 dofile(DIR .. "/tests/auction-ledger.lua")

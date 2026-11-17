@@ -102,6 +102,10 @@
   <Binding name="PFGEARSLOT19">if pfUI and pfUI.gear then pfUI.gear.UseSlot(19) end</Binding>
   <Binding name="PFGEARNAKED">if pfUI and pfUI.gear then pfUI.gear.ToggleNaked() end</Binding>
   <Binding name="PFCONSUMENEXT" header="PFCONSUMES">if pfUI and pfUI.consumes then pfUI.consumes.UseNext() end</Binding>
+  <Binding name="PFRINSE" header="PFRINSE">if pfUI and pfUI.rinse then pfUI.rinse.Run() end</Binding>
+  <Binding name="PFRINSEBOSSES">if pfUI and pfUI.rinse then pfUI.rinse.OpenOptions("rinsebosses") end</Binding>
+  <Binding name="PFRINSEOPTIONS">if pfUI and pfUI.rinse then pfUI.rinse.OpenOptions("rinsegeneral") end</Binding>
+  <Binding name="PFRINSEQUICK">if pfUI and pfUI.rinse then pfUI.rinse.ToggleQuick() end</Binding>
   <Binding name="PFAUTOATTACK" header="PFAUTOATTACK">if pfUI and pfUI.autoattack then pfUI.autoattack.Toggle() end</Binding>
   <Binding name="PFLAZYEFC" header="PFLAZY">if pfUI and pfUI.octolazy then pfUI.octolazy.Bind("efc") end</Binding>
   <Binding name="PFLAZYDROP">if pfUI and pfUI.octolazy then pfUI.octolazy.Bind("drop") end</Binding>

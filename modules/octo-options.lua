@@ -60,6 +60,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Minimap & Buffs", { "Minimap", "Buffs" } },
     { "Art & Extras", { "Art", "WeirdUtils" } },
     -- (16 Nov 2026, user: Cursive "merge ... its own section on the left and called OctoDoTs") dots-options.lua
+    -- (17 Nov 2026, user: UpsiRinse "its own tab it should be top of the combat list with highlight the same as
+    -- octodots") rinse-options.lua
+    { "OctoRinse", { "OctoRinse" } },
     { "OctoDoTs", { "OctoDoTs" } },
     { "Meters", { "Meters" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
@@ -93,12 +96,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
-    { "Combat & Items", { "OctoDoTs", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
+    { "Combat & Items", { "OctoRinse", "OctoDoTs", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -108,7 +111,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -127,6 +130,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
+    ["OctoRinse"] = "Cure your group's debuffs with one key, with per-boss lists of what to skip, hide or cure first (UpsiRinse, built in).",
     ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
     ["ItemRack"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
@@ -1850,7 +1854,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     end
     -- rows fill the column (bigger in a tall window), never below 13 (15 until the Auctions section,
     -- 15 Nov 2026: 22 sections no longer fitted a 600 px window at 15)
-    rh = math.max(13, math.min(32, rh))
+    -- (17 Nov 2026: OctoRinse made 24 rows - 12 px, 11 px text, keeps them all on a 600 px window)
+    rh = math.max(12, math.min(32, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
       -- (a section with a big entry at the top - Quality of Life - is opened from there, not a row here)
@@ -1869,7 +1874,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         h.text:ClearAllPoints()
         h.text:SetPoint("LEFT", h, "LEFT", 20, 0)
         h.text:SetPoint("RIGHT", h, "RIGHT", -26, 0)
-        W.Font(h.text, (rh >= 26) and 14 or ((rh >= 21) and 13 or 12))
+        W.Font(h.text, (rh >= 26) and 14 or ((rh >= 21) and 13 or ((rh >= 13) and 12 or 11)))
       end
       table.insert(rows, { h, 0, y, rh - 1 })
       y = y + rh

@@ -150,6 +150,9 @@
   <Include file="..\modules\dots-data.lua"/>
   <Include file="..\modules\dots.lua"/>
   <Include file="..\modules\dots-options.lua"/>
+  <Include file="..\modules\rinse-data.lua"/>
+  <Include file="..\modules\rinse.lua"/>
+  <Include file="..\modules\rinse-options.lua"/>
   <Include file="..\modules\flight.lua"/>
   <Include file="..\modules\flight-options.lua"/>
   <Include file="..\modules\auction.lua"/>

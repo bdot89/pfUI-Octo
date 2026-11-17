@@ -693,6 +693,17 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("dots",       nil,           "raid",             {})
   pfUI:UpdateConfig("dots",       nil,           "raidorder",        {})
   pfUI:UpdateConfig("dots",       nil,           "ignore",           {})
+  -- OctoRinse (modules/rinse.lua, 17 Nov 2026; UpsiRinse's options)
+  for k, v in pairs({
+    inraid = "1", indungeon = "1", inbg = "1", inarena = "1", inworld = "1",
+    scale = "1", alpha = "1", buttons = "5", width = "210", rowh = "32", spacing = "2", fontsize = "11",
+    header = "1", backdrop = "1", flip = "0", lock = "0",
+    print = "1", msbt = "1", sound = "1", shadowform = "1", abolish = "1", pets = "0", totems = "1", onlymine = "0",
+    seeded = "0", imported = "0", asked = "0", mygroupfirst = "0", headhover = "0",
+  }) do pfUI:UpdateConfig("rinse", nil, k, v) end
+  for _, k in ipairs({ "skip", "prio", "black", "hide", "priority", "prioclass", "hideclass", "boss", "firstclass", "neverclass", "firstgroup", "nevergroup" }) do
+    pfUI:UpdateConfig("rinse", nil, k, {})
+  end
   -- flight timer (modules/flight.lua, 15 Nov 2026)
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")
