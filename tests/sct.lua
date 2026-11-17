@@ -101,6 +101,24 @@ Fire("SPELL_MISS_OTHER", FOE, ME, 116, 2)
 ok(LiveText("Resist"), "resisted spell on you")
 Fire("SPELL_DAMAGE_EVENT_OTHER", ME, FOE, 116, 640, "0,0,0", 2, 4, "0,0,0,0")
 ok(LiveText("-640"), "spell crit on you")
+-- (Lobo, 17 Nov 2026) your totems' damage: the events name the totem as the caster
+do
+  local TOTEM, OTHER = "0x00000000000000E1", "0x00000000000000E2"
+  local oldGTI = GetTotemInfo
+  GetTotemInfo = function(slot) if slot == 1 then return 1, "Searing Totem", 0, 55 end end
+  B.Tracker.units[TOTEM] = { name = "Searing Totem VI" }
+  B.Tracker.units[OTHER] = { name = "Magma Totem IV" }
+  Fire("SPELL_DAMAGE_EVENT_OTHER", FOE, TOTEM, 10438, 731, "0,0,0", 0, 4, "0,0,0,0")
+  local t = LiveText("731")
+  ok(t ~= nil, "your Searing Totem's hit shows")
+  Fire("SPELL_DAMAGE_EVENT_OTHER", FOE, OTHER, 10587, 422, "0,0,0", 0, 4, "0,0,0,0")
+  ok(not LiveText("422"), "a totem you do not have out (another shaman's) shows nothing")
+  B.db.sct.events.outTotem.on = false
+  Fire("SPELL_DAMAGE_EVENT_OTHER", FOE, TOTEM, 10438, 733, "0,0,0", 0, 4, "0,0,0,0")
+  ok(not LiveText("733"), "totem damage switched off shows nothing")
+  B.db.sct.events.outTotem.on = true
+  GetTotemInfo = oldGTI
+end
 Fire("SPELL_HEAL_ON_SELF", ME, "0x00000000000000D1", 2061, 1300, 1, 0)
 ok(LiveText("+1300"), "heal on you")
 Fire("SPELL_ENERGIZE_ON_SELF", ME, ME, 29131, 1, 20, 0)

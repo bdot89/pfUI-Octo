@@ -61,6 +61,7 @@ local LIST = {
   { "outSpell", "Your spells", "out", "plate", 1, 1, 0.2, "%a" },
   { "outDot", "Your damage over time", "out", "plate", 0.95, 0.85, 0.2, "%a" },
   { "outPet", "Your pet's damage", "out", "plate", 0.65, 0.65, 0.1, "%a" },
+  { "outTotem", "Your totems' damage (Searing, Magma...)", "out", "plate", 1, 0.55, 0.2, "%a" },
   { "outShield", "Your damage shields (Thorns...)", "out", "plate", 0.6, 0.85, 0.4, "%a" },
   { "outMiss", "Your misses (dodge, parry, resist...)", "out", "plate", 0.75, 0.75, 0.75, "%t" },
   { "outInterrupt", "You interrupt someone", "out", "note", 1, 0.6, 0.1, "Interrupted %n: %s" },
@@ -251,6 +252,43 @@ local function NameOf(guid)
   end
   local u = B.Tracker.units[guid]
   return u and u.name
+end
+
+-- Your own totems (Searing, Magma, Fire Nova...): the combat events name the
+-- totem as the caster, not you. SuperWoW's "<guid>owner" unit says whose it is;
+-- without it the totem's name must be one of the totems you have out now
+-- (GetTotemInfo: ClassicAPI's tracker or libtotem). Answers kept per GUID
+-- (a "no" is asked again after 5 s, a totem's name can arrive late).
+EV.totems, EV.ntotems = {}, 0
+local function BaseName(n)
+  if type(n) ~= "string" then return nil end
+  n = string.gsub(n, "%s+[IVX]+$", "")
+  n = string.gsub(n, "%s*%(.-%)$", "")
+  return string.lower(n)
+end
+function EV.MyTotem(guid)
+  if not guid or guid == Me() or (pet and guid == pet) then return false end
+  local now = GetTime()
+  local c = EV.totems[guid]
+  if c and (c.yes or now - c.at < 5) then return c.yes end
+  local yes, known = false, false
+  if U.GuidExists(guid) then
+    local ok, owner = pcall(U.GuidOf, guid .. "owner")
+    if ok and owner then yes, known = (owner == Me()), true end
+  end
+  if not known then
+    local name = BaseName(NameOf(guid))
+    if name and string.find(name, "totem") and GetTotemInfo then
+      for slot = 1, 4 do
+        local ok, have, tname = pcall(GetTotemInfo, slot)
+        if ok and have and BaseName(tname) == name then yes = true break end
+      end
+    end
+  end
+  if EV.ntotems >= 200 then EV.totems, EV.ntotems = {}, 0 end
+  if not c then EV.ntotems = EV.ntotems + 1 end
+  EV.totems[guid] = { yes = yes, at = now }
+  return yes
 end
 
 -- 12345 -> "12345", "12,345" or "12.3k"
@@ -449,7 +487,7 @@ function EV:Fire(key, info)
   CT:Show(text, r, g, b, where, opts)
   if ev.sound and ev.sound ~= "none" then CT.PlaySound(ev.sound) end
   -- crit sounds (ClassicNumbers' crit / huge crit)
-  if info.crit and amount and (key == "outMelee" or key == "outSpell" or key == "outPet") then
+  if info.crit and amount and (key == "outMelee" or key == "outSpell" or key == "outPet" or key == "outTotem") then
     if db.hugeCrit > 0 and amount >= db.hugeCrit then CT.PlaySound(db.hugeCritKey)
     elseif db.critSound > 0 and amount >= db.critSound then CT.PlaySound(db.critSoundKey) end
   end
@@ -464,7 +502,7 @@ end
 
 -- Hits of one spell within mergeTime become one text with the total and a
 -- count (MSBT's AoE merging). Not for nameplates: each plate shows its own.
-local MERGEABLE = { outSpell = 1, outDot = 1, outMelee = 1, outPet = 1, outHeal = 1, outHot = 1, inHot = 1 }
+local MERGEABLE = { outSpell = 1, outDot = 1, outMelee = 1, outPet = 1, outTotem = 1, outHeal = 1, outHot = 1, inHot = 1 }
 function EV:Add(key, info)
   local db = B.db.sct
   local ev = db.events[key]
@@ -733,6 +771,11 @@ B:On("SPELL_DAMAGE_EVENT_OTHER", function(ev, target, caster, id, amount, mit, h
     local info = SpellHit(target, caster, id, amount, mit, hit, school, eff)
     info.guid, info.name = target, NameOf(target)
     EV:Add("outPet", info)
+  elseif caster and target ~= my and EV.MyTotem(caster) then
+    if not TargetOk(target) then return end
+    local info = SpellHit(target, caster, id, amount, mit, hit, school, eff)
+    info.guid, info.name = target, NameOf(target)
+    EV:Add("outTotem", info)
   elseif B.db.sct.team.on then
     local t = Teammate(caster)
     if t and (B.db.sct.team.dots or not Periodic(eff)) then
@@ -766,6 +809,10 @@ B:On("SPELL_MISS_OTHER", function(ev, caster, target, id, miss)
     end
   elseif caster and pet and caster == pet and TargetOk(target) then
     EV:Fire("outMiss", { kind = "Pet " .. (MISS[miss or 1] or "Miss"), guid = target, name = NameOf(target), plateKind = "miss" })
+  elseif caster and target ~= my and EV.MyTotem(caster) then
+    if TargetOk(target) and B.db.sct.events.outTotem and B.db.sct.events.outTotem.on then
+      EV:Fire("outMiss", { kind = "Totem " .. (MISS[miss or 1] or "Miss"), guid = target, name = NameOf(target), plateKind = "miss" })
+    end
   elseif B.db.sct.team.on then
     local t = Teammate(caster)
     if t then EV:TeamHit(caster, t, target, nil, false, MISS[miss or 1] or "Miss") end

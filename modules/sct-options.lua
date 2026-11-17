@@ -64,7 +64,7 @@ local MASTER = { function() return B.db.sct.enabled end, function(v) CT:SetEnabl
 -- (16 Nov 2026, user: "it should be clear if we have name plate or scrolling enabled or a mixture ... the settings
 -- together and easy to see") Where text goes is each message's own setting (Messages page); these read it back as
 -- one of three setups and set one in a click.
-local DMG = { "outMelee", "outSpell", "outDot", "outPet", "outShield", "outMiss" }
+local DMG = { "outMelee", "outSpell", "outDot", "outPet", "outTotem", "outShield", "outMiss" }
 local HEALS = { "outHeal", "outHot" }
 local SHORT = { ["in"] = "damage you take", heal = "heals and power you get", out = "your damage", outheal = "your healing",
                 warn = "alerts", reward = "rewards", obg = "OctoBG alerts" }
