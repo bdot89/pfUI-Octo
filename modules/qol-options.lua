@@ -65,6 +65,25 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Chk(p, "Quest of a quest item", "Quest items name their quest in the tooltip.", "tooltip", "questitem", "showquest")
     Chk(p, "Quest item count", "How many a quest wants, in the item's tooltip.", "tooltip", "questitem", "showcount")
 
+    -- (17 Nov 2026) modules/tooltip-extras.lua: read each time a tooltip shows, so no reload
+    local SHOWN = { { key = "1", label = "Always" }, { key = "shift", label = "While Shift is held" }, { key = "0", label = "Never" } }
+    local DE = { { key = "auto", label = "Always for enchanters, Shift for others" }, { key = "1", label = "Always" },
+                 { key = "shift", label = "While Shift is held" }, { key = "0", label = "Never" } }
+    local Live = function() end
+    W.Card(p, "Tooltip extras")
+    Drop(p, "Item level", "An item's level beside its name (ClassicAPI).", SHOWN, "tooltip", nil, "x_ilvl", Live)
+    Drop(p, "Where it drops", "Who drops the item and how often, where it is found, who sells it (pfQuest's "
+      .. "database). Hold Shift for more of them.", SHOWN, "tooltip", nil, "x_sources", Live)
+    Drop(p, "Disenchants into", "What the item turns into, the Enchanting it needs and what that is worth at the "
+      .. "auction house.", DE, "tooltip", nil, "x_disenchant", Live)
+    Drop(p, "Herbs and ore", "On a herb or ore node: the skill it needs against yours (red can't, orange / yellow / "
+      .. "green how often it teaches you) and what it gives.", SHOWN, "tooltip", nil, "x_gather", Live)
+    Drop(p, "Skinning", "On a creature you can skin: the Skinning it needs and, once it is dead, what it gives.",
+      SHOWN, "tooltip", nil, "x_skin", Live)
+    Drop(p, "Mob armor, hits and resists", "An enemy's armor and how much of your physical damage it takes off, its "
+      .. "melee hits and speed, and how much of your spells each school's resistance takes on average (MobStats' "
+      .. "formulas; off while MobStats itself is on).", SHOWN, "tooltip", nil, "x_mobstats", Live)
+
     W.Card(p, "Screen and messages")
     Chk(p, "Glow: in combat", "A soft glow round the screen's edge while you fight.", "appearance", "infight", "screen")
     Chk(p, "Glow: you have aggro", "The edge glows while a mob is on you.", "appearance", "infight", "aggro")

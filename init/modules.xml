@@ -57,6 +57,8 @@
   <Include file="..\modules\itemclick.lua"/>
   <Include file="..\modules\cooldown.lua"/>
   <Include file="..\modules\tooltip.lua"/>
+  <Include file="..\modules\tooltip-data.lua"/>
+  <Include file="..\modules\tooltip-extras.lua"/>
   <Include file="..\modules\questitem.lua"/>
   <Include file="..\modules\thirdparty.lua"/>
   <Include file="..\modules\meters.lua"/>

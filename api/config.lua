@@ -1444,6 +1444,13 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("tooltip",    nil,           "itemid",           "0")
   pfUI:UpdateConfig("tooltip",    nil,           "auracaster",       "1")
   pfUI:UpdateConfig("tooltip",    nil,           "itemcount",        "1") -- octo: bags / bank / worn counts
+  -- octo (17 Nov 2026, modules/tooltip-extras.lua): "1" always, "shift" with Shift held, "0" off
+  pfUI:UpdateConfig("tooltip",    nil,           "x_ilvl",           "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_sources",        "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_disenchant",     "auto") -- auto = always for enchanters, Shift for others
+  pfUI:UpdateConfig("tooltip",    nil,           "x_gather",         "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_skin",           "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_mobstats",       "1")
   pfUI:UpdateConfig("tooltip",    nil,           "alpha",            "0.8")
   pfUI:UpdateConfig("tooltip",    nil,           "alwaysperc",       "0")
   pfUI:UpdateConfig("tooltip",    "compare",     "basestats",        "1")
