@@ -821,6 +821,15 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     end
   end
   function AH.Active() return S().enable ~= "0" and not AH.Other() end
+  -- hide the game's auction window the way it was shown: through the game's panel list. (17 Nov 2026, user:
+  -- "when i press escape to open the main menu sometimes it stops working". The game shows AuctionFrame with
+  -- ShowUIPanel the first time its add-on loads; a plain Hide() left it in the panel list, and from then on
+  -- every Escape went to "closing" that hidden window, so the game menu never came.)
+  function AH.HideGame(a)
+    if not a or not a.IsShown or not a:IsShown() then return end
+    if HideUIPanel then pcall(HideUIPanel, a) end
+    if a:IsShown() then a:Hide() end
+  end
   local function TameBlizzard()
     local f = rawget(_G, "AuctionFrame")
     if not f or not f.UnregisterEvent or f.pfOctoTamed or not AH.Active() then return end
@@ -890,7 +899,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       if not AH.Active() then return end
       TameBlizzard()
       local f = rawget(_G, "AuctionFrame")
-      if f and f.IsShown and f:IsShown() then f:Hide() end
+      AH.HideGame(f)
       AH.open = true
       AH.hideGame = GetTime() + 1.5
       if AH.Show then AH.Show() end
@@ -920,7 +929,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       local a = rawget(_G, "AuctionFrame")
       if a and a.IsShown then
         TameBlizzard()
-        if a:IsShown() then a:Hide() end
+        AH.HideGame(a)
       end
     end
     AH.ScanTick(now)

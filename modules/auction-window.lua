@@ -414,7 +414,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local a = rawget(_G, "AuctionFrame")
     if not a or not a.IsShown then return end
     AH.hideGame = nil
-    if a:IsShown() then a:Hide() else ShowUIPanel(a) end
+    if a:IsShown() then AH.HideGame(a) else ShowUIPanel(a) end
   end, "Show or hide the game's own auction window beside this one.")
   f.game:SetPoint("RIGHT", f.close, "LEFT", -6, 0)
   f.opts = Btn(f.bar, "Options", 70, function()
@@ -1750,7 +1750,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       CloseAuctionHouse()
     end
     local a = rawget(_G, "AuctionFrame")
-    if a and a.IsShown and a:IsShown() then a:Hide() end
+    AH.HideGame(a)
   end)
   f:SetScript("OnShow", function() PlaySound("AuctionWindowOpen") end)
   f:SetScript("OnUpdate", function()

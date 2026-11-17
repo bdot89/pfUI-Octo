@@ -119,6 +119,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.33
+
+- ⎋ **Escape:** fixed Escape sometimes not opening the game menu after you had been at the auction house. A safety net also stops any other window from causing the same problem.
+
 ## 📜 New in 1.1.32
 
 - 🏦 **Auctions:** a search that finds nothing up now shows the last prices seen in the empty list - when it was last up, its lowest price each that day, the usual price, and what you last sold it for.

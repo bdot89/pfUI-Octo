@@ -404,3 +404,29 @@ end
 AH.open, AH.scan, AH.job, AH.fetch, AH.pending, AH.rows = false, nil, nil, nil, nil, {}
 pfUI_cache.auction = cacheWas
 for _, k in ipairs(NAMES) do _G[k] = keep[k] end
+
+-- (17 Nov 2026) Escape and the game menu: the game's auction window goes through the panel list, and a
+-- panel slot left holding a hidden window is emptied before Escape counts it
+do
+  local E = pfUI.escapefix
+  ok(E and E.ClearStale, "escapefix loaded")
+  if E then
+    local hideWas = rawget(_G, "HideUIPanel")
+    local through
+    _G.HideUIPanel = function(f) through = f UIParent.doublewide = nil f:Hide() end
+    local a = CreateFrame("Frame", "AuctionFrameEscTest", UIParent)
+    a:Show()
+    UIParent.doublewide = a
+    AH.HideGame(a)
+    ok(through == a and not a:IsShown() and UIParent.doublewide == nil, "the game's auction window is hidden through HideUIPanel")
+    _G.HideUIPanel = hideWas
+    local b = CreateFrame("Frame", nil, UIParent)
+    b:Hide()
+    UIParent.left = b
+    local c = CreateFrame("Frame", nil, UIParent)
+    c:Show()
+    UIParent.center = c
+    ok(E.ClearStale() == 1 and UIParent.left == nil and UIParent.center == c, "a slot holding a hidden window is emptied, a shown one kept")
+    UIParent.center = nil
+  end
+end
