@@ -120,6 +120,18 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.48
+
+- 🗺️ **Where it drops:** item tooltips list who drops it (with zone and chance), where it is found and who sells it; Shift shows more. Left out when Atlas already names the boss.
+- ✨ **Disenchants into:** what an item turns into, the Enchanting it needs and what that is worth at the auction house - always for enchanters, with Shift for everyone else.
+- 🌿 **Herbs, ore and skinning:** nodes and skinnable creatures show the skill they need against yours (trainer colours) and what they give.
+- 🛡️ **Mob stats:** enemies show their armor (and how much of your damage it takes off), melee hits and speed, and their resists - MobStats built in.
+- 🏷️ **Item level** beside the item's name. Every part can be set to always / Shift / never under Quality of Life > Tooltip extras.
+
+## 📜 New in 1.1.47
+
+- 💰 **Cash on delivery in one click:** a COD letter's button says Pay, and clicking the item or right-clicking the row pays and takes it at once.
+
 ## 📜 New in 1.1.46
 
 - 🎯 **Cleaner pull line in the threat window:** "Pull at 43.0k" in plain white, and its bar fills with your threat towards the pull point - green with room, gold when close, red past it. Tanks see "Lead on <name>".
