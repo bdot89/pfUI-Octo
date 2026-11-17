@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.53", {
+    { "Gear sets swap at once", "every piece of a set goes on in the same click, as ItemRack does, so you can put on one set, do something and put on another straight away. Armour still waits for combat to end." },
+  } },
   { "1.1.52", {
     { "Minimap preview fixed", "the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller." },
   } },

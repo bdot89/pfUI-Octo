@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.53
+
+- ⚡ **Gear sets swap at once:** every piece of a set goes on in the same click, as ItemRack does, so you can put on one set, do something and put on another straight away. Armour still waits for combat to end.
+
 ## 📜 New in 1.1.52
 
 - 🧭 **Minimap preview fixed:** the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller.
