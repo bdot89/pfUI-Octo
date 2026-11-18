@@ -1165,6 +1165,8 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     end
     local show = s.show or "rows"
     local vis = test or (shown > 0 and (show ~= "combat" or UnitAffectingCombat("player"))) or show == "always"
+    -- (the target bar only: the mob bars stay away, except in layout mode / a test so they can be moved)
+    if s.which == "target" and not test then vis = false end
     if vis and not frame:IsShown() then frame:Show() elseif not vis and frame:IsShown() then frame:Hide() end
     frame.shown = shown
   end
@@ -1199,7 +1201,9 @@ pfUI:RegisterModule("dots", "vanilla", function ()
       D.ScanGroup()
       for k, v in pairs(D.pending) do if v < t then D.pending[k] = nil end end
     end
-    if t >= nextScan or D.dirty then
+    -- (18 Nov 2026, user: "Show both / Show Bars only / Show Single target bar only") with the target
+    -- bar only, the mob bars are not read at all
+    if (t >= nextScan or D.dirty) and (S().which ~= "target" or D.Testing()) then
       nextScan = t + Num("rate", .2)
       D.Scan()
       D.Sounds(t)

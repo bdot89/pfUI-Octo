@@ -707,7 +707,8 @@ function pfUI:LoadConfig()
     markedonly = "0", mineonly = "0", ignored = "1", regex = "0",
     -- profiles
     profpos = "1", profile = "", preset = "default",
-    -- target bar (dots-target.lua, 18 Nov 2026)
+    -- target bar (dots-target.lua, 18 Nov 2026); which = both | target (the target bar alone, mob bars away)
+    which = "both",
     tb_on = "0", tb_size = "34", tb_gap = "3", tb_grow = "RIGHT", tb_timer = "1", tb_drain = "1", tb_missing = "1",
     tb_mode = "all", tb_order = "time", tb_combat = "0", tb_warn = "3", tb_alpha = "1", tb_slots = "6",
   }) do pfUI:UpdateConfig("dots", nil, k, v) end

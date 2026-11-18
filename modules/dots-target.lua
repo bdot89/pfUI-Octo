@@ -546,11 +546,30 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     Paint()
   end
 
+  -- (18 Nov 2026, user: "Show both. Show Bars only. Show Single target bar only. for people who dont want the
+  -- cursive bars up and vice versa") what OctoDoTs puts on the screen, at the top of this page
+  function TB.Which()
+    if C.dots.tb_on ~= "1" then return "bars" end
+    return C.dots.which == "target" and "target" or "both"
+  end
+  function TB.SetWhich(v)
+    C.dots.tb_on = (v == "bars") and "0" or "1"
+    C.dots.which = (v == "target") and "target" or "both"
+    TB.ApplyLayout()
+    if pfUI.dots and pfUI.dots.Paint then pcall(pfUI.dots.Paint, GetTime()) end
+  end
+
   local function Page(p)
     W.Heading(p, "Target bar", { on = { function() return C.dots.tb_on == "1" end,
       function(v) C.dots.tb_on = v and "1" or "0" TB.ApplyLayout() end, "The target bar on or off." },
       about = "A row of icons: your own debuffs on your target - DoTs and bleeds - with the time left and a shade that "
         .. "drains as they run out. Pick below which to always track and which to ignore. Move it in layout mode." })
+    W.Card(p, "What shows", { tip = "OctoDoTs' two displays: the bars (every enemy with its debuffs, Cursive style) and "
+      .. "this target bar (your debuffs on your target as icons)." })
+    W.Dropdown(p, "Show", "Both: the bars and the target bar. Bars only: the target bar is off. "
+      .. "Target bar only: the bars stay away (they still show in layout mode so they can be moved).",
+      { { key = "both", label = "Both" }, { key = "bars", label = "Bars only" }, { key = "target", label = "Target bar only" } },
+      TB.Which, function(v) TB.SetWhich(v) W.Refresh(p) end)
     W.Pin(p, "Preview", "Made-up debuffs drawn by the real bar code with your settings; the grey one is a tracked debuff "
       .. "that is missing. Click this bar to fold it away.", function(pp)
       local box = (W.ZoomBox or W.Box)(pp, 70)

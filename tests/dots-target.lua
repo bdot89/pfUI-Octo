@@ -87,6 +87,29 @@ do
   ok(not bar:IsShown(), "test over and switched off: hidden")
 end
 
+-- (18 Nov 2026) Show: both / bars only / target bar only
+do
+  TB.SetWhich("target")
+  ok(pfUI_config.dots.tb_on == "1" and pfUI_config.dots.which == "target" and TB.Which() == "target", "Target bar only: bar on, bars away")
+  local D = pfUI.dots
+  local frame = D.frame
+  if frame and D.Paint and D.Testing and not D.Testing() then
+    -- (the mock keeps visibility in .shown, which D.Paint uses for its row count: watch Hide instead)
+    local realHide, realShown = frame.Hide, frame.IsShown
+    local hidden
+    frame.IsShown = function() return true end
+    frame.Hide = function() hidden = true end
+    D.Paint(GetTime())
+    frame.Hide, frame.IsShown = realHide, realShown
+    ok(hidden, "Target bar only: the mob bars hide")
+  end
+  TB.SetWhich("bars")
+  ok(pfUI_config.dots.tb_on == "0" and pfUI_config.dots.which == "both" and TB.Which() == "bars", "Bars only: the target bar is off")
+  TB.SetWhich("both")
+  ok(pfUI_config.dots.tb_on == "1" and TB.Which() == "both", "Both")
+  pfUI_config.dots.tb_on, pfUI_config.dots.which = "0", "both"
+end
+
 -- per spell glow, numbers and animations (the right-click menu)
 do
   local S2 = pfUI_config.dots
