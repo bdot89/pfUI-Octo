@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.58", {
+    { "World map pieces in the right place, every zone", "the map reveal now follows the game's own map table for all 53 zones, checked against a render of the real map pictures. No more wrong or doubled pieces in Thalassian Highlands and OctoWoW's other zones (the 1.1.55 change is undone)." },
+  } },
   { "1.1.57", {
     { "No freeze on instant gear swaps", "swapping a whole set changes every slot at once, and each change used to refresh the set buttons, heal prediction and durability right away - many times in one moment. Each now refreshes once, a fraction of a second after the swap." },
   } },
