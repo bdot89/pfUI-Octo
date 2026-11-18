@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.67", {
+    { "OctoDoTs: pick what shows", "at the top of the Target bar page, Show = Both, Bars only (no target bar) or Target bar only (the Cursive-style bars stay away and cost nothing; they still show in layout mode so you can move them)." },
+  } },
   { "1.1.66", {
     { "Meters use ClassicAPI's new damage meter", "with ClassicAPI 1.22 or newer, the current fight and Overall take damage, DPS, healing, HPS, interrupts, dispels, damage taken, deaths and enemy damage taken straight from the DLL - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and every other display stay ours. ClassicAPI's own meter window stays hidden unless you want it (Meters > Data). New file: restart the game fully once." },
     { "/pfmetercheck", "(or the button on Meters > Data) prints our totals next to ClassicAPI's for the current fight (/pfmetercheck overall for all fights)." },
@@ -162,9 +165,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.28", {
     { "Auctions", "a Total column on Browse and Deals - what the whole stack costs to buy out, sortable." },
-  } },
-  { "1.1.27", {
-    { "Mail", "sending items no longer gets stuck. The Send tab looks like the game's (parchment letter, gold / silver / copper, Send money or C.O.D.), and the To box suggests your alts and the people you mail first, then group, friends, guild and people you've seen." },
-    { "Combat Text", "one clear choice at the top - On nameplates, Mix or Scrolling on screen - with a list of what shows where; Nameplates and every scroll area say if they're in use." },
   } },
 }
