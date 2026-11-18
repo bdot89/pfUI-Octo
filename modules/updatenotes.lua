@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.65", {
+    { "OctoDoTs Target bar", "a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on." },
+    { "Pick by icon", "click a spell's icon to always track it (green, greyed while missing) or ignore it (red). Show all of yours or only the tracked ones; size, gap, direction, warning time and opacity. New file: restart the game fully once." },
+  } },
   { "1.1.64", {
     { "Layout mode bar you can read and move", "a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top." },
     { "Show: All pfUI Game", "with Move anything on, choose whether layout mode shows every box, only pfUI's frames, or only the game's and your picked frames." },
@@ -160,8 +164,5 @@ pfUI.octoNotes = {
   { "1.1.26", {
     { "Combat Text", "8 new movements (Float, Rocket, Drop and bounce, Boomerang, Orbit, Pendulum, Scatter, Helix), 6 new crit effects (Elastic, Punch, Heartbeat, Jiggle, Throb, Stamp), a Feel setting (Steady, Smooth, Snappy, Lazy) and 5 new looks. Crits are now set on each area's tab and on Nameplates; the crit look for every crit is on General. Smoother on screen." },
     { "About", "how many players running pfUI Octo are online and heard this week (guild, group and battleground); hover for who and which version." },
-  } },
-  { "1.1.25", {
-    { "OctoLazy", "NPCs who train and sell (Survival, Cooking...) no longer jump straight to the shop; their menu stays so you can train." },
   } },
 }

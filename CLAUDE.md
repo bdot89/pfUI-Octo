@@ -1415,3 +1415,11 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   groups with grey headings (Snapping, Grid, Move anything) and separators, tooltips on every control, the Move anything
   switch (green ON / grey OFF) + Pick a frame (dim while off), a line of the clicks under the bar (bar.keys).
   Tests: tests\movers.lua.
+- OctoDoTs Target bar (18 Nov 2026, NOT seen in game; NEW FILE modules\dots-target.lua = full client restart; a druid
+  friend: bleeds and DoTs on his target as a movable row of spell icons, pick what to track / ignore with icons, "a menu in
+  Octo Dots at the top"). dots-target.lua (module "dots-target", pfUI.dotsTarget = TB = D.tbar, frame pfDotTargetBar =
+  layout-mode box, right-click -> page "dottarget"): reads the target with OctoDoTs' own D.Read (ClassicAPI / SuperWoW /
+  libdebuff) ten times a second, keeps a.kind == "mine"; C.dots.tb_* (off by default), per spell C.dots.tb_list[lower
+  name] = track | ignore, icons of seen debuffs in C.dots.tb_seen (the picker's pictures; else the spell book's). Mode all
+  (mine minus ignored) | list (tracked only); tracked-but-missing greyed at the end. Its page is registered before
+  dots-options.lua, so it is OctoDoTs' first tab. Tests: tests\dots-target.lua.

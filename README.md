@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.65
+
+- 🩸 **OctoDoTs Target bar:** a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on.
+- 🎯 **Pick by icon:** click a spell's icon to always track it (green, greyed while missing) or ignore it (red). Show all of yours or only the tracked ones; size, gap, direction, warning time and opacity. New file: restart the game fully once.
+
 ## 📜 New in 1.1.64
 
 - 🧭 **Layout mode bar you can read and move:** a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top.

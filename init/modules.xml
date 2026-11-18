@@ -153,6 +153,7 @@
   <Include file="..\modules\cdm-options.lua"/>
   <Include file="..\modules\dots-data.lua"/>
   <Include file="..\modules\dots.lua"/>
+  <Include file="..\modules\dots-target.lua"/>
   <Include file="..\modules\dots-options.lua"/>
   <Include file="..\modules\rinse-data.lua"/>
   <Include file="..\modules\rinse.lua"/>

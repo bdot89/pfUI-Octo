@@ -52,6 +52,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     ["FlightBar"]     = { "flight", nil },
     -- (16 Nov 2026, user: right-clicking it "does nothing it should take us to the table options to resize add more rows")
     ["DotTracker"]    = { "dotdisplay", nil, "Layout" },
+    ["DotTargetBar"]  = { "dottarget", nil, "Look" },
     -- (17 Nov 2026, user: right-clicking the OctoRinse box "should take me into the options for it")
     ["Rinse"]         = { "rinsegeneral", nil, "The bar" },
     ["TargetRange"]   = { "ufrange", nil },
