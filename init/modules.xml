@@ -66,6 +66,7 @@
   <Include file="..\modules\meters-clog.lua"/>
   <Include file="..\modules\meters-threat.lua"/>
   <Include file="..\modules\meters-window.lua"/>
+  <Include file="..\modules\meters-capi.lua"/>
   <Include file="..\modules\meters-options.lua"/>
   <Include file="..\modules\meters-breakdown.lua"/>
   <Include file="..\modules\meters-test.lua"/>

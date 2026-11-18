@@ -129,7 +129,7 @@ CHAT_FRAME_TEXTURES = { "Background", "TopLeftTexture", "BottomLeftTexture", "To
 ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g = 1, b = 1, id = 0 } rawset(t, k, v) return v end })
 
 -- modules that must start cleanly (the octo ones, as they are added)
-local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "sct", "octo-options", "sct-options", "keymap", "keybinds",
+local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
   "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
@@ -6494,6 +6494,7 @@ dofile(DIR .. "/tests/dots-target.lua")
 dofile(DIR .. "/tests/rinse.lua")
 dofile(DIR .. "/tests/movers.lua")
 dofile(DIR .. "/tests/mapmarks.lua")
+dofile(DIR .. "/tests/meterscapi.lua")
 dofile(DIR .. "/tests/flight.lua")
 dofile(DIR .. "/tests/auction.lua")
 dofile(DIR .. "/tests/auction-ledger.lua")

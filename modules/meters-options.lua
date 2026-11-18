@@ -694,6 +694,24 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       function() if M.ClogApply then M.ClogApply() end end)
     W.Live(p, function() return M.ClogStatus and M.ClogStatus() or "" end, 2)
 
+    -- (18 Nov 2026, ClassicAPI 1.22's damage meter; modules/meters-capi.lua)
+    W.Card(p, "ClassicAPI's damage meter", { icon = "Interface\\Icons\\INV_Misc_PocketWatch_01", tip = "ClassicAPI 1.22 and newer "
+      .. "counts your group's damage, healing, interrupts, dispels, damage taken, deaths and damage to enemies inside the DLL, "
+      .. "one session per fight, a boss fight always its own. With this on, windows showing the current fight or Overall take "
+      .. "those numbers from it - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and "
+      .. "every other display stay ours." })
+    Chk(p, "Use ClassicAPI's damage meter numbers", "Current fight and Overall: damage, DPS, healing, HPS, interrupts, dispels, "
+      .. "damage taken, deaths and enemy damage taken come from ClassicAPI. Switches its counting on for this character.", G, "capi",
+      function() if M.capi then M.capi.Apply() end end)
+    Chk(p, "Show ClassicAPI's own meter window too", "Its retail-style window. Off: it stays hidden and only our windows show.",
+      G, "capiwindow", function() if M.capi then M.capi.ApplyWindow() end end)
+    W.Live(p, function() return M.capi and M.capi.Status() or "" end, 2)
+    W.Buttons(p, {
+      { "Compare our numbers with ClassicAPI", function()
+        if _G.SlashCmdList and _G.SlashCmdList.PFMETERCHECK then _G.SlashCmdList.PFMETERCHECK("") end
+      end, nil, "Prints ours and ClassicAPI's totals for the current fight in chat (also /pfmetercheck, /pfmetercheck overall)." },
+    })
+
     W.Card(p, "Tracking")
     Chk(p, "Merge pets into their owner", nil, G, "mergepets", function() M.who = {} end)
     Chk(p, "Everyone nearby (battlegrounds)", nil, G, "trackall", function() M.who = {} end)

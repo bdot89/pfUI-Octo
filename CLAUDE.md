@@ -1423,3 +1423,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   name] = track | ignore, icons of seen debuffs in C.dots.tb_seen (the picker's pictures; else the spell book's). Mode all
   (mine minus ignored) | list (tracked only); tracked-but-missing greyed at the end. Its page is registered before
   dots-options.lua, so it is OctoDoTs' first tab. Tests: tests\dots-target.lua.
+- ClassicAPI damage meter as a source (18 Nov 2026, NOT seen in game; NEW FILE = full client restart). ClassicAPI 1.22
+  (brues-code, docs/API.md "DamageMeter") counts damage / dps / healing / hps / interrupts / dispels / damage taken /
+  deaths / enemy damage taken per session in the DLL (C_DamageMeter, Enum.DamageMeterType / SessionType, events
+  DAMAGE_METER_*; cvar damageMeterEnabled per character, which also loads its own window ClassicAPI_DamageMeter, frame
+  DamageMeter). modules/meters-capi.lua (M.capi = CA) wraps M.Rows: for segment "current" / "overall" and those displays
+  the rows come from GetCombatSessionFromType (r.capi = the source; r.actor / r.foe = ours, so the breakdown still works);
+  earlier fights and every other display are ours (the DLL cuts fights differently). Not while the test fight / bars run.
+  C.meters.capi (default "1", set in the module) sets the cvar; C.meters.capiwindow "0" sets its window Hidden via
+  DamageMeter:OnSystemSettingChange(DamageMeterSystemSetting.Visibility, Enum.DamageMeterVisibility.Hidden). M.Reset also
+  calls ResetAllCombatSessions. /pfmetercheck [overall] = our totals vs the DLL's. Meters > Data card. Tests: tests\meterscapi.lua.

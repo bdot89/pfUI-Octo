@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.66", {
+    { "Meters use ClassicAPI's new damage meter", "with ClassicAPI 1.22 or newer, the current fight and Overall take damage, DPS, healing, HPS, interrupts, dispels, damage taken, deaths and enemy damage taken straight from the DLL - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and every other display stay ours. ClassicAPI's own meter window stays hidden unless you want it (Meters > Data). New file: restart the game fully once." },
+    { "/pfmetercheck", "(or the button on Meters > Data) prints our totals next to ClassicAPI's for the current fight (/pfmetercheck overall for all fights)." },
+  } },
   { "1.1.65", {
     { "OctoDoTs Target bar", "a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on." },
     { "Pick by icon", "click a spell's icon to always track it (green, greyed while missing) or ignore it (red). Show all of yours or only the tracked ones; size, gap, direction, warning time and opacity. New file: restart the game fully once." },
@@ -160,9 +164,5 @@ pfUI.octoNotes = {
   { "1.1.27", {
     { "Mail", "sending items no longer gets stuck. The Send tab looks like the game's (parchment letter, gold / silver / copper, Send money or C.O.D.), and the To box suggests your alts and the people you mail first, then group, friends, guild and people you've seen." },
     { "Combat Text", "one clear choice at the top - On nameplates, Mix or Scrolling on screen - with a list of what shows where; Nameplates and every scroll area say if they're in use." },
-  } },
-  { "1.1.26", {
-    { "Combat Text", "8 new movements (Float, Rocket, Drop and bounce, Boomerang, Orbit, Pendulum, Scatter, Helix), 6 new crit effects (Elastic, Punch, Heartbeat, Jiggle, Throb, Stamp), a Feel setting (Steady, Smooth, Snappy, Lazy) and 5 new looks. Crits are now set on each area's tab and on Nameplates; the crit look for every crit is on General. Smoother on screen." },
-    { "About", "how many players running pfUI Octo are online and heard this week (guild, group and battleground); hover for who and which version." },
   } },
 }
