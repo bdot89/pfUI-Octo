@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.62", {
+    { "Important enemy buffs on nameplates without SuperWoW", "buff names now also come from ClassicAPI or the buff's tooltip, so \"Important ones\" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone." },
+    { "Your own important buffs", "Nameplates > Auras > Enemy buffs - add any buff you want treated as important (names separated by #)." },
+  } },
   { "1.1.61", {
     { "/gear back", "puts the set you wore before this one back on - handy in a macro." },
     { "Set names in any capitals", "/gear equip caster finds \"Caster\"; /gear unequip says what it takes off." },

@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.62
+
+- 🟡 **Important enemy buffs on nameplates without SuperWoW:** buff names now also come from ClassicAPI or the buff's tooltip, so "Important ones" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone.
+- ➕ **Your own important buffs:** Nameplates > Auras > Enemy buffs - add any buff you want treated as important (names separated by #).
+
 ## 📜 New in 1.1.61
 
 - ⏪ **`/gear back`:** puts the set you wore before this one back on - handy in a macro.
