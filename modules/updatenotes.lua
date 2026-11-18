@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.59", {
+    { "Smoother gear swaps", "a set swap reads your bags once a frame instead of once for every item it moves." },
+    { "Closed bags stay quiet", "a closed bag window no longer redraws every slot (and reads every item's tooltip) each time your bags change - it catches up the moment you open it." },
+    { "Lighter buff bars", "buff names are remembered until your buffs change, instead of read again every 0.4 seconds." },
+    { "Druid stealth paging", "checked only when your buffs or form change (with ClassicAPI / SuperWoW's stealth check), not every frame." },
+  } },
   { "1.1.58", {
     { "World map pieces in the right place, every zone", "the map reveal now follows the game's own map table for all 53 zones, checked against a render of the real map pictures. No more wrong or doubled pieces in Thalassian Highlands and OctoWoW's other zones (the 1.1.55 change is undone)." },
   } },
