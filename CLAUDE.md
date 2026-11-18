@@ -1400,3 +1400,18 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   clean-up runs at once, even in a fight); C.perf.gccap switches it off. Load peaks: pfquest\gcmid.lua (after the base
   database) and the end of pfquest\restore.lua call collectgarbage() - both written by tools\Sync-pfQuest.ps1.
   PFUI_MEMPROF=1 makes tests\run.lua print each file's / module start's memory (pfQuest's db is not loaded there).
+- Move anything (18 Nov 2026, NOT seen in game; NEW FILES modules\movers.lua + movers-options.lua = full client restart;
+  Lo5t1ncyb3r asked for MoveAnything). movers.lua (pfUI.movers = MV): MV.BLIZZ (quest tracker, quest timers, BG score,
+  raid warnings, error text, zone / subzone text, item link tooltip, follow text, GM ticket, zone map, capture bar) and
+  picked frames (C.movers.picked) are always looked after (MV.mine: saved C.position put on via LoadMovable, opacity
+  C.movers.alpha) but are in pfUI.movables - i.e. have layout-mode boxes - only while C.movers.show = "1" (user: "so the
+  unlock mode doesn't get cluttered"); pfUI.unlock.AddBox / DropBox add / drop boxes live. UIParent_ManageFramePositions
+  and UpdateUIPanelPositions are wrapped (MV.Wrap) so the game moving a frame / window is undone. Pick: MV.StartPick =
+  GetMouseFocus walk to the first usable named frame, Enter / Up (parent) / Down / Esc; /moveany [name]. Game windows
+  (MV.WINDOWS): Shift + drag (pfUI.api.DragStart, never StartMoving) -> C.movers.win[name] {x, y} TOPLEFT on UIParent
+  BOTTOMLEFT, put on at OnShow and after UpdateUIPanelPositions (C.movers.windows). Right-click on their boxes opens
+  Settings > Move anything (GetConfigTable fallback). DurabilityFrame left out (skin.lua makes its SetPoint a no-op).
+  Layout mode top bar rebuilt the same day (user: "very clear and visible what things do ... fast to edit"): 880 x 40,
+  groups with grey headings (Snapping, Grid, Move anything) and separators, tooltips on every control, the Move anything
+  switch (green ON / grey OFF) + Pick a frame (dim while off), a line of the clicks under the bar (bar.keys).
+  Tests: tests\movers.lua.

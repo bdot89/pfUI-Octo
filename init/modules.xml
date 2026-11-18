@@ -14,6 +14,7 @@
   <Include file="..\modules\keymap.lua"/>
   <Include file="..\modules\keybinds.lua"/>
   <Include file="..\modules\unlock.lua"/>
+  <Include file="..\modules\movers.lua"/>
   <Include file="..\modules\hoverbind.lua"/>
   <Include file="..\modules\updatenotes.lua"/>
   <Include file="..\modules\updatenotify.lua"/>
@@ -109,6 +110,7 @@
   <Include file="..\modules\gather-options.lua"/>
   <Include file="..\modules\qol-options.lua"/>
   <Include file="..\modules\perf-options.lua"/>
+  <Include file="..\modules\movers-options.lua"/>
   <Include file="..\modules\perf-window.lua"/>
   <Include file="..\modules\questing-options.lua"/>
   <Include file="..\modules\art-options.lua"/>

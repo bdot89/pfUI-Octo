@@ -120,6 +120,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.63
+
+- 🧲 **Move anything:** a switch in layout mode's top bar gives the game's own frames boxes too - quest tracker, quest timers, battleground score, raid warnings, error text, zone name, item link tooltip, follow text, zone map - with snapping, sizing and hiding. Off by default, so layout mode stays tidy; your places, sizes and opacity stay either way.
+- 🎯 **Pick a frame:** point at any frame of any add-on and press Enter (or `/moveany <FrameName>`) - it gets a box like ours.
+- 🪟 **Game windows:** Shift + drag the character window, spellbook, quest log, talents, trainers, vendors and more; they open there from then on.
+- 🧭 **Clearer layout mode bar:** grouped controls with headings, tooltips on everything, and the clicks always shown under it. Settings > Move anything has opacity per frame, your picked frames and moved windows. New files: restart the game fully once.
+
 ## 📜 New in 1.1.62
 
 - 🟡 **Important enemy buffs on nameplates without SuperWoW:** buff names now also come from ClassicAPI or the buff's tooltip, so "Important ones" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone.

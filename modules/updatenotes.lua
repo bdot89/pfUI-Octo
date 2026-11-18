@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.63", {
+    { "Move anything", "a switch in layout mode's top bar gives the game's own frames boxes too - quest tracker, quest timers, battleground score, raid warnings, error text, zone name, item link tooltip, follow text, zone map - with snapping, sizing and hiding. Off by default, so layout mode stays tidy; your places, sizes and opacity stay either way." },
+    { "Pick a frame", "point at any frame of any add-on and press Enter (or /moveany <FrameName>) - it gets a box like ours." },
+    { "Game windows", "Shift + drag the character window, spellbook, quest log, talents, trainers, vendors and more; they open there from then on." },
+    { "Clearer layout mode bar", "grouped controls with headings, tooltips on everything, and the clicks always shown under it. Settings > Move anything has opacity per frame, your picked frames and moved windows. New files: restart the game fully once." },
+  } },
   { "1.1.62", {
     { "Important enemy buffs on nameplates without SuperWoW", "buff names now also come from ClassicAPI or the buff's tooltip, so \"Important ones\" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone." },
     { "Your own important buffs", "Nameplates > Auras > Enemy buffs - add any buff you want treated as important (names separated by #)." },
@@ -157,13 +163,5 @@ pfUI.octoNotes = {
     { "OctoDoTs", "the \"dots.lua:513: attempt to index local a'\" error with several mobs around is fixed." },
     { "Auctions", "own sub-categories under Consumable and Trade Goods (food, potions, flasks, herbs, ore...)." },
     { "Performance", "raid graphics can be set to Nowhere (off)." },
-  } },
-  { "1.1.23", {
-    { "OctoLazy", "_LazyPig rebuilt with roll rules per item and dungeon, invites, summons, battlegrounds, NPC chat and bags." },
-    { "Mail", "our own mailbox window with a Collect all that never stalls." },
-    { "OctoDoTs", "(was DoT Tracker): a macro maker with drop-downs; right-click it in layout mode for its options." },
-    { "106 new elite crests", "and two raid mark sets (icons from game-icons.net)." },
-    { "Performance", "page: no memory hitch in fights, raid graphics, /pfperf." },
-    { "About", "page with clear links and the add-ons you can drop; Blizzard chat's General tab fixed." },
   } },
 }
