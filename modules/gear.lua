@@ -605,7 +605,21 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     if not set then Say("no set called \"" .. tostring(name) .. "\".") return end
     if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") and C.gear.waitdead == "0" then Say("not while dead.") return end
     -- what is worn now in its slots, to put back with Unequip
-    if C.gear.current ~= name then C.gear.before = GR.Snapshot(set.slots) end
+    -- (a main hand in the set may be a two-hander, which pushes the off hand into the bags:
+    -- the off hand is remembered too, so taking the set off puts it back)
+    if C.gear.current ~= name then
+      local only = set.slots
+      if set.slots.s16 ~= nil and set.slots.s17 == nil then
+        only = {}
+        for k, v in pairs(set.slots) do only[k] = v end
+        only.s17 = true
+      end
+      C.gear.before = GR.Snapshot(only)
+    end
+    -- (18 Nov 2026, Wolfahrt: "unequip a set and use the previous set") the set worn before this one,
+    -- for /gear back
+    local worn = GR.Current()
+    if worn and worn ~= name then C.gear.previous = worn end
     C.gear.current = name
     GR.Wear(name, set.slots)
   end
@@ -650,6 +664,25 @@ pfUI:RegisterModule("gear", "vanilla", function ()
   -- the menu's entry: naked, or dressed again in what you had on
   function GR.ToggleNaked()
     if GR.IsNaked() and C.gear.before and next(C.gear.before) then GR.Unequip() else GR.Naked() end
+  end
+
+  -- the set worn before the one on now goes back on
+  function GR.Back()
+    local prev = C.gear.previous
+    if not prev or not C.gear.sets[prev] then Say("no set to go back to yet.") return end
+    Say("back to \"" .. prev .. "\".")
+    GR.Equip(prev)
+  end
+
+  -- a set name as typed, matched without caring about capitals
+  function GR.SetName(typed)
+    if not typed or typed == "" then return nil end
+    if C.gear.sets[typed] then return typed end
+    local low = string.lower(typed)
+    for name in pairs(C.gear.sets) do
+      if string.lower(name) == low then return name end
+    end
+    return typed
   end
 
   -- "a" on and off, or between "a" and "b"
@@ -754,11 +787,30 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     msg = msg or ""
     local _, _, cmd, rest = string.find(msg, "^%s*(%S*)%s*(.-)%s*$")
     cmd = string.lower(cmd or "")
-    if cmd == "equip" and rest ~= "" then GR.Equip(rest)
-    elseif cmd == "unequip" then GR.Unequip(rest ~= "" and rest or nil)
+    if cmd == "equip" and rest ~= "" then GR.Equip(GR.SetName(rest))
+    elseif cmd == "unequip" then
+      local name = GR.SetName(rest)
+      if name and C.gear.sets[name] and not GR.IsEquipped(name) then
+        Say("\"" .. name .. "\" is not worn now.")
+      else
+        if name or C.gear.current then Say("taking off \"" .. (name or C.gear.current) .. "\".") end
+        GR.Unequip(name)
+      end
+    elseif cmd == "back" or cmd == "previous" then GR.Back()
     elseif cmd == "toggle" and rest ~= "" then
       local _, _, a, b = string.find(rest, "^(.-)%s*,%s*(.+)$")
-      if a then GR.Toggle(a, b) else GR.Toggle(rest) end
+      if a then GR.Toggle(GR.SetName(a), GR.SetName(b)) else GR.Toggle(GR.SetName(rest)) end
+    elseif cmd == "help" then
+      Say("commands (they work in macros too):")
+      for _, l in ipairs({ "/gear equip <set> - put a set on",
+          "/gear unequip - take the last set off (the gear you wore before goes back on)",
+          "/gear back - put the set you wore before this one back on",
+          "/gear toggle <set> - on and off;  /gear toggle <set>, <other> - swap between two",
+          "/gear naked - all gear into the bags / dress again",
+          "/gear save <set>, /gear list, /gear queue, /gear events, /gear specs",
+          "/gear (nothing after it) - the ItemRack page" }) do
+        DEFAULT_CHAT_FRAME:AddMessage("  " .. l)
+      end
     elseif cmd == "naked" then GR.ToggleNaked()
     elseif cmd == "list" then
       local names = GR.Sets()
@@ -780,10 +832,10 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     elseif cmd == "save" and rest ~= "" then
       GR.Save(rest, GR.Snapshot())
       Say("saved \"" .. rest .. "\" from what you wear.")
-    elseif pfUI.gearOcto and pfUI.gearOcto.Open then
+    elseif cmd == "" and pfUI.gearOcto and pfUI.gearOcto.Open then
       pfUI.gearOcto.Open()
     else
-      Say("/gear equip <set>, /gear unequip, /gear toggle <set>[, <set>], /gear save <set>, /gear list")
+      Say("/gear equip <set>, /gear unequip, /gear back, /gear toggle <set>[, <set>], /gear save <set>, /gear list - /gear help for more")
     end
   end
 

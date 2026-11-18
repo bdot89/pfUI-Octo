@@ -5292,6 +5292,24 @@ do
       GR.Equip("Tank")
       Run()
     end
+    -- (18 Nov 2026, Wolfahrt: unequip a set / go back to the previous one from a macro)
+    do
+      SlashCmdList.PFGEAR("equip swift")
+      Run()
+      ok(GR.IsEquipped("Swift"), "/gear equip finds a set whatever its capitals")
+      ok(pfUI_config.gear.previous == "Tank", "the set worn before is remembered")
+      SlashCmdList.PFGEAR("back")
+      Run()
+      ok(GR.IsEquipped("Tank") and pfUI_config.gear.previous == "Swift", "/gear back puts the previous set back on")
+      SlashCmdList.PFGEAR("toggle Swift, Tank")
+      Run()
+      ok(GR.IsEquipped("Swift"), "/gear toggle a, b swaps to the other set")
+      SlashCmdList.PFGEAR("unequip Swift")
+      Run()
+      ok(GR.IsEquipped("Tank"), "/gear unequip <set> takes it off, back to what was worn")
+      GR.Equip("Tank")
+      Run()
+    end
     -- key bindings and /gear
     sets.Tank.key = "3"
     GR.Changed()

@@ -639,7 +639,13 @@ pfUI:RegisterModule("gear-options", "vanilla", function ()
     W.Heading(p, "Gear sets", { on = O.ModuleSwitch("gear", "ItemRack"), about = "Gear sets as ItemRack and Outfitter make them: pick a set on the left, tick the slots "
       .. "it should change, click a slot to pick its item (or Save to take what you wear), then Wear. In combat your "
       .. "weapons change at once and the rest when combat ends. Also: the Gear sets list beside your character window, "
-      .. "the set button, keys, /gear equip <set>." })
+      .. "the set button, keys and macros:\n"
+      .. "/gear equip <set> - put a set on\n"
+      .. "/gear unequip - take the last set off (the gear you wore before goes back on)\n"
+      .. "/gear back - put the set you wore before this one back on\n"
+      .. "/gear toggle <set> - on and off; /gear toggle <set>, <other> - swap between two\n"
+      .. "/gear naked, /gear save <set>, /gear list, /gear help\n"
+      .. "ItemRack's macro calls work too: EquipSet(\"set\"), UnequipSet(), ToggleSet(\"set\")." })
     Editor(p)
     -- (31 Oct 2026, user: menus "overwhelming")
     O.CardTabs(p, {
