@@ -98,8 +98,27 @@ pfUI:RegisterModule("bags", "vanilla:tbc", function ()
   pfUI.bag:RegisterEvent("MERCHANT_CLOSED")
 
   pfUI.bag.delay = { UpdateBag = {} }
+  -- (octo, 18 Nov 2026, Wolfahrt: frame drops on gear swaps) a bag whose window is shut is not redrawn
+  -- slot by slot (each slot = a tooltip read for the unusable tint, item marks...); it waits here and
+  -- is drawn the moment its window opens
+  pfUI.bag.waiting = {}
+  local function BagWindow(bag)
+    if bag == -1 or bag >= 5 then return pfUI.bag.left end
+    return pfUI.bag.right
+  end
 
   pfUI.bag:SetScript("OnUpdate", function()
+    -- shut bags caught up as soon as their window shows
+    if next(this.waiting) then
+      for bag in pairs(this.waiting) do
+        local win = BagWindow(bag)
+        if not win or win:IsShown() then
+          this.waiting[bag] = nil
+          pfUI.bag:UpdateBag(bag)
+        end
+      end
+    end
+
     -- update delayed ones every 0.1s
     if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + .1 end
 
@@ -125,7 +144,8 @@ pfUI:RegisterModule("bags", "vanilla:tbc", function ()
 
     for bag in pairs(this.delay.UpdateBag) do
       this.delay.UpdateBag[bag] = nil
-      pfUI.bag:UpdateBag(bag)
+      local win = BagWindow(bag)
+      if win and not win:IsShown() then this.waiting[bag] = true else pfUI.bag:UpdateBag(bag) end
     end
   end)
 

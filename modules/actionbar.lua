@@ -1016,6 +1016,22 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
 
     -- setup page switch frame
     local pageswitch = CreateFrame("Frame", "pfActionBarPageSwitch", UIParent)
+    -- (octo, 18 Nov 2026: lag check) cat stealth was found by reading every buff icon each frame; it is
+    -- worked out when buffs or forms change and kept (ClassicAPI / SuperWoW IsStealthed first)
+    local catStealth
+    local function ReadCatStealth()
+      if class ~= "DRUID" or C.bars.druidstealth ~= "1" then catStealth = nil return end
+      local stealthed = type(_G.IsStealthed) == "function" and _G.IsStealthed() or nil
+      if stealthed ~= nil and C_UnitAuras then
+        -- the stealth check is reliable here; cat form still from the buff icons
+        if not stealthed then catStealth = nil return end
+      end
+      catStealth = IsCatStealth()
+    end
+    pageswitch:RegisterEvent("PLAYER_AURAS_CHANGED")
+    pageswitch:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
+    pageswitch:RegisterEvent("PLAYER_ENTERING_WORLD")
+    pageswitch:SetScript("OnEvent", ReadCatStealth)
     pageswitch:SetScript("OnUpdate", function()
       -- switch actionbar page depending on meta key that is pressed
       if C.bars.pagemastershift == "1" and IsShiftKeyDown() then
@@ -1033,7 +1049,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
 
       -- switch actionbar page if druid stealth is detected
       if C.bars.druidstealth == "1" then
-        local stealth = IsCatStealth()
+        local stealth = catStealth
         if stealth and _G.CURRENT_ACTIONBAR_PAGE == 1 then
           SwitchBar(prowl)
         elseif not stealth and _G.CURRENT_ACTIONBAR_PAGE == 8 then

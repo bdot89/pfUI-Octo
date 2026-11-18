@@ -74,6 +74,13 @@ pfUI:RegisterModule("buffwatch", "vanilla:tbc", function ()
     return anchor
   end
 
+  -- (octo, 18 Nov 2026: lag check) the buff bars asked a tooltip for every buff's name every .4 s
+  -- (up to 32 reads); a name is kept per buff slot + icon until the player's buffs change
+  local names = {}
+  local namewatch = CreateFrame("Frame")
+  namewatch:RegisterEvent("PLAYER_AURAS_CHANGED")
+  namewatch:SetScript("OnEvent", function() for k in pairs(names) do names[k] = nil end end)
+
   local function GetBuffData(unit, id, type, selfdebuff)
     if unit == "player" then
       local bid = GetPlayerBuff(PLAYER_BUFF_START_ID+id, type)
@@ -83,8 +90,13 @@ pfUI:RegisterModule("buffwatch", "vanilla:tbc", function ()
       local name
 
       if texture then
-        scanner:SetPlayerBuff(bid)
-        name = scanner:Line(1)
+        local key = bid .. ":" .. texture
+        name = names[key]
+        if not name then
+          scanner:SetPlayerBuff(bid)
+          name = scanner:Line(1)
+          names[key] = name or ""
+        end
       end
 
       return remaining, texture, name, stacks
