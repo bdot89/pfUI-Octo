@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.68
+
+- 🪨 **Earthen Bulwark bar for tank shamans:** with Elemental Weapons and Rockbiter, a small movable bar shows how full your earthen bulwark is (the server's own integrity %) and about how much it holds (up to 20% of your max health). It turns bright with an 8 s timer line while it is absorbing, and says x3 while you wear a shield. Unit Frames > Earthen Bulwark or `/bulwark`. New file: restart the game fully once.
+
 ## 📜 New in 1.1.67
 
 - 🩸 **OctoDoTs: pick what shows:** at the top of the Target bar page, Show = Both, Bars only (no target bar) or Target bar only (the Cursive-style bars stay away and cost nothing; they still show in layout mode so you can move them).

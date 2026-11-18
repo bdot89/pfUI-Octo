@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.68", {
+    { "Earthen Bulwark bar for tank shamans", "with Elemental Weapons and Rockbiter, a small movable bar shows how full your earthen bulwark is (the server's own integrity %) and about how much it holds (up to 20% of your max health). It turns bright with an 8 s timer line while it is absorbing, and says x3 while you wear a shield. Unit Frames > Earthen Bulwark or /bulwark. New file: restart the game fully once." },
+  } },
   { "1.1.67", {
     { "OctoDoTs: pick what shows", "at the top of the Target bar page, Show = Both, Bars only (no target bar) or Target bar only (the Cursive-style bars stay away and cost nothing; they still show in layout mode so you can move them)." },
   } },
@@ -162,8 +165,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.29", {
     { "Heal prediction", "fixed the \"libpredict.lua:860: bad argument #2 to 'insert'\" error with ClassicAPI when a priest casts Prayer of Healing in a 5-player group." },
-  } },
-  { "1.1.28", {
-    { "Auctions", "a Total column on Browse and Deals - what the whole stack costs to buy out, sortable." },
   } },
 }

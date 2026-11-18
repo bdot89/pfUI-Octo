@@ -53,7 +53,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
     -- same day: named CoolDownManager, under Interface
     { "CoolDownManager", { "CoolDownManager" } },
-    { "Unit Frames", { "Unit Frames", "Castbar" } },
+    -- (18 Nov 2026, Lobo on Discord: Rockbiter's earthen bulwark for tank shamans) bulwark-options.lua
+    { "Unit Frames", { "Unit Frames", "Castbar", "Earthen Bulwark" } },
     { "Nameplates", { "Nameplates" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },

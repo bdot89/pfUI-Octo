@@ -729,6 +729,11 @@ function pfUI:LoadConfig()
   for _, k in ipairs({ "skip", "prio", "black", "hide", "priority", "prioclass", "hideclass", "boss", "firstclass", "neverclass", "firstgroup", "nevergroup" }) do
     pfUI:UpdateConfig("rinse", nil, k, {})
   end
+  -- Earthen Bulwark bar for tank shamans (modules/bulwark.lua, 18 Nov 2026)
+  for k, v in pairs({ enable = "1", show = "auto", textmode = "both", text = "1", timer = "1", shieldtag = "1", icon = "1",
+    width = "180", height = "14", textsize = "11", alpha = "1", texture = "",
+    color = ".72,.52,.28,1", activecolor = "1,.82,.35,1", bgcolor = ".1,.08,.05,.8", timercolor = "1,1,1,.9", textcolor = "1,1,1,1",
+  }) do pfUI:UpdateConfig("bulwark", nil, k, v) end
   -- flight timer (modules/flight.lua, 15 Nov 2026)
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")
