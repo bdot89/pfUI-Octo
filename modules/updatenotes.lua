@@ -5,6 +5,8 @@ pfUI.octoNotes = {
   { "1.1.66", {
     { "Meters use ClassicAPI's new damage meter", "with ClassicAPI 1.22 or newer, the current fight and Overall take damage, DPS, healing, HPS, interrupts, dispels, damage taken, deaths and enemy damage taken straight from the DLL - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and every other display stay ours. ClassicAPI's own meter window stays hidden unless you want it (Meters > Data). New file: restart the game fully once." },
     { "/pfmetercheck", "(or the button on Meters > Data) prints our totals next to ClassicAPI's for the current fight (/pfmetercheck overall for all fights)." },
+    { "Target bar, per spell", "right-click a spell's icon (in the preview or the spell grid) for its own glow, when it glows (running out, always, missing), glow colour, time text, number size and place, and animations when it runs out or is put on." },
+    { "Target bar box", "it now has its box in layout mode even while switched off, a tidy fixed width (Look > Room for icons), and its tab sits right after General in OctoDoTs." },
   } },
   { "1.1.65", {
     { "OctoDoTs Target bar", "a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on." },

@@ -614,6 +614,8 @@ pfUI:RegisterModule("dots-options", "vanilla", function ()
   end
 
   O:AddPage("OctoDoTs", "dotgeneral", "General", General)
+  -- the target bar's page (dots-target.lua), right after General
+  if pfUI.dotsTarget and pfUI.dotsTarget.Page then O:AddPage("OctoDoTs", "dottarget", "Target bar", pfUI.dotsTarget.Page) end
   O:AddPage("OctoDoTs", "dotraid", "Raid", Raid)
   O:AddPage("OctoDoTs", "dotclass", "Class", Class)
   O:AddPage("OctoDoTs", "dotdisplay", "Display", Display)

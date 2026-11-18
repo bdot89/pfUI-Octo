@@ -131,14 +131,72 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     return shown
   end
 
+  -- ---------------------------------------------------------------- per spell: glow, numbers, animation
+
+  -- (18 Nov 2026, user: "add right click options here the same as we have in cooldown manager with some options for
+  -- cooldown glows and numbers and animations for each spell nothing to bulky just some nice clean options").
+  -- C.dots.tb_spell[lower name] = { glow, when, color, timer, tsize, tpos, low, put } ; TB.Get falls back to TB.SPEC's def.
+  TB.SPEC = {
+    { key = "glow", label = "Glow", def = "off", opts = {
+      { key = "off", label = "Off" }, { key = "border", label = "Bright border" }, { key = "soft", label = "Soft outer glow" },
+      { key = "pulse", label = "Pulsing fill" }, { key = "blink", label = "Blinking border" } } },
+    { key = "when", label = "Glow when", def = "low", opts = {
+      { key = "low", label = "Running out (red time)" }, { key = "always", label = "Always while up" },
+      { key = "missing", label = "Missing (tracked)" } } },
+    { key = "color", label = "Glow colour", def = "gold", opts = {
+      { key = "gold", label = "Gold" }, { key = "red", label = "Red" }, { key = "white", label = "White" },
+      { key = "green", label = "Green" }, { key = "blue", label = "Blue" }, { key = "purple", label = "Purple" },
+      { key = "class", label = "My class colour" } } },
+    { key = "timer", label = "Time left", def = "", opts = {
+      { key = "", label = "As the bar (Look card)" }, { key = "1", label = "Shown" }, { key = "0", label = "Hidden" } } },
+    { key = "tsize", label = "Number size", def = "normal", opts = {
+      { key = "small", label = "Small" }, { key = "normal", label = "Normal" }, { key = "big", label = "Big" } } },
+    { key = "tpos", label = "Number place", def = "bottom", opts = {
+      { key = "bottom", label = "Bottom" }, { key = "center", label = "Middle" }, { key = "top", label = "Top" } } },
+    { key = "low", label = "Animation: running out", def = "none", opts = {
+      { key = "none", label = "None" }, { key = "pulse", label = "Pulse" }, { key = "bounce", label = "Bounce" },
+      { key = "shake", label = "Shake" }, { key = "blink", label = "Blink" } } },
+    { key = "put", label = "Animation: put on / renewed", def = "none", opts = {
+      { key = "none", label = "None" }, { key = "pop", label = "Pop" }, { key = "flash", label = "White flash" } } },
+  }
+  TB.COLORS = { gold = { 1, .82, .2 }, red = { 1, .25, .2 }, white = { 1, 1, 1 }, green = { .3, 1, .4 },
+                blue = { .3, .65, 1 }, purple = { .75, .4, 1 } }
+  local function SpellOpts(name, make)
+    if type(C.dots.tb_spell) ~= "table" then C.dots.tb_spell = {} end
+    local k = Low(name)
+    local o = C.dots.tb_spell[k]
+    if not o and make then o = {} C.dots.tb_spell[k] = o end
+    return o
+  end
+  function TB.Get(name, key)
+    local o = SpellOpts(name)
+    if o and o[key] ~= nil then return o[key] end
+    for _, s in ipairs(TB.SPEC) do if s.key == key then return s.def end end
+  end
+  function TB.Set(name, key, v)
+    local o = SpellOpts(name, true)
+    local def
+    for _, s in ipairs(TB.SPEC) do if s.key == key then def = s.def end end
+    if v == def then o[key] = nil else o[key] = v end
+    if not next(o) then C.dots.tb_spell[Low(name)] = nil end
+    TB.dirty = true
+  end
+  function TB.ResetSpell(name)
+    if type(C.dots.tb_spell) == "table" then C.dots.tb_spell[Low(name)] = nil end
+    TB.dirty = true
+  end
+  function TB.Custom(name) return SpellOpts(name) ~= nil end
+
   -- ---------------------------------------------------------------- the bar
 
   local MAX = 12
+  local WHITE = "Interface\\Buttons\\WHITE8X8"
   local function Font() return pfUI.font_unit or pfUI.font_default or STANDARD_TEXT_FONT end
   local function NewIcon(parent)
-    local f = CreateFrame("Frame", nil, parent)
+    local f = CreateFrame("Button", nil, parent)
+    f:EnableMouse(false)
     f.edge = f:CreateTexture(nil, "BACKGROUND")
-    f.edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+    f.edge:SetTexture(WHITE)
     f.edge:SetAllPoints(f)
     f.tex = f:CreateTexture(nil, "ARTWORK")
     f.tex:SetTexCoord(.08, .92, .08, .92)
@@ -146,25 +204,113 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     f.tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1, 1)
     -- a dark shade over the part of the time already gone (drains from the top)
     f.shade = f:CreateTexture(nil, "OVERLAY")
-    f.shade:SetTexture("Interface\\Buttons\\WHITE8X8")
+    f.shade:SetTexture(WHITE)
     f.shade:SetVertexColor(0, 0, 0, .55)
     f.shade:SetPoint("TOPLEFT", f.tex, "TOPLEFT", 0, 0)
     f.shade:SetPoint("TOPRIGHT", f.tex, "TOPRIGHT", 0, 0)
-    f.time = f:CreateFontString(nil, "OVERLAY")
-    f.time:SetPoint("BOTTOM", f, "BOTTOM", 0, 2)
-    f.stack = f:CreateFontString(nil, "OVERLAY")
+    -- glows: a soft outer glow, a bright border, a pulsing fill; a white flash for "put on"
+    f.glow = CreateFrame("Frame", nil, f)
+    f.glow:SetPoint("TOPLEFT", f, "TOPLEFT", -5, 5)
+    f.glow:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 5, -5)
+    f.glow:SetBackdrop({ edgeFile = pfUI.media and pfUI.media["img:glow"] or WHITE, edgeSize = 7 })
+    f.glow:Hide()
+    f.rim = CreateFrame("Frame", nil, f)
+    f.rim:SetPoint("TOPLEFT", f, "TOPLEFT", -1, 1)
+    f.rim:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 1, -1)
+    f.rim:SetFrameLevel(f:GetFrameLevel() + 3)
+    f.rim:SetBackdrop({ edgeFile = WHITE, edgeSize = 2 })
+    f.rim:Hide()
+    f.over = CreateFrame("Frame", nil, f)
+    f.over:SetAllPoints(f)
+    f.over:SetFrameLevel(f:GetFrameLevel() + 4)
+    f.fill = f.over:CreateTexture(nil, "ARTWORK")
+    f.fill:SetAllPoints(f.tex)
+    f.fill:SetTexture(WHITE)
+    f.fill:SetBlendMode("ADD")
+    f.fill:Hide()
+    f.white = f.over:CreateTexture(nil, "OVERLAY")
+    f.white:SetAllPoints(f.tex)
+    f.white:SetTexture(WHITE)
+    f.white:SetBlendMode("ADD")
+    f.white:Hide()
+    f.time = f.over:CreateFontString(nil, "OVERLAY")
+    f.stack = f.over:CreateFontString(nil, "OVERLAY")
     f.stack:SetPoint("TOPRIGHT", f, "TOPRIGHT", -1, -2)
+    -- glows and animations move every frame only while one runs
+    f:SetScript("OnUpdate", function() if this.busy then TB.Animate(this, GetTime()) end end)
     return f
+  end
+  -- one frame of glow / animation
+  function TB.Animate(f, now)
+    local style, c = f.glowStyle, f.glowColor or TB.COLORS.gold
+    local wave = math.abs(math.sin(now * 4))
+    if style == "soft" then f.glow:SetBackdropBorderColor(c[1], c[2], c[3], .45 + .55 * wave) f.glow:Show() else f.glow:Hide() end
+    if style == "border" then f.rim:SetBackdropBorderColor(c[1], c[2], c[3], 1) f.rim:Show()
+    elseif style == "blink" then f.rim:SetBackdropBorderColor(c[1], c[2], c[3], math.mod(now * 3, 1) < .5 and 1 or 0) f.rim:Show()
+    else f.rim:Hide() end
+    if style == "pulse" then f.fill:SetVertexColor(c[1], c[2], c[3], .12 + .33 * wave) f.fill:Show() else f.fill:Hide() end
+    -- the icon itself: insets of the picture move (the frame stays where the bar put it)
+    local grow, dx, dy, alpha, white = 0, 0, 0, 1, 0
+    local loop = f.lowAnim
+    if loop == "pulse" then grow = 2 * math.sin(now * 7)
+    elseif loop == "bounce" then dy = math.abs(math.sin(now * 7)) * 4
+    elseif loop == "shake" then dx = math.sin(now * 45) * 1.6
+    elseif loop == "blink" then alpha = math.mod(now * 2.5, 1) < .5 and 1 or .3 end
+    if f.putAt and now - f.putAt < .45 then
+      local k = (now - f.putAt) / .45
+      if f.putAnim == "pop" then grow = grow + 6 * (1 - k) elseif f.putAnim == "flash" then white = 1 - k end
+    end
+    if grow ~= 0 or dx ~= 0 or dy ~= 0 or f.moved then
+      f.tex:ClearAllPoints()
+      f.tex:SetPoint("TOPLEFT", f, "TOPLEFT", 1 - grow + dx, -1 + grow + dy)
+      f.tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -1 + grow + dx, 1 - grow + dy)
+      f.moved = grow ~= 0 or dx ~= 0 or dy ~= 0
+    end
+    f.tex:SetAlpha(alpha)
+    if white > 0 then f.white:SetVertexColor(1, 1, 1, white * .8) f.white:Show() else f.white:Hide() end
+    f.busy = (style and style ~= "off") or (loop and loop ~= "none") or (f.putAt and now - f.putAt < .45) or f.moved or false
+    if not f.busy then f.tex:SetAlpha(1) end
   end
   -- draws one icon from an entry at time t
   function TB.PaintIcon(f, e, t)
     local size = Num("tb_size", 34)
     f:SetWidth(size)
     f:SetHeight(size)
+    f.spell = e.name
     f.tex:SetTexture(e.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
-    f.time:SetFont(Font(), math.max(8, math.floor(size * .36)), "OUTLINE")
+    local tsize = TB.Get(e.name, "tsize")
+    local mul = tsize == "small" and .28 or tsize == "big" and .46 or .36
+    f.time:SetFont(Font(), math.max(8, math.floor(size * mul)), "OUTLINE")
+    f.time:ClearAllPoints()
+    local tpos = TB.Get(e.name, "tpos")
+    if tpos == "center" then f.time:SetPoint("CENTER", f, "CENTER", 0, 0)
+    elseif tpos == "top" then f.time:SetPoint("TOP", f, "TOP", 0, -2)
+    else f.time:SetPoint("BOTTOM", f, "BOTTOM", 0, 2) end
     f.stack:SetFont(Font(), math.max(7, math.floor(size * .3)), "OUTLINE")
     f.stack:SetText((e.stacks or 0) > 1 and e.stacks or "")
+    -- glow: its style, when, colour
+    local glow, when = TB.Get(e.name, "glow"), TB.Get(e.name, "when")
+    local col = TB.Get(e.name, "color")
+    if col == "class" then
+      local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[myClass]
+      f.glowColor = cc and { cc.r, cc.g, cc.b } or TB.COLORS.gold
+    else
+      f.glowColor = TB.COLORS[col] or TB.COLORS.gold
+    end
+    local left = e.ends and (e.ends - t)
+    local warn = Num("tb_warn", 3)
+    local low = left and left <= warn
+    local lit = false
+    if e.missing then lit = when == "missing" elseif when == "always" then lit = true elseif when == "low" then lit = low and true or false end
+    f.glowStyle = lit and glow or "off"
+    f.lowAnim = (not e.missing and low) and TB.Get(e.name, "low") or "none"
+    -- put on / renewed: its end jumped later than it was
+    local put = TB.Get(e.name, "put")
+    f.putAnim = put
+    if put ~= "none" and not e.missing and e.ends and f.lastSpell == e.name and f.lastEnds and e.ends > f.lastEnds + .5 then f.putAt = t end
+    if put ~= "none" and not e.missing and f.lastSpell ~= e.name then f.putAt = t end
+    f.lastSpell, f.lastEnds = e.name, e.ends
+    f.busy = true
     if e.missing then
       f.tex:SetVertexColor(.35, .35, .35)
       f.edge:SetVertexColor(.5, .15, .15, 1)
@@ -173,12 +319,12 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
       return
     end
     f.tex:SetVertexColor(1, 1, 1)
-    local left = e.ends and (e.ends - t)
-    local warn = Num("tb_warn", 3)
-    if left and left <= warn then f.edge:SetVertexColor(1, .2, .2, 1) else f.edge:SetVertexColor(0, 0, 0, 1) end
-    if On("tb_timer") and left then
+    if low then f.edge:SetVertexColor(1, .2, .2, 1) else f.edge:SetVertexColor(0, 0, 0, 1) end
+    local tset = TB.Get(e.name, "timer")
+    local showTime = (tset == "1") or (tset ~= "0" and On("tb_timer"))
+    if showTime and left then
       f.time:SetText(D.TimeText(left))
-      if left <= warn then f.time:SetTextColor(1, .3, .3) else f.time:SetTextColor(1, 1, 1) end
+      if low then f.time:SetTextColor(1, .3, .3) else f.time:SetTextColor(1, 1, 1) end
     else
       f.time:SetText("")
     end
@@ -209,7 +355,10 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     end
     for i = n + 1, table.getn(holder.icons) do holder.icons[i]:Hide() end
     holder:SetHeight(size)
-    holder:SetWidth(math.max(size, MAX * (size + gap) - gap))
+    -- a box the size of the room you gave it (C.dots.tb_slots icons), so layout mode shows a tidy box and the icons never
+    -- shift it about; more icons than that still show, past its edge
+    local slots = math.max(1, math.min(MAX, Num("tb_slots", 6)))
+    holder:SetWidth(math.max(size, slots * (size + gap) - gap))
   end
 
   local bar = CreateFrame("Frame", "pfDotTargetBar", UIParent)
@@ -265,10 +414,14 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     if t < next and not TB.dirty then return end
     next = t + .1
     TB.dirty = nil
-    if not On("tb_on") then bar:Hide() return end
     local list
+    -- (18 Nov 2026, user: "there is no move box when unlocked") in layout mode / the test it shows sample icons even while
+    -- switched off - it used to hide itself every tick, taking its layout-mode box with it
     if TB.Testing() then
       list = TB.Fake(t)
+    elseif not On("tb_on") then
+      bar:Hide()
+      return
     else
       if On("tb_combat") and not UnitAffectingCombat("player") then bar:Hide() return end
       list = TB.Collect(t)
@@ -293,7 +446,40 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
   local function Drop(p, label, desc, options, key) return W.Dropdown(p, label, desc, options,
     function() return C.dots[key] end, function(v) C.dots[key] = v TB.ApplyLayout() end) end
 
-  -- the spell grid: click = track (green) / ignore (red) / nothing
+  -- (18 Nov 2026) an icon's right-click menu: each option of TB.SPEC with its choice now; a click opens its choices,
+  -- a pick applies at once and the menu comes back for the next change. "Back to the usual" clears the spell's own.
+  function TB.Menu(anchor, name)
+    if not name then return end
+    if W.CloseMenus then W.CloseMenus() end
+    local opts = { { label = name, group = true } }
+    for _, s in ipairs(TB.SPEC) do
+      local cur, curLabel = TB.Get(name, s.key), ""
+      for _, o in ipairs(s.opts) do if o.key == cur then curLabel = o.label end end
+      table.insert(opts, { key = s.key, label = s.label .. ":  |cffffd24d" .. curLabel .. "|r" })
+    end
+    table.insert(opts, { key = "#reset", label = TB.Custom(name) and "|cffff8080Back to the usual|r" or "|cff8a8f99Back to the usual|r" })
+    local m = W.Menu(anchor, opts, 280, function(key)
+      if key == "#reset" then TB.ResetSpell(name) TB.Menu(anchor, name) return end
+      local spec
+      for _, s in ipairs(TB.SPEC) do if s.key == key then spec = s end end
+      if not spec then return end
+      local cur = TB.Get(name, key)
+      local choices = { { label = spec.label .. " - " .. name, group = true } }
+      for _, o in ipairs(spec.opts) do
+        table.insert(choices, { key = o.key, label = (o.key == cur and "|cff40d977> |r" or "   ") .. o.label })
+      end
+      local sub = W.Menu(anchor, choices, 280, function(v)
+        TB.Set(name, key, v)
+        if TB.picker then TB.picker.Paint() end
+        TB.Menu(anchor, name)
+      end)
+      if sub and sub.Show then sub:Show() end
+    end)
+    if m and m.Show then m:Show() end
+    return m
+  end
+
+  -- the spell grid: click = track (green) / ignore (red) / nothing; right-click = its glow, numbers, animations
   local function Picker(p)
     local row = W.Row(p, 40, 0, 4)
     row.cells = {}
@@ -318,7 +504,12 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
           c.mark = c:CreateFontString(nil, "OVERLAY")
           c.mark:SetFont(Font(), 11, "OUTLINE")
           c.mark:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -1, 1)
-          c:SetScript("OnClick", function() TB.Cycle(this.spell) Paint() end)
+          c:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+          c:SetScript("OnClick", function()
+            if arg1 == "RightButton" then TB.Menu(this, this.spell) return end
+            TB.Cycle(this.spell)
+            Paint()
+          end)
           c:SetScript("OnEnter", function()
             GameTooltip:SetOwner(this, "ANCHOR_TOP")
             GameTooltip:SetText(this.spell, 1, 1, 1)
@@ -327,6 +518,7 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
               or st == "ignore" and "|cffff6060Ignored|r - never on the bar"
               or "Shown when it is up (with \"All of mine\")", 1, 1, 1, 1)
             GameTooltip:AddLine("Click: tracked > ignored > neither", .6, .62, .66)
+            GameTooltip:AddLine("Right-click: glow, numbers, animations" .. (TB.Custom(this.spell) and " (|cffffd24dset|r)" or ""), .35, .7, 1)
             GameTooltip:Show()
           end)
           c:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -372,6 +564,22 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
         this.tick = GetTime() + .1
         local t = GetTime()
         TB.Layout(this, TB.Fake(t), t)
+        -- the preview's icons take clicks: right-click = that spell's options
+        for _, f in ipairs(this.icons) do
+          if not f.menuReady then
+            f.menuReady = true
+            f:EnableMouse(true)
+            f:RegisterForClicks("RightButtonUp", "LeftButtonUp")
+            f:SetScript("OnClick", function() TB.Menu(this, this.spell) end)
+            f:SetScript("OnEnter", function()
+              GameTooltip:SetOwner(this, "ANCHOR_TOP")
+              GameTooltip:SetText(this.spell or "", 1, 1, 1)
+              GameTooltip:AddLine("Click or right-click: its glow, numbers and animations", .35, .7, 1)
+              GameTooltip:Show()
+            end)
+            f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+          end
+        end
         local n = 0
         for _, f in ipairs(this.icons) do if f:IsShown() then n = n + 1 end end
         local size, gap = Num("tb_size", 34), Num("tb_gap", 3)
@@ -393,7 +601,7 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
 
     W.Card(p, "Your spells", { icon = ICON .. "Ability_Druid_Disembowel", tip = "Your class's debuffs, and any you have put on "
       .. "a target since. Click an icon: green = always track, red = ignore, none = shown when up." })
-    W.Note(p, "|cff40d977Green|r always on the bar (grey while missing)   |cffff6060Red|r never   |cff8a8f99Plain|r shown while up")
+    W.Note(p, "|cff40d977Green|r always on the bar (grey while missing)   |cffff6060Red|r never   |cff8a8f99Plain|r shown while up   |cff59b3ffRight-click|r glow, numbers, animations")
     Picker(p)
     W.Edit(p, "Add a spell", "A debuff by name (its icon shows once you have used it), then Enter. It is tracked.",
       function() return "" end, function(v) if v and v ~= "" then List()[Low(v)] = "track" if TB.picker then TB.picker.Paint() end end end, 240)
@@ -408,6 +616,8 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     W.Card(p, "Look", { icon = ICON .. "INV_Misc_Gem_Pearl_04" })
     Sld(p, "Icon size", nil, 16, 64, 1, "tb_size", function(v) return v .. " px" end)
     Sld(p, "Gap", nil, 0, 12, 1, "tb_gap", function(v) return v .. " px" end)
+    Sld(p, "Room for icons", "How many icons wide the bar's box is (layout mode shows this box).", 1, 12, 1, "tb_slots",
+      function(v) return v .. " icons" end)
     Drop(p, "Grows", nil, { { key = "RIGHT", label = "To the right" }, { key = "LEFT", label = "To the left" },
       { key = "CENTER", label = "From the middle" } }, "tb_grow")
     Chk(p, "Time left on the icon", nil, "tb_timer")
@@ -415,5 +625,6 @@ pfUI:RegisterModule("dots-target", "vanilla", function ()
     Sld(p, "Red under", "The time text and edge turn red when this little is left.", 0, 10, 1, "tb_warn", function(v) return v .. " s" end)
     Sld(p, "Opacity", nil, .2, 1, .05, "tb_alpha", function(v) return math.floor(v * 100 + .5) .. "%" end)
   end
-  O:AddPage("OctoDoTs", "dottarget", "Target bar", Page)
+  -- (18 Nov 2026, user: "This box should be put after the general options") dots-options.lua adds it right after General
+  TB.Page = Page
 end)
