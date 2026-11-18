@@ -98,6 +98,24 @@ pfUI:RegisterModule("movers", "vanilla", function ()
       local f = _G[name]
       if f then if on then Box(name, f) else Unbox(name, f) end end
     end
+    MV.ApplyView()
+  end
+  -- (18 Nov 2026, user: "choose if you want to see just these frames. All frames. or just pfui frames") which boxes
+  -- show while the switch is on: C.movers.view all | pfui | game (the game's and picked frames)
+  function MV.InView(name)
+    if not MV.Showing() then return true end
+    local v = C.movers.view or "all"
+    if v == "pfui" then return MV.mine[name] == nil end
+    if v == "game" then return MV.mine[name] ~= nil end
+    return true
+  end
+  function MV.ApplyView()
+    if not (pfUI.unlock and pfUI.unlock:IsShown()) then return end
+    for name, f in pairs(pfUI.movables) do
+      if type(f) == "table" and f.drag then
+        if MV.InView(name) then f.drag:Show() else f.drag:Hide() end
+      end
+    end
   end
   function MV.Make(f, kind)
     local name = MV.Usable(f)

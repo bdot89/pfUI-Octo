@@ -66,3 +66,55 @@ MV.SetShowing(false)
 
 -- right-click on such a box opens Settings > Move anything (unlock.lua GetConfigTable)
 ok(MV.Owns("QuestWatchFrame") and not MV.Owns("Player"), "only its own frames send right-click to its page")
+
+-- the layout mode bar: solid, the clicks strip part of it, moved by dragging, right-click = back to the top
+if bar and bar.foot then
+  ok(bar.keys:GetParent() == bar.foot and bar:IsMovable(), "clicks strip inside the bar; bar movable")
+  _G.this = bar
+  bar:GetScript("OnDragStart")()
+  bar:GetScript("OnDragStop")()
+  ok(pfUI_config.unlock.barx ~= nil and pfUI_config.unlock.bary ~= nil, "dragged: its place saved")
+  _G.arg1 = "RightButton"
+  bar:GetScript("OnMouseUp")()
+  ok(pfUI_config.unlock.barx == nil and pfUI_config.unlock.bary == nil, "right-click: back to the top")
+end
+
+-- Show: All / pfUI / Game while Move anything is on
+do
+  local U = pfUI.unlock
+  ok(bar and bar.view and table.getn(bar.view.buttons) == 3, "Show: All / pfUI / Game buttons on the bar")
+  U:Show()
+  MV.SetShowing(true)
+  local qwf, player = _G.QuestWatchFrame, pfUI.movables.pfPlayer
+  local function Seen(f) return f and f.drag and f.drag:IsShown() end
+  pfUI_config.movers.view = "game"
+  MV.ApplyView()
+  ok(Seen(qwf) and (not player or not Seen(player)), "Game: only the game's frames have boxes")
+  pfUI_config.movers.view = "pfui"
+  MV.ApplyView()
+  ok(not Seen(qwf) and (not player or Seen(player)), "pfUI: only pfUI's frames")
+  pfUI_config.movers.view = "all"
+  MV.ApplyView()
+  ok(Seen(qwf) and (not player or Seen(player)), "All: both")
+  pfUI_config.movers.view = "game"
+  MV.SetShowing(false)
+  ok(not player or Seen(player), "switch off: pfUI's boxes back whatever the view")
+  pfUI_config.movers.view = "all"
+  U:Hide()
+end
+
+-- self-fading game frames (zone text): no FadingFrame errors in layout mode, and their fade comes back afterwards
+do
+  local U = pfUI.unlock
+  local z = CreateFrame("Frame", "OctoTestFadingFrame", UIParent)
+  z.fadeInTime, z.holdTime, z.fadeOutTime = .5, 2, 1
+  local function Fade() if this.startTime == nil then error("startTime nil") end end
+  z:SetScript("OnUpdate", Fade)
+  z:Hide()
+  U:Show()
+  U.AddBox(z)
+  ok(z:GetScript("OnUpdate") == nil and z:IsShown(), "fading frame shown in layout mode with its fade put aside")
+  U.DropBox(z)
+  ok(z:GetScript("OnUpdate") == Fade and not z:IsShown(), "after: its fade back, hidden as it was")
+  U:Hide()
+end

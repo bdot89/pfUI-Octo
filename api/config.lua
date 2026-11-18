@@ -582,6 +582,7 @@ function pfUI:LoadConfig()
   -- (18 Nov 2026) Move anything (modules/movers.lua): boxes for the game's / picked frames, Shift-drag game windows
   pfUI:UpdateConfig("movers",     nil,           "show",             "0")
   pfUI:UpdateConfig("movers",     nil,           "windows",          "1")
+  pfUI:UpdateConfig("movers",     nil,           "view",             "all")
   pfUI:UpdateConfig("movers",     nil,           "picked",           {})
   pfUI:UpdateConfig("movers",     nil,           "alpha",            {})
   pfUI:UpdateConfig("movers",     nil,           "win",              {})

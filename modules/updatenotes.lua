@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.64", {
+    { "Layout mode bar you can read and move", "a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top." },
+    { "Show: All pfUI Game", "with Move anything on, choose whether layout mode shows every box, only pfUI's frames, or only the game's and your picked frames." },
+    { "Fixed", "red FadingFrame.lua:22 ... startTime errors in chat after layout mode with Move anything on (the zone name frames' own fade is paused while layout mode is open)." },
+  } },
   { "1.1.63", {
     { "Move anything", "a switch in layout mode's top bar gives the game's own frames boxes too - quest tracker, quest timers, battleground score, raid warnings, error text, zone name, item link tooltip, follow text, zone map - with snapping, sizing and hiding. Off by default, so layout mode stays tidy; your places, sizes and opacity stay either way." },
     { "Pick a frame", "point at any frame of any add-on and press Enter (or /moveany <FrameName>) - it gets a box like ours." },
@@ -158,10 +163,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.25", {
     { "OctoLazy", "NPCs who train and sell (Survival, Cooking...) no longer jump straight to the shop; their menu stays so you can train." },
-  } },
-  { "1.1.24", {
-    { "OctoDoTs", "the \"dots.lua:513: attempt to index local a'\" error with several mobs around is fixed." },
-    { "Auctions", "own sub-categories under Consumable and Trade Goods (food, potions, flasks, herbs, ore...)." },
-    { "Performance", "raid graphics can be set to Nowhere (off)." },
   } },
 }

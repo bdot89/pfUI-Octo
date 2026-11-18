@@ -120,6 +120,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.64
+
+- 🧭 **Layout mode bar you can read and move:** a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top.
+- 👁️ **Show: All · pfUI · Game:** with Move anything on, choose whether layout mode shows every box, only pfUI's frames, or only the game's and your picked frames.
+- 🐞 **Fixed:** red `FadingFrame.lua:22 ... startTime` errors in chat after layout mode with Move anything on (the zone name frames' own fade is paused while layout mode is open).
+
 ## 📜 New in 1.1.63
 
 - 🧲 **Move anything:** a switch in layout mode's top bar gives the game's own frames boxes too - quest tracker, quest timers, battleground score, raid warnings, error text, zone name, item link tooltip, follow text, zone map - with snapping, sizing and hiding. Off by default, so layout mode stays tidy; your places, sizes and opacity stay either way.

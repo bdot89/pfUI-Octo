@@ -1757,6 +1757,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
 
       -- (hidden ones are back while the boxes are up, marked red)
       HideBack(frame)
+      pfUI.unlock.Freeze(frame)
       if not frame:IsShown() then frame.hideLater = true end
       frame.drag = frame.drag or CreateDragger(frame)
       frame:SetMovable(true)
@@ -1771,8 +1772,30 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
       this.bar:ShowHelp()
       C.unlock.helpseen = "1"
     end
+    -- (Move anything's Show: All / pfUI / Game)
+    if pfUI.movers and pfUI.movers.ApplyView then pfUI.movers.ApplyView() end
     pfUI.gui:Hide()
   end)
+
+  -- (18 Nov 2026, user's screenshot: "FadingFrame.lua:22: attempt to perform arithmetic on field `startTime' (a nil
+  -- value)" over and over) the game's zone / subzone text and similar frames fade by themselves (FadingFrame_OnUpdate):
+  -- shown by layout mode without FadingFrame_Show they had no start time, and when their fade ends they hide, box and
+  -- all. While layout mode is open such a frame's OnUpdate is put aside and it shows fully; afterwards it is put back.
+  function pfUI.unlock.Freeze(frame)
+    if not frame or frame.octoFrozen or frame.fadeInTime == nil or not frame.GetScript then return end
+    frame.octoFrozen = { frame:GetScript("OnUpdate"), frame:GetAlpha() }
+    frame:SetScript("OnUpdate", nil)
+    frame:SetAlpha(1)
+  end
+  function pfUI.unlock.Thaw(frame)
+    local f = frame and frame.octoFrozen
+    if not f then return end
+    frame.octoFrozen = nil
+    frame:SetAlpha(f[2] or 1)
+    frame:SetScript("OnUpdate", f[1])
+    -- a fade that never started: hidden, as the game would have it, instead of erroring
+    if frame.startTime == nil and frame:IsShown() then frame:Hide() end
+  end
 
   -- (18 Nov 2026, movers.lua's Move anything switch) boxes for frames that joined or left the list while layout mode is open
   function pfUI.unlock.AddBox(frame)
@@ -1780,6 +1803,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     local name = frame:GetName()
     if name and pfUI.unlock.before and pfUI.unlock.before[name] == nil then pfUI.unlock.before[name] = PosSig(C.position[name]) end
     HideBack(frame)
+    pfUI.unlock.Freeze(frame)
     if not frame:IsShown() then frame.hideLater = true end
     frame.drag = frame.drag or CreateDragger(frame)
     frame:SetMovable(true)
@@ -1793,6 +1817,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     if frame.hideLater == true then frame:Hide() end
     frame.hideLater = nil
     frame:SetMovable(false)
+    pfUI.unlock.Thaw(frame)
     ApplyHidden()
   end
 
@@ -1811,6 +1836,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
       frame:StopMovingOrSizing()
       frame:SetMovable(false)
       if frame.drag then frame.drag:Hide() end
+      pfUI.unlock.Thaw(frame)
       if not this.before or this.before[name] ~= PosSig(C.position[name]) then UpdateMovable(frame) end
     end
 
@@ -2082,7 +2108,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
   -- to edit things on") One row in groups with a small grey heading over each, a tooltip on every control, the Move
   -- anything switch (the game's frames and picked frames get boxes only while it is on - movers.lua) and a line of the
   -- clicks under the bar instead of hiding them behind "?".
-  bar:SetWidth(880)
+  bar:SetWidth(1090)
   bar:SetHeight(40)
   local function Head(text, x)
     local h = bar:CreateFontString(nil, "OVERLAY")
@@ -2158,6 +2184,7 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     if bar.pick then
       if on then bar.pick:Enable() bar.pick:SetAlpha(1) else bar.pick:Disable() bar.pick:SetAlpha(.4) end
     end
+    if bar.view then bar.view:Paint(on) end
   end
   ma:SetScript("OnClick", function()
     if pfUI.movers then pfUI.movers.SetShowing(not pfUI.movers.Showing()) end
@@ -2169,21 +2196,150 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
   bar.pick:SetPoint("LEFT", ma, "RIGHT", 6, 0)
   bar.pick:SetHeight(18)
   Tip(bar.pick, T["Pick a frame"], T["Any frame of any add-on: point at it and press Enter (Up = its parent, Esc = stop). It gets a box like these. Also /moveany <FrameName>."])
-  Sep(676)
+  -- (18 Nov 2026, user: "When you choose move anything on you can choose if you want to see just these frames. All
+  -- frames. or just pfui frames to make it easier to see") which boxes show while Move anything is on: C.movers.view
+  -- all | pfui | game (the game's frames and picked frames). Shown only while the switch is on.
+  local VIEWS = { { "all", T["All"], T["Every box: pfUI's frames and the game's."] },
+                  { "pfui", "pfUI", T["Only pfUI's own frames."] },
+                  { "game", T["Game"], T["Only the game's frames and the frames you picked."] } }
+  local view = CreateFrame("Frame", "pfUnlockBarView", bar)
+  view:SetWidth(40 + 3 * 50)
+  view:SetHeight(18)
+  view:SetPoint("LEFT", bar.pick, "RIGHT", 10, 0)
+  view.label = view:CreateFontString(nil, "OVERLAY")
+  view.label:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+  view.label:SetPoint("LEFT", view, "LEFT", 0, 0)
+  view.label:SetTextColor(.7, .72, .76)
+  view.label:SetText(T["Show:"])
+  view.buttons = {}
+  for i, v in ipairs(VIEWS) do
+    local b = CreateFrame("Button", "pfUnlockBarView" .. v[1], view)
+    b:SetWidth(48)
+    b:SetHeight(18)
+    b:SetPoint("LEFT", view, "LEFT", 40 + (i - 1) * 50, 0)
+    b.bg = b:CreateTexture(nil, "ARTWORK")
+    b.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+    b.bg:SetAllPoints(b)
+    b.line = b:CreateTexture(nil, "OVERLAY")
+    b.line:SetTexture("Interface\\Buttons\\WHITE8X8")
+    b.line:SetHeight(2)
+    b.line:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+    b.line:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+    b.text = b:CreateFontString(nil, "OVERLAY")
+    b.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+    b.text:SetAllPoints(b)
+    b.text:SetText(v[2])
+    b.key = v[1]
+    b:SetScript("OnClick", function()
+      C.movers.view = this.key
+      if pfUI.movers and pfUI.movers.ApplyView then pfUI.movers.ApplyView() end
+      view:Paint(true)
+    end)
+    Tip(b, T["Show"] .. ": " .. v[2], v[3])
+    view.buttons[i] = b
+  end
+  function view:Paint(on)
+    if not on then view:Hide() return end
+    view:Show()
+    local cur = C.movers and C.movers.view or "all"
+    local ar, ag, ab = GetAccentColor()
+    for _, b in ipairs(view.buttons) do
+      if b.key == cur then
+        b.bg:SetVertexColor(ar * .35, ag * .35, ab * .35, 1)
+        b.line:SetVertexColor(ar, ag, ab, 1)
+        b.line:Show()
+        b.text:SetTextColor(1, 1, 1)
+      else
+        b.bg:SetVertexColor(.12, .12, .14, 1)
+        b.line:Hide()
+        b.text:SetTextColor(.6, .62, .66)
+      end
+    end
+  end
+  bar.view = view
+  Sep(892)
   bar.help:ClearAllPoints()
-  bar.help:SetPoint("LEFT", bar, "LEFT", 686, 0)
+  bar.help:SetPoint("LEFT", bar, "LEFT", 902, 0)
   Tip(bar.help, T["Help"], T["Every click and key of layout mode."])
   Tip(bar.reset, T["Reset All"], T["Every frame back to its default place (asks first)."])
   Tip(bar.done, T["Done"], T["Leave layout mode (Esc or a click on an empty spot does too)."])
-  -- the clicks, always in view
-  bar.keys = bar:CreateFontString(nil, "OVERLAY")
-  bar.keys:SetFont(pfUI.font_default, C.global.font_size - 1, "OUTLINE")
-  bar.keys:SetPoint("TOP", bar, "BOTTOM", 0, -5)
-  bar.keys:SetTextColor(.82, .84, .88)
+  -- (18 Nov 2026, user with a screenshot: "cant see the top bar very well text is underneath it SHOULD BE VERY CLEAR AND
+  -- MOVEABLE IT SHOULD BE PROFESINAL") A solid panel - nothing of the boxes behind shows through - with an accent line on
+  -- top, the clicks in a darker strip that is part of the panel (it floated over the boxes), and the whole bar dragged by
+  -- its title / any empty spot; right-click it = back to the top of the screen. Its place: C.unlock.barx / bary.
+  local function Solid(f, r, g, b, a)
+    if f.backdrop then
+      f.backdrop:SetBackdropColor(r, g, b, a)
+      f.backdrop:SetBackdropBorderColor(.25, .26, .3, 1)
+    end
+  end
+  Solid(bar, .055, .06, .07, .98)
+  bar.accent = bar:CreateTexture(nil, "OVERLAY")
+  bar.accent:SetTexture("Interface\\Buttons\\WHITE8X8")
+  bar.accent:SetHeight(2)
+  bar.accent:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
+  bar.accent:SetPoint("TOPRIGHT", bar, "TOPRIGHT", 0, 0)
+  -- the clicks strip, under the controls, the same width
+  bar.foot = CreateFrame("Frame", "pfUnlockBarFoot", bar)
+  bar.foot:SetPoint("TOPLEFT", bar, "BOTTOMLEFT", 0, 1)
+  bar.foot:SetPoint("TOPRIGHT", bar, "BOTTOMRIGHT", 0, 1)
+  bar.foot:SetHeight(22)
+  bar.foot:EnableMouse(true)
+  CreateBackdrop(bar.foot)
+  Solid(bar.foot, .035, .038, .045, .98)
+  bar.keys = bar.foot:CreateFontString(nil, "OVERLAY")
+  bar.keys:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+  bar.keys:SetPoint("CENTER", bar.foot, "CENTER", 0, 0)
+  bar.keys:SetTextColor(.86, .88, .92)
+  -- a grip on the left: the bar moves
+  bar.grip = bar:CreateFontString(nil, "OVERLAY")
+  bar.grip:SetFont(pfUI.font_default, C.global.font_size + 2, "OUTLINE")
+  bar.grip:SetPoint("LEFT", bar, "LEFT", 5, 0)
+  bar.grip:SetTextColor(.45, .47, .52)
+  bar.grip:SetText(":::")
+  bar.title:ClearAllPoints()
+  bar.title:SetPoint("LEFT", bar, "LEFT", 20, 0)
+  bar.title:SetFont(pfUI.font_default, C.global.font_size + 2, "OUTLINE")
+  function bar:Place()
+    bar:ClearAllPoints()
+    local x, y = tonumber(C.unlock.barx), tonumber(C.unlock.bary)
+    if x and y then
+      bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+    else
+      bar:SetPoint("TOP", pfUI.unlock, "TOP", 0, -20)
+    end
+  end
+  bar:SetClampedToScreen(true)
+  bar:SetMovable(true)
+  bar:RegisterForDrag("LeftButton")
+  bar:SetScript("OnDragStart", function() pfUI.api.DragStart(this) end)
+  bar:SetScript("OnDragStop", function()
+    pfUI.api.DragStop(this)
+    C.unlock.barx = tostring(math.floor((this:GetLeft() or 0) + .5))
+    C.unlock.bary = tostring(math.floor((this:GetBottom() or 0) + .5))
+  end)
+  bar:SetScript("OnMouseUp", function()
+    if arg1 == "RightButton" then
+      C.unlock.barx, C.unlock.bary = nil, nil
+      this:Place()
+    end
+  end)
+  bar:SetScript("OnEnter", function()
+    GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+    GameTooltip:SetText(T["Layout Mode"], 1, 1, 1)
+    GameTooltip:AddLine(T["Drag an empty spot of this bar to move it. Right-click: back to the top of the screen."], .8, .82, .86, 1)
+    GameTooltip:Show()
+  end)
+  bar:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  bar:Place()
 
   function bar:Update()
     local ar, ag, ab = GetAccentColor()
     bar.title:SetTextColor(ar, ag, ab, 1)
+    bar.accent:SetVertexColor(ar, ag, ab, 1)
+    Solid(bar, .055, .06, .07, .98)
+    Solid(bar.foot, .035, .038, .045, .98)
+    bar:Place()
     bar.snap:SetChecked(C.unlock.snap == "1")
     bar.mirror:SetChecked(C.unlock.mirror == "1")
     mirror:Place()
