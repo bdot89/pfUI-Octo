@@ -116,7 +116,13 @@ pfUI:RegisterModule("gear", "vanilla", function ()
   end
 
   -- every carried item: bag, slot, id, link
+  -- (18 Nov 2026, Wolfahrt: still a frame drop on a set swap) every slot of a swap looked through the
+  -- whole bags again - 16 slots x ~100 bag slots of links in the same frame. The bags cannot change
+  -- within one frame, so they are read once a frame (GR.ForgetWhere starts a new read).
+  local bagsAt, bagsList = -1, nil
   function GR.Bags()
+    local t = GetTime()
+    if t == bagsAt and bagsList then return bagsList end
     local out = {}
     for bag = 0, 4 do
       for slot = 1, (GetContainerNumSlots(bag) or 0) do
@@ -124,8 +130,10 @@ pfUI:RegisterModule("gear", "vanilla", function ()
         if link then table.insert(out, { bag = bag, slot = slot, id = GR.IdOf(link), full = GR.FullOf(link), link = link }) end
       end
     end
+    bagsAt, bagsList = t, out
     return out
   end
+  function GR.ForgetBags() bagsAt = -1 end
 
   -- what is worn now, as a set's slots (every slot, or the ones given)
   function GR.Snapshot(only)
@@ -183,17 +191,14 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     return { bag = at.bag, slot = at.slot, id = GR.IdOf(link), link = link }
   end
   -- (a move made this moment must be seen by the next look)
-  function GR.ForgetWhere() whereAt = -1 end
+  function GR.ForgetWhere() whereAt = -1 GR.ForgetBags() end
   function GR.HasCopy(full)
     for _, s in ipairs(GR.SLOTS) do
       local _, link = GR.Worn(s[1])
       if link and GR.FullOf(link) == full then return true end
     end
-    for bag = 0, 4 do
-      for slot = 1, (GetContainerNumSlots(bag) or 0) do
-        local link = GetContainerItemLink(bag, slot)
-        if link and GR.FullOf(link) == full then return true end
-      end
+    for _, b in ipairs(GR.Bags()) do
+      if b.full == full then return true end
     end
     return false
   end
