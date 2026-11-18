@@ -3566,6 +3566,25 @@ do
         "reads your Corruption with 15 s left (" .. table.getn(read) .. " auras, " .. tostring(read[1] and read[1].name) .. ", mine "
         .. tostring(read[1] and read[1].mine) .. ", ends " .. tostring(read[1] and read[1].ends and read[1].ends - GetTime()) .. ")")
       ok(read[2].cc and read[3].kind == "buff" and read[3].important, "crowd control and an important buff recognised")
+      -- (18 Nov 2026, Petersen) no SuperWoW spell id: the name comes from the tooltip, own list counts too
+      UnitDebuff = function() end
+      UnitBuff = function(u, i)
+        if i == 1 then return "Interface\\Icons\\Spell_Nature_AncestralGuardian", 1 end
+        if i == 2 then return "Interface\\Icons\\Spell_Holy_Excorcism", 1 end
+      end
+      local realTip = A.TipBuff
+      local tipped = 0
+      A.TipBuff = function(u, i) tipped = tipped + 1 return i == 1 and "Berserker Rage" or "Holy Strength" end
+      S.importantauras = "Holy Strength"
+      A.ReadLists()
+      local bo = {}
+      read = A.Read(bo, MOB)
+      ok(read[1] and read[1].name == "Berserker Rage" and read[1].important and read[2] and read[2].important,
+        "without SuperWoW a buff's name comes from its tooltip; Berserker Rage and your own list count as important")
+      A.Read(bo, MOB)
+      ok(tipped == 2, "each buff's tooltip is read once while its icon stays (" .. tipped .. " reads)")
+      A.TipBuff, S.importantauras = realTip, ""
+      A.ReadLists()
       UnitDebuff, UnitBuff, SpellInfo = savedD, savedB, savedSI
       lib.objects["Gnoll Shaman"] = nil
 

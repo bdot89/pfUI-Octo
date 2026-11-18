@@ -619,6 +619,9 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     W.Dropdown(p, "Enemy buffs on nameplates", "All: every buff an enemy has. Important: big cooldowns only (Ice Block, Shield Wall...).",
       { { key = "all", label = "All of them" }, { key = "important", label = "Important ones" }, { key = "none", label = "None" } },
       function() return C.plates.buffshow end, function(v) C.plates.buffshow = v; U() end)
+    -- (18 Nov 2026, Petersen: "important enemy buffs (such as Berserker Rage)")
+    ListEdit(p, "Your own important buffs", "More buffs that count as important, separated by #. Already in: the big "
+      .. "cooldowns of every class (Berserker Rage, Recklessness, Ice Block, Divine Shield, Evasion, Bestial Wrath...).", "importantauras")
     W.Check(p, "Show every enemy buff on your target's frame", "Buffs the game hides on enemy players are found too (pfUI's "
       .. "enemy buff detection). Changes after a reload.", function() return C.unitframes.buffdetect == "1" end,
       function(v) C.unitframes.buffdetect = v and "1" or "0" if pfUI.gui then pfUI.gui.settingChanged = true end end)

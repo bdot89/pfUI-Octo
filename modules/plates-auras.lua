@@ -59,8 +59,9 @@ pfUI:RegisterModule("plates-auras", "vanilla:tbc", function ()
   }
   A.TYPE = TYPE
 
-  local special, ghost, black, white = {}, {}, {}, {}
+  local special, ghost, black, white, extra = {}, {}, {}, {}, {}
   function A.ReadLists()
+    extra = SetOf(S.importantauras)
     special = SetOf(S.specialauras)
     ghost = SetOf(S.ghostauras)
     black = SetOf(C.nameplates.debuffs.blacklist)
@@ -109,7 +110,14 @@ pfUI:RegisterModule("plates-auras", "vanilla:tbc", function ()
         for _, a in ipairs(list) do
           if type(a) == "table" and a.spellId and a.expirationTime and a.expirationTime > GetTime() then
             out = out or {}
-            out[a.spellId] = { duration = a.duration, ends = a.expirationTime, mine = me and a.sourceGUID == me }
+            out[a.spellId] = { duration = a.duration, ends = a.expirationTime, mine = me and a.sourceGUID == me, name = a.name }
+          end
+          -- (18 Nov 2026, Petersen: "important enemy buffs (such as Berserker Rage)") names by icon too,
+          -- for a client whose UnitBuff gives no spell id
+          if type(a) == "table" and a.name and a.icon then
+            out = out or {}
+            out.byIcon = out.byIcon or {}
+            out.byIcon[a.icon] = a.name
           end
         end
       end
@@ -148,17 +156,47 @@ pfUI:RegisterModule("plates-auras", "vanilla:tbc", function ()
       table.insert(list, e)
     end
     for i = count + 1, 16 do o.acache[i] = nil end
+    -- a buff's name: SuperWoW's SpellInfo, else ClassicAPI's aura list, else the tooltip (read once a
+    -- slot until its icon changes) - without a name no buff can count as important
+    o.bcache = o.bcache or {}
+    local bcount = 0
     for i = 1, 32 do
       local tex, stacks, sid = UnitBuff(unit, i)
       if not tex then break end
-      local name = sid and SpellInfo and SpellInfo(sid) or ""
+      bcount = i
+      local name = sid and SpellInfo and SpellInfo(sid)
+      if not name and capi then
+        name = (sid and capi[sid] and capi[sid].name) or (capi.byIcon and capi.byIcon[tex])
+      end
+      if not name then
+        local c = o.bcache[i]
+        if c and c.tex == tex then
+          name = c.name
+        else
+          name = A.TipBuff(unit, i)
+          o.bcache[i] = { tex = tex, name = name }
+        end
+      end
+      name = name or ""
       local e = { name = name, icon = tex, stacks = stacks, kind = "buff", sid = sid }
       local t = sid and capi and capi[sid]
       if t then e.duration, e.ends = t.duration, t.ends end
-      e.important = A.IMPORTANT[string.lower(name)]
+      e.important = A.IMPORTANT[string.lower(name)] or extra[string.lower(name)]
       table.insert(list, e)
     end
+    for i = bcount + 1, 32 do o.bcache[i] = nil end
     return list
+  end
+
+  -- a buff's name from its tooltip (unit tokens, or a GUID with SuperWoW)
+  local tip
+  function A.TipBuff(unit, i)
+    if not libtipscan then return nil end
+    tip = tip or libtipscan:GetScanner("plateauras")
+    local ok = pcall(tip.SetUnitBuff, tip, unit, i)
+    if not ok then return nil end
+    local name = tip:Line(1)
+    if name and name ~= "" then return name end
   end
 
   -- What shows where: the row (in order: your debuffs, crowd control, other
