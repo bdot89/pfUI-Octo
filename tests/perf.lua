@@ -52,6 +52,32 @@ PF.Hold()
 ok(table.getn(limits) == before, "switched off: the game's own clean-up")
 S.gc = "1"
 
+-- (18 Nov 2026) the memory ceiling: out-of-memory crashes (#132 in d3d9.dll) when Lua's garbage doubled the 290 MB
+ok(S.gccap == "1" and S.gcroom == "64" and S.gcmax == "600", "ceiling defaults: on, 64 MB room, 600 MB")
+PF.held, PF.live, PF.lastKb = false, nil, nil
+kb, th = 290 * 1024, 580 * 1024
+PF.Steer()
+ok(th == 290 * 1024 + 64 * 1024, "out of a fight: garbage may grow 64 MB, not double (threshold " .. math.floor(th / 1024) .. " MB)")
+PF.held = true
+PF.Steer()
+ok(th == 290 * 1024 + 150 * 1024, "in a fight: the fight's room (150 MB)")
+S.gcmax = "400"
+PF.Steer()
+ok(th == 400 * 1024, "never past the ceiling (" .. math.floor(th / 1024) .. " MB)")
+local c0 = collects
+kb = 410 * 1024
+PF.Steer()
+ok(collects == c0 + 1 and not PF.held, "past the ceiling: cleaned at once, even in a fight")
+S.gcmax = "600"
+kb, th = 300 * 1024, 600 * 1024
+PF.live, PF.lastKb = nil, nil
+S.gccap = "0"
+local n0 = table.getn(limits)
+PF.Steer()
+ok(table.getn(limits) == n0, "ceiling off: Lua's own clean-up")
+S.gccap = "1"
+PF.held, PF.live, PF.lastKb = false, nil, nil
+
 -- raid graphics: lowered inside a raid, the player's own values back on leaving
 local cvars = { ffxGlow = "1", weatherDensity = "3", particleDensity = "1", showfootprintparticles = "1", farclip = "777" }
 _G.GetCVar = function(n) if cvars[n] == nil then error("no such cvar") end return cvars[n] end

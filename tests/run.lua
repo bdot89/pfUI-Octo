@@ -187,13 +187,19 @@ end })
 getmetatable(Mock.New("Frame")).__call = function() return nil end
 function geterrorhandler() return Mock.errorhandler or print end
 
+-- (18 Nov 2026) PFUI_MEMPROF=1: memory each file and each module start keeps (after a full collect), the
+-- biggest printed at the end - out-of-memory crashes in the graphics wrapper (d3d9.dll memset near 0)
+local MEMPROF = os.getenv("PFUI_MEMPROF") and {}
+local function MemNow() collectgarbage("collect") collectgarbage("collect") return collectgarbage("count") end
 for _, f in ipairs(files) do
+  local before = MEMPROF and MemNow()
   local fn, err = load50(DIR .. "/" .. f)
   ok(fn, "parses: " .. f .. " " .. tostring(err))
   if fn then
     local good, e = pcall(fn)
     ok(good, "runs: " .. f .. " " .. tostring(e))
   end
+  if MEMPROF then table.insert(MEMPROF, { f, MemNow() - before }) end
 end
 error = realError
 
@@ -210,7 +216,9 @@ seterrorhandler(function(msg)
 end)
 function pfUI:LoadModule(m)
   starting = m
+  local before = MEMPROF and MemNow()
   LoadModule(self, m)
+  if MEMPROF then table.insert(MEMPROF, { "module " .. m, MemNow() - before }) end
   starting = nil
 end
 function pfUI:LoadSkin(s)
@@ -219,7 +227,16 @@ function pfUI:LoadSkin(s)
   starting = nil
 end
 
+local memStart = MEMPROF and MemNow()
 Mock.Fire("ADDON_LOADED", "pfUI")
+if MEMPROF then
+  table.sort(MEMPROF, function(a, b) return a[2] > b[2] end)
+  local total = 0
+  for _, e in ipairs(MEMPROF) do total = total + e[2] end
+  print(string.format("MEMPROF total %.1f MB (all files + module starts), after ADDON_LOADED %.1f MB now",
+    total / 1024, MemNow() / 1024))
+  for i = 1, math.min(40, table.getn(MEMPROF)) do print(string.format("MEMPROF %8.0f KB  %s", MEMPROF[i][2], MEMPROF[i][1])) end
+end
 seterrorhandler(pfErrorHandler)
 ok(Mock.errorhandler == pfErrorHandler, "pfUI's error handler back")
 ok(pfUI.bootup == nil, "bootup finished")

@@ -47,3 +47,7 @@ if not pfQuestOctoSkip and pfMap == nil then
     end
   end)
 end
+-- (18 Nov 2026) out-of-memory crashes (#132 in DXVK's d3d9.dll at logins and after /reload): reading pfQuest's 32 MB
+-- of data leaves its read-in garbage behind; Lua 5.0 would let it pile up to twice the database before cleaning.
+-- Cleaned here once, during the loading screen (gcmid.lua does the same after the base database).
+collectgarbage()

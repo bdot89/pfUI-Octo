@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.60
+
+- 🧠 **Fixes the "critical error #132" crashes** at login and after a /reload (for example after importing a profile): the game was running out of memory. pfUI and pfQuest hold about 290 MB of Lua memory, and Lua let its garbage pile up to twice that before cleaning - more during fights. Now a **memory ceiling** keeps it in check: out of a fight garbage may grow 64 MB, in a fight by your fight room, and never past 600 MB (Settings > Performance, both adjustable, on by default).
+- 🧹 **Loading clean-up:** pfQuest's 32 MB of quest data no longer leaves its garbage behind while the game loads. New file: restart the game fully once.
+
 ## 📜 New in 1.1.59
 
 - ⚡ **Smoother gear swaps:** a set swap reads your bags once a frame instead of once for every item it moves.

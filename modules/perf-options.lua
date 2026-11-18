@@ -32,6 +32,14 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
       tip = "The game cleans its Lua memory all at once and the picture stops while it does: kept out of fights here." })
     Chk(p, "No memory clean-up during fights", "The clean-up waits until the fight is over instead of hitching in the middle of a pull.", "gc")
     O.PfSld(p, "Room for it", "How much more memory a fight may use before the clean-up runs anyway.", 50, 400, 10, G, "gcextra", nil, function(v) return v .. " MB" end)
+    -- (18 Nov 2026: out-of-memory crashes, #132 in d3d9.dll) the ceiling
+    Chk(p, "Memory ceiling (stops out-of-memory crashes)", "Lua lets its garbage pile up until memory doubles before "
+      .. "cleaning. With pfQuest's database that can run the game out of memory (crash #132 in d3d9.dll). On: garbage may "
+      .. "only grow by the room below, and never past the ceiling - in a fight too.", "gccap", function() PF.Steer() end)
+    O.PfSld(p, "Room outside fights", "How much garbage may pile up before a clean-up when you are not fighting. Smaller = less "
+      .. "memory, a short hitch a little more often.", 32, 256, 8, G, "gcroom", function() PF.Steer() end, function(v) return v .. " MB" end)
+    O.PfSld(p, "Ceiling", "Lua memory never goes past this: at it, a clean-up runs at once, even in a fight.", 400, 1200, 50, G,
+      "gcmax", function() PF.Steer() end, function(v) return v .. " MB" end)
     Chk(p, "Clean up two seconds after a fight", nil, "gcafter")
     Chk(p, "Clean up after a loading screen", nil, "gcload")
     W.Buttons(p, { { "Clean up now", function() PF.Clean("by hand") end, 130, "Runs the clean-up at once (a short hitch)." } })

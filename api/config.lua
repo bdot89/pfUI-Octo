@@ -580,7 +580,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("art",        nil,           "elite",            "classic")
   pfUI:UpdateConfig("art",        nil,           "elitesize",        "1")
   -- (16 Nov 2026) performance (modules/perf.lua): clean-up held in fights, raid graphics
-  for k, v in pairs({ gc = "1", gcextra = "150", gcafter = "1", gcload = "1", raidfx = "1", raidfxwhere = "raid",
+  for k, v in pairs({ gc = "1", gcextra = "150", gcafter = "1", gcload = "1", gccap = "1", gcroom = "64", gcmax = "600", raidfx = "1", raidfxwhere = "raid",
     fxglow = "1", fxweather = "1", fxparticles = "1", fxfoot = "1", fxfarclip = "0", farclip = "350",
     -- (17 Nov 2026) the game's own UI ticker 30 times a second, not every frame
     uitick = "1",

@@ -17,6 +17,7 @@
   <Script file="db\enUS\quests.lua"/>
   <Script file="db\enUS\zones.lua"/>
   <Script file="db\enUS\professions.lua"/>
+  <Script file="gcmid.lua"/>
   <Script file="compat\pfUI.lua"/>
   <Script file="compat\client.lua"/>
   <Script file="compat\optional.lua"/>

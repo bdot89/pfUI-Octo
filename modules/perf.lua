@@ -38,12 +38,43 @@ pfUI:RegisterModule("perf", "vanilla", function ()
 
   -- ---------------------------------------------------------------- memory: no clean-up in a fight
   function PF.CanGC() return type(collectgarbage) == "function" and type(gcinfo) == "function" end
+  -- (18 Nov 2026, Wolfahrt on Discord: "critical error" #132 after an import and at logins; the same crash on the
+  -- user's own client: an ACCESS_VIOLATION in DXVK's d3d9.dll memset writing near address 0 = a memory request that
+  -- came back empty - the game ran out of memory). pfUI + pfQuest hold ~290 MB of Lua memory; Lua 5.0 lets garbage
+  -- pile up until the total doubles (580 MB) before it cleans, and the fight hold above added up to 150 MB more on top.
+  -- With DXVK's own ~1 GB that runs the 32-bit game out of room. So: a ceiling. Out of a fight garbage may grow by
+  -- C.perf.gcroom MB (not double), in a fight by gcextra, and never past C.perf.gcmax MB in all.
+  PF.live = nil   -- Lua memory right after the last clean-up (KB): what is really in use
+  function PF.Ceiling() return Num("gcmax", 600) * 1024 end
+  -- the most garbage allowed now (KB above PF.live)
+  function PF.Room() return (PF.held and Num("gcextra", 150) or Num("gcroom", 64)) * 1024 end
+  -- lower Lua's own threshold to live + room (never past the ceiling); clean at once if already past the ceiling
+  function PF.Steer()
+    if not On("gccap") or not PF.CanGC() then return end
+    local kb, th = gcinfo()
+    if not kb then return end
+    -- a clean-up ran (by Lua or by us) since the last look: what is left is the real use
+    if not PF.live or (PF.lastKb and kb < PF.lastKb - 2048) then PF.live = kb end
+    PF.lastKb = kb
+    local ceiling = PF.Ceiling()
+    if kb >= ceiling then
+      -- a hitch now is better than the game crashing out of memory, in a fight too
+      PF.Clean("over the " .. Num("gcmax", 600) .. " MB ceiling")
+      PF.live = gcinfo()
+      PF.lastKb = PF.live
+      return
+    end
+    local want = math.min(PF.live + PF.Room(), ceiling)
+    -- never so low that it cleans this instant (that is PF.Clean's job)
+    if want < kb + 2048 then want = kb + 2048 end
+    if not th or want < th - 1024 or (PF.held and want > th + 1024) then collectgarbage(math.floor(want)) end
+  end
   function PF.Hold()
     if not On("gc") or not PF.CanGC() then return end
-    local kb, th = gcinfo()
-    local want = kb + Num("gcextra", 150) * 1024
-    if not th or want > th then collectgarbage(want) end
     PF.held = true
+    local kb, th = gcinfo()
+    local want = math.min(kb + Num("gcextra", 150) * 1024, PF.Ceiling())
+    if On("gccap") then PF.Steer() elseif not th or want > th then collectgarbage(want) end
   end
   function PF.Clean(why)
     if not PF.CanGC() then return end
@@ -51,6 +82,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     local t0 = Now()
     collectgarbage()
     PF.held = false
+    PF.live = gcinfo()
+    PF.lastKb = PF.live
     PF.cleans = PF.cleans + 1
     PF.last = { why = why, freed = before - gcinfo(), ms = math.floor((Now() - t0) * 1000 + .5), at = Now() }
   end
@@ -256,6 +289,19 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end
   end)
   function PF.Watch(on, frame) PF.watching, PF.watchFrame = on, frame if on then Wake() end end
+  -- the memory ceiling: a look once a second (ClassicAPI's timer when there, else a throttled OnUpdate)
+  local steer = CreateFrame("Frame", "pfOctoPerfSteer")
+  PF.steer = steer
+  local lc = pfUI.api.libclient
+  if lc and lc.Every then
+    lc.Every(steer, 1, function() PF.Steer() end)
+  else
+    steer:SetScript("OnUpdate", function()
+      if (this.at or 0) > Now() then return end
+      this.at = Now() + 1
+      PF.Steer()
+    end)
+  end
 
   -- /pfperf [on|off|reset|clean]
   _G.SLASH_PFPERF1 = "/pfperf"

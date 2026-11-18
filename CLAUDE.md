@@ -1391,3 +1391,12 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   icons + loading-screen banners (RO.ZONEART, names checked in the listfile), pills Skip school / Hide / Cure first,
   Classes menu, "Everywhere" = UpsiRinse's "Unsorted" zone writing the global lists. Sidebar rows may now be 12 px
   (24 rows at 600 px). Tests: tests\rinse.lua. Unverified in game: all of it, the alias names, loading-screen crop.
+- Memory ceiling (18 Nov 2026, NOT seen in game; NEW FILE pfquest\gcmid.lua = full client restart). Wolfahrt: #132 crash at
+  a profile import's /reload and at logins; the user's own Errors\2026-11-18 10.30.58 Crash.txt is the same: DXVK's d3d9.dll
+  memset writing near address 0 = an allocation that came back NULL - the game ran out of memory (WoW.exe is
+  large-address-aware; dxvk.conf d3d9.maxAvailableMemory = 1024). pfUI + pfQuest ~290 MB of Lua; Lua 5.0 lets garbage
+  reach twice the live heap, and perf.lua's fight hold added 150 MB on top. perf.lua PF.Steer (once a second, libclient.Every):
+  threshold = live + C.perf.gcroom (64 MB) out of fights / gcextra in fights, never past C.perf.gcmax (600 MB; at it a
+  clean-up runs at once, even in a fight); C.perf.gccap switches it off. Load peaks: pfquest\gcmid.lua (after the base
+  database) and the end of pfquest\restore.lua call collectgarbage() - both written by tools\Sync-pfQuest.ps1.
+  PFUI_MEMPROF=1 makes tests\run.lua print each file's / module start's memory (pfQuest's db is not loaded there).

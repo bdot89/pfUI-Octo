@@ -359,13 +359,28 @@ if not pfQuestOctoSkip and pfMap == nil then
     end
   end)
 end
+
+-- (18 Nov 2026) out-of-memory crashes (#132 in DXVK's d3d9.dll at logins and after /reload): reading pfQuest's 32 MB
+-- of data leaves its read-in garbage behind; Lua 5.0 would let it pile up to twice the database before cleaning.
+-- Cleaned here once, during the loading screen (gcmid.lua does the same after the base database).
+collectgarbage()
+"@
+$gcmid = @"
+if pfQuestOctoSkip then return end
+-- pfUI Octo (written by tools\Sync-pfQuest.ps1): the base database is read - clean its read-in garbage now, during
+-- the loading screen, before the Turtle data doubles it (out-of-memory crashes in d3d9.dll, 18 Nov 2026)
+collectgarbage()
 "@
 [IO.File]::WriteAllText((Join-Path $dst "guard.lua"), ($skip -replace "`r?`n", "`r`n"), $utf8)
 [IO.File]::WriteAllText((Join-Path $dst "restore.lua"), ($restore -replace "`r?`n", "`r`n"), $utf8)
+[IO.File]::WriteAllText((Join-Path $dst "gcmid.lua"), ($gcmid -replace "`r?`n", "`r`n"), $utf8)
 $xml = New-Object Text.StringBuilder
 [void]$xml.Append("<Ui xmlns=`"http://www.blizzard.com/wow/ui/`">`r`n")
 [void]$xml.Append("  <Script file=`"guard.lua`"/>`r`n")
-foreach ($rel in $load) { [void]$xml.Append("  <Script file=`"$rel`"/>`r`n") }
+foreach ($rel in $load) {
+  [void]$xml.Append("  <Script file=`"$rel`"/>`r`n")
+  if ($rel -eq "db\enUS\professions.lua") { [void]$xml.Append("  <Script file=`"gcmid.lua`"/>`r`n") }
+}
 [void]$xml.Append("  <Script file=`"restore.lua`"/>`r`n")
 [void]$xml.Append("</Ui>`r`n")
 [IO.File]::WriteAllText((Join-Path $dst "pfquest.xml"), $xml.ToString(), $utf8)
