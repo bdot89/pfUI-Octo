@@ -489,8 +489,15 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
           GameTooltip:Show()
         end
       end
+      -- (octo, 18 Nov 2026) 11 tooltip reads per event: a gear swap sends one event per slot,
+      -- so the reading waits .2 s after the first and runs once (Wolfahrt: swap froze ~.5 s)
       widget:SetScript("OnEvent", function()
         if event == "UNIT_INVENTORY_CHANGED" and arg1 ~= "player" then return end
+        if not this.due then this.due = GetTime() + .2 end
+      end)
+      widget:SetScript("OnUpdate", function()
+        if not this.due or GetTime() < this.due then return end
+        this.due = nil
 
         local repPercent = 100
         local lowestPercent = 100

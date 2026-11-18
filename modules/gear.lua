@@ -683,7 +683,16 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     elseif event == "UNIT_INVENTORY_CHANGED" and arg1 ~= "player" then
       return
     end
-    GR.Changed()
+    -- (18 Nov 2026, Wolfahrt: the instant swap "creates a little freeze ... like 0,5 sec") an instant swap
+    -- changes ~16 slots at once = two events each, and every one ran GR.Changed (all set buttons, slot bar,
+    -- sheet, trinkets: each set matched against every bag slot). Now one GR.Changed .1 s after the first.
+    if not this.due then this.due = GetTime() + .1 end
+  end)
+  ev:SetScript("OnUpdate", function()
+    if this.due and GetTime() >= this.due then
+      this.due = nil
+      GR.Changed()
+    end
   end)
 
   -- ---------------------------------------------------------------- keys for slot buttons

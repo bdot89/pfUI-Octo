@@ -327,8 +327,27 @@ resetcache:RegisterEvent("PLAYER_ENTERING_WORLD")
 resetcache:RegisterEvent("LEARNED_SPELL_IN_TAB")
 resetcache:RegisterEvent("CHARACTER_POINTS_CHANGED")
 resetcache:RegisterEvent("UNIT_INVENTORY_CHANGED")
+-- (octo, 18 Nov 2026, Wolfahrt: an instant gear swap froze the game ~.5 s) an instant swap
+-- changes ~16 slots at once, and each UNIT_INVENTORY_CHANGED read 20 item tooltips here for
+-- set bonuses - ~320 tooltip reads in one frame. Gear changes are now read once, .3 s after
+-- the first one; the other events run at once as before.
+local ScanGear
+resetcache:SetScript("OnUpdate", function()
+  if this.due and GetTime() >= this.due then
+    this.due = nil
+    ScanGear()
+  end
+end)
 resetcache:SetScript("OnEvent", function()
-  if event == "PLAYER_ENTERING_WORLD" then
+  if event == "UNIT_INVENTORY_CHANGED" then
+    if arg1 and arg1 ~= "player" then return end
+    if not this.due then this.due = GetTime() + .3 end
+    return
+  end
+  ScanGear()
+end)
+ScanGear = function()
+  if event == "PLAYER_ENTERING_WORLD" or not cache then
     -- load and initialize previous caches of spell amounts
     pfUI_cache["prediction"] = pfUI_cache["prediction"] or {}
     pfUI_cache["prediction"][realm] = pfUI_cache["prediction"][realm] or {}
@@ -337,10 +356,7 @@ resetcache:SetScript("OnEvent", function()
     cache = pfUI_cache["prediction"][realm][player]["heals"]
   end
 
-  if event == "UNIT_INVENTORY_CHANGED" or "PLAYER_ENTERING_WORLD" then
-    -- skip non-player events
-    if arg1 and arg1 ~= "player" then return end
-
+  do
     local gear = ""
     for id = 1, 18 do
       gear = gear .. (GetInventoryItemLink("player",id) or "")
@@ -376,7 +392,7 @@ resetcache:SetScript("OnEvent", function()
     -- flag for reset
     cache[k][2] = true
   end
-end)
+end
 
 local function UpdateCache(spell, heal, crit)
   local heal = heal and tonumber(heal)

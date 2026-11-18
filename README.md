@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.57
+
+- ⚡ **No freeze on instant gear swaps:** swapping a whole set changes every slot at once, and each change used to refresh the set buttons, heal prediction and durability right away - many times in one moment. Each now refreshes once, a fraction of a second after the swap.
+
 ## 📜 New in 1.1.56
 
 - 🧹 **Quest tracker error fixed for real:** no more "tracker.lua:282: attempt to index a nil value". The real cause was the game's quest watch frame going missing (another add-on), and the tracker now copes without it.
