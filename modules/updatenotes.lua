@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.61", {
+    { "/gear back", "puts the set you wore before this one back on - handy in a macro." },
+    { "Set names in any capitals", "/gear equip caster finds \"Caster\"; /gear unequip says what it takes off." },
+    { "/gear help", "every gear command, also in the ItemRack page's help box with ItemRack's macro calls (EquipSet, UnequipSet, ToggleSet)." },
+    { "Shield comes back", "taking off a set with a two-hander puts your off hand back on too." },
+  } },
   { "1.1.60", {
     { "Fixes the \"critical error #132\" crashes", "at login and after a /reload (for example after importing a profile): the game was running out of memory. pfUI and pfQuest hold about 290 MB of Lua memory, and Lua let its garbage pile up to twice that before cleaning - more during fights. Now a memory ceiling keeps it in check: out of a fight garbage may grow 64 MB, in a fight by your fight room, and never past 600 MB (Settings > Performance, both adjustable, on by default)." },
     { "Loading clean-up", "pfQuest's 32 MB of quest data no longer leaves its garbage behind while the game loads. New file: restart the game fully once." },
