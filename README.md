@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.83
+
+- 💚 **No more game heal numbers over heads:** SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page).
+- 📊 **Meter windows move on their own:** windows snapped side by side no longer drag each other along. "Snapped windows move together" is off by default (Meters > Data) - snapping into line on drop stays.
+
 ## 📜 New in 1.1.82
 
 - 🗺️ **Right names on the map:** hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover.

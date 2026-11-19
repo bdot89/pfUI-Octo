@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.83", {
+    { "No more game heal numbers over heads", "SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page)." },
+    { "Meter windows move on their own", "windows snapped side by side no longer drag each other along. \"Snapped windows move together\" is off by default (Meters > Data) - snapping into line on drop stays." },
+  } },
   { "1.1.82", {
     { "Right names on the map", "hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover." },
   } },
@@ -155,11 +159,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.44", {
     { "Totem damage in combat text", "your totems' hits (Searing, Magma, Fire Nova...) now show, with their own switch, colour and area under Combat Text > Messages (\"Your totems' damage\"). Only your own totems, never another shaman's." },
-  } },
-  { "1.1.43", {
-    { "Buyouts stay on track", "after a buyout the cheapest auction left of the same item is picked next, and auctions of the same price no longer swap places, so spamming Buyout walks down the cheap ones in order." },
-    { "Pick several at once", "Shift + drag (or Shift + click) over rows. Browse buys them all, cheapest first; My bids bids on them all; My auctions cancels them all - one question, then one by one. Click the button again to stop." },
-    { "Price colours like aux", "\"Of usual\" is blue (a steal), green (cheap), yellow (about usual), orange (dear) or red (far too dear), on Browse, Shopping and Deals." },
-    { "Column heads explain themselves", "hover any head for what it holds; \"Of usual\" is wide enough to read." },
   } },
 }
