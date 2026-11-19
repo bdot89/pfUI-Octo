@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.75", {
+    { "Totem order", "OctoTotems > Bars > Layout has an Element order choice, so the bars can go Air, Water, Fire, Earth (or any order you like)." },
+    { "Earthen Bulwark bar fixed", "it said 0% with a full bulwark. It now reads the integrity from the aura's stack count and from your debuffs too. /bulwark debug prints what the game reports, if it still looks wrong." },
+  } },
   { "1.1.74", {
     { "OctoTotems error fixed", "the shield / weapon imbue reminder button had no font for its timer, so \"octototems.lua:952: Font not set\" repeated over and over. Every totem button now gets its font when it is made." },
     { "Website download fixed", "the Download ZIP button works again (the newest releases had the zip under another name)." },
@@ -167,8 +171,5 @@ pfUI.octoNotes = {
     { "Smoother", "the swing timer no longer makes memory garbage every frame (about 480 KB a minute before); the unit frame extras only work every frame while something fades or flashes; the action bars' range check only looks at buttons you can see." },
     { "Performance window", "(/pfperf): a scroll bar with \"21-40 of 2679\", columns that fit inside the window (long names cut, full name on hover), wrapping tooltips, pfUI's unnamed frames named by the file that made them, and its own measuring cost taken off the numbers." },
     { "Copy all", "every script and add-on as text, frozen when pressed and cut into parts of 400 lines - Previous / Next, copied parts marked green, \"Copy this part\" or \"Copy all at once\" with ClassicAPI." },
-  } },
-  { "1.1.35", {
-    { "Live performance window", "(/pfperf, or Settings > Performance > \"Open the live window\"): FPS, latency and Lua memory every second; a Scripts tab that measures every frame's scripts like pfDebug (calls, ms per second, total, memory made) without walking the game's tables, so it cannot crash the way pfDebug's Scan now does; an Add-ons tab with memory per add-on and, with the CPU profiler, CPU per add-on. /pfperf chat prints the old summary. New file: restart the game fully once." },
   } },
 }

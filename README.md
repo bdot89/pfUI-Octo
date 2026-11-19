@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.75
+
+- 🪨 **Totem order:** OctoTotems > Bars > Layout has an **Element order** choice, so the bars can go Air, Water, Fire, Earth (or any order you like).
+- 🛡️ **Earthen Bulwark bar fixed:** it said 0% with a full bulwark. It now reads the integrity from the aura's stack count and from your debuffs too. `/bulwark debug` prints what the game reports, if it still looks wrong.
+
 ## 📜 New in 1.1.74
 
 - 🪨 **OctoTotems error fixed:** the shield / weapon imbue reminder button had no font for its timer, so "octototems.lua:952: Font not set" repeated over and over. Every totem button now gets its font when it is made.
