@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.84
+
+- 🐉 **Elite Overlay dragons:** Shagu's pfUI-eliteoverlay is built in. Pick "Dragons (Elite Overlay)" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side "Badge at" picks. Needs a full client restart for the new pictures.
+
 ## 📜 New in 1.1.83
 
 - 💚 **No more game heal numbers over heads:** SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page).

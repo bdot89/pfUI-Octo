@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.84", {
+    { "Elite Overlay dragons", "Shagu's pfUI-eliteoverlay is built in. Pick \"Dragons (Elite Overlay)\" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side \"Badge at\" picks. Needs a full client restart for the new pictures." },
+  } },
   { "1.1.83", {
     { "No more game heal numbers over heads", "SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page)." },
     { "Meter windows move on their own", "windows snapped side by side no longer drag each other along. \"Snapped windows move together\" is off by default (Meters > Data) - snapping into line on drop stays." },
@@ -156,8 +159,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.45", {
     { "DoT Tracker rows stay put in a fight", "every enemy keeps its row and new ones join at the bottom, so clicking through them never makes the list jump; it sorts again when the fight ends. Switch: DoT Tracker > General > \"Lock the order in combat\"." },
-  } },
-  { "1.1.44", {
-    { "Totem damage in combat text", "your totems' hits (Searing, Magma, Fire Nova...) now show, with their own switch, colour and area under Combat Text > Messages (\"Your totems' damage\"). Only your own totems, never another shaman's." },
   } },
 }
