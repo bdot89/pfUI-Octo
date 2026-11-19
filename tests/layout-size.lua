@@ -401,7 +401,8 @@ if UF and O and UF.SECTIONS then
   ok(p.last and p.last:IsShown(), "the page ends at the last card shown (its height)")
   UF.SetSection("raid")
   ok(Shown("Raid layout") and not Shown("Health bar") and UF.cur == "raid", "Raid layout: its own section, on the raid frames' preview")
-  ok(UF.secTabs and UF.secTabs[7].picked and not UF.secTabs[1].picked, "the section tab is lit (purple)")
+  ok(UF.secTabs and UF.secTabs[7].bar:IsShown() and not UF.secTabs[1].bar:IsShown() and not string.find(UF.secTabs[7].text:GetText(), "...", 1, true),
+    "the open section tab is underlined, names in full")
   -- a click on the preview's health bar goes to its section
   pfUI.plates.OpenSection("ufframes", "Health bar")
   ok(UF.sec == "size" and Shown("Health bar"), "a card of another section opens that section")

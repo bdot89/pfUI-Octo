@@ -3026,12 +3026,34 @@ do
       M.Refresh()
       ok(pf.octoElite:IsShown() and pf.octoElite.octoGhost and pf.octoElite:GetAlpha() < .5
         and pf.raidIcon:IsShown() and pf.raidIcon.octoGhost, "switched-off elite badge and raid mark show faded")
-      ok(UF.GO.elite == "Class and status", "a click on the faded badge opens Class and status")
+      ok(UF.GO.elite == "Elite, rare and boss art", "a click on the faded badge opens the elite art card")
       pc.o_elite, pc.raidicon = "dragon", "1"
       M.Refresh()
       ok(pf.octoDragon:IsShown() and not pf.octoElite.octoGhost and not pf.raidIcon.octoGhost and pf.raidIcon:GetAlpha() == 1,
         "switched on: dragons on the preview, nothing faded")
-      pc.o_elite, pc.raidicon = oe, ori
+      -- (19 Nov 2026) the elite art card: a tile for every dragon and crest; a click sets this frame's own
+      local od, oc = pc.o_dragon, pc.o_crest
+      UF.SetSection("icons")
+      local cells = UF.eliteCells or {}
+      local nd, ncr = 0, 0
+      for k in pairs(cells) do
+        if string.find(k, "^dragon:") then nd = nd + 1 elseif string.find(k, "^crest:") then ncr = ncr + 1 end
+      end
+      ok(cells.none and cells.text and nd == 4 and ncr == table.getn(pfUI.art.ELITE) + 1,
+        "elite art card: off, word, 4 dragons and every crest (" .. nd .. " / " .. ncr .. ")")
+      local function Click(b) _G.this = b b:GetScript("OnClick")() end
+      if cells["dragon:golddragon"] then Click(cells["dragon:golddragon"]) end
+      pc.o_elitepos = "TOPRIGHT"
+      M.Refresh()
+      ok(pc.o_elite == "dragon" and pc.o_dragon == "golddragon" and pf.octoDragonSide:IsShown() and not pf.octoDragonTop:IsShown()
+        and pf.octoDragonSide.texture == "Interface\\DialogFrame\\UI-DialogBox-Gold-Dragon", "gold dragon tile: the game's dragon beside the frame")
+      local gi
+      for k in pairs(cells) do if string.find(k, "^crest:gi%-") then gi = k end end
+      if gi then Click(cells[gi]) end
+      M.Refresh()
+      ok(gi and pc.o_elite == "graphic" and pc.o_crest == string.sub(gi, 7) and string.find(pf.octoElite.texture or "", "elite\\gi\\", 1, true),
+        "a crest tile gives this frame its own crest")
+      pc.o_elite, pc.raidicon, pc.o_dragon, pc.o_crest = oe, ori, od, oc
       M.Refresh()
     end
     -- (8 Nov 2026, Bread) health and power texts their own sizes; "0" / "" = the shared size

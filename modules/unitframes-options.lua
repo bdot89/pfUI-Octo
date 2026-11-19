@@ -121,7 +121,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     frame = "Frame", hp = "Health bar", power = "Power bar", portrait = "Portrait",
     buffs = "Buffs", debuffs = "Debuffs",
     icons = "Icons", glow = "Glow and indicators", class = "Class and status", border = "Border and background",
-    blizz = "Blizzard look", stance = "Stance and form", elite = "Class and status",
+    blizz = "Blizzard look", stance = "Stance and form", elite = "Elite, rare and boss art",
   }
   -- each of the six texts opens the Texts card on its own tab (user, 23 Oct
   -- 2026: "Both called health text when clicked take to same menu")
@@ -165,14 +165,14 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   -- { key, tab label, picture, card titles in order }.
   local ICON = "Interface\\Icons\\"
   UF.SECTIONS = {
-    { "size", "Size", "Spell_Holy_Heal", { "Frame", "Health bar", "Power bar", "Portrait" } },
+    { "size", "Size & bars", "Spell_Holy_Heal", { "Frame", "Health bar", "Power bar", "Portrait" } },
     { "text", "Text", "INV_Misc_Note_01", { "All frames: text", "Texts", "Text colours and font" } },
     { "auras", "Buffs", "Spell_Holy_WordFortitude", { "Enemy buffs", "Buffs", "Debuffs", "Buff and dispel markers" } },
-    { "icons", "Icons", "INV_Banner_01", { "Icons", "Class and status", "Glow and indicators" } },
+    { "icons", "Icons & art", "INV_Banner_01", { "Elite, rare and boss art", "Icons", "Class and status", "Glow and indicators" } },
     { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Border and background", "Colours", "All frames: colours" } },
     -- (9 Nov 2026, user: "make all the blizzard menu together"): the game's own frames, the
     -- Blizzard look on ours and the stance icon in one place
-    { "blizz", "Blizzard", "INV_Misc_Head_Dragon_01", { "Blizzard's own frames", "Blizzard look", "Stance and form" } },
+    { "blizz", "Blizzard style", "INV_Misc_Head_Dragon_01", { "Blizzard's own frames", "Blizzard look", "Stance and form" } },
     { "raid", "Raid layout", "Spell_Holy_PrayerOfHealing", { "Raid layout", "All frames: party and raid" } },
     { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: class extras" } },
   }
@@ -188,7 +188,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     ["Portrait"] = "INV_Misc_Head_Dragon_01", ["All frames: text"] = "INV_Letter_15", ["Texts"] = "INV_Misc_Note_01",
     ["Text colours and font"] = "INV_Fabric_Silk_02", ["Buffs"] = "Spell_Holy_WordFortitude", ["Enemy buffs"] = "Spell_Holy_PowerWordShield",
     ["Debuffs"] = "Spell_Shadow_ShadowWordPain", ["Buff and dispel markers"] = "Spell_Holy_DispelMagic",
-    ["Icons"] = "INV_Banner_01", ["Class and status"] = "INV_Misc_Bone_HumanSkull_01",
+    ["Elite, rare and boss art"] = "INV_Misc_Head_Dragon_01", ["Icons"] = "INV_Banner_01", ["Class and status"] = "INV_Misc_Bone_HumanSkull_01",
     ["Stance and form"] = "Ability_Warrior_DefensiveStance", ["Blizzard look"] = "INV_Misc_Head_Dragon_01",
     ["Blizzard's own frames"] = "INV_Misc_Head_Human_02",
     ["Glow and indicators"] = "Spell_Nature_WispSplode", ["Border and background"] = "INV_Misc_StoneTablet_05",
@@ -266,7 +266,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     { "text", "Text", { "^txt", "^o_tc", "^healthcolor$", "^powercolor$", "^levelcolor$", "^classcolor$", "^customfont" } },
     { "auras", "Buffs and debuffs", { "^buff", "^debuff", "^o_buff[xy]$", "^o_debuff[xy]$", "^cooldown_", "^selfdebuff$",
       "^o_purge$", "^o_flashexpire$", "^indicator", "^show_", "^all_" } },
-    { "icons", "Icons and status", { "icon", "^showPVP$", "^happiness", "^o_happy", "^o_class", "^o_elite", "^o_status$",
+    { "icons", "Icons and status", { "icon", "^showPVP$", "^happiness", "^o_happy", "^o_class", "^o_elite", "^o_crest$", "^o_dragon", "^o_status$",
       "^glow", "^square", "^hitindicator" } },
     { "look", "Look and colours", { "^o_skin", "^o_grad", "^o_flash$", "^o_selhl$", "^o_debuffhl$", "^o_curable$", "^defcolor$",
       "^custom", "color$", "^alpha_", "^faderange$" } },
@@ -352,12 +352,140 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     return m
   end
 
+  -- ---------------------------------------------------------------- elite art
+  -- (19 Nov 2026, user: "where are all the dragons i can only select one there should be easier menus to navigate
+  -- and see all the artwork") one card with every picture the elite / rare / boss badge can be, as tiles: off, the
+  -- word, the four dragons, the Art page's crest and every crest of its own. Click = this frame uses it.
+  UF.ELITECARD = "Elite, rare and boss art"
+  -- what a tile does to the frame's settings, and whether it is the one in use
+  function UF.EliteTiles()
+    local X, A = pfUI.ufExtras, pfUI.art
+    local out = {
+      { group = "Off or a word", key = "none", label = "Off", hint = "No badge on this frame.", set = { o_elite = "none" } },
+      { group = "Off or a word", key = "text", label = "Word", hint = "Elite, Rare elite, Rare or Boss written on the frame.", set = { o_elite = "text" } },
+    }
+    for _, d in ipairs(X and X.DRAGONS or {}) do
+      table.insert(out, { group = "Dragons", key = "dragon:" .. d.key, label = d.label, hint = d.by .. ". Wraps the side of the frame "
+        .. "picked by Side; gold for elites, grey for rares, red for bosses.", set = { o_elite = "dragon", o_dragon = d.key }, dragon = d })
+    end
+    table.insert(out, { group = "Crests", key = "crest:", label = "The Art page's crest", hint = "Whatever crest Settings > Art has "
+      .. "picked for every frame.", set = { o_elite = "graphic", o_crest = "" }, crest = "" })
+    for _, e in ipairs(A and A.ELITE or {}) do
+      table.insert(out, { group = "Crests: " .. (e.group or "pfUI Octo"), key = "crest:" .. e.key, label = e.label,
+        hint = (e.group or "pfUI Octo") .. " crest.", set = { o_elite = "graphic", o_crest = e.key }, crest = e.key })
+    end
+    return out
+  end
+  function UF.EliteKey(c)
+    local m = c.o_elite or "none"
+    if m == "dragon" then return "dragon:" .. (c.o_dragon or "overlay") end
+    if m == "graphic" then return "crest:" .. (c.o_crest or "") end
+    return m
+  end
+  function UF.EliteCard(p)
+    local X = pfUI.ufExtras
+    Card(p, UF.ELITECARD, { tip = "The picture on elite, rare and boss frames. Every tile is one you can pick; the lit one "
+      .. "is this frame's. Hover a tile for its name." })
+    Drop(p, "Side", "Which side or top corner of the frame the badge or dragons go on.", {
+      { key = "TOPRIGHT", label = "Right" }, { key = "TOPLEFT", label = "Left" } }, U, "o_elitepos")
+    Sld(p, "Dragon size", nil, .5, 2, .05, U, "o_dragonsize", function(v) return math.floor((tonumber(v) or 1) * 100 + .5) .. "%" end)
+    local tiles = UF.EliteTiles()
+    local CELL, HEAD = 42, 16
+    local per = math.max(6, math.floor((W.CW - 40) / CELL))
+    -- measure first: a heading per group, then its rows of tiles
+    local h, last, n = 8, nil, 0
+    for _, t in ipairs(tiles) do
+      if t.group ~= last then
+        if last then h = h + math.ceil(n / per) * CELL + 6 end
+        h, last, n = h + HEAD, t.group, 0
+      end
+      n = n + 1
+    end
+    h = h + math.ceil(n / per) * CELL + 8
+    local box = W.Box(p, h)
+    local sel = CreateFrame("Frame", nil, box)
+    sel:SetWidth(CELL - 2) sel:SetHeight(CELL - 2)
+    W.Flat(sel, W.C.accent, .25, W.C.accent)
+    sel:SetFrameLevel(box:GetFrameLevel() + 1)
+    local cells = {}
+    local y, x
+    last = nil
+    for _, t in ipairs(tiles) do
+      if t.group ~= last then
+        if last then y = y - (x > 0 and CELL or 0) - 6 else y = -8 end
+        local head = W.Font(box:CreateFontString(nil, "OVERLAY"), 10, W.C.dim[1], W.C.dim[2], W.C.dim[3])
+        head:SetText(string.upper(t.group))
+        head:SetPoint("TOPLEFT", box, "TOPLEFT", 10, y)
+        y, x, last = y - HEAD, 0, t.group
+      end
+      local b = CreateFrame("Button", nil, box)
+      b:SetWidth(CELL - 2) b:SetHeight(CELL - 2)
+      b:SetFrameLevel(box:GetFrameLevel() + 2)
+      b:SetPoint("TOPLEFT", box, "TOPLEFT", 8 + x * CELL, y)
+      b.tile = t
+      local function Pic(tex, w, ht, point, ox, oy)
+        local pic = b:CreateTexture(nil, "ARTWORK")
+        pic:SetTexture(tex)
+        pic:SetWidth(w) pic:SetHeight(ht)
+        pic:SetPoint(point or "CENTER", b, point or "CENTER", ox or 0, oy or 0)
+        return pic
+      end
+      if t.key == "none" then
+        local pic = Pic("Interface\\Buttons\\UI-GroupLoot-Pass-Up", 24, 24)
+        pic:SetVertexColor(.8, .3, .3)
+      elseif t.key == "text" then
+        local fs = W.Font(b:CreateFontString(nil, "OVERLAY"), 11, 1, .82, .3)
+        fs:SetPoint("CENTER", b, "CENTER", 0, 0)
+        fs:SetText("Elite")
+      elseif t.dragon then
+        local d = t.dragon
+        if d.tex then
+          local c = d.coords
+          local pic = Pic(d.tex, 34, 34)
+          pic:SetTexCoord(c[2], c[1], c[3], c[4])
+        else
+          Pic(X.DRAGON .. "TOP_GOLD_RIGHT", 30, 30, "TOPRIGHT", 0, 0):SetVertexColor(.75, .6, 0)
+          Pic(X.DRAGON .. "BOTTOM_GOLD_RIGHT", 22, 22, "BOTTOMRIGHT", 0, 0):SetVertexColor(.75, .6, 0)
+        end
+      else
+        local tex, w, ht = pfUI.art and pfUI.art.Crest(t.crest ~= "" and t.crest or nil, "elite")
+        if tex then
+          if w == ht then Pic(tex, 32, 32) else Pic(tex, 36, 18) end
+        else
+          Pic("Interface\\AddOns\\pfUI\\img\\bars\\uf-elite", 36, 18):SetVertexColor(1, .82, .3)
+        end
+        if t.crest == "" then
+          local fs = W.Font(b:CreateFontString(nil, "OVERLAY"), 9, .7, .7, .7)
+          fs:SetPoint("BOTTOM", b, "BOTTOM", 0, 1)
+          fs:SetText("Art")
+        end
+      end
+      local hl = b:CreateTexture(nil, "HIGHLIGHT")
+      hl:SetTexture("Interface\\Buttons\\WHITE8X8")
+      hl:SetVertexColor(1, 1, 1, .12)
+      hl:SetAllPoints(b)
+      W.Tip(b, t.label, t.hint .. "\nClick: this frame uses it.")
+      b:SetScript("OnClick", function()
+        local c = U()
+        for k, v in pairs(this.tile.set) do c[k] = v end
+        Up()
+        sel:ClearAllPoints() sel:SetAllPoints(this)
+        sel:Show()
+      end)
+      cells[t.key] = b
+      x = x + 1
+      if x >= per then x, y = 0, y - CELL end
+    end
+    UF.eliteCells = cells
+    table.insert(p.items, { Refresh = function()
+      local b = cells[UF.EliteKey(U())]
+      if b then sel:ClearAllPoints() sel:SetAllPoints(b) sel:Show() else sel:Hide() end
+    end })
+  end
+
   -- the tabs, in the pinned strip under the preview
-  function UF.SectionTabs(p)
-    local row = W.Row(p, 24, 0, 6)
-    local n = table.getn(UF.SECTIONS)
-    -- (room at the right end for "Copy from...")
-    local w = math.floor((W.CW - 118 - (n - 1) * 4) / n)
+  -- "Copy from..." beside the frame picker (it acts on the frame picked there)
+  function UF.CopyButton(row)
     local copy = W.Button(row, "Copy from...", 114, 22)
     copy:SetPoint("RIGHT", row, "RIGHT", 0, 0)
     if W.Tint then W.Tint(copy, "save") end
@@ -365,33 +493,85 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       .. "bars, text, buffs, icons or look. Position and whether it shows stay its own. The last copy can be undone here.")
     copy:SetScript("OnClick", function() UF.CopyMenu(this) end)
     UF.copyButton = copy
+    return copy
+  end
+
+  -- (19 Nov 2026, user: "the bar is quite confusing", screenshot: eight equal buttons with pictures, names cut to
+  -- "Raid la..." / "All fra...", next to a gold Copy button). Now plain words as wide as their names, the open one
+  -- white with the accent line under it - the same look as the page tabs at the top of the window - under a small
+  -- "Settings for <frame>" so it is clear they are this frame's.
+  function UF.SectionTabs(p)
+    local row = W.Row(p, 30, 0, 6)
+    local K = W.C
+    local head = W.Font(row:CreateFontString(nil, "OVERLAY"), 11, K.dim[1], K.dim[2], K.dim[3])
+    head:SetPoint("LEFT", row, "LEFT", 2, 0)
+    local line = row:CreateTexture(nil, "BACKGROUND")
+    line:SetTexture("Interface\\Buttons\\WHITE8X8")
+    line:SetHeight(1)
+    line:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+    line:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
+    line:SetVertexColor(K.accent[1], K.accent[2], K.accent[3], .35)
     local tabs = {}
-    for i, s in ipairs(UF.SECTIONS) do
-      local b = W.Button(row, s[2], w, 22)
-      b:SetPoint("LEFT", row, "LEFT", (i - 1) * (w + 4), 0)
-      b.key = s[1]
-      local pic = b:CreateTexture(nil, "OVERLAY")
-      pic:SetTexture(ICON .. s[3])
-      pic:SetTexCoord(.08, .92, .08, .92)
-      pic:SetWidth(16)
-      pic:SetHeight(16)
-      pic:SetPoint("LEFT", b, "LEFT", 5, 0)
-      if b.label then
-        b.label:ClearAllPoints()
-        b.label:SetPoint("LEFT", pic, "RIGHT", 5, 0)
-        b.label:SetPoint("RIGHT", b, "RIGHT", -4, 0)
-        b.label:SetJustifyH("LEFT")
+    local function Paint(b)
+      local on = b.key == UF.sec
+      if on then b.text:SetTextColor(1, 1, 1) b.bar:Show()
+      elseif b.hover then b.text:SetTextColor(.92, .92, .95) b.bar:Hide()
+      else b.text:SetTextColor(.62, .64, .7) b.bar:Hide() end
+    end
+    local function Lay()
+      local label = BY[UF.cur] and BY[UF.cur][2] or UF.cur
+      head:SetText(string.upper(label or ""))
+      local x = math.max(90, math.floor((head:GetStringWidth() or 60) + 18))
+      -- the names must fit one row: a size smaller when they would not
+      local size = 13
+      for pass = 1, 2 do
+        local total = x
+        for _, b in ipairs(tabs) do
+          b.text:SetFont(W.UIFont(), size)
+          b.w = math.floor((b.text:GetStringWidth() or 50) + 16)
+          total = total + b.w
+        end
+        if total <= W.CW or size <= 11 then break end
+        size = size - 1
       end
+      for _, b in ipairs(tabs) do
+        b:SetWidth(b.w)
+        b:ClearAllPoints()
+        b:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", x, 0)
+        x = x + b.w
+        Paint(b)
+      end
+    end
+    for i, s in ipairs(UF.SECTIONS) do
+      local b = CreateFrame("Button", nil, row)
+      b:SetHeight(28)
+      b.key = s[1]
+      b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, 1, 1, 1)
+      b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
+      b.text:SetText(s[2])
+      b.bar = b:CreateTexture(nil, "ARTWORK")
+      b.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
+      b.bar:SetHeight(3)
+      b.bar:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 6, 0)
+      b.bar:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 0)
+      b.bar:SetVertexColor(K.accent[1], K.accent[2], K.accent[3], 1)
       local tip = {}
       for _, t in ipairs(s[4]) do table.insert(tip, t) end
-      W.Tip(b, s[2], "Shows: " .. table.concat(tip, ", ") .. ".")
+      b:SetScript("OnEnter", function()
+        this.hover = true
+        Paint(this)
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:AddLine(this.text:GetText())
+        GameTooltip:AddLine("Shows: " .. table.concat(tip, ", ") .. ".", 1, 1, 1, 1)
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() this.hover = nil Paint(this) GameTooltip:Hide() end)
       b:SetScript("OnClick", function() UF.SetSection(this.key) end)
       tabs[i] = b
     end
     UF.secTabs = tabs
-    table.insert(p.items, { Refresh = function()
-      for _, b in ipairs(tabs) do W.Pick(b, b.key == UF.sec) end
-    end })
+    Lay()
+    table.insert(p.items, { Refresh = Lay })
     return row
   end
 
@@ -1169,6 +1349,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         O:Refresh()
       end)
       drop:SetPoint("LEFT", row, "LEFT", 60, 0)
+      UF.CopyButton(row)
       -- (25 Oct 2026: 170 -> 136 high, so more of the page shows under it)
       local mini = UF.Mini(W.Box(p, 136))
       table.insert(p.items, { Refresh = function()
@@ -1520,9 +1701,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Class icon", "Players only.", L(X and X.CLASSICON), U, "o_classicon")
     Sld(p, "Class icon size", nil, 8, 40, 1, U, "o_classsize", Px)
     Chk(p, "Class picture as portrait", "Players show their class icon in place of the portrait.", U, "o_classport")
-    Drop(p, "Elite, rare and boss", "Dragons = Shagu's Elite Overlay: gold dragons round elites, grey round rares, red round bosses.", L(X and X.ELITE), U, "o_elite")
-    Drop(p, "Badge at", "For the dragons: right = the right side of the frame, left = the left side.", L(X and X.CORNERS), U, "o_elitepos")
     Chk(p, "AFK, offline and dead marks", nil, U, "o_status")
+
+    UF.EliteCard(p)
 
     -- the "Blizzard" section (9 Nov 2026, user: "make all the blizzard menu together"):
     -- Blizzard's own frames or ours, the Blizzard look on ours, the stance icon (on both)
