@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.86", {
+    { "Unit Frames options sorted like ElvUI / EllesmereUI", "the tabs are now the parts of the frame, in order - Frame, Health, Power, Text, Portrait, Buffs & debuffs, Icons & art, Raid layout - and everything every frame shares sits on one gold All frames tab at the end. Names are written in full." },
+    { "Change together", "tick Player, Target, Focus (or any frame) under the tabs and every change you make goes to them too. Not their position; it stops when you log out." },
+    { "Every dragon and crest as pictures", "Icons & art > Elite, rare and boss art shows every badge as a tile - off, the word, four dragons (Elite Overlay plus three of the game's own) and every crest. Each frame can have its own." },
+  } },
   { "1.1.85", {
     { "Faded parts in the unit frame preview", "the elite badge, raid mark, leader, loot and PvP icons now show faded on the Unit Frames preview while they are switched off. Click one to go straight to the setting that turns it on - the faded crest takes you to the Elite Overlay dragons." },
   } },
@@ -156,8 +161,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.47", {
     { "Cash on delivery in one click", "a COD letter's button says Pay, and clicking the item or right-clicking the row pays and takes it at once." },
-  } },
-  { "1.1.46", {
-    { "Cleaner pull line in the threat window", "\"Pull at 43.0k\" in plain white, and its bar fills with your threat towards the pull point - green with room, gold when close, red past it. Tanks see \"Lead on <name>\"." },
   } },
 }
