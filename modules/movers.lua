@@ -129,6 +129,18 @@ pfUI:RegisterModule("movers", "vanilla", function ()
       pcall(pfUI.api.LoadMovable, f, true)
     end
     MV.ApplyAlpha(name)
+    -- (19 Nov 2026, user: Lo5t1ncyb3r's quest log "is moving after he has set it ... it should always hard remember where
+    -- you leave EVERYTHING") a game window puts itself back in its own place when it opens: our saved place goes on
+    -- again as it opens and once more on the next frame (after the game's window code has run)
+    if not f.octoMvShow and f.GetScript and f.SetScript then
+      f.octoMvShow = true
+      local old = f:GetScript("OnShow")
+      f:SetScript("OnShow", function()
+        if old then old() end
+        MV.ReapplyOne(this)
+        MV.Soon()
+      end)
+    end
     if MV.Showing() then Box(name, f) end
     return name
   end
@@ -157,15 +169,27 @@ pfUI:RegisterModule("movers", "vanilla", function ()
   end
 
   -- the game puts some frames back by itself: a saved place goes on again right after
+  function MV.ReapplyOne(f)
+    local name = f and f.GetName and f:GetName()
+    local p = name and MV.mine[name] and C.position and C.position[name]
+    if p and p.xpos and not (pfUI.unlock and pfUI.unlock:IsShown()) and not pfUI.api.IsDragging(f) then
+      pcall(pfUI.api.LoadMovable, f)
+    end
+  end
   function MV.Reapply()
     for name in pairs(MV.mine) do
       local f = _G[name]
-      local p = C.position and C.position[name]
-      if f and p and p.xpos and not (pfUI.unlock and pfUI.unlock:IsShown()) then
-        pcall(pfUI.api.LoadMovable, f)
-      end
+      if f then MV.ReapplyOne(f) end
     end
   end
+  -- once more on the next frame (the game's own window code may move it after its OnShow)
+  local soon = CreateFrame("Frame", "pfMoversSoon")
+  soon:Hide()
+  soon:SetScript("OnUpdate", function()
+    this:Hide()
+    MV.Reapply()
+  end)
+  function MV.Soon() soon:Show() end
   local function Wrap(gname, after)
     local orig = _G[gname]
     if type(orig) ~= "function" or MV["wrapped" .. gname] then return end
@@ -226,7 +250,9 @@ pfUI:RegisterModule("movers", "vanilla", function ()
       end
     end
   end
-  Wrap("UpdateUIPanelPositions", function() MV.ReplaceWindows() end)
+  -- (19 Nov 2026) after the game lays its windows out: the Shift-dragged ones, then every saved box place (picked
+  -- game windows such as the quest log too)
+  Wrap("UpdateUIPanelPositions", function() MV.ReplaceWindows() MV.Reapply() end)
   function MV.ForgetWindow(name)
     Tbl("win")[name] = nil
     if _G[name] and _G[name]:IsShown() and UpdateUIPanelPositions then pcall(UpdateUIPanelPositions) end

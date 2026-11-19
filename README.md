@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.81
+
+- 📌 **Moved frames stay put:** a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later.
+
 ## 📜 New in 1.1.80
 
 - 💬 **Whisper windows really open now:** a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - `/whispers test` included. Each window now starts hidden, gets its place, then shows.

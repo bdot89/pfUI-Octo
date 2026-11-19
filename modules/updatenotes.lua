@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.81", {
+    { "Moved frames stay put", "a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later." },
+  } },
   { "1.1.80", {
     { "Whisper windows really open now", "a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - /whispers test included. Each window now starts hidden, gets its place, then shows." },
   } },
@@ -159,12 +162,5 @@ pfUI.octoNotes = {
   { "1.1.42", {
     { "NPCs no longer click for you", "OctoLazy's \"Skip the menu\" (flight masters, vendors, bankers, battle masters) is now off unless you switch it on - /lazy NPCs & quests. It is switched off once for everyone, with a chat line saying where it is." },
     { "Map icons stay after a relog", "herb / ore / fish marks are no longer put back to old values by a UI layout switch, and the quest database's tracking lists (herbs, mines, rares...) come back by themselves a few seconds after you log in." },
-  } },
-  { "1.1.41", {
-    { "OctoRinse (UpsiRinse built in)", "one key cures the most important debuff on your group with the right spell, in range. Its own section at the top of Combat & Items. Every UpsiRinse setting is there, and your UpsiRinse settings, lists and learned debuffs are copied over the first time both are loaded. New files: restart the game fully once." },
-    { "Boss lists, per boss only", "every raid and dungeon from UpsiRinse with each boss's curable debuffs, under the zone's loading-screen art. Skip school / Hide / Cure first on a boss count only while you fight that boss - never in PvP or anywhere else. \"Everywhere\" holds the lists that count in every fight." },
-    { "Quick menu in combat", "click the Players picture on the bar - class pictures, raid groups and every player. Left-click = cure first, right-click = never cure, plus My group first and Pets." },
-    { "Faster with DLLs", "cures react the moment a debuff lands; ClassicAPI reads every debuff's school and caster, UnitXP / ClassicAPI check range and sight, SuperWoW cures without swapping your target." },
-    { "Cleansing totems", "for shamans on by default, with the totem's own icon. Choose where it runs (raids, dungeons, battlegrounds, arenas, world); title bar can hide until you mouse over it; right-click its box in layout mode for its options." },
   } },
 }

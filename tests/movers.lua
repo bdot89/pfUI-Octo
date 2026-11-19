@@ -118,3 +118,35 @@ do
   ok(z:GetScript("OnUpdate") == Fade and not z:IsShown(), "after: its fade back, hidden as it was")
   U:Hide()
 end
+
+-- (19 Nov 2026, Lo5t1ncyb3r: the picked quest log went back to the game's place after he had set it) a picked game
+-- window keeps its saved place when the game lays its windows out and when it opens
+do
+  local qlog = CreateFrame("Frame", "OctoTestQuestLog", UIParent)
+  qlog:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
+  MV.PickName("OctoTestQuestLog", true)
+  pfUI_config.position.OctoTestQuestLog = { xpos = 500, ypos = -300, anchor = "TOPLEFT" }
+  local function Where()
+    local a, b, c, x, y = qlog:GetPoint()
+    if x == nil and type(b) == "number" then x, y = b, c end
+    return a, x, y
+  end
+  if not MV.wrappedUpdateUIPanelPositions then
+    _G.UpdateUIPanelPositions = function() end
+    MV.Wrap("UpdateUIPanelPositions", function() MV.ReplaceWindows() MV.Reapply() end)
+  end
+  qlog:ClearAllPoints()
+  qlog:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
+  _G.UpdateUIPanelPositions()
+  local a, x, y = Where()
+  ok(a == "TOPLEFT" and x == 500 and y == -300, "the game laid its windows out: the saved place put back (" .. tostring(x) .. "," .. tostring(y) .. ")")
+  qlog:Hide()
+  qlog:ClearAllPoints()
+  qlog:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, -104)
+  _G.this = qlog
+  qlog:GetScript("OnShow")()
+  a, x, y = Where()
+  ok(x == 500 and y == -300, "it opens: the saved place again")
+  MV.Unpick("OctoTestQuestLog")
+  MV.SetShowing(false)
+end
