@@ -38,69 +38,168 @@ pfUI:RegisterModule("octototems-options", "vanilla", function ()
     return s
   end
 
-  -- the preview: the four bars from a made-up fight. Left-click a totem = in / out of the set being edited,
-  -- right-click = hide it on the bar, hover = open the bar, Shift + wheel = size.
+  -- the preview = a set editor (19 Nov 2026, user: "buggy when i hover over it gets bigger and smaller it should be hard
+  -- set and clickable not laggy ... just icons you click and set. reset button to reset them all"): a fixed grid, one row
+  -- per element with every totem as an icon. Click = that element's totem in the set being edited (again = none),
+  -- right-click = hide / show it on your bars. Nothing moves or resizes; it repaints on clicks only (and once a second
+  -- for changes made elsewhere). The chips on top pick the set to edit.
+  local ICON, GAP, ROWH, LABW = 32, 6, 40, 78
   local function Preview(p, note)
-    W.Pin(p, "Your totem bars", "A made-up fight: timers run, one totem goes out of range, the advisor lights the poison totem. "
-      .. "Left-click a totem: in / out of the set. Right-click: hide it on the bar. Shift + wheel: button size.", function(pp)
-      local box = (W.ZoomBox or W.Box)(pp, 170)
+    W.Pin(p, "Your totem set", "Click a totem to put it in the set (click it again to take it out). Right-click: hide it "
+      .. "on your bars. The small number is the order it is thrown in.", function(pp)
+      local box = W.Box(pp, 52 + 4 * ROWH)
       local holder = CreateFrame("Frame", nil, box)
       holder:SetAllPoints(box)
       holder:SetFrameStrata("FULLSCREEN")
-      local stage = CreateFrame("Frame", nil, holder)
-      stage:SetWidth(10) stage:SetHeight(10)
-      stage.onPreview = function(b, button)
-        if not b.totem then return end
-        if button == "RightButton" then
-          G().hide[b.totem] = not G().hide[b.totem] or nil
-        else
-          local set = TO.EditSet()
-          TT.PutInSet(set, b.totem)
-        end
-        TO.Paint()
+      TO.grid = holder
+      holder.chips, holder.rows = {}, {}
+
+      local function Chip(i)
+        local c = holder.chips[i]
+        if c then return c end
+        c = CreateFrame("Button", nil, holder)
+        c:SetHeight(20)
+        c.bg = c:CreateTexture(nil, "BACKGROUND")
+        c.bg:SetAllPoints(c)
+        c.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+        c.text = c:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        c.text:SetPoint("CENTER", c, "CENTER", 0, 0)
+        c:SetScript("OnClick", function() TO.edit = this.index TO.PaintGrid() end)
+        c:SetScript("OnEnter", function()
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:SetText(this.label or "")
+          GameTooltip:AddLine("Click: edit this set. Green = the set your key throws now.", .8, .8, .8, 1)
+          GameTooltip:Show()
+        end)
+        c:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        holder.chips[i] = c
+        return c
       end
-      local hot = CreateFrame("Frame", nil, holder)
-      hot:SetAllPoints(box)
-      hot:EnableMouseWheel(true)
-      hot:SetScript("OnMouseWheel", function()
-        if IsShiftKeyDown() then
-          G().size = tostring(math.max(20, math.min(64, (tonumber(G().size) or 36) + (arg1 or 0) * 2)))
-          TO.Paint()
-        elseif pfUI.plates and pfUI.plates.PassWheel then
-          pfUI.plates.PassWheel(this)
+
+      local function Icon(row, k)
+        local b = row.icons[k]
+        if b then return b end
+        b = CreateFrame("Button", nil, row)
+        b:SetWidth(ICON) b:SetHeight(ICON)
+        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        b.edge = b:CreateTexture(nil, "BACKGROUND")
+        b.edge:SetPoint("TOPLEFT", b, "TOPLEFT", -2, 2)
+        b.edge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 2, -2)
+        b.edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+        b.tex = b:CreateTexture(nil, "ARTWORK")
+        b.tex:SetAllPoints(b)
+        b.tex:SetTexCoord(.08, .92, .08, .92)
+        b.num = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        b.num:SetPoint("TOPLEFT", b, "TOPLEFT", 2, -2)
+        b.x = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        b.x:SetPoint("CENTER", b, "CENTER", 0, 0)
+        b:SetScript("OnClick", function()
+          if arg1 == "RightButton" then
+            G().hide[this.totem] = not G().hide[this.totem] or nil
+          else
+            TT.PutInSet(TO.EditSet(), this.totem)
+          end
+          TO.PaintGrid()
+        end)
+        b:SetScript("OnEnter", function()
+          GameTooltip:SetOwner(this, "ANCHOR_TOP")
+          GameTooltip:SetText(this.totem)
+          if not TT.Known(this.totem) then GameTooltip:AddLine("Not learnt yet", 1, .4, .4) end
+          GameTooltip:AddLine("Click: in / out of the set. Right-click: hide / show on your bars.", .8, .8, .8, 1)
+          GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        row.icons[k] = b
+        return b
+      end
+
+      for el = 1, 4 do
+        local row = CreateFrame("Frame", nil, holder)
+        row:SetHeight(ROWH)
+        row:SetPoint("TOPLEFT", holder, "TOPLEFT", 12, -40 - (el - 1) * ROWH)
+        row:SetPoint("RIGHT", holder, "RIGHT", -12, 0)
+        row.label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        row.label:SetPoint("LEFT", row, "LEFT", 0, 0)
+        row.label:SetWidth(LABW)
+        row.label:SetJustifyH("LEFT")
+        row.pick = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.pick:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+        row.pick:SetJustifyH("RIGHT")
+        row.icons = {}
+        holder.rows[el] = row
+      end
+
+      function TO.PaintGrid()
+        local set, si = TO.EditSet()
+        local _, cur = TT.Cur()
+        -- set chips
+        local x = 12
+        for i, s in ipairs(TT.Sets()) do
+          local c = Chip(i)
+          c.index, c.label = i, s.name
+          c.text:SetText(s.name)
+          local w = math.max(60, (c.text:GetStringWidth() or 40) + 20)
+          c:SetWidth(w)
+          c:ClearAllPoints()
+          c:SetPoint("TOPLEFT", holder, "TOPLEFT", x, -10)
+          x = x + w + 6
+          if i == si then c.bg:SetVertexColor(.55, .35, .9, .9) c.text:SetTextColor(1, 1, 1)
+          elseif i == cur then c.bg:SetVertexColor(.15, .45, .2, .8) c.text:SetTextColor(.8, 1, .8)
+          else c.bg:SetVertexColor(.2, .2, .22, .8) c.text:SetTextColor(.75, .75, .78) end
+          c:Show()
         end
-      end)
-      local function Paint()
-        local now = GetTime()
-        TT.Preview(stage, now)
-        local dir = G().dir_fire or "up"
-        stage:ClearAllPoints()
-        local scale = 1
-        local room = (box:GetHeight() or 170) - 24
-        local tall = 0
+        for i = table.getn(TT.Sets()) + 1, table.getn(holder.chips) do holder.chips[i]:Hide() end
+        -- the throw order of the edited set: element -> 1st..4th
+        local nth = {}
+        for k, el in ipairs(TT.SetOrderList(set or {})) do nth[el] = k end
         for el = 1, 4 do
-          local b = stage.pbars and stage.pbars[el]
-          if b and b.shown then tall = math.max(tall, b.shown) end
+          local row = holder.rows[el]
+          local r, g, b = TT.ElCol(el)
+          row.label:SetText(TT.EL[el].name)
+          row.label:SetTextColor(r, g, b)
+          local chosen = set and set["t" .. el] or ""
+          row.pick:SetText(chosen ~= "" and ("|cffffffff" .. chosen .. "|r  |cff888888" .. (nth[el] or "?") .. ". thrown|r") or "|cff666666none|r")
+          local list = TT.ElementTotems(el, true)
+          for k, name in ipairs(list) do
+            local ic = Icon(row, k)
+            ic.totem = name
+            ic:ClearAllPoints()
+            ic:SetPoint("LEFT", row, "LEFT", LABW + (k - 1) * (ICON + GAP), 0)
+            ic.tex:SetTexture(TT.Icon(name))
+            local on = chosen == name
+            local hidden = G().hide[name]
+            local known = TT.Known(name)
+            ic.tex:SetDesaturated((not known or hidden) and true or false)
+            local a = on and 1 or (known and .55 or .3)
+            ic.tex:SetVertexColor(a, a, a)
+            if on then ic.edge:SetVertexColor(r, g, b, 1) ic.edge:Show()
+            else ic.edge:SetVertexColor(0, 0, 0, 1) ic.edge:Show() end
+            ic.num:SetText(on and tostring(nth[el] or "") or "")
+            ic.x:SetText(hidden and "|cffff4444x|r" or "")
+            ic:Show()
+          end
+          for k = table.getn(list) + 1, table.getn(row.icons) do row.icons[k]:Hide() end
         end
-        local size, gap = tonumber(G().size) or 36, tonumber(G().spacing) or 3
-        local need = tall * (size + gap)
-        if need > room then scale = room / need end
-        stage:SetScale(math.max(.4, scale))
-        if dir == "down" then stage:SetPoint("TOP", box, "TOP", 0, -12 / stage:GetScale())
-        else stage:SetPoint("BOTTOM", box, "BOTTOM", 0, 12 / stage:GetScale()) end
-        holder:SetAlpha(G().enable == "1" and 1 or .4)
+        holder:SetAlpha(G().enable == "1" and 1 or .45)
       end
-      TO.Paint = Paint
+      TO.Paint = TO.PaintGrid
       holder:SetScript("OnUpdate", function()
         if (this.tick or 0) > GetTime() then return end
-        this.tick = GetTime() + .1
-        Paint()
+        this.tick = GetTime() + 1
+        TO.PaintGrid()
       end)
-      Paint()
-      if p.items then table.insert(p.items, { Refresh = Paint }) end
+      TO.PaintGrid()
+      if p.items then table.insert(p.items, { Refresh = TO.PaintGrid }) end
       W.Buttons(pp, {
+        { "Reset set", function()
+          local s = TO.EditSet()
+          if s then s.t1, s.t2, s.t3, s.t4 = "", "", "", "" end
+          TO.PaintGrid()
+        end, 100, "Takes every totem out of the set being edited, to pick a new one.", role = "off" },
+        { "Make active", function() local _, i = TO.EditSet() TT.UseSet(i) TO.PaintGrid() end, 110, "Your set key throws this set.", role = "go" },
+        { "New set", function() TO.edit = TT.NewSet() TO.PaintGrid() if O.Refresh then O:Refresh() end end, 100, "An empty set to fill in." },
+        { "Throw it", function() local s = TO.EditSet() TT.ThrowSet(s and s.name) end, 100, "Throws the edited set now (as the key does)." },
         { "Move frames", function() if pfUI.unlock then pfUI.unlock:Show() end end, nil, "Drag the totem bars where you want them." },
-        { "Throw the set", function() TT.ThrowSet() end, nil, "Throws the active set now (as the key does)." },
       })
     end)
     W.Live(p, TO.Status)

@@ -134,11 +134,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["OctoRinse"] = "One key cures your group's debuffs, with boss lists of what to skip, hide or cure first.",
-    ["OctoTotems"] = "Shaman totems: bars with timers and range, one-key sets, alerts, the advisor, smart heals and your earthen bulwark.",
-    ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
+    ["OctoTotems"] = "Shaman totems: bars, timers, one-key sets, alerts, smart heals and your earthen bulwark.",
+    ["OctoDoTs"] = "Every enemy and its debuffs: your DoTs and the raid's, real timers (Cursive Raid built in).",
     ["ItemRack"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
-    ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect all your mail at once.",
+    ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect mail.",
     ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
@@ -1257,6 +1257,22 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     Rule(y - 2)
   end
 
+  -- the line under the big title, cut at a word with "..." so it never runs under Find (19 Nov 2026)
+  function O.SetSubtitle(fs, text, room)
+    fs.fullText = text
+    fs:SetText(text)
+    if not room or room <= 0 or (fs:GetStringWidth() or 0) <= room then return text end
+    local words = {}
+    for w in string.gfind(text, "%S+") do table.insert(words, w) end
+    for n = table.getn(words) - 1, 1, -1 do
+      local cut = table.concat(words, " ", 1, n)
+      cut = string.gsub(cut, "[,;:%.%-]+$", "") .. "..."
+      fs:SetText(cut)
+      if (fs:GetStringWidth() or 0) <= room then return cut end
+    end
+    return fs:GetText()
+  end
+
   -- The page tabs (the open section's pages) and Find at their right.
   function O:BuildTabs(f)
     local row = CreateFrame("Frame", nil, f)
@@ -1295,6 +1311,28 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     QuickTip(find, "Find a setting", "Type a word (\"font\", \"crit\", \"castbar\"): every setting that mentions it is "
       .. "listed. Click one to go straight to it. Enter goes to the first.")
     self.quickFind = find
+    -- (19 Nov 2026, user: "text goes behind search bar i notice this on a few pages stop this") the section's
+    -- line under the big title stops before Find: one line, cut with "..." when longer, the whole text on hover
+    local v = f.version
+    if v then
+      local room = WIDTH - (NAV_W + 34 + 2) - 12 - 230 - 16
+      v:SetWidth(room)
+      v:SetHeight(16)
+      v:SetJustifyH("LEFT")
+      if v.SetNonSpaceWrap then v:SetNonSpaceWrap(false) end
+      self.subRoom = room
+      local hot = CreateFrame("Frame", nil, f)
+      hot:SetAllPoints(v)
+      hot:EnableMouse(true)
+      hot:SetScript("OnEnter", function()
+        local t = v.fullText
+        if not t or t == "" or t == v:GetText() then return end
+        GameTooltip:SetOwner(this, "ANCHOR_BOTTOMLEFT")
+        GameTooltip:SetText(t, 1, 1, 1, 1, 1)
+        GameTooltip:Show()
+      end)
+      hot:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    end
   end
 
   -- Lays out the open section's tabs, a new line when one runs out of room.
@@ -2075,7 +2113,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     if grp then
       grp.lastKey = key
       self.frame.title:SetText(grp.name)
-      self.frame.version:SetText(O.SUBTITLE[grp.name] or "")
+      O.SetSubtitle(self.frame.version, O.SUBTITLE[grp.name] or "", self.subRoom)
     end
     self:LayoutSwap(key)
     for k, b in pairs(self.nav) do

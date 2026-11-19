@@ -121,3 +121,45 @@ for _, k in ipairs({ "QueueSpellByName", "GetTotemInfo", "UnitPosition", "UnitDe
 TT.drop, TT.state = {}, {}
 TT.TotemInfo = keepInfo
 TT.Scan()
+
+-- (19 Nov 2026, user: "text goes behind search bar") the line under the big title stops before Find
+do
+  local O2 = pfUI.octoui and pfUI.octoui.Options
+  local v = O2 and O2.frame and O2.frame.version
+  ok(v and O2.subRoom and O2.subRoom > 300 and O2.SetSubtitle, "subtitle has a room left of Find")
+  if v and O2.SetSubtitle then
+    local long = string.rep("word ", 200)
+    local shown = O2.SetSubtitle(v, long, O2.subRoom)
+    ok((v:GetStringWidth() or 0) <= O2.subRoom and string.find(shown, "%.%.%.$"), "a too long line is cut with ...")
+    local cut = {}
+    for name, t in pairs(O2.SUBTITLE or {}) do
+      if O2.SetSubtitle(v, t, O2.subRoom) ~= t then table.insert(cut, name) end
+    end
+    ok(table.getn(cut) == 0, "every section's line fits whole (" .. table.concat(cut, ", ") .. ")")
+  end
+end
+
+-- (19 Nov 2026, user: "just icons you click and set. reset button") the set editor grid: fixed icons, click = in the set
+do
+  local TO = pfUI.octototemsOptions
+  local O3 = pfUI.octoui.Options
+  pcall(function() O3.pages.totembars = nil O3:Page("totembars") end)
+  local g = TO and TO.grid
+  ok(g and g.rows and g.rows[1] and g.rows[1].icons[1], "set editor grid built")
+  if g and g.rows[1].icons[1] then
+    TO.edit = 1
+    local set = TO.EditSet()
+    set.t1 = ""
+    local ic = g.rows[1].icons[1]
+    local w0 = ic:GetWidth()
+    _G.arg1 = "LeftButton"
+    _G.this = ic
+    ic:GetScript("OnClick")()
+    ok(set.t1 == ic.totem, "click puts the totem in the set (" .. tostring(set.t1) .. ")")
+    ic:GetScript("OnEnter")()
+    ok(ic:GetWidth() == w0, "hovering does not resize it")
+    ic:GetScript("OnClick")()
+    ok(set.t1 == "", "click again takes it out")
+    set.t1 = "Searing Totem"
+  end
+end

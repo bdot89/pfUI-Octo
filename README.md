@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.70
+
+- 🔥 **OctoTotems set editor:** the preview on the Bars and Sets pages is now a fixed grid, one row per element with every totem as an icon. Click one to put it in the set, click it again to take it out, and right-click to hide it on your bars. Nothing grows or shrinks when you hover. The chips on top pick which set you edit (green = the one your key throws). **Reset set** empties it so you can pick a new one, and New set, Make active and Throw it sit right under it.
+- ✂️ **The line under each page's big title no longer runs under the Find box.** It stops before it, a too-long line is cut with "..." (hover it for the whole text), and the longest lines (OctoTotems, OctoDoTs, Auctions) were made shorter so they show whole.
+
 ## 📜 New in 1.1.69
 
 - 🔥 **OctoTotems, our own Call of Elements:** a new section for shamans. Four totem bars (fire, earth, water, air) side by side or each on its own, opening on hover, always or never, in any direction, with your own order and hidden totems. Each button shows its timer, a timer line, the cooldown in red once the totem is gone, a glow for the one that is down, red when you've walked out of its range, and a gold dot for the set's totems. Durations come from this server's own spell data (the 90 s Windfury Totem too).
