@@ -476,8 +476,11 @@ if S then
   _G.octo_pwned = nil
   local evil = 'pfUI_config = {\n  ["a"] = "1",\n}\nocto_pwned = true\n'
   ok(S.parse(evil) == nil, "refuses code after the table")
-  ok(S.parse('pfUI_config = {\n  ["a"] = os.exit(),\n}') == nil, "refuses a function call as a value")
-  ok(S.parse('pfUI_config = {\n  ["a"] = ("x"):rep(9),\n}') == nil, "refuses an expression")
+  -- (19 Nov 2026) an odd line is left out (never run); the rest of the string still imports
+  local p1, _, sk1 = S.parse('pfUI_config = {\n  ["a"] = os.exit(),\n  ["b"] = "2",\n}')
+  ok(p1 and p1.a == nil and p1.b == "2" and sk1 == 1, "a function call as a value is left out, not run")
+  local p2 = S.parse('pfUI_config = {\n  ["a"] = ("x"):rep(9),\n}')
+  ok(p2 and p2.a == nil, "an expression is left out")
   ok(S.parse('pfUI_config = {\n  ["a"] = {\n') == nil, "refuses an unfinished table")
   ok(_G.octo_pwned == nil, "nothing ran")
 
@@ -559,6 +562,21 @@ if S then
     ok(t and t.unitframes.player.width == "250", "window reads a pasted encoded string: " .. tostring(e))
     pfShare.scroll.text:SetText("print('hi')")
     ok(pfShare.GetImport() == nil, "window refuses Lua code")
+    -- (19 Nov 2026, Barbeque_Squirrel: "the import button isnt pressing at all")
+    pfShare.scroll.text:SetText("```\n" .. encoded .. "\n```")
+    ok(pfShare.GetImport(), "a string inside Discord's ``` block imports")
+    pfShare.scroll.text:SetText(string.sub(encoded, 1, math.floor(string.len(encoded) / 2)))
+    local _, ecut = pfShare.GetImport()
+    ok(ecut == "cut short" and string.find(pfShare.status:GetText() or "", "cut short"), "half a string says it is cut short (" .. tostring(ecut) .. ")")
+    ok(pfShare.loadButton:IsEnabled() ~= 0 and pfShare.loadButton:IsEnabled() ~= false, "Import stays clickable")
+    do
+      local src2 = { chat = { note = "line one\nline two\r" }, octototems = { sets = { { name = "A" }, { name = "B" } } }, n = { x = 0/0, y = 2 } }
+      local txt2 = S.serialize(src2, nil, "pfUI_config", {})
+      local b2, e2 = S.parse(txt2)
+      ok(b2 and b2.chat.note == "line one\nline two\r", "a value with line breaks round-trips (" .. tostring(e2) .. ")")
+      ok(b2 and b2.octototems.sets[2] and b2.octototems.sets[2].name == "B" and table.getn(b2.octototems.sets) == 2, "lists keep number keys")
+      ok(b2 and b2.n.x == nil and b2.n.y == 2, "a not-a-number value is left out")
+    end
     -- (16 Nov 2026) Export first lists the changed features; only the ticked ones go into the string
     local oldTip = pfUI_config.tooltip.position
     pfUI_config.tooltip.position = "cursor"

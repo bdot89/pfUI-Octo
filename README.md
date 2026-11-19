@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.71
+
+- 📥 **Profile import no longer goes dead.** The Import button stays clickable, and a line above it says why a string can't go in yet. If the string is cut short (Discord splits long messages), it tells you to copy all of it or send it as a file. A string pasted with Discord's ``` code block around it now imports too.
+- 🧩 **Profile strings read and write better.** A setting with a line break in it used to break the whole string, and now it comes through. One odd line is left out instead of refusing everything. Lists (totem sets, consumables lists, roll rules) keep their order when you share them.
+
 ## 📜 New in 1.1.70
 
 - 🔥 **OctoTotems set editor:** the preview on the Bars and Sets pages is now a fixed grid, one row per element with every totem as an icon. Click one to put it in the set, click it again to take it out, and right-click to hide it on your bars. Nothing grows or shrinks when you hover. The chips on top pick which set you edit (green = the one your key throws). **Reset set** empties it so you can pick a new one, and New set, Make active and Throw it sit right under it.

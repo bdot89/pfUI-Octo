@@ -4,22 +4,32 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
   local function write(out, tbl, comp, name, ignored, spacing)
     local start = table.getn(out)
     local match = nil
-    local tname = ( spacing == "" and "" or "[\"" ) .. name .. ( spacing == "" and "" or "\"]" )
+    local tname = spacing == "" and name or (type(name) == "number" and ("[" .. name .. "]") or ("[\"" .. name .. "\"]"))
     table.insert(out, spacing .. tname .. " = {\n")
     for k, v in pairs(tbl) do
       if not ( ignored[k] and spacing == "" ) and ( not comp or not comp[k] or comp[k] ~= tbl[k] ) then
+        -- (19 Nov 2026, Barbeque_Squirrel: "the import button isnt pressing at all") list entries keep a
+        -- number key ([3]), so lists (totem sets, consumables, roll rules) come back as lists
+        local kk = type(k) == "number" and ("[" .. k .. "]") or ("[\"" .. k .. "\"]")
         if type(v) == "table" then
           if write(out, tbl[k], comp and comp[k], k, ignored, spacing .. "  ") then match = true end
         elseif type(v) == "string" then
           match = true
-          table.insert(out, spacing .. "  [\""..k.."\"] = \"".. string.gsub(v, "\\", "\\\\") .."\",\n")
+          -- line breaks inside a value broke the string into lines the reader refused (Import stayed grey)
+          local s = string.gsub(v, "\\", "\\\\")
+          s = string.gsub(s, "\n", "\\n")
+          s = string.gsub(s, "\r", "\\r")
+          table.insert(out, spacing .. "  " .. kk .. " = \"" .. s .. "\",\n")
         elseif type(v) == "number" then
-          match = true
-          table.insert(out, spacing .. "  [\""..k.."\"] = ".. string.gsub(v, "\\", "\\\\") ..",\n")
+          -- not a number / endless (1.#INF) cannot be read back: left out
+          if v == v and v < 1e300 and v > -1e300 then
+            match = true
+            table.insert(out, spacing .. "  " .. kk .. " = " .. tostring(v) .. ",\n")
+          end
         elseif type(v) == "boolean" then
           -- octo: the combat text keeps on / off settings as true / false
           match = true
-          table.insert(out, spacing .. "  [\""..k.."\"] = ".. (v and "true" or "false") ..",\n")
+          table.insert(out, spacing .. "  " .. kk .. " = " .. (v and "true" or "false") .. ",\n")
         end
       end
     end
@@ -44,15 +54,23 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
   -- returns: the table, or nil and a message with the bad line number
   local function parse(text)
     if type(text) ~= "string" or string.len(text) > 2000000 then return nil, "no text" end
-    local root, stack, depth, lineno = nil, {}, 0, 0
+    local root, stack, depth, lineno, skipped = nil, {}, 0, 0, 0
+    local ESC = { n = "\n", r = "\r" }
     local function unescape(s)
-      return (string.gsub(s, "\\(.)", "%1"))
+      return (string.gsub(s, "\\(.)", function(c) return ESC[c] or c end))
+    end
+    -- ["key"] or [12] at the start of a line: key, the rest of the line
+    local function keyOf(line)
+      local _, _, k, rest = string.find(line, '^%["([^"]*)"%] = (.*)$')
+      if k then return k, rest end
+      _, _, k, rest = string.find(line, '^%[(%d+)%] = (.*)$')
+      if k then return tonumber(k), rest end
     end
     for line in string.gfind(text .. "\n", "([^\n]*)\n") do
       lineno = lineno + 1
       line = string.gsub(line, "^%s+", "")
       line = string.gsub(line, "%s+$", "")
-      local _, key, value
+      local _, key, rest, value
       if line == "" then
         -- blank
       elseif not root then
@@ -66,36 +84,37 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
         stack[depth] = nil
         depth = depth - 1
       else
-        _, _, key = string.find(line, '^%["([^"]*)"%] = {$')
-        if key then
+        key, rest = keyOf(line)
+        if key and rest == "{" then
           if depth >= 12 then return nil, "line " .. lineno .. ": nested too deep" end
           local t = {}
           stack[depth][key] = t
           depth = depth + 1
           stack[depth] = t
-        else
-          _, _, key, value = string.find(line, '^%["([^"]*)"%] = "(.*)",$')
-          if key then
+        elseif key then
+          _, _, value = string.find(rest, '^"(.*)",$')
+          if value then
             stack[depth][key] = unescape(value)
+          elseif rest == "true," or rest == "false," then
+            stack[depth][key] = (rest == "true,")
           else
-            _, _, key, value = string.find(line, '^%["([^"]*)"%] = (%-?[%d%.]+[eE]?[%-%+]?%d*),$')
-            if key and tonumber(value) then
+            _, _, value = string.find(rest, '^(%-?[%d%.]+[eE]?[%-%+]?%d*),$')
+            if value and tonumber(value) then
               stack[depth][key] = tonumber(value)
             else
-              _, _, key, value = string.find(line, '^%["([^"]*)"%] = (%a+),$')
-              if key and (value == "true" or value == "false") then
-                stack[depth][key] = (value == "true")
-              else
-                return nil, "line " .. lineno .. ": not a setting"
-              end
+              skipped = skipped + 1
             end
           end
+        else
+          -- (19 Nov 2026) one odd line (a value with a line break in an older string) is left out,
+          -- the rest still imports - it used to refuse the whole string and keep Import grey
+          skipped = skipped + 1
         end
       end
     end
     if not root then return nil, "empty" end
-    if depth ~= 0 then return nil, "unfinished (missing })" end
-    return root
+    if depth ~= 0 then return nil, "cut short" end
+    return root, nil, skipped
   end
 
   -- counts the values in the imported config that differ from the current one,
@@ -616,19 +635,52 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
       local text = f.scroll and f.scroll.text and f.scroll.text:GetText() or ""
       if string.gsub(text, "%s", "") == "" then return nil, "empty" end
       if not string.find(text, "pfUI_config") then
+        -- (19 Nov 2026) Discord's ``` code blocks, quotes and |c colour codes copied along
+        text = string.gsub(text, "|c%x%x%x%x%x%x%x%x", "")
+        text = string.gsub(text, "|r", "")
+        text = string.gsub(text, "[`\"']", "")
+        text = string.gsub(text, "^%s*lua%s", "")
         local raw = dec(text)
-        if not raw or raw == "" then return nil, "not encoded" end
+        if not raw or raw == "" then return nil, "odd letters" end
         local good, out = pcall(decompress, raw)
-        if not good or type(out) ~= "string" then return nil, "cannot decode" end
+        if not good or type(out) ~= "string" then return nil, "cut short" end
         text = out
       end
       return parse(text)
     end
 
+    -- the line over the buttons: why Import cannot go yet, in words
+    f.WHY = {
+      ["empty"] = "Paste a profile string in the box (Ctrl+V).",
+      ["odd letters"] = "This is not a pfUI profile string: it has letters a string never has. Copy it again.",
+      ["cut short"] = "The string is cut short. Copy ALL of it (Discord cuts long messages: send it as a file).",
+      ["no text"] = "This string is too long to read.",
+    }
+    function f.Why(err)
+      if not err then return "" end
+      local w = f.WHY[err]
+      if w then return w end
+      if string.find(err, "not a pfUI profile") then
+        return "This is not a pfUI profile string (" .. err .. ")."
+      end
+      return "This string cannot be read (" .. err .. "). Copy it again."
+    end
+    function f.Check()
+      local imported, err, skipped = f.GetImport()
+      if not f.status then return imported end
+      if imported then
+        f.status:SetText("|cff88ff88" .. T["Ready: press Import."] .. "|r"
+          .. ((skipped or 0) > 0 and ("  |cffaaaaaa(" .. skipped .. " odd lines left out)|r") or ""))
+      else
+        f.status:SetText("|cffff8888" .. f.Why(err) .. "|r")
+      end
+      return imported, err
+    end
+
     do -- Edit Box
       f.scroll = pfUI.api.CreateScrollFrame("pfShareScroll", f)
       f.scroll:SetPoint("TOPLEFT", f, "TOPLEFT", 10, -30)
-      f.scroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 50)
+      f.scroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 56)
       f.scroll:SetWidth(560)
       f.scroll:SetHeight(400)
 
@@ -655,12 +707,12 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
         this:GetParent():UpdateScrollChildRect()
         this:GetParent():UpdateScrollState()
 
-        if not f.GetImport() then
-          f.loadButton:Disable()
-          f.loadButton.text:SetTextColor(1,.5,.5,1)
-        else
-          f.loadButton:Enable()
+        -- (19 Nov 2026, "the import button isnt pressing at all") never a dead button: it stays
+        -- clickable and the line above it says why a string cannot go in
+        if f.Check() then
           f.loadButton.text:SetTextColor(.5,1,.5,1)
+        else
+          f.loadButton.text:SetTextColor(1,.5,.5,1)
         end
 
         local trydec = dec(this:GetText())
@@ -721,6 +773,15 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
     end
 
 
+    do -- status line: why Import cannot go yet
+      f.status = f:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      f.status:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+      f.status:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 10, 34)
+      f.status:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 34)
+      f.status:SetJustifyH("LEFT")
+      f.status:SetText("")
+    end
+
     do -- button: load
       f.loadButton = CreateFrame("Button", "pfShareLoad", f)
       pfUI.api.SkinButton(f.loadButton)
@@ -732,9 +793,10 @@ pfUI:RegisterModule("share", "vanilla:tbc", function ()
       f.loadButton.text:SetFont(pfUI.font_default, pfUI_config.global.font_size, "OUTLINE")
       f.loadButton.text:SetText(T["Import"])
       f.loadButton:SetScript("OnClick", function()
-        local imported, err = f.GetImport()
+        local imported, err = f.Check()
         if not imported then
-          DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|rUI: " .. T["This is not a pfUI profile string"] .. " (" .. tostring(err) .. ")")
+          DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|rUI: " .. f.Why(err))
+          if UIErrorsFrame then UIErrorsFrame:AddMessage(f.Why(err), 1, .4, .4) end
           return
         end
 

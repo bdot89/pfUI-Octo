@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.71", {
+    { "Profile import no longer goes dead", "The Import button stays clickable, and a line above it says why a string can't go in yet. If the string is cut short (Discord splits long messages), it tells you to copy all of it or send it as a file. A string pasted with Discord's code block around it now imports too." },
+    { "Profile strings read and write better", "A setting with a line break in it used to break the whole string, and now it comes through. One odd line is left out instead of refusing everything. Lists (totem sets, consumables lists, roll rules) keep their order when you share them." },
+  } },
   { "1.1.70", {
     { "OctoTotems set editor", "the preview on the Bars and Sets pages is now a fixed grid, one row per element with every totem as an icon. Click one to put it in the set, click it again to take it out, and right-click to hide it on your bars. Nothing grows or shrinks when you hover. The chips on top pick which set you edit (green = the one your key throws). Reset set empties it so you can pick a new one, and New set, Make active and Throw it sit right under it." },
     { "The line under each page's big title no longer runs under the Find box", "It stops before it, a too-long line is cut with \"...\" (hover it for the whole text), and the longest lines (OctoTotems, OctoDoTs, Auctions) were made shorter so they show whole." },
@@ -164,11 +168,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.32", {
     { "Auctions", "a search that finds nothing up now shows the last prices seen in the empty list - when it was last up, its lowest price each that day, the usual price, and what you last sold it for." },
-  } },
-  { "1.1.31", {
-    { "Cooldown Manager", "macros can go on the bars (\"A macro...\" or by name): the macro's picture with the cooldown of what it casts, a click runs it." },
-    { "Cooldown Manager", "\"Show keybinds\" per bar - the key of the action button the spell, item or macro sits on." },
-    { "Cooldown Manager", "pick what a left-click and a right-click on an icon do, per bar (use it, open the options, or nothing)." },
-    { "Cooldown Manager", "\"Not Usable State\" per icon - grey, dim, red or blue while it cannot be used (no rage or mana, Overpower not up). All new options are off or as before by default." },
   } },
 }
