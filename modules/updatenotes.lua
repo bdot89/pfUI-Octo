@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.85", {
+    { "Faded parts in the unit frame preview", "the elite badge, raid mark, leader, loot and PvP icons now show faded on the Unit Frames preview while they are switched off. Click one to go straight to the setting that turns it on - the faded crest takes you to the Elite Overlay dragons." },
+  } },
   { "1.1.84", {
     { "Elite Overlay dragons", "Shagu's pfUI-eliteoverlay is built in. Pick \"Dragons (Elite Overlay)\" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side \"Badge at\" picks. Needs a full client restart for the new pictures." },
   } },
@@ -156,8 +159,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.46", {
     { "Cleaner pull line in the threat window", "\"Pull at 43.0k\" in plain white, and its bar fills with your threat towards the pull point - green with room, gold when close, red past it. Tanks see \"Lead on <name>\"." },
-  } },
-  { "1.1.45", {
-    { "DoT Tracker rows stay put in a fight", "every enemy keeps its row and new ones join at the bottom, so clicking through them never makes the list jump; it sorts again when the fight ends. Switch: DoT Tracker > General > \"Lock the order in combat\"." },
   } },
 }

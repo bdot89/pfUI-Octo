@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.85
+
+- 👻 **Faded parts in the unit frame preview:** the elite badge, raid mark, leader, loot and PvP icons now show faded on the Unit Frames preview while they are switched off. Click one to go straight to the setting that turns it on - the faded crest takes you to the Elite Overlay dragons.
+
 ## 📜 New in 1.1.84
 
 - 🐉 **Elite Overlay dragons:** Shagu's pfUI-eliteoverlay is built in. Pick "Dragons (Elite Overlay)" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side "Badge at" picks. Needs a full client restart for the new pictures.
