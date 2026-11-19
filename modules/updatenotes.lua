@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.74", {
+    { "OctoTotems error fixed", "the shield / weapon imbue reminder button had no font for its timer, so \"octototems.lua:952: Font not set\" repeated over and over. Every totem button now gets its font when it is made." },
+    { "Website download fixed", "the Download ZIP button works again (the newest releases had the zip under another name)." },
+  } },
   { "1.1.73", {
     { "Leftovers go up fast", "after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The \"in your bags\" count now stays right after a post too." },
   } },
@@ -166,8 +170,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.35", {
     { "Live performance window", "(/pfperf, or Settings > Performance > \"Open the live window\"): FPS, latency and Lua memory every second; a Scripts tab that measures every frame's scripts like pfDebug (calls, ms per second, total, memory made) without walking the game's tables, so it cannot crash the way pfDebug's Scan now does; an Add-ons tab with memory per add-on and, with the CPU profiler, CPU per add-on. /pfperf chat prints the old summary. New file: restart the game fully once." },
-  } },
-  { "1.1.34", {
-    { "Nameplates in battlegrounds", "\"Friendly pets\" now hides your own and your team's pets (their bars are blue like players', so they counted as players). \"Enemy pets\" also works without SuperWoW for any pet you have targeted or moused over. A hidden plate now hides other add-ons' parts on it too." },
   } },
 }

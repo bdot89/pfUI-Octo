@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.74
+
+- 🪨 **OctoTotems error fixed:** the shield / weapon imbue reminder button had no font for its timer, so "octototems.lua:952: Font not set" repeated over and over. Every totem button now gets its font when it is made.
+- ⬇️ **Website download fixed:** the Download ZIP button works again (the newest releases had the zip under another name).
+
 ## 📜 New in 1.1.73
 
 - 📦 **Leftovers go up fast:** after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The "in your bags" count now stays right after a post too.
