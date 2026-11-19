@@ -370,6 +370,11 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     local kind = exists and UnitClassification and UnitClassification(unit) or "normal"
     if f.octoForceElite then kind = f.octoForceElite end
     local mode = c.o_elite or "none"
+    -- (19 Nov 2026) the options preview shows a switched-off badge as a faded crest to click (octoGhostElite)
+    local ghost = mode == "none" and f.octoGhostElite
+    if ghost then mode = "graphic" end
+    f.octoElite.octoGhost = ghost or nil
+    f.octoElite:SetAlpha(ghost and .3 or 1)
     -- (the Blizzard look's dragon shows it already: unitframes-blizz.lua)
     local special = not (f.bz and f.bz.on) and (kind == "elite" or kind == "rareelite" or kind == "rare" or kind == "worldboss")
     if special and mode == "dragon" then

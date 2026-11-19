@@ -527,7 +527,11 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    A two-line help strip under each preview lists every control.
    Text sizes (8 Nov 2026, NOT seen in game; Bread on Discord: health text size also changed the power text):
    pfUI.uf.TextSize(config, pos, base) = txt<pos>size, else txthpsize / txtpowersize, else the frame's font size
-   ("0" / "" = not set, defaults "0"). Frames > Text: "Text colours and font" has Health / Power text size, the Texts
+   ("0" / "" = not set, defaults "0"). Frames > Text:
+   Ghost parts (19 Nov 2026, NOT seen in game; user could not find the Elite Overlay dragons: "stuff in the preview but
+   blanked out so we can choose there"): the preview's Samples shows switched-off parts at UF.GHOST alpha with
+   region.octoGhost (raid mark, leader, loot, PvP; the elite badge via f.octoGhostElite in UO.Update), the spot's tooltip
+   says "Switched off". o_elite "dragon" = Shagu's pfUI-eliteoverlay art (img\eliteoverlay, UO.Dragon). "Text colours and font" has Health / Power text size, the Texts
    card a Size per text; Shift + wheel on a text in the preview (UF.SIZE[pos], 4th field = its size now).
 12. Meters, Details!-style (22 Oct 2026; user's Details zip is All Rights Reserved - option and
    display names read only, no code or art). Rule from the user: use SuperWoW / ClassicAPI wherever

@@ -3020,6 +3020,19 @@ do
       UF.Open("hpright")
       ok(UF.text == "hpright", "clicking the right health text opens its own tab")
       UF.text = "hpleft"
+      -- (19 Nov 2026) switched-off parts show faded in the preview, ready to click; on = full
+      local oe, ori = pc.o_elite, pc.raidicon
+      pc.o_elite, pc.raidicon = "none", "0"
+      M.Refresh()
+      ok(pf.octoElite:IsShown() and pf.octoElite.octoGhost and pf.octoElite:GetAlpha() < .5
+        and pf.raidIcon:IsShown() and pf.raidIcon.octoGhost, "switched-off elite badge and raid mark show faded")
+      ok(UF.GO.elite == "Class and status", "a click on the faded badge opens Class and status")
+      pc.o_elite, pc.raidicon = "dragon", "1"
+      M.Refresh()
+      ok(pf.octoDragon:IsShown() and not pf.octoElite.octoGhost and not pf.raidIcon.octoGhost and pf.raidIcon:GetAlpha() == 1,
+        "switched on: dragons on the preview, nothing faded")
+      pc.o_elite, pc.raidicon = oe, ori
+      M.Refresh()
     end
     -- (8 Nov 2026, Bread) health and power texts their own sizes; "0" / "" = the shared size
     do

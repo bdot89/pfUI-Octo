@@ -121,18 +121,20 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     frame = "Frame", hp = "Health bar", power = "Power bar", portrait = "Portrait",
     buffs = "Buffs", debuffs = "Debuffs",
     icons = "Icons", glow = "Glow and indicators", class = "Class and status", border = "Border and background",
-    blizz = "Blizzard look", stance = "Stance and form",
+    blizz = "Blizzard look", stance = "Stance and form", elite = "Class and status",
   }
   -- each of the six texts opens the Texts card on its own tab (user, 23 Oct
   -- 2026: "Both called health text when clicked take to same menu")
   UF.TEXTS = { { "hpleft", "Health left" }, { "hpcenter", "Health middle" }, { "hpright", "Health right" },
     { "powerleft", "Power left" }, { "powercenter", "Power middle" }, { "powerright", "Power right" } }
   UF.text = "hpleft"
+  UF.GHOST = .3
   UF.HOTLABEL = {
     class = "Class icon, badge or status", border = "Border and background", castbar = "Cast bar (opens Cast bars)",
     frame = "The frame", hp = "Health bar", power = "Power bar", portrait = "Portrait",
     hptext = "Health text", powertext = "Power text", buffs = "Buffs", debuffs = "Debuffs",
     icons = "Icon", glow = "Glow and indicators", blizz = "Blizzard portrait", stance = "Stance icon",
+    elite = "Elite badge: crest, word or dragons",
   }
   for _, t in ipairs(UF.TEXTS) do
     UF.GO[t[1]] = "Texts"
@@ -687,6 +689,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         this.hl:Show()
         GameTooltip:SetOwner(this, "ANCHOR_TOP")
         GameTooltip:AddLine(UF.HOTLABEL[this.what] or this.what)
+        if this.region and this.region.octoGhost then
+          GameTooltip:AddLine("Switched off: click to pick it", .4, 1, .4)
+        end
         GameTooltip:AddLine("Click: its settings", 1, 1, 1)
         if this.drag then
           GameTooltip:AddLine("Drag: move it", 1, 1, 1)
@@ -787,14 +792,23 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       end
       Row(f.buffs, BUFFS, math.min(tonumber(cfg.bufflimit) or 0, tonumber(cfg.buffperrow) or 8))
       Row(f.debuffs, DEBUFFS, math.min(tonumber(cfg.debufflimit) or 0, tonumber(cfg.debuffperrow) or 8))
-      if cfg.raidicon == "1" and f.raidIcon then
-        if SetRaidTargetIconTexture then SetRaidTargetIconTexture(f.raidIcon.texture, 8) end
-        f.raidIcon:Show()
+      -- (19 Nov 2026, user: "stuff in the preview but blanked out so we can choose there to get into the options")
+      -- a part that is switched off shows faded; its spot says so and a click opens the setting that switches it on
+      local function Ghost(region, on)
+        if not region then return end
+        region.octoGhost = (not on) or nil
+        region:SetAlpha(on and 1 or UF.GHOST)
+        region:Show()
       end
-      -- the extras (unitframes-octo.lua): an elite badge to look at
+      if f.raidIcon then
+        if SetRaidTargetIconTexture then SetRaidTargetIconTexture(f.raidIcon.texture, 8) end
+        Ghost(f.raidIcon, cfg.raidicon == "1")
+      end
+      -- the extras (unitframes-octo.lua): an elite badge to look at, faded when off (octoGhostElite)
       local X = pfUI.ufExtras
       if X and f.octoElite then
-        f.octoForceElite = ((cfg.o_elite and cfg.o_elite ~= "none") or (cfg.o_bz == "1" and UF.cur ~= "player")) and "elite" or nil
+        f.octoForceElite = "elite"
+        f.octoGhostElite = true
         X.Update(f)
       end
       -- (unitframes-blizz.lua) the Blizzard ring / dragon and a stance to look at
@@ -804,9 +818,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         if f.bz and f.bz.on then BZ.Update(f) end
         BZ.StanceUpdate(f)
       end
-      if cfg.leadericon == "1" and f.leaderIcon then f.leaderIcon:Show() end
-      if cfg.looticon == "1" and f.lootIcon then f.lootIcon:Show() end
-      if cfg.showPVP == "1" and f.pvpIcon then f.pvpIcon:Show() end
+      Ghost(f.leaderIcon, cfg.leadericon == "1")
+      Ghost(f.lootIcon, cfg.looticon == "1")
+      Ghost(f.pvpIcon, cfg.showPVP == "1")
       if f.happinessIcon and UF.cur == "pet" and cfg.happinessicon and cfg.happinessicon ~= "0" then f.happinessIcon:Show() end
       if f.glow then
         if cfg.glowaggro == "1" then
@@ -859,10 +873,10 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         for _, ic in ipairs({ f.leaderIcon, f.lootIcon, f.happinessIcon, f.restIcon }) do Hot(set, ic, "icons", 28, f) end
         Hot(set, f.combat, "glow", 28, f)
         Hot(set, f.octoClass, "class", 29, f, UF.PLACES.class)
-        Hot(set, f.octoElite, "class", 29, f, UF.PLACES.elite)
-        Hot(set, f.octoEliteText, "class", 29, f, UF.PLACES.elite)
-        Hot(set, f.octoDragonTop, "class", 29, f, UF.PLACES.elite)
-        Hot(set, f.octoDragonBottom, "class", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoElite, "elite", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoEliteText, "elite", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoDragonTop, "elite", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoDragonBottom, "elite", 29, f, UF.PLACES.elite)
         for _, r in ipairs({ f.octoStatus, f.octoStatusText }) do Hot(set, r, "class", 29, f) end
         if f.octoSkin then f.octoSkin.octoHot = Hot(set, f.octoSkin, "border", 19, f) end
         -- (9 Nov 2026) the Blizzard ring and the stance icon (unitframes-blizz.lua)
@@ -1175,7 +1189,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local how = band:CreateFontString(nil, "OVERLAY")
       how:SetFont(W.UIFont(), 11, "OUTLINE")
       how:SetPoint("TOPLEFT", band, "TOPLEFT", 12, -4)
-      how:SetText(k .. "Click|r a part  its settings     " .. k .. "Drag|r a part  move it     "
+      how:SetText(k .. "Click|r a part  its settings     " .. k .. "Faded|r parts  switched off, click to pick     "
+        .. k .. "Drag|r a part  move it     "
         .. k .. "Right-click|r it  put it back     " .. k .. "Shift + wheel|r  size")
       local how2 = band:CreateFontString(nil, "OVERLAY")
       how2:SetFont(W.UIFont(), 11, "OUTLINE")
