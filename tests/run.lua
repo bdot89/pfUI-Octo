@@ -2397,6 +2397,31 @@ do
       _G.UnitAffectingCombat = combatWas
       WHm.OnEvent("PLAYER_REGEN_ENABLED")
       ok(WHm.windows.Garrosh and WHm.windows.Garrosh:IsShown(), "and opens when it ends")
+      -- (19 Nov 2026, mechanism: whisper windows "not working") the 1.12 client refuses AddMessage on a message frame
+      -- with no font: a window opening with kept lines must have its font before the first line
+      do
+        -- (the test client always answers GetFont: watch the calls instead, as the real client would refuse them)
+        local rawCreate, bad, made = _G.CreateFrame, nil, 0
+        _G.CreateFrame = function(kind, name, parent, tmpl)
+          local fr = rawCreate(kind, name, parent, tmpl)
+          if kind == "ScrollingMessageFrame" or kind == "EditBox" then
+            made = made + 1
+            local rawSet, rawAdd, rawText = fr.SetFont, fr.AddMessage, fr.SetText
+            fr.fontSet = false
+            fr.SetFont = function(self, a, b, c) self.fontSet = true if rawSet then return rawSet(self, a, b, c) end end
+            fr.SetFontObject = function(self) self.fontSet = true end
+            fr.AddMessage = function(self, a, b, c, d) if not self.fontSet then bad = true end if rawAdd then return rawAdd(self, a, b, c, d) end end
+          end
+          return fr
+        end
+        WHm.windows.Thrall2 = nil
+        pfUI_cache.whispers = pfUI_cache.whispers or {}
+        for _, list in pairs(pfUI_cache.whispers) do list.Thrall2 = { { t = 1, dir = "in", msg = "kept line" } } end
+        local tw = WHm.Open("Thrall2", true)
+        _G.CreateFrame = rawCreate
+        ok(tw and made >= 2 and not bad and tw.msg.fontSet and tw.edit.fontSet, "a window with kept lines has its font before the first line")
+        WHm.Close("Thrall2")
+      end
       -- the test window talks only to itself
       local sent
       local sendWas = _G.SendChatMessage

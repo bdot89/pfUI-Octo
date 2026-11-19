@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.79", {
+    { "Whisper windows fixed", "the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made." },
+  } },
   { "1.1.78", {
     { "ItemRack button shows what you wear", "the set button and the minimap button show a set's picture only while that set is worn exactly. Swap a piece by hand (or wear no set) and they show your worn gear instead, updated every time your gear changes." },
   } },
@@ -165,9 +168,5 @@ pfUI.octoNotes = {
     { "Mail sends everything in one press", "every queued item goes back to back, the next mail the moment the server accepts the last one (no pauses). A mail the server refuses once is tried again instead of stopping the whole run." },
     { "Update window", "when someone in your guild or group runs a newer pfUI Octo, a small window at login shows the OctoLauncher link (Copy button), what to do, and what's new since your version. \"Remind me later\" or \"Don't show for this version\"; switch it off in Settings > Scale, profiles and look; /octoupdate opens it. New file: restart the game fully once." },
     { "/pfperf events", "also counts how often the action bar events fire." },
-  } },
-  { "1.1.39", {
-    { "Uses ClassicAPI to do less work", "25 every-few-seconds checks run on ClassicAPI's timers instead of being asked every frame; cast bars wake on the game's cast events and rest when nobody casts; action bars learn range changes from the game instead of checking every button 5 times a second; the range scan stops (ClassicAPI already answers); gathering arrows and pfQuest's route rest while you stand still. Each one keeps the old way until its event has really been seen, so nothing changes without ClassicAPI." },
-    { "/pfperf events", "(and the end of Copy all) shows which ClassicAPI events and timers are in use." },
   } },
 }

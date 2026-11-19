@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.79
+
+- 💬 **Whisper windows fixed:** the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made.
+
 ## 📜 New in 1.1.78
 
 - 🛡️ **ItemRack button shows what you wear:** the set button and the minimap button show a set's picture only while that set is worn exactly. Swap a piece by hand (or wear no set) and they show your worn gear instead, updated every time your gear changes.

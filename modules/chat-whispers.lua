@@ -118,6 +118,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
 
     -- the conversation
     local msg = CreateFrame("ScrollingMessageFrame", nil, f)
+    -- (19 Nov 2026, mechanism: "new whisper window per person seems to not be working") a font straight away: the 1.12
+    -- client refuses AddMessage on a message frame with none, and the kept conversation went in before WH.Paint set it
+    if msg.SetFontObject and ChatFontNormal then msg:SetFontObject(ChatFontNormal) end
+    if msg.SetFont then msg:SetFont(Font()) end
     msg:SetPoint("TOPLEFT", head, "BOTTOMLEFT", 5, -3)
     msg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -5, 26)
     if msg.SetFading then msg:SetFading(false) end
@@ -132,6 +136,9 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
 
     -- the box to answer in
     local eb = CreateFrame("EditBox", nil, f)
+    -- (an edit box with no font shows no text and errors on typing in 1.12)
+    if eb.SetFontObject and ChatFontNormal then eb:SetFontObject(ChatFontNormal) end
+    if eb.SetFont then eb:SetFont(Font()) end
     eb:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 4, 4)
     eb:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -16, 4)
     eb:SetHeight(18)
@@ -258,6 +265,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       f = Make(name)
       WH.windows[name] = f
       table.insert(WH.order, name)
+      WH.Paint(f)
       for _, e in ipairs(Store()[name] or {}) do Line(f, e.dir, e.msg, e.t) end
       if table.getn(Store()[name] or {}) > 0 then f.msg:AddMessage("|cff666666- earlier -|r") end
     end

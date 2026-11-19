@@ -84,9 +84,11 @@ Msg("W^1.9.40^Update window^Third thing", "GUILD", "Newbie")
 ok(UP.heard["1.9.40"] and table.getn(UP.heard["1.9.40"]) == 3, "heard titles kept once each")
 local list = UP.NotesSince("1.1.30")
 ok(list[1] and list[1].v == "1.9.40" and list[1].items[1][1] == "Mail sends everything", "newest heard version first")
-local has39
-for _, e in ipairs(list) do if e.v == "1.1.39" then has39 = true end end
-ok(has39, "our own notes for versions after ours come in too")
+-- (the notes keep the newest 40 versions: any of ours, not a fixed one)
+local own = pfUI.octoNotes and pfUI.octoNotes[table.getn(pfUI.octoNotes)] and pfUI.octoNotes[table.getn(pfUI.octoNotes)][1]
+local hasOwn
+for _, e in ipairs(list) do if e.v == own then hasOwn = true end end
+ok(own and hasOwn, "our own notes for versions after ours come in too (" .. tostring(own) .. ")")
 
 -- in combat it waits; afterwards it opens once
 fighting = true
