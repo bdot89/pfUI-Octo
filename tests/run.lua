@@ -2929,6 +2929,26 @@ do
     f.octoForceElite = "worldboss"
     X.Update(f)
     ok(f.octoEliteText:IsShown() and f.octoEliteText:GetText() == "Boss", "boss as a word")
+    -- Elite Overlay dragons (19 Nov 2026): gold for elite on the right, grey for rare on the left, gone when off
+    c.o_elite, c.o_elitepos = "dragon", "TOPRIGHT"
+    f.octoForceElite = "elite"
+    X.Update(f)
+    ok(f.octoDragon:IsShown() and not f.octoElite:IsShown() and not f.octoEliteText:IsShown()
+      and f.octoDragonTop.texture == "Interface\\AddOns\\pfUI\\img\\eliteoverlay\\TOP_GOLD_RIGHT"
+      and f.octoDragonBottom.texture == "Interface\\AddOns\\pfUI\\img\\eliteoverlay\\BOTTOM_GOLD_RIGHT", "elite dragons on the right")
+    c.o_elitepos, f.octoForceElite = "TOPLEFT", "rare"
+    X.Update(f)
+    ok(f.octoDragonTop.texture == "Interface\\AddOns\\pfUI\\img\\eliteoverlay\\TOP_GRAY_LEFT", "rare dragons grey on the left")
+    local okFiles = true
+    for _, n in ipairs({ "TOP_GOLD_LEFT", "TOP_GOLD_RIGHT", "TOP_GRAY_LEFT", "TOP_GRAY_RIGHT", "BOTTOM_GOLD_LEFT",
+      "BOTTOM_GOLD_RIGHT", "BOTTOM_GRAY_LEFT", "BOTTOM_GRAY_RIGHT" }) do
+      local fh = io.open("img\\eliteoverlay\\" .. n .. ".tga", "rb")
+      if fh then fh:close() else okFiles = false end
+    end
+    ok(okFiles, "all eight dragon pictures are in img\\eliteoverlay")
+    c.o_elite, c.o_elitepos = "none", "TOPRIGHT"
+    X.Update(f)
+    ok(not f.octoDragon:IsShown(), "dragons gone when the badge is off")
     f.octoForceElite, c.o_elite = nil, "none"
     f.octoForceStatus = { nil, "Dead", Mock.now + 3 }
     X.Update(f)

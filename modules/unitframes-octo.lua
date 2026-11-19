@@ -99,7 +99,11 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     { key = "none", label = "Off" },
     { key = "graphic", label = "Crest", tex = "uf-elite" },
     { key = "text", label = "Word (Elite, Rare, Boss)" },
+    -- (19 Nov 2026, user: "add these to our addon all the icons all the logos where they should be") Shagu's
+    -- pfUI-eliteoverlay: dragons wrapped round the frame's side (art by GaMu-ChAn); "Badge at" picks the side
+    { key = "dragon", label = "Dragons (Elite Overlay)" },
   }
+  UO.DRAGON = "Interface\\AddOns\\pfUI\\img\\eliteoverlay\\"
   UO.CORNERS = {
     { key = "TOPRIGHT", label = "Top right" },
     { key = "TOPLEFT", label = "Top left" },
@@ -235,6 +239,14 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     f.octoEliteText:SetPoint(corner == "TOPLEFT" and "BOTTOMLEFT" or "BOTTOMRIGHT", f, corner, 0, 2)
     f.octoEliteText:Hide()
 
+    -- Elite Overlay dragons: a top and a bottom piece on the frame's side, above the bars
+    f.octoDragon = f.octoDragon or CreateFrame("Frame", nil, f)
+    f.octoDragon:SetAllPoints(f)
+    f.octoDragon:SetFrameLevel((f:GetFrameLevel() or 0) + 8)
+    f.octoDragonTop = f.octoDragonTop or f.octoDragon:CreateTexture(nil, "OVERLAY")
+    f.octoDragonBottom = f.octoDragonBottom or f.octoDragon:CreateTexture(nil, "OVERLAY")
+    f.octoDragon:Hide()
+
     f.octoStatus = f.octoStatus or top:CreateTexture(nil, "OVERLAY")
     f.octoStatus:SetWidth(18)
     f.octoStatus:SetHeight(18)
@@ -290,6 +302,36 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
   end
   UO.ShowDebuff = ShowDebuff
 
+  -- Elite Overlay's dragons (Shagu, pfUI-eliteoverlay): sizes and places as in that addon. Gold for elite /
+  -- rare elite / boss (boss tinted red, elite darker gold), grey for rare.
+  UO.DRAGONCOL = {
+    worldboss = { "GOLD", .85, .15, .15 },
+    rareelite = { "GOLD", 1, 1, 1 },
+    elite = { "GOLD", .75, .6, 0 },
+    rare = { "GRAY", .8, .8, .8 },
+  }
+  function UO.Dragon(f, kind, side)
+    local d, top, bot = f.octoDragon, f.octoDragonTop, f.octoDragonBottom
+    local col = UO.DRAGONCOL[kind]
+    if not d or not col then if d then d:Hide() end return end
+    local size = (f:GetWidth() or 0) / 1.5
+    if size < 8 then size = 8 end
+    local dir = side == "LEFT" and -1 or 1
+    top:ClearAllPoints()
+    top:SetWidth(size)
+    top:SetHeight(size)
+    top:SetPoint("TOP" .. side, f, "TOP" .. side, dir * size / 5, size / 7)
+    bot:ClearAllPoints()
+    bot:SetWidth(size)
+    bot:SetHeight(size)
+    bot:SetPoint("BOTTOM" .. side, f, "BOTTOM" .. side, dir * size / 5.2, -size / 2.98)
+    top:SetTexture(UO.DRAGON .. "TOP_" .. col[1] .. "_" .. side)
+    bot:SetTexture(UO.DRAGON .. "BOTTOM_" .. col[1] .. "_" .. side)
+    top:SetVertexColor(col[2], col[3], col[4], 1)
+    bot:SetVertexColor(col[2], col[3], col[4], 1)
+    d:Show()
+  end
+
   -- after pfUI refreshes a frame: what the unit is now
   function UO.Update(f)
     local c = f and f.config
@@ -330,7 +372,15 @@ pfUI:RegisterModule("unitframes-octo", "vanilla:tbc", function ()
     local mode = c.o_elite or "none"
     -- (the Blizzard look's dragon shows it already: unitframes-blizz.lua)
     local special = not (f.bz and f.bz.on) and (kind == "elite" or kind == "rareelite" or kind == "rare" or kind == "worldboss")
-    if special and mode == "graphic" then
+    if special and mode == "dragon" then
+      UO.Dragon(f, kind, c.o_elitepos == "TOPLEFT" and "LEFT" or "RIGHT")
+    elseif f.octoDragon then
+      f.octoDragon:Hide()
+    end
+    if special and mode == "dragon" then
+      f.octoElite:Hide()
+      f.octoEliteText:Hide()
+    elseif special and mode == "graphic" then
       local rare = kind == "rare" or kind == "rareelite"
       -- (5 Nov 2026, Art page: a drawn crest in its own gold / silver / red, bigger)
       local crest, cw, ch

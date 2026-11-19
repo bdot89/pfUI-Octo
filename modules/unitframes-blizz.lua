@@ -140,6 +140,7 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
     -- the game's own elite crest / word would sit on the dragon
     if f.octoElite then f.octoElite:Hide() end
     if f.octoEliteText then f.octoEliteText:Hide() end
+    if f.octoDragon then f.octoDragon:Hide() end
     -- level in the small ring, in the game's difficulty colour
     local lvl = exists and UnitLevel(unit)
     if c.o_bzlevel ~= "0" and lvl then

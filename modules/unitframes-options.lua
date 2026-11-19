@@ -861,6 +861,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         Hot(set, f.octoClass, "class", 29, f, UF.PLACES.class)
         Hot(set, f.octoElite, "class", 29, f, UF.PLACES.elite)
         Hot(set, f.octoEliteText, "class", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoDragonTop, "class", 29, f, UF.PLACES.elite)
+        Hot(set, f.octoDragonBottom, "class", 29, f, UF.PLACES.elite)
         for _, r in ipairs({ f.octoStatus, f.octoStatusText }) do Hot(set, r, "class", 29, f) end
         if f.octoSkin then f.octoSkin.octoHot = Hot(set, f.octoSkin, "border", 19, f) end
         -- (9 Nov 2026) the Blizzard ring and the stance icon (unitframes-blizz.lua)
@@ -1503,8 +1505,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Class icon", "Players only.", L(X and X.CLASSICON), U, "o_classicon")
     Sld(p, "Class icon size", nil, 8, 40, 1, U, "o_classsize", Px)
     Chk(p, "Class picture as portrait", "Players show their class icon in place of the portrait.", U, "o_classport")
-    Drop(p, "Elite, rare and boss", nil, L(X and X.ELITE), U, "o_elite")
-    Drop(p, "Badge at", nil, L(X and X.CORNERS), U, "o_elitepos")
+    Drop(p, "Elite, rare and boss", "Dragons = Shagu's Elite Overlay: gold dragons round elites, grey round rares, red round bosses.", L(X and X.ELITE), U, "o_elite")
+    Drop(p, "Badge at", "For the dragons: right = the right side of the frame, left = the left side.", L(X and X.CORNERS), U, "o_elitepos")
     Chk(p, "AFK, offline and dead marks", nil, U, "o_status")
 
     -- the "Blizzard" section (9 Nov 2026, user: "make all the blizzard menu together"):
