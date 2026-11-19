@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.73
+
+- 📦 **Leftovers go up fast:** after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The "in your bags" count now stays right after a post too.
+
 ## 📜 New in 1.1.72
 
 - 💰 **Sell tab, quicker:** a **1 by 1** button lists every item on its own (stack size 1, as many as you have). **Full stacks** uses the biggest stack the item makes. **Sliders** under Stack size and Number of stacks let you drag or wheel the numbers, and the stacks slider only goes as far as your bags allow.

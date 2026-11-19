@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.73", {
+    { "Leftovers go up fast", "after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The \"in your bags\" count now stays right after a post too." },
+  } },
   { "1.1.72", {
     { "Sell tab, quicker", "a 1 by 1 button lists every item on its own (stack size 1, as many as you have). Full stacks uses the biggest stack the item makes. Sliders under Stack size and Number of stacks let you drag or wheel the numbers, and the stacks slider only goes as far as your bags allow." },
     { "Spam Buyout", "keep clicking Buyout and it buys the picked auction and moves to the next one down. A click while the last buy is still going through now waits its turn instead of being refused, and the pick never jumps back to the one being bought." },
@@ -166,8 +169,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.34", {
     { "Nameplates in battlegrounds", "\"Friendly pets\" now hides your own and your team's pets (their bars are blue like players', so they counted as players). \"Enemy pets\" also works without SuperWoW for any pet you have targeted or moused over. A hidden plate now hides other add-ons' parts on it too." },
-  } },
-  { "1.1.33", {
-    { "Escape", "fixed Escape sometimes not opening the game menu after you had been at the auction house. A safety net also stops any other window from causing the same problem." },
   } },
 }

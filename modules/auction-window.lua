@@ -1259,6 +1259,11 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   Q:SetScript("OnUpdate", function()
     if UI.queue then UI.QueueStep(GetTime()) end
     if UI.waiting then UI.WaitStep() end
+    -- the bags changed after a post (BAG_UPDATE can come after the post's own refresh): read them again
+    if UI.tab == "sell" and AH.bagsDirty and not AH.job and AH.open and (UI.bagsAt or 0) < GetTime() then
+      UI.bagsAt = GetTime() + .3
+      UI.Refresh()
+    end
   end)
   -- the last searches, newest first (per account)
   function UI.Recent(name)
@@ -1495,6 +1500,21 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       if ok and tonumber(most) and tonumber(most) > biggest then biggest = tonumber(most) d.most = biggest end
     end
     return biggest
+  end
+  -- (19 Nov 2026, user: "the remaining if not a full stack for 16 ... should go in the stack size auto so i could
+  -- post the 16 left over fast the same was aux did") after posting, or whenever the bags hold less than the
+  -- numbers ask for: the stacks that still fit, else one stack of what is left
+  function UI.FitLeft(d)
+    P.head:SetText((d.color and ("|c" .. d.color) or "") .. d.name .. "|r   |cff9a9aa0" .. d.total .. " in your bags|r")
+    local size, stacks = tonumber(P.size:GetText()), tonumber(P.stacks:GetText()) or 1
+    if not size or size < 1 or d.total < 1 then return end
+    if size * stacks <= d.total then return end
+    if d.total >= size then
+      P.stacks:SetText(tostring(math.floor(d.total / size)))
+    else
+      P.size:SetText(tostring(d.total))
+      P.stacks:SetText("1")
+    end
   end
   function UI.OneByOne()
     local d = UI.sell
@@ -2089,6 +2109,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         P.items.sel = keep
         P.items.Paint()
         if not keep then P.head:SetText("Pick an item on the left") end
+        if keep and not AH.job then UI.FitLeft(keep) end
       end
       UI.PaintSell()
     elseif UI.tab == "owner" then

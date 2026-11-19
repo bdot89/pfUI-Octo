@@ -449,6 +449,13 @@ do
     UI.FullStacks()
     local nf = UI.SellNumbers()
     ok(nf and nf.size * nf.stacks <= 40 and nf.size >= 20, "Full stacks: the biggest stack, as many as fit")
+    -- (19 Nov 2026, user: "the remaining ... should go in the stack size auto") 20 posted, 16 left
+    P.size:SetText("20") P.stacks:SetText("1")
+    UI.FitLeft({ name = "Bronze Bar", total = 16, slots = {} })
+    ok(P.size:GetText() == "16" and P.stacks:GetText() == "1", "after posting, the leftover goes into the stack size [" .. tostring(P.size:GetText()) .. "]")
+    P.size:SetText("5") P.stacks:SetText("4")
+    UI.FitLeft({ name = "Bronze Bar", total = 16, slots = {} })
+    ok(P.size:GetText() == "5" and P.stacks:GetText() == "3", "or fewer stacks of the same size when they still fit")
   end
   -- saved searches
   UI.pages.browse.name:SetText("linen cloth/exact")
