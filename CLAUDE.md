@@ -1475,3 +1475,19 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   window, reset, damageMeterResetOnNewInstance. modules/meters-hover.lua: M.HoverPanel(bar) = our bar hover as spell
   rows with pictures and class-coloured bars (plain GameTooltip only for the threat pull line). One chat line per
   character when ClassicAPI 1.22 is first seen (capitold).
+- Demo mode, phase 1 (19 Nov 2026, NOT seen in game; NEW FILES modules\demo.lua + demo-options.lua = full client restart;
+  user: "a full demo mode button ... under quality of life ... pvp demo raid demo 5man demo afk demo ... run full raid
+  cycles until you quit it"). pfUI.demo = DM. The game cannot make units, so while a demo runs DM.Install puts answers
+  for unit questions into pfUI.env (rawset; DM.saved keeps what was there, DM.Uninstall puts it back exactly): DM.ANS
+  (one-unit: UnitName / UnitHealth / UnitDebuff / UnitCastingInfo ...), DM.TWO (UnitIsUnit / UnitCanAttack / UnitIsFriend /
+  UnitReaction ...), DM.ROSTER (GetNumRaidMembers 40, GetNumPartyMembers 4, GetRaidRosterInfo; 1 = the real player).
+  DM.Fake(token): raid2-40 made up (DM.MakeRaid: 39 raiders, two warrior tanks with marks), party1-4 = raid2-5,
+  target / raidNtarget / partyNtarget = DM.boss, targettarget = the main tank; raid1 / player stay real. Only pfUI code
+  sees it (_G is untouched). Frames are told through their own flags (update_base / update_aura / update_full, DM.Touch)
+  and DM.Regroup (raid sort + UpdateVisibility). Script: DM.SetPhase trash -> boss (DM.BOSSES: abilities with timers,
+  casts, debuffs by type cured after 3-7 s, raid warnings via RaidWarningFrame) -> ended (kill / wipe every C.demo.wipes
+  bosses, a wipe retries the same boss) -> rest -> ...; DM.Step(dt) at 5 Hz x speed. Meter test fight (M.TestMode) and
+  combat text test (CT.testUntil) join in. Bar pfDemoBar at the top: Pause, speed 0.5-4x, Next, Edit (O:Open("demo")),
+  Stop; a real PLAYER_REGEN_DISABLED stops it; /demo [stop|next]. Page "Demo mode" (O.NAV group "Demo Mode", 4th tab of
+  Quality of Life). Next phases: target dummy (rank stepping normal -> elite -> rare -> boss), dungeon, PvP / arena, AFK,
+  showcase. Unverified in game: every part; ClassicAPI paths (C_UnitAuras, UnitGUID) ignore pretend units.
