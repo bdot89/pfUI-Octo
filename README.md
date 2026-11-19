@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.82
+
+- 🗺️ **Right names on the map:** hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover.
+
 ## 📜 New in 1.1.81
 
 - 📌 **Moved frames stay put:** a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later.

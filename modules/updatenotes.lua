@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.82", {
+    { "Right names on the map", "hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover." },
+  } },
   { "1.1.81", {
     { "Moved frames stay put", "a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later." },
   } },
@@ -158,9 +161,5 @@ pfUI.octoNotes = {
     { "Pick several at once", "Shift + drag (or Shift + click) over rows. Browse buys them all, cheapest first; My bids bids on them all; My auctions cancels them all - one question, then one by one. Click the button again to stop." },
     { "Price colours like aux", "\"Of usual\" is blue (a steal), green (cheap), yellow (about usual), orange (dear) or red (far too dear), on Browse, Shopping and Deals." },
     { "Column heads explain themselves", "hover any head for what it holds; \"Of usual\" is wide enough to read." },
-  } },
-  { "1.1.42", {
-    { "NPCs no longer click for you", "OctoLazy's \"Skip the menu\" (flight masters, vendors, bankers, battle masters) is now off unless you switch it on - /lazy NPCs & quests. It is switched off once for everyone, with a chat line saying where it is." },
-    { "Map icons stay after a relog", "herb / ore / fish marks are no longer put back to old values by a UI layout switch, and the quest database's tracking lists (herbs, mines, rares...) come back by themselves a few seconds after you log in." },
   } },
 }

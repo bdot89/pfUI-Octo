@@ -35,11 +35,10 @@ pfUI:RegisterModule("mapcolors", function ()
   local function GetTextureColor(frame)
     if UnitExists(frame.unit) then
       local _, class = UnitClass(frame.unit)
-      local color = RAID_CLASS_COLORS[class]
-      return color.r, color.g, color.b
-    else
-      return .5, 1, .5
+      local color = class and RAID_CLASS_COLORS[class]
+      if color then return color.r, color.g, color.b end
     end
+    return .5, 1, .5
   end
 
   local function UpdateTexture(frame, inParty)
@@ -85,20 +84,27 @@ pfUI:RegisterModule("mapcolors", function ()
     end
   end
 
-  local function ColorizeName(frame)
+  -- (19 Nov 2026, mechanism: "hovering over party members on the map was showing players from another party i was in
+  -- before") the name is read from the dot's unit every time. It used to be kept on the frame (frame.name) the first
+  -- time and never read again - a dot kept the name of whoever had that party / raid slot before - and the colour was
+  -- wrapped round it once more on every hover.
+  local function ColoredName(frame)
+    local name = frame.unit and UnitName(frame.unit)
+    if not name then return nil end
     local _, class = UnitClass(frame.unit)
-    local color = RAID_CLASS_COLORS[class]
-    frame.name = frame.name or UnitName(frame.unit)
-    frame.name = '|c'..color.colorStr..frame.name..'|r'
+    local color = class and RAID_CLASS_COLORS[class]
+    if color and color.colorStr then return "|c" .. color.colorStr .. name .. "|r" end
+    if color then return string.format("|cff%02x%02x%02x", color.r * 255, color.g * 255, color.b * 255) .. name .. "|r" end
+    return name
   end
+  pfUI.mapcolors = { ColoredName = ColoredName }
 
   local function UpdateUnitColors(unit_button_name, tooltip)
-    local tooltipText = ""
+    local lines = {}
     if unit_button_name == 'WorldMap' then
       -- check player
       if MouseIsOver(WorldMapPlayer) then
-        ColorizeName(WorldMapPlayer)
-        tooltipText = WorldMapPlayer.name
+        table.insert(lines, ColoredName(WorldMapPlayer) or (UnitName("player") or ""))
       end
     end
 
@@ -106,8 +112,8 @@ pfUI:RegisterModule("mapcolors", function ()
     for i=1, MAX_PARTY_MEMBERS do
       local frame = _G[unit_button_name.."Party"..i]
       if frame:IsVisible() and MouseIsOver(frame) then
-        ColorizeName(frame)
-        tooltipText = tooltipText.."\n"..frame.name
+        local n = ColoredName(frame)
+        if n then table.insert(lines, n) end
       end
     end
 
@@ -115,10 +121,11 @@ pfUI:RegisterModule("mapcolors", function ()
     for i=1, MAX_RAID_MEMBERS do
       local frame = _G[unit_button_name.."Raid"..i]
       if frame:IsVisible() and MouseIsOver(frame) then
-        ColorizeName(frame)
-        tooltipText = tooltipText.."\n"..frame.name
+        local n = ColoredName(frame)
+        if n then table.insert(lines, n) end
       end
     end
+    local tooltipText = table.concat(lines, "\n")
 
     tooltip:SetText(tooltipText)
     tooltip:Show()
