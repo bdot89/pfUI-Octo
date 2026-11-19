@@ -293,6 +293,26 @@ pfUI:RegisterModule("octototems-options", "vanilla", function ()
     W.Card(p, "Layout", { icon = "Interface\\Icons\\Spell_Nature_StoneSkinTotem", tip = "Where the bars are and how they open." })
     Drop(p, "Bars", "Together: one box in layout mode with the four bars side by side. Apart: each element its own box.", {
       { key = "together", label = "Together, side by side" }, { key = "apart", label = "Apart, each its own box" } }, "layout")
+    -- every order of the four elements (24), as "Air, Water, Fire, Earth"
+    local orders = {}
+    local function Perm(left, done)
+      if table.getn(left) == 0 then
+        local keys, names = {}, {}
+        for _, i in ipairs(done) do table.insert(keys, TT.EL[i].key) table.insert(names, TT.EL[i].name) end
+        table.insert(orders, { key = table.concat(keys, ","), label = table.concat(names, ", ") })
+        return
+      end
+      for k = 1, table.getn(left) do
+        local rest, next = {}, {}
+        for j = 1, table.getn(left) do if j ~= k then table.insert(rest, left[j]) end end
+        for _, v in ipairs(done) do table.insert(next, v) end
+        table.insert(next, left[k])
+        Perm(rest, next)
+      end
+    end
+    Perm({ 1, 2, 3, 4 }, {})
+    Drop(p, "Element order", "The four bars from left to right (also the boxes' order with Together).", orders, "barorder",
+      function() if TT.Refresh then TT.Refresh() end end)
     Drop(p, "First button", "Which totem sits on the first button of each bar.", {
       { key = "active", label = "The totem that is down, else the set's" },
       { key = "set", label = "The active set's totem" },

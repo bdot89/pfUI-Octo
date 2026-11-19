@@ -531,6 +531,8 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
     -- a font from the start: SetText on a font string with none raises "Font not set" (the reminder button is
     -- never painted by TT.PaintButton, 19 Nov 2026, Lobo)
     local font0 = pfUI.font_unit or pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+    -- the game's font object first: if SetFont refuses a path, the text still has a font
+    if b.timer.SetFontObject and GameFontNormalSmall then b.timer:SetFontObject(GameFontNormalSmall) b.cdtext:SetFontObject(GameFontNormalSmall) end
     b.timer:SetFont(font0, 12, "OUTLINE")
     b.cdtext:SetFont(font0, 14, "OUTLINE")
     b.mark = b.over:CreateTexture(nil, "OVERLAY")
@@ -777,13 +779,28 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
     TT.bars[i] = f
   end
 
+  -- the elements left to right (C.octototems.barorder = "air,water,fire,earth"; 19 Nov 2026, Lobo): a list of TT.EL
+  -- indexes, every element once (missing ones added at the end in the usual order)
+  function TT.BarOrder()
+    local out, seen = {}, {}
+    for key in string.gfind(S().barorder or "", "[^,%s]+") do
+      for i, e in ipairs(TT.EL) do
+        if e.key == key and not seen[i] then seen[i] = true table.insert(out, i) end
+      end
+    end
+    for i = 1, 4 do if not seen[i] then table.insert(out, i) end end
+    return out
+  end
+
   function TT.Place()
     local size, gap = Num("size", 36), Num("spacing", 3)
     local together = (S().layout or "together") == "together"
     local changed = TT.placed ~= S().layout
     TT.placed = S().layout
     local x = 0
-    for i = 1, 4 do
+    local order = TT.BarOrder()
+    for k = 1, 4 do
+      local i = order[k]
       local f = TT.bars[i]
       if together then
         if changed then
@@ -803,7 +820,7 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
     if On("recall") and (TT.book[TT.RECALL] or TT.fake) then
       recall:ClearAllPoints()
       if together then recall:SetPoint("BOTTOMLEFT", holder, "BOTTOMLEFT", x, 0) x = x + size + gap
-      else recall:SetPoint("LEFT", TT.bars[4], "RIGHT", gap, 0) end
+      else recall:SetPoint("LEFT", TT.bars[order[4]], "RIGHT", gap, 0) end
       recall:SetWidth(size) recall:SetHeight(size)
       recall.icon:SetTexture(TT.Icon(TT.RECALL) ~= "Interface\\Icons\\INV_Misc_QuestionMark" and TT.Icon(TT.RECALL) or "Interface\\Icons\\Spell_Nature_Purge")
       recall:Show()
@@ -982,8 +999,10 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
     TT.advice = On("advisor") and { ["Poison Cleansing Totem"] = 1 } or {}
     local size, gap = Num("size", 36), Num("spacing", 3)
     local x = 0
+    local order = TT.BarOrder()
     local ok, err = pcall(function()
-      for el = 1, 4 do
+      for k = 1, 4 do
+        local el = order[k]
         local f = box.pbars[el]
         if not f then
           f = CreateFrame("Frame", nil, box)

@@ -45,36 +45,63 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
     end
   end
 
-  -- { pct, absorbing, left, tex } from the player's buffs
+  -- the integrity of one aura: Spell.dbc gives 58127 a base value of 1 per stack ("$s1%" = 1), so the server
+  -- most likely keeps the % in the stack count; the tooltip number is used when it is more (19 Nov 2026, Lobo:
+  -- the bar said 0% with the bulwark full - it was read from the buff list only and from the tooltip only)
+  function BW.Integrity(tip, stacks)
+    tip, stacks = tonumber(tip), tonumber(stacks)
+    if stacks and stacks > 1 and (not tip or stacks > tip) then return stacks end
+    return tip or stacks or 0
+  end
+
+  -- ClassicAPI: the aura by spell id (applications / points), nil without it
+  function BW.ReadCAPI()
+    local CU = _G.C_UnitAuras
+    if not CU or not CU.GetPlayerAuraBySpellID then return nil end
+    local ok, a = pcall(CU.GetPlayerAuraBySpellID, 58127)
+    if not ok or type(a) ~= "table" then return nil end
+    local pts = type(a.points) == "table" and tonumber(a.points[1]) or nil
+    return BW.Integrity(pts, a.applications or a.count or a.charges), a.icon
+  end
+
+  -- { pct, absorbing, left, tex } from the player's buffs AND debuffs (the integrity aura may be either)
   function BW.Read()
     local out = { pct = nil, absorbing = false, left = 0 }
     if not GetPlayerBuff then return out end
-    for i = 0, 31 do
-      local bid = GetPlayerBuff(i, "HELPFUL")
-      if type(bid) ~= "number" or bid < 0 then break end
-      local tex = GetPlayerBuffTexture and GetPlayerBuffTexture(bid)
-      local key = bid .. ":" .. tostring(tex)
-      local name = BW.names[key]
-      local sc
-      if name == nil then
-        sc = Scanner()
-        if sc and sc.SetPlayerBuff then sc:SetPlayerBuff(bid) name = sc:Line(1) end
-        BW.names[key] = name or false
-      end
-      if name == BW.DURA then
-        sc = sc or Scanner()
-        if sc and sc.SetPlayerBuff then
-          sc:SetPlayerBuff(bid)
-          out.pct = BW.PctOf({ sc:Line(2), sc:Line(3), sc:Line(4) }) or out.pct or 0
+    for _, filter in ipairs({ "HELPFUL", "HARMFUL" }) do
+      for i = 0, 31 do
+        local bid = GetPlayerBuff(i, filter)
+        if type(bid) ~= "number" or bid < 0 then break end
+        local tex = GetPlayerBuffTexture and GetPlayerBuffTexture(bid)
+        local key = bid .. ":" .. tostring(tex)
+        local name = BW.names[key]
+        local sc
+        if name == nil then
+          sc = Scanner()
+          if sc and sc.SetPlayerBuff then sc:SetPlayerBuff(bid) name = sc:Line(1) end
+          BW.names[key] = name or false
         end
-        out.tex = out.tex or tex
-      elseif name == BW.ABSORB then
-        out.absorbing = true
-        local left = GetPlayerBuffTimeLeft and GetPlayerBuffTimeLeft(bid)
-        out.left = type(left) == "number" and left > 0 and left or 0
-        out.tex = tex or out.tex
+        if name == BW.DURA then
+          sc = sc or Scanner()
+          local tip
+          if sc and sc.SetPlayerBuff then
+            sc:SetPlayerBuff(bid)
+            tip = BW.PctOf({ sc:Line(2), sc:Line(3), sc:Line(4) })
+          end
+          local stacks = GetPlayerBuffApplications and GetPlayerBuffApplications(bid)
+          out.pct = math.max(out.pct or 0, BW.Integrity(tip, stacks))
+          out.tex = out.tex or tex
+        elseif name == BW.ABSORB then
+          out.absorbing = true
+          local left = GetPlayerBuffTimeLeft and GetPlayerBuffTimeLeft(bid)
+          out.left = type(left) == "number" and left > 0 and left or 0
+          out.tex = tex or out.tex
+        end
       end
     end
+    local cp = BW.ReadCAPI()
+    if cp and cp > (out.pct or 0) then out.pct = cp end
+    if out.pct then out.pct = math.min(100, out.pct) end
     return out
   end
 
@@ -285,7 +312,43 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
   end)
 
   _G.SLASH_PFBULWARK1 = "/bulwark"
-  _G.SlashCmdList.PFBULWARK = function()
+  -- /bulwark debug: what the game says about every bulwark aura (to find where the integrity number is)
+  function BW.Debug()
+    local function Say(t) DEFAULT_CHAT_FRAME:AddMessage("|cffc8a050Bulwark:|r " .. t) end
+    local found = 0
+    for _, filter in ipairs({ "HELPFUL", "HARMFUL" }) do
+      for i = 0, 31 do
+        local bid = GetPlayerBuff and GetPlayerBuff(i, filter)
+        if type(bid) ~= "number" or bid < 0 then break end
+        local sc = Scanner()
+        if sc and sc.SetPlayerBuff then
+          sc:SetPlayerBuff(bid)
+          local name = sc:Line(1)
+          if name and string.find(name, "Bulwark") then
+            found = found + 1
+            local stacks = GetPlayerBuffApplications and GetPlayerBuffApplications(bid)
+            local left = GetPlayerBuffTimeLeft and GetPlayerBuffTimeLeft(bid)
+            Say(string.format("%s (%s %d): stacks %s, %s s left, tooltip: %s | %s", name, filter, i, tostring(stacks),
+              tostring(left and math.floor(left * 10) / 10), tostring(sc:Line(2)), tostring(sc:Line(3))))
+          end
+        end
+      end
+    end
+    local CU = _G.C_UnitAuras
+    if CU and CU.GetPlayerAuraBySpellID then
+      local ok, a = pcall(CU.GetPlayerAuraBySpellID, 58127)
+      if ok and type(a) == "table" then
+        local pts = type(a.points) == "table" and table.concat(a.points, ",") or "none"
+        Say("ClassicAPI 58127: applications " .. tostring(a.applications) .. ", points " .. pts)
+      else Say("ClassicAPI 58127: no aura") end
+    end
+    if found == 0 then Say("no Earthen Bulwark aura on you right now.") end
+    local v = BW.View()
+    Say("bar reads " .. tostring(v.pct) .. "%")
+  end
+
+  _G.SlashCmdList.PFBULWARK = function(msg)
+    if msg and string.find(string.lower(msg), "debug") then BW.Debug() return end
     local O = pfUI.octoui and pfUI.octoui.Options
     if O and O.Open then pfUI.gui:Show() O:Open("bulwark") end
   end

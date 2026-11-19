@@ -8,6 +8,25 @@ if not TT then return end
 -- (19 Nov 2026) pfUI's own small totem bar (modules\totems.lua) is a different module: never share its names
 ok(pfUI.totems ~= TT and _G.pfOctoTotems and _G.pfOctoTotems ~= _G.pfTotems, "pfUI's own totem bar (pfUI.totems, pfTotems) left alone")
 ok(pfUI_config.totems and pfUI_config.totems.iconsize and not pfUI_config.totems.sets, "pfUI's C.totems keeps only its own settings")
+do
+  local keepOrder = pfUI_config.octototems.barorder
+  pfUI_config.octototems.barorder = "air,water,fire,earth"
+  local o = TT.BarOrder()
+  ok(o[1] == 4 and o[2] == 3 and o[3] == 1 and o[4] == 2, "element order: Air, Water, Fire, Earth (Lobo)")
+  pfUI_config.octototems.barorder = "water"
+  o = TT.BarOrder()
+  ok(o[1] == 3 and o[2] == 1 and o[3] == 2 and o[4] == 4, "element order: missing elements added in the usual order")
+  pfUI_config.octototems.layout = "together"
+  pfUI_config.octototems.barorder = "air,water,fire,earth"
+  TT.placed = nil
+  TT.Place()
+  local _, _, _, xa = TT.bars[4]:GetPoint()
+  local _, _, _, xe = TT.bars[2]:GetPoint()
+  ok(xa == 0 and xe and xe > 0, "air bar placed first, earth after it (" .. tostring(xa) .. ", " .. tostring(xe) .. ")")
+  pfUI_config.octototems.barorder = keepOrder
+  TT.placed = nil
+  TT.Place()
+end
 ok(TT.remind and TT.remind.timer.font and TT.remind.cdtext.font, "every button's texts have a font from the start (octototems.lua:952 'Font not set', Lobo)")
 local D = pfUI.totemData
 ok(D and D["Searing Totem"] and D["Searing Totem"].el == 1 and D["Searing Totem"].dur["Rank 6"] == 55, "data: Searing Totem fire, rank 6 = 55 s")

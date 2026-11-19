@@ -735,7 +735,7 @@ function pfUI:LoadConfig()
     color = ".72,.52,.28,1", activecolor = "1,.82,.35,1", bgcolor = ".1,.08,.05,.8", timercolor = "1,1,1,.9", textcolor = "1,1,1,1",
   }) do pfUI:UpdateConfig("bulwark", nil, k, v) end
   -- OctoTotems (modules/octototems.lua, 19 Nov 2026; pfUI's own totem bar keeps C.totems)
-  for k, v in pairs({ enable = "1", layout = "together", anchor = "active", static = "1", flexdelay = ".6", dock = "1",
+  for k, v in pairs({ enable = "1", layout = "together", barorder = "fire,earth,water,air", anchor = "active", static = "1", flexdelay = ".6", dock = "1",
     mode_fire = "flex", mode_earth = "flex", mode_water = "flex", mode_air = "flex",
     dir_fire = "up", dir_earth = "up", dir_water = "up", dir_air = "up",
     size = "36", spacing = "3", scale = "1", alpha = "1", timersize = "12", timers = "1", timerbar = "1", cooldown = "1",

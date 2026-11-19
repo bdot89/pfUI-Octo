@@ -41,6 +41,24 @@ buffs[1].line = "Bulwark integrity is at 80%."
 v = BW.View()
 ok(v.pct == 80, "a changed integrity is read again (tooltip not cached)")
 
+-- (19 Nov 2026, Lobo: 0% with a full bulwark) the % may be the stack count, and the aura may be a debuff
+ok(BW.Integrity(1, 100) == 100 and BW.Integrity(62, nil) == 62 and BW.Integrity(nil, 1) == 1 and BW.Integrity(nil, nil) == 0, "integrity: stacks beat a smaller tooltip number")
+local keepApps = rawget(_G, "GetPlayerBuffApplications")
+_G.GetPlayerBuffApplications = function(bid) return bid == 0 and 100 or 1 end
+buffs[1].line = "Bulwark integrity is at 1%."
+_G.GetPlayerBuff = function(i, filter)
+  local want = filter == "HARMFUL" and { 0 } or { 1 }   -- durability only among the debuffs
+  if want[i + 1] then return want[i + 1], 0 end return -1
+end
+BW.names = {}
+v = BW.View()
+ok(v.pct == 100 and v.absorbing, "integrity from a debuff's 100 stacks (got " .. tostring(v.pct) .. ")")
+_G.GetPlayerBuffApplications = keepApps
+_G.GetPlayerBuff = function(i) if buffs[i + 1] then return i, 0 end return -1 end
+buffs[1].line = "Bulwark integrity is at 80%."
+BW.names = {}
+v = BW.View()
+
 BW.shaman = true
 local f = BW.NewBar(UIParent)
 BW.Paint(f, v)
