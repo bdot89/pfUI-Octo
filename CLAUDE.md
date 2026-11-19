@@ -531,7 +531,15 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
    Ghost parts (19 Nov 2026, NOT seen in game; user could not find the Elite Overlay dragons: "stuff in the preview but
    blanked out so we can choose there"): the preview's Samples shows switched-off parts at UF.GHOST alpha with
    region.octoGhost (raid mark, leader, loot, PvP; the elite badge via f.octoGhostElite in UO.Update), the spot's tooltip
-   says "Switched off". o_elite "dragon" = Shagu's pfUI-eliteoverlay art (img\eliteoverlay, UO.Dragon). "Text colours and font" has Health / Power text size, the Texts
+   says "Switched off". o_elite "dragon" = Shagu's pfUI-eliteoverlay art (img\eliteoverlay, UO.Dragon).
+   ElvUI / EllesmereUI pilot (19 Nov 2026, NOT seen in game; user: options "quite messy ... look at how ellesmere and elv
+   do their option lists"): UF.SECTIONS = the frame's parts in frame order (Frame, Health, Power, Text, Portrait, Buffs &
+   debuffs, Icons & art, Raid layout) + ONE shared tab (shared = true, "All frames", gold, right end) holding every
+   "All frames: ..." card, Enemy buffs and Blizzard's own frames. Cards show in the section's listed order (UF.Filter).
+   Plain word tabs (UF.SectionTabs); "Change together" chips (UF.TogetherRow, UF.linked, session only): UF.Apply() with no
+   key -> UF.Mirror() copies keys changed since UF.snap (UF.PartOf keys only) to the ticked frames. Elite art card =
+   tiles (UF.EliteTiles; per frame o_crest / o_dragon / o_dragonsize; UO.DRAGONS incl. the game's dragons). If the user
+   likes it, the same pattern goes to the other sections. "Text colours and font" has Health / Power text size, the Texts
    card a Size per text; Shift + wheel on a text in the preview (UF.SIZE[pos], 4th field = its size now).
 12. Meters, Details!-style (22 Oct 2026; user's Details zip is All Rights Reserved - option and
    display names read only, no code or art). Rule from the user: use SuperWoW / ClassicAPI wherever

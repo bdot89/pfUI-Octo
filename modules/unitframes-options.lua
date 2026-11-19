@@ -70,6 +70,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     if real and real.UpdateConfig then real:UpdateConfig() end
     if UF.mini then UF.mini.Reconfigure(key or UF.cur) end
     KeepBlizz()
+    -- (a change to the frame being edited: the frames ticked under "Change together" too)
+    if not key and UF.Mirror then UF.Mirror() end
   end
   local function Up() UF.Apply() end
   function UF.ApplyAll()
@@ -164,19 +166,26 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
   -- preview (purple: pick one) shows only that section's cards, opened:
   -- { key, tab label, picture, card titles in order }.
   local ICON = "Interface\\Icons\\"
+  -- (19 Nov 2026, the ElvUI / EllesmereUI pilot; user: "the settings are generally quite messy ... look at how
+  -- ellesmere and elv do their option lists"). Both name a frame's settings after the PARTS of the frame, the same
+  -- list for every frame, in the order they sit on it (EllesmereUI: Display, Health bar, Power bar, Text, Portrait,
+  -- Cast bar, Buffs and debuffs, Extras; ElvUI: General, Health, Power, Name, Portrait, Buffs, Debuffs, ...), and
+  -- keep what every frame shares apart from one frame's own. Ours mixed both: "All frames: ..." cards sat in five
+  -- of eight tabs and "Look" / "Blizzard" held parts of everything. Now the tabs are the frame's parts; the last one
+  -- (shared = true, at the right end) holds every setting that is the same for all frames.
   UF.SECTIONS = {
-    { "size", "Size & bars", "Spell_Holy_Heal", { "Frame", "Health bar", "Power bar", "Portrait" } },
-    { "text", "Text", "INV_Misc_Note_01", { "All frames: text", "Texts", "Text colours and font" } },
-    { "auras", "Buffs", "Spell_Holy_WordFortitude", { "Enemy buffs", "Buffs", "Debuffs", "Buff and dispel markers" } },
-    { "icons", "Icons & art", "INV_Banner_01", { "Elite, rare and boss art", "Icons", "Class and status", "Glow and indicators" } },
-    { "look", "Look", "INV_Misc_Gem_Variety_01", { "Try it on the preview", "Border and background", "Colours", "All frames: colours" } },
-    -- (9 Nov 2026, user: "make all the blizzard menu together"): the game's own frames, the
-    -- Blizzard look on ours and the stance icon in one place
-    { "blizz", "Blizzard style", "INV_Misc_Head_Dragon_01", { "Blizzard's own frames", "Blizzard look", "Stance and form" } },
-    { "raid", "Raid layout", "Spell_Holy_PrayerOfHealing", { "Raid layout", "All frames: party and raid" } },
-    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: class extras" } },
+    { "frame", "Frame", "INV_Misc_Head_Human_01", { "Frame", "Border and background", "Glow and indicators", "Try it on the preview" } },
+    { "health", "Health", "Spell_Holy_Heal02", { "Health bar", "Colours" } },
+    { "power", "Power", "INV_Potion_51", { "Power bar" } },
+    { "text", "Text", "INV_Misc_Note_01", { "Texts", "Text colours and font" } },
+    { "portrait", "Portrait", "INV_Misc_Head_Dragon_01", { "Portrait", "Blizzard look" } },
+    { "auras", "Buffs & debuffs", "Spell_Holy_WordFortitude", { "Buffs", "Debuffs", "Buff and dispel markers" } },
+    { "icons", "Icons & art", "INV_Banner_01", { "Elite, rare and boss art", "Icons", "Class and status", "Stance and form" } },
+    { "raid", "Raid layout", "Spell_Holy_PrayerOfHealing", { "Raid layout" } },
+    { "all", "All frames", "INV_Misc_Gear_01", { "All frames: basics", "All frames: text", "All frames: colours",
+      "All frames: class extras", "All frames: party and raid", "Enemy buffs", "Blizzard's own frames" }, shared = true },
   }
-  UF.sec = "size"
+  UF.sec = "frame"
   UF.SECTION_OF = {}
   for _, s in ipairs(UF.SECTIONS) do
     for _, title in ipairs(s[4]) do UF.SECTION_OF[title] = s[1] end
@@ -212,18 +221,27 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local s = e.card and UF.SECTION_OF[e.card.title]
       if s and s ~= UF.sec then UF.SetSection(s, true) end
     end
-    local prev, gap = p.ufFirst, 13
+    -- (in the section's own order, not the order the cards were built in)
+    local byTitle = {}
     for _, c in ipairs(p.cards) do
-      if UF.SECTION_OF[c.title] == UF.sec then
+      byTitle[c.title] = c
+      if UF.SECTION_OF[c.title] ~= UF.sec then c.card:Hide() end
+    end
+    local prev, gap = p.ufFirst, 13
+    for _, title in ipairs(UF.SectionCards(UF.sec)) do
+      local c = byTitle[title]
+      if c then
         c.card:ClearAllPoints()
         c.card:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -gap)
         c.card:Show()
         prev, gap = c.card, 9
-      else
-        c.card:Hide()
       end
     end
     p.last = prev
+  end
+  function UF.SectionCards(key)
+    for _, s in ipairs(UF.SECTIONS) do if s[1] == key then return s[4] end end
+    return {}
   end
 
   -- a section's cards, opened, from the top of the page
@@ -234,8 +252,9 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       if not keepFolds then
         -- (only the first card opens: a whole section open at once was a wall
         -- of settings - user, 31 Oct 2026; the others stay as you left them)
+        local first = UF.SectionCards(key)[1]
         for _, c in ipairs(p.cards) do
-          if UF.SECTION_OF[c.title] == key then
+          if c.title == first then
             if not W.IsOpen(c) then W.SetOpen(c, true) end
             break
           end
@@ -300,6 +319,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     end
     UF.lastCopy = { to = to, was = was, from = from, part = part }
     UF.Apply(to)
+    if to == UF.cur and UF.TakeSnap then UF.TakeSnap() end
     return n
   end
   function UF.Undo()
@@ -311,6 +331,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     end
     UF.lastCopy = nil
     UF.Apply(lc.to)
+    if lc.to == UF.cur and UF.TakeSnap then UF.TakeSnap() end
   end
 
   -- "Copy from...": first the frame to copy from, then what
@@ -512,40 +533,55 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     line:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
     line:SetVertexColor(K.accent[1], K.accent[2], K.accent[3], .35)
     local tabs = {}
+    -- the shared tab (All frames) at the right end, gold, behind a divider: the others are this frame's
+    local div = W.Font(row:CreateFontString(nil, "OVERLAY"), 13, .35, .36, .4)
+    div:SetText("|")
     local function Paint(b)
       local on = b.key == UF.sec
       if on then b.text:SetTextColor(1, 1, 1) b.bar:Show()
       elseif b.hover then b.text:SetTextColor(.92, .92, .95) b.bar:Hide()
+      elseif b.shared then b.text:SetTextColor(.9, .75, .35) b.bar:Hide()
       else b.text:SetTextColor(.62, .64, .7) b.bar:Hide() end
     end
     local function Lay()
       local label = BY[UF.cur] and BY[UF.cur][2] or UF.cur
-      head:SetText(string.upper(label or ""))
-      local x = math.max(90, math.floor((head:GetStringWidth() or 60) + 18))
-      -- the names must fit one row: a size smaller when they would not
-      local size = 13
-      for pass = 1, 2 do
-        local total = x
+      head:SetText(string.upper(label or "") .. ":")
+      local x = math.floor((head:GetStringWidth() or 60) + 10)
+      -- the names must fit one row: a size smaller (and tighter) when they would not
+      local size, pad, total = 13, 16, 0
+      for pass = 1, 4 do
+        total = x + 14
         for _, b in ipairs(tabs) do
           b.text:SetFont(W.UIFont(), size)
-          b.w = math.floor((b.text:GetStringWidth() or 50) + 16)
+          b.w = math.floor((b.text:GetStringWidth() or 50) + pad)
           total = total + b.w
         end
-        if total <= W.CW or size <= 11 then break end
-        size = size - 1
+        if total <= W.CW or size <= 10 then break end
+        size, pad = size - 1, 12
       end
+      -- (a long frame name, "Target's target's target": the drop-down above says it already)
+      if total > W.CW then head:SetText("") x = 0 end
+      local right = W.CW
       for _, b in ipairs(tabs) do
         b:SetWidth(b.w)
         b:ClearAllPoints()
-        b:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", x, 0)
-        x = x + b.w
+        if b.shared then
+          right = right - b.w
+          b:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", right, 0)
+        else
+          b:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", x, 0)
+          x = x + b.w
+        end
         Paint(b)
       end
+      div:ClearAllPoints()
+      div:SetPoint("RIGHT", row, "BOTTOMLEFT", right - 2, 14)
     end
     for i, s in ipairs(UF.SECTIONS) do
       local b = CreateFrame("Button", nil, row)
       b:SetHeight(28)
       b.key = s[1]
+      b.shared = s.shared
       b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, 1, 1, 1)
       b.text:SetPoint("CENTER", b, "CENTER", 0, 1)
       b.text:SetText(s[2])
@@ -562,6 +598,11 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
         Paint(this)
         GameTooltip:SetOwner(this, "ANCHOR_TOP")
         GameTooltip:AddLine(this.text:GetText())
+        if this.shared then
+          GameTooltip:AddLine("Settings every frame shares.", .9, .75, .35, 1)
+        else
+          GameTooltip:AddLine("This frame's own: " .. (BY[UF.cur] and BY[UF.cur][2] or UF.cur) .. ".", .7, .7, .7, 1)
+        end
         GameTooltip:AddLine("Shows: " .. table.concat(tip, ", ") .. ".", 1, 1, 1, 1)
         GameTooltip:Show()
       end)
@@ -572,6 +613,103 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     UF.secTabs = tabs
     Lay()
     table.insert(p.items, { Refresh = Lay })
+    UF.TogetherRow(p)
+    return row
+  end
+
+  -- ---------------------------------------------------------------- change together
+  -- (19 Nov 2026, from EllesmereUI's group editing: ideas only) frames ticked here take every change made to the
+  -- frame being edited, as it is made - set Player, Target and Focus up in one go. Only the keys Copy from... would
+  -- copy (never whether it shows, its place, the raid grid or click casting). For this session only, so it never
+  -- keeps changing frames after you have forgotten it.
+  UF.linked = {}
+  UF.TOGETHER = { "player", "target", "focus", "ttarget", "pet", "group", "raid" }
+  local function TakeSnap()
+    local s = {}
+    for k, v in pairs(U() or {}) do if type(v) ~= "table" then s[k] = v end end
+    UF.snap, UF.snapKey = s, UF.cur
+  end
+  UF.TakeSnap = TakeSnap
+  -- after a change to UF.cur: what changed goes to the linked frames too; returns the frames changed
+  function UF.Mirror()
+    if UF.snapKey ~= UF.cur or not UF.snap then TakeSnap() return {} end
+    local src, hit = U(), {}
+    for k, v in pairs(src) do
+      if type(v) ~= "table" and UF.snap[k] ~= v and UF.PartOf(k) then
+        for to in pairs(UF.linked) do
+          local dst = C.unitframes[to]
+          if to ~= UF.cur and dst and dst[k] ~= v then dst[k] = v hit[to] = true end
+        end
+      end
+    end
+    TakeSnap()
+    local out = {}
+    for to in pairs(hit) do UF.Apply(to) table.insert(out, to) end
+    return out
+  end
+  function UF.TogetherRow(p)
+    local row = W.Row(p, 24, 0, 4)
+    local K = W.C
+    local lab = W.Font(row:CreateFontString(nil, "OVERLAY"), 11, K.dim[1], K.dim[2], K.dim[3])
+    lab:SetPoint("LEFT", row, "LEFT", 2, 0)
+    lab:SetText("Change together:")
+    local x = math.floor((lab:GetStringWidth() or 90) + 12)
+    local chips = {}
+    local function Paint(b)
+      local me = b.key == UF.cur
+      local on = me or UF.linked[b.key]
+      b.fill:SetVertexColor(K.accent[1], K.accent[2], K.accent[3], me and .55 or (on and .3 or 0))
+      b.edge:SetVertexColor(K.accent[1], K.accent[2], K.accent[3], on and .9 or .3)
+      if on then b.text:SetTextColor(1, 1, 1) else b.text:SetTextColor(.6, .62, .68) end
+    end
+    for _, key in ipairs(UF.TOGETHER) do
+      local b = CreateFrame("Button", nil, row)
+      b.key = key
+      b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 11, 1, 1, 1)
+      b.text:SetPoint("CENTER", b, "CENTER", 0, 0)
+      b.text:SetText(BY[key] and BY[key][2] or key)
+      local w = math.floor((b.text:GetStringWidth() or 40) + 14)
+      b:SetWidth(w) b:SetHeight(18)
+      b:SetPoint("LEFT", row, "LEFT", x, 0)
+      x = x + w + 4
+      b.fill = b:CreateTexture(nil, "BACKGROUND")
+      b.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
+      b.fill:SetAllPoints(b)
+      b.edge = b:CreateTexture(nil, "BORDER")
+      b.edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+      b.edge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      b.edge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
+      b.edge:SetHeight(1)
+      b:SetScript("OnClick", function()
+        if this.key == UF.cur then return end
+        UF.linked[this.key] = (not UF.linked[this.key]) or nil
+        TakeSnap()
+        for _, c in ipairs(chips) do Paint(c) end
+      end)
+      b:SetScript("OnEnter", function()
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        local name = BY[this.key] and BY[this.key][2] or this.key
+        if this.key == UF.cur then
+          GameTooltip:AddLine(name .. ": the frame you are editing")
+        else
+          GameTooltip:AddLine(name)
+          GameTooltip:AddLine(UF.linked[this.key] and "Ticked: takes every change you make here. Click to stop."
+            or "Click: this frame takes every change you make to " .. (BY[UF.cur] and BY[UF.cur][2] or UF.cur)
+            .. " from now on (until you log out). Not its place or whether it shows.", 1, 1, 1, 1)
+        end
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+      table.insert(chips, b)
+    end
+    UF.togetherChips = chips
+    table.insert(p.items, { Refresh = function()
+      -- (nothing to share on the All frames tab: every setting there is everyone's already)
+      local shared = UF.sec == "all"
+      for _, c in ipairs(chips) do if shared then c:Hide() else c:Show() Paint(c) end end
+      if shared then lab:SetText("These settings are the same for every frame.") else lab:SetText("Change together:") end
+      if UF.snapKey ~= UF.cur then TakeSnap() end
+    end })
     return row
   end
 
@@ -1345,7 +1483,7 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
           UF.mini.Refresh()
         end
         -- (the raid tab opens on its layout, the rest of its cards a tab away)
-        if k == "raid" and UF.sec == "size" then UF.SetSection("raid", true) return end
+        if k == "raid" and UF.sec == "frame" then UF.SetSection("raid", true) return end
         O:Refresh()
       end)
       drop:SetPoint("LEFT", row, "LEFT", 60, 0)
@@ -1779,8 +1917,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Drop(p, "Dispel marker at", nil, DD("positions"), U, "debuff_ind_pos")
     Drop(p, "Dispel marker size", nil, DD("uf_debuff_indicator_size"), U, "debuff_ind_size")
 
-    Card(p, "Colours", { tip = "This frame's own colours (off = the ones on General)." })
-    Chk(p, "Use the colours on General", nil, U, "defcolor")
+    Card(p, "Colours", { tip = "This frame's own colours (or the All frames tab's)." })
+    Chk(p, "Use the All frames colours", "On: this frame takes the colours set on the All frames tab.", U, "defcolor")
     Drop(p, "Health bar colour", nil, DD("uf_color"), U, "custom")
     Color(p, "Own health colour", nil, U, "customcolor")
     Chk(p, "Fade to the own colour", nil, U, "customfade")

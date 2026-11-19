@@ -390,28 +390,66 @@ if UF and O and UF.SECTIONS then
   end
   ok(table.getn(lost) == 0, "every Unit Frames card is in a section (" .. table.concat(lost, ", ") .. ")")
   ok(table.getn(pics) == 0, "every Unit Frames card has a picture (" .. table.concat(pics, ", ") .. ")")
-  local most = 0
-  for _, s in ipairs(UF.SECTIONS) do most = math.max(most, table.getn(s[4])) end
-  ok(table.getn(UF.SECTIONS) == 8 and most <= 4, "eight sections of at most four cards (was one list of " .. table.getn(p.cards) .. ")")
+  -- (19 Nov 2026, ElvUI / EllesmereUI pilot) tabs = the frame's parts, at most four cards each; every "All frames"
+  -- card on the one shared tab and no shared card on a frame's own tab
+  local most, mixed = 0, {}
+  for _, s in ipairs(UF.SECTIONS) do
+    if not s.shared then most = math.max(most, table.getn(s[4])) end
+    for _, t in ipairs(s[4]) do
+      local all = string.find(t, "^All frames") or t == "Enemy buffs" or t == "Blizzard's own frames"
+      if (all and not s.shared) or (s.shared and not all) then table.insert(mixed, t) end
+    end
+  end
+  ok(table.getn(UF.SECTIONS) == 9 and most <= 4, "nine sections named after the frame's parts, at most four cards each")
+  ok(table.getn(mixed) == 0, "shared cards only on the All frames tab (" .. table.concat(mixed, ", ") .. ")")
   local function Shown(title)
     for _, c in ipairs(p.cards) do if c.title == title then return c.card:IsShown() end end
   end
-  UF.SetSection("size")
-  ok(Shown("Health bar") and not Shown("Raid layout") and not Shown("Buffs"), "Size and bars shows only its cards")
+  UF.SetSection("health")
+  ok(Shown("Health bar") and Shown("Colours") and not Shown("Raid layout") and not Shown("Buffs"), "Health shows only its cards")
   ok(p.last and p.last:IsShown(), "the page ends at the last card shown (its height)")
+  UF.SetSection("frame")
+  local c1, c2
+  for _, c in ipairs(p.cards) do if c.title == "Frame" then c1 = c.card elseif c.title == "Border and background" then c2 = c.card end end
+  local rel
+  if c2 then _, rel = c2:GetPoint(1) end
+  ok(rel and rel == c1, "cards in the section's own order (Frame, then Border and background)")
   UF.SetSection("raid")
   ok(Shown("Raid layout") and not Shown("Health bar") and UF.cur == "raid", "Raid layout: its own section, on the raid frames' preview")
-  ok(UF.secTabs and UF.secTabs[7].bar:IsShown() and not UF.secTabs[1].bar:IsShown() and not string.find(UF.secTabs[7].text:GetText(), "...", 1, true),
+  ok(UF.secTabs and UF.secTabs[8].bar:IsShown() and not UF.secTabs[1].bar:IsShown() and not string.find(UF.secTabs[8].text:GetText(), "...", 1, true),
     "the open section tab is underlined, names in full")
+  local sh = UF.secTabs and UF.secTabs[9]
+  local shx
+  if sh then _, _, _, shx = sh:GetPoint(1) end
+  local _, _, _, rx = UF.secTabs[8]:GetPoint(1)
+  ok(sh and sh.shared and shx and rx and shx > rx, "All frames: the shared tab at the right end")
+  -- Change together: a linked frame takes the change, not one left alone, never "visible"
+  UF.cur = "player"
+  UF.SetSection("health")
+  local pc, tc, fc = pfUI_config.unitframes.player, pfUI_config.unitframes.target, pfUI_config.unitframes.focus
+  local was = { pc.height, tc.height, fc.height, pc.visible, tc.visible }
+  UF.linked = { target = true }
+  UF.TakeSnap()
+  pc.height = tostring((tonumber(pc.height) or 20) + 3)
+  pc.visible = pc.visible == "1" and "0" or "1"
+  UF.Apply()
+  ok(tc.height == pc.height and fc.height == was[3] and tc.visible == was[5], "Change together: the ticked frame follows, the rest do not, nor visibility")
+  UF.linked = {}
+  pc.height = tostring((tonumber(pc.height) or 20) + 1)
+  UF.Apply()
+  ok(tc.height ~= pc.height, "unticked: frames go their own way again")
+  pc.height, tc.height, fc.height, pc.visible, tc.visible = was[1], was[2], was[3], was[4], was[5]
+  UF.TakeSnap()
   -- a click on the preview's health bar goes to its section
+  UF.SetSection("frame")
   pfUI.plates.OpenSection("ufframes", "Health bar")
-  ok(UF.sec == "size" and Shown("Health bar"), "a card of another section opens that section")
+  ok(UF.sec == "health" and Shown("Health bar"), "a card of another section opens that section")
   -- layout mode's right-click on the raid box: the Raid layout card
   O.tabs.ufframes("raid")
   O:Select("o:ufframes")
   ok(UF.sec == "raid" and Shown("Raid layout"), "the raid box's options open on the raid layout")
   UF.cur = "player"
-  UF.SetSection("size")
+  UF.SetSection("frame")
 else
   ok(false, "unit frames sections (pfUI.ufOcto.SECTIONS)")
 end
