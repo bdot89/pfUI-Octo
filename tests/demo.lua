@@ -148,3 +148,80 @@ ok(DM.boss and DM.boss.hp > 0, "the dummy never dies")
 DM.Stop(true)
 ok(rawget(env, "UnitName") == before.UnitName and (not lh or lh.GetUnitHealth ~= nil), "dummy stopped, everything back")
 Mock.now = now
+
+-- the dungeon (5): a party, no raid; packs by marks, the sheeped one last, kicks, then the end boss
+ok(DM.Start("dungeon") and DM.kind == "dungeon", "the dungeon demo starts")
+ok(env.GetNumRaidMembers() == 0 and env.GetNumPartyMembers() == 4 and env.UnitInRaid("party1") == nil, "a party of five, not a raid")
+ok(env.UnitName("party1") == DM.units.party1.name and DM.tank == DM.units.party1 and env.UnitIsPartyLeader("party1") == 1, "party1 tanks and leads")
+ok(DM.pack and table.getn(DM.pack) >= 3 and env.GetRaidTargetIndex("target") == 8, "a pack; skull on your target")
+local sheep
+for _, m in ipairs(DM.pack) do if m.cc then sheep = m end end
+ok(sheep and sheep.debuffs[1] and string.find(sheep.debuffs[1].tex, "Polymorph"), "the moon stands polymorphed")
+local chatKeep, kicks = DEFAULT_CHAT_FRAME.AddMessage, 0
+DEFAULT_CHAT_FRAME.AddMessage = function(self, t) if t and string.find(t, "interrupts") then kicks = kicks + 1 end end
+local sawBoss, packs, targets = false, 0, {}
+for _ = 1, 600 do
+  Mock.now = Mock.now + .5
+  DM.Step(.5)
+  if DM.boss then targets[DM.boss.name] = true end
+  if DM.phase == "boss" then sawBoss = true end
+  if DM.phase == "rest" then break end
+end
+DEFAULT_CHAT_FRAME.AddMessage = chatKeep
+local nt = 0
+for _ in pairs(targets) do nt = nt + 1 end
+ok(nt >= 5, "every mob of both packs became the target in turn (" .. nt .. ")")
+ok(sawBoss and DM.phase == "rest", "both packs, then the end boss, then a rest")
+ok(kicks > 0, "casts get kicked (" .. kicks .. ")")
+DM.Stop(true)
+
+-- PvP: enemy players on your target, the dead come back
+ok(DM.Start("pvp") and DM.kind == "pvp", "the PvP demo starts")
+local mine = _G.UnitFactionGroup("player")
+ok(env.UnitIsPlayer("target") == 1 and env.UnitIsPVP("target") == 1 and env.UnitCanAttack("player", "target") == 1
+  and env.UnitFactionGroup("target") ~= mine and select(2, env.UnitClass("target")) == DM.boss.class, "an enemy player of the other faction on your target")
+local first, foes = DM.boss, {}
+local revived = false
+for _ = 1, 400 do
+  Mock.now = Mock.now + .5
+  DM.Step(.5)
+  if DM.boss then foes[DM.boss] = true end
+  for _, u in ipairs(DM.list) do if u.wasDead and not u.dead then revived = true end u.wasDead = u.dead end
+end
+local nf = 0
+for _ in pairs(foes) do nf = nf + 1 end
+ok(nf >= 3 and DM.on, "one enemy after another (" .. nf .. "), never a rest or a wipe")
+ok(DM.Threat and (not TH or TH.list == nil), "no threat list against players")
+DM.Stop(true)
+
+-- AFK: pfUI's AFK screen with chat; never marks you AFK; it closing ends the demo
+local cam = getglobal("pfAFKCam")
+if cam and cam.start then
+  local afkSent = false
+  local keepChat = rawget(_G, "SendChatMessage")
+  _G.SendChatMessage = function(m, chan) if chan == "AFK" then afkSent = true end end
+  ok(DM.Start("afk") and DM.kind == "afk", "the AFK demo starts")
+  ok(cam._spinning, "the AFK screen is up")
+  env.SendChatMessage("", "AFK")
+  ok(not afkSent, "it never marks you AFK for real")
+  for _ = 1, 6 do Mock.now = Mock.now + 2 DM.Step(2) end
+  cam:stop()
+  Mock.now = Mock.now + 1
+  DM.Step(1)
+  ok(not DM.on, "the AFK screen closing ends the demo")
+  _G.SendChatMessage = keepChat
+else
+  ok(DM.Start("afk") == false, "without the AFK screen the AFK demo says so")
+end
+
+-- the showcase: the raid underneath, a caption that steps through the modules
+ok(DM.Start("showcase") and DM.roster == "raid" and env.GetNumRaidMembers() == 40, "the showcase runs on the raid demo")
+local c1 = DM.caption
+ok(c1 and string.find(c1, "Raid frames"), "first caption: " .. tostring(c1))
+DM.Next()
+ok(DM.caption ~= c1 and DM.showIndex == 2, "Next = the next caption")
+for _ = 1, 20 do Mock.now = Mock.now + 1 DM.Step(1) end
+ok(DM.showIndex >= 3, "the captions move on by themselves")
+DM.Stop(true)
+ok(DM.caption == nil and rawget(env, "UnitName") == before.UnitName, "showcase stopped, everything back")
+Mock.now = now

@@ -11,22 +11,22 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
   local I = "Interface\\Icons\\"
 
   local function Build(p)
-    W.Heading(p, "Demo mode", { about = "A pretend raid on your own screen, with all your settings running: 40 raid frames, "
-      .. "a boss on your target frame with its cast bar, debuffs to cure, raid warnings, meters and combat text. It loops "
-      .. "trash, boss, kill or wipe and rest until you stop it. Nothing real happens: the game and other add-ons see none "
-      .. "of it, and Stop puts everything back. Use Edit on the bar at the top of the screen to change things while it runs." })
+    W.Heading(p, "Demo mode", { about = "A pretend raid, dungeon, battleground, target dummy or AFK screen on your own screen, "
+      .. "with all your settings running: your real frames fill with a made-up group and enemy, with cast bars, debuffs to "
+      .. "cure, raid warnings, threat, meters and combat text. It loops until you stop it. Nothing real happens: the game and "
+      .. "other add-ons see none of it, nothing is sent to anyone, and Stop puts everything back. Use Edit on the bar at the "
+      .. "top of the screen to change things while it runs." })
 
-    W.Card(p, "Start a demo", { icon = I .. "INV_Misc_Head_Dragon_01", tip = "Pick one. The raid and target dummy demos are ready; the others "
-      .. "come in the next updates." })
+    W.Card(p, "Start a demo", { icon = I .. "INV_Misc_Head_Dragon_01", tip = "Pick one; it runs until you press Stop." })
     W.Tiles(p, {
       { "Raid (40)", "Bosses, trash, wipes, on a loop", I .. "INV_Misc_Head_Dragon_01", function() DM.Start("raid") end, "go" },
-      { "Dungeon (5)", "Coming next", I .. "INV_Misc_Key_03", function() DM.Start("dungeon") end, "open" },
+      { "Dungeon (5)", "Packs, kicks, sheep, end boss", I .. "INV_Misc_Key_03", function() DM.Start("dungeon") end, "go" },
       { "Target dummy", "Every rank and crest in turn", I .. "INV_Misc_Bone_HumanSkull_01", function() DM.Start("dummy") end, "go" },
     })
     W.Tiles(p, {
-      { "PvP", "Coming later", I .. "INV_BannerPVP_02", function() DM.Start("pvp") end, "open" },
-      { "AFK", "Coming later", I .. "Spell_Nature_Sleep", function() DM.Start("afk") end, "open" },
-      { "Showcase", "Coming later", I .. "INV_Misc_Spyglass_03", function() DM.Start("showcase") end, "open" },
+      { "PvP", "Enemy players, flags, honour", I .. "INV_BannerPVP_02", function() DM.Start("pvp") end, "go" },
+      { "AFK", "Your AFK screen and chat", I .. "Spell_Nature_Sleep", function() DM.Start("afk") end, "go" },
+      { "Showcase", "A guided tour of pfUI Octo", I .. "INV_Misc_Spyglass_03", function() DM.Start("showcase") end, "go" },
     })
     W.Live(p, function()
       if not DM.on then return "|cff888888No demo running.|r" end
@@ -47,7 +47,8 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
     Chk(p, "Raid warnings", "Boss abilities and pulls in the middle of the screen, with the raid warning sound.", "warnings")
     O.PfSld(p, "A wipe every", "0 = never. The raid goes down on that pull and tries the same boss again.", 0, 6, 1, G, "wipes", nil,
       function(v) v = tonumber(v) or 0 if v == 0 then return "Never" end return v == 1 and "Every boss" or (v .. " bosses") end)
-    W.Note(p, "/demo starts the raid demo, /demo stop ends it, /demo next skips ahead. A real fight ends the demo by itself.")
+    W.Note(p, "/demo [raid | dungeon | dummy | pvp | afk | showcase] starts one, /demo stop ends it, /demo next skips ahead. "
+      .. "A real fight ends the demo by itself. The AFK demo ends when you click or press a key.")
   end
 
   O:AddPage("Demo Mode", "demo", "Demo mode", Build)

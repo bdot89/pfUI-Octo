@@ -1499,3 +1499,16 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   Target dummy demo (kind "dummy", DM.DUMMIES normal -> elite -> rare -> rare elite -> world boss, DM.RANKTIME 12 s, Next =
   next rank, never dies; only the target is pretend - no raid roster). Demo Mode is its own featured sidebar row under
   More, above Add-ons (O.NAV / NAVGROUPS / FEATURED; sidebar rows may now be 11 px); the QoL page has tiles to it.
+  Phase 3 (19 Nov 2026, NOT seen in game; user: "do all the demos before we release"). DM.ROSTERS: raid / showcase = raid
+  roster, dungeon / pvp = DM.PARTYROSTER (party1-4 made by DM.MakeParty: warrior tank, priest, mage, rogue; DM.offtank
+  replaces the old raid3 fallback; ANS.UnitInRaid only with the raid roster), dummy / afk = none. Dungeon: phase "trash" =
+  a pack (DM.PACKS, NextInPack: marked order, the cc mob polymorphed until last), DM.packsDone -> "boss" (DM.DBOSSES) ->
+  rest; abilities with kick = true are interrupted 60% of the time 0.6 s in (party chat line, not in the raid). PvP:
+  "trash" = an enemy player (DM.EnemyDef: class spells DM.ENEMY, other faction, PvP flag, no threat list), "ended" =
+  killing blow + honour line, the dead return after 12 s, flag lines (DM.BGLINES) every 18-30 s - all via DM.Chat
+  (AddMessage on DEFAULT_CHAT_FRAME in ChatTypeInfo colours; nothing is sent). AFK: pfAFKCam:start() + DM.afkNote on its
+  overlay, pretend chat into its chat frame; SendChatMessage(.., "AFK") is dropped while kind == "afk" (the overlay's own
+  click / key would mark you AFK), the screen closing ends the demo, Stop calls pfAFKCam:stop() (it shows UIParent again:
+  tests must close it with cam:stop(), or UIParent stays hidden). Showcase: the raid demo + DM.SHOW captions every 9 s
+  (bar.caption under the bar), each step's own test (R.Test, TH.Sample, P.Test, AB.Test, ST.Test, D.Test); Next = next
+  caption. DM.KillTime per kind and phase; damage scales by the dps alive vs DM.dpsFull.

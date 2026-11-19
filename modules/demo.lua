@@ -62,8 +62,25 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       table.insert(DM.list, u)
       n = n + 1
     end
-    DM.tank = DM.units.raid2
+    DM.tank, DM.offtank = DM.units.raid2, DM.units.raid3
     DM.units.raid2.leader = true
+  end
+
+  -- the dungeon / PvP group: four with you (party1-4)
+  DM.PARTY = { { "WARRIOR", "tank", 6200, 1, 100 }, { "PRIEST", "heal", 3900, 0, 5200 }, { "MAGE", "dps", 3700, 0, 5600 },
+    { "ROGUE", "dps", 4100, 3, 100 } }
+  function DM.MakeParty()
+    DM.units, DM.list = {}, {}
+    for i, m in ipairs(DM.PARTY) do
+      local u = { token = "party" .. i, name = DM.NAMES[i + 10], class = m[1], cl = DM.LOCAL[m[1]] or m[1], role = m[2],
+        max = math.floor(m[3] * Rand(.95, 1.08)), ptype = m[4], pmax = m[5], group = 1, level = 60, player = true,
+        debuffs = {}, buffs = DM.BUFFS }
+      u.hp, u.pw = u.max, u.ptype == 1 and 0 or u.pmax
+      DM.units[u.token] = u
+      table.insert(DM.list, u)
+    end
+    DM.tank, DM.offtank = DM.units.party1, DM.units.party4
+    DM.units.party1.leader, DM.units.party1.mark = true, 6
   end
 
   -- ---------------------------------------------------------------- bosses
@@ -117,9 +134,135 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   }
   for _, d in ipairs(DM.DUMMIES) do d.abilities, d.melee = {}, { 0, 0 } end
 
+  -- the dungeon demo (5): two packs (a kill order by marks, one sheeped, a caster to kick), then the end boss
+  -- (kick = a party member interrupts it most of the time; cc = it stands polymorphed until it is the last one)
+  DM.PACKS = {
+    {
+      { name = "Scarlet Defender", ctype = "Humanoid", level = 61, cls = "elite", max = 14000, melee = { 350, 600 }, mark = 8,
+        abilities = { { name = "Shield Bash", icon = I .. "Ability_Warrior_ShieldBash", every = 10, what = "some", n = 1, dmg = { 200, 350 } } } },
+      { name = "Scarlet Sorcerer", ctype = "Humanoid", level = 60, cls = "elite", max = 9000, melee = { 150, 250 }, mark = 7,
+        abilities = { { name = "Fireball", icon = I .. "Spell_Fire_FlameBolt", every = 6, cast = 3, kick = true, what = "some", n = 1, dmg = { 900, 1300 } },
+          { name = "Frost Nova", icon = I .. "Spell_Frost_FrostNova", every = 14, what = "raid", dmg = { 150, 250 },
+            debuff = { I .. "Spell_Frost_FrostNova", "Magic", 6 } } } },
+      { name = "Scarlet Chaplain", ctype = "Humanoid", level = 60, cls = "elite", max = 10000, melee = { 200, 300 }, mark = 5, cc = true,
+        abilities = { { name = "Smite", icon = I .. "Spell_Holy_HolySmite", every = 7, cast = 2, kick = true, what = "some", n = 1, dmg = { 600, 900 } } } },
+    },
+    {
+      { name = "Scarlet Myrmidon", ctype = "Humanoid", level = 61, cls = "elite", max = 15000, melee = { 400, 700 }, mark = 8,
+        abilities = { { name = "Enrage", icon = I .. "Spell_Shadow_UnholyFrenzy", every = 18, what = "tank", dmg = { 500, 800 },
+          say = "Scarlet Myrmidon goes into a frenzy!" } } },
+      { name = "Scarlet Adept", ctype = "Humanoid", level = 60, cls = "elite", max = 8500, melee = { 150, 250 }, mark = 7,
+        abilities = { { name = "Shadow Bolt", icon = I .. "Spell_Shadow_ShadowBolt", every = 5, cast = 2.5, kick = true, what = "some", n = 1, dmg = { 800, 1100 } },
+          { name = "Curse of Weakness", icon = I .. "Spell_Shadow_CurseOfMannoroth", every = 12, what = "some", n = 2, dmg = { 50, 100 },
+            debuff = { I .. "Spell_Shadow_CurseOfMannoroth", "Curse", 12 } } } },
+      { name = "Scarlet Monk", ctype = "Humanoid", level = 60, cls = "elite", max = 11000, melee = { 300, 500 }, mark = 1,
+        abilities = { { name = "Kick", icon = I .. "Ability_Kick", every = 9, what = "some", n = 1, dmg = { 150, 250 } } } },
+      { name = "Scarlet Torturer", ctype = "Humanoid", level = 60, cls = "elite", max = 9000, melee = { 250, 400 }, mark = 5, cc = true,
+        abilities = { { name = "Poison", icon = I .. "Spell_Nature_CorrosiveBreath", every = 8, what = "some", n = 1, dmg = { 200, 300 },
+          debuff = { I .. "Spell_Nature_CorrosiveBreath", "Poison", 10 } } } },
+    },
+  }
+  DM.DBOSSES = {
+    { name = "High Inquisitor Varra", ctype = "Humanoid", level = 63, cls = "elite", max = 95000, melee = { 600, 1000 },
+      abilities = {
+        { name = "Holy Smite", icon = I .. "Spell_Holy_HolySmite", every = 8, cast = 2.5, kick = true, what = "some", n = 1, dmg = { 1200, 1600 } },
+        { name = "Hammer of Justice", icon = I .. "Spell_Holy_SealOfMight", every = 15, what = "tank", dmg = { 300, 500 },
+          debuff = { I .. "Spell_Holy_SealOfMight", "Magic", 6 }, say = "High Inquisitor Varra stuns the tank!" },
+        { name = "Consecration", icon = I .. "Spell_Holy_InnerFire", every = 12, what = "raid", dmg = { 250, 400 } },
+      } },
+    { name = "Archmage Vorlath", ctype = "Humanoid", level = 63, cls = "elite", max = 90000, melee = { 400, 700 },
+      abilities = {
+        { name = "Pyroblast", icon = I .. "Spell_Fire_Fireball02", every = 12, cast = 4, kick = true, what = "some", n = 1, dmg = { 1800, 2400 },
+          say = "Archmage Vorlath begins to cast Pyroblast - kick it!" },
+        { name = "Arcane Explosion", icon = I .. "Spell_Nature_WispSplode", every = 9, what = "raid", dmg = { 350, 500 } },
+        { name = "Polymorph", icon = I .. "Spell_Nature_Polymorph", every = 16, what = "some", n = 1, dmg = { 0, 0 },
+          debuff = { I .. "Spell_Nature_Polymorph", "Magic", 8 } },
+      } },
+  }
+
+  -- the PvP demo: enemy players one after another on your target, their class spells (most casts kicked)
+  DM.ENEMYNAMES = { "Kragnor", "Velith", "Sarduk", "Mirthis", "Oglak", "Teralyn", "Durzak", "Ysmera", "Brakka", "Zelthis", "Orvane", "Thessa" }
+  DM.ENEMY = {
+    MAGE = { 3400, { { name = "Frostbolt", icon = I .. "Spell_Frost_FrostBolt02", every = 4, cast = 2.5, kick = true, what = "some", n = 1, dmg = { 800, 1100 } },
+      { name = "Polymorph", icon = I .. "Spell_Nature_Polymorph", every = 15, cast = 1.5, kick = true, what = "some", n = 1, dmg = { 0, 0 },
+        debuff = { I .. "Spell_Nature_Polymorph", "Magic", 8 } },
+      { name = "Frost Nova", icon = I .. "Spell_Frost_FrostNova", every = 12, what = "raid", dmg = { 100, 200 }, debuff = { I .. "Spell_Frost_FrostNova", "Magic", 6 } } } },
+    WARRIOR = { 5200, { { name = "Mortal Strike", icon = I .. "Ability_Warrior_SavageBlow", every = 6, what = "some", n = 1, dmg = { 900, 1400 },
+      debuff = { I .. "Ability_CriticalStrike", "", 10 } },
+      { name = "Hamstring", icon = I .. "Ability_ShockWave", every = 8, what = "some", n = 1, dmg = { 50, 100 }, debuff = { I .. "Ability_ShockWave", "", 15 } } } },
+    PRIEST = { 3800, { { name = "Mind Blast", icon = I .. "Spell_Shadow_UnholyFrenzy", every = 6, cast = 1.5, kick = true, what = "some", n = 1, dmg = { 700, 900 } },
+      { name = "Psychic Scream", icon = I .. "Spell_Shadow_PsychicScream", every = 20, what = "raid", dmg = { 0, 0 }, debuff = { I .. "Spell_Shadow_PsychicScream", "Magic", 6 },
+        say = "Psychic Scream - your group is feared!" } } },
+    ROGUE = { 4000, { { name = "Sinister Strike", icon = I .. "Spell_Shadow_RitualOfSacrifice", every = 3, what = "some", n = 1, dmg = { 350, 550 } },
+      { name = "Kidney Shot", icon = I .. "Ability_Rogue_KidneyShot", every = 16, what = "some", n = 1, dmg = { 100, 200 }, debuff = { I .. "Ability_Rogue_KidneyShot", "", 5 } } } },
+    WARLOCK = { 4300, { { name = "Shadow Bolt", icon = I .. "Spell_Shadow_ShadowBolt", every = 4, cast = 3, kick = true, what = "some", n = 1, dmg = { 900, 1200 } },
+      { name = "Fear", icon = I .. "Spell_Shadow_Possession", every = 14, cast = 1.5, kick = true, what = "some", n = 1, dmg = { 0, 0 },
+        debuff = { I .. "Spell_Shadow_Possession", "Magic", 8 } },
+      { name = "Corruption", icon = I .. "Spell_Shadow_AbominationExplosion", every = 9, what = "some", n = 2, dmg = { 100, 150 },
+        debuff = { I .. "Spell_Shadow_AbominationExplosion", "Magic", 18 } } } },
+    HUNTER = { 4400, { { name = "Aimed Shot", icon = I .. "INV_Spear_07", every = 7, cast = 3, kick = false, what = "some", n = 1, dmg = { 1100, 1500 } },
+      { name = "Viper Sting", icon = I .. "Ability_Hunter_AimedShot", every = 12, what = "some", n = 1, dmg = { 50, 100 },
+        debuff = { I .. "Ability_Hunter_AimedShot", "Poison", 8 } } } },
+    DRUID = { 4200, { { name = "Wrath", icon = I .. "Spell_Nature_AbolishMagic", every = 4, cast = 2, kick = true, what = "some", n = 1, dmg = { 500, 700 } },
+      { name = "Entangling Roots", icon = I .. "Spell_Nature_StrangleVines", every = 13, cast = 1.5, kick = true, what = "some", n = 1, dmg = { 100, 200 },
+        debuff = { I .. "Spell_Nature_StrangleVines", "Magic", 10 } } } },
+    SHAMAN = { 4500, { { name = "Lightning Bolt", icon = I .. "Spell_Nature_Lightning", every = 4, cast = 2.5, kick = true, what = "some", n = 1, dmg = { 800, 1000 } },
+      { name = "Frost Shock", icon = I .. "Spell_Frost_FrostShock", every = 9, what = "some", n = 1, dmg = { 500, 700 }, debuff = { I .. "Spell_Frost_FrostShock", "Magic", 8 } } } },
+    PALADIN = { 4800, { { name = "Hammer of Justice", icon = I .. "Spell_Holy_SealOfMight", every = 14, what = "some", n = 1, dmg = { 200, 300 },
+      debuff = { I .. "Spell_Holy_SealOfMight", "Magic", 6 } },
+      { name = "Judgement", icon = I .. "Spell_Holy_RighteousFury", every = 8, what = "some", n = 1, dmg = { 500, 700 } } } },
+  }
+  function DM.EnemyDef()
+    local mine = _G.UnitFactionGroup and _G.UnitFactionGroup("player") or "Alliance"
+    local them = mine == "Horde" and "Alliance" or "Horde"
+    local classes = { "MAGE", "WARRIOR", "PRIEST", "ROGUE", "WARLOCK", "HUNTER", "DRUID", them == "Horde" and "SHAMAN" or "PALADIN" }
+    local class = Pick(classes)
+    local e = DM.ENEMY[class]
+    return { name = Pick(DM.ENEMYNAMES), ctype = "Humanoid", level = 60, cls = "normal", max = math.floor(e[1] * Rand(.9, 1.15)),
+      melee = { 250, 450 }, abilities = e[2], player = true, class = class, faction = them }
+  end
+  -- the battleground's own lines (flags), in their chat colours
+  DM.BGLINES = {
+    { "BG_SYSTEM_HORDE", "The Alliance Flag was picked up by %s!" }, { "BG_SYSTEM_ALLIANCE", "The Horde flag was picked up by %s!" },
+    { "BG_SYSTEM_HORDE", "The Alliance Flag was dropped by %s!" }, { "BG_SYSTEM_ALLIANCE", "%s captured the Horde flag!" },
+    { "BG_SYSTEM_NEUTRAL", "The Horde flag was returned to its base by %s!" },
+  }
+
+  -- the AFK demo: chat while you are away (pfUI's AFK screen shows say / whisper / party / guild)
+  DM.AFKCHAT = {
+    { "GUILD", "anyone up for ZG tonight?" }, { "WHISPER", "hey, are you selling that cloak?" }, { "PARTY", "brb, getting a drink" },
+    { "GUILD", "grats on the epic mount!" }, { "SAY", "nice transmog" }, { "WHISPER", "lfm for strat, need a healer - you in?" },
+    { "GUILD", "raid invites in 15 minutes" }, { "OFFICER", "who has the bank key?" }, { "WHISPER", "u there?" },
+    { "GUILD", "Onyxia down! well played everyone" }, { "PARTY", "ready when you are" },
+  }
+
+  -- the showcase: the raid demo underneath, a caption stepping through what pfUI Octo does, each with its own test
+  DM.SHOWTIME = 9
+  DM.SHOW = {
+    { "Raid frames: pfUI's own raid frames, sized and coloured by your settings." },
+    { "Your target: the boss with its crest or dragons, its cast bar and health.", function() end },
+    { "OctoRinse: debuffs you can cure, ready to click.", function() local R = pfUI.rinse if R and R.Test then R.Test(DM.SHOWTIME) end end },
+    { "Threat: the threat meter and the warning label on your target.", function()
+      local TH = pfUI.meters and pfUI.meters.threat if TH and TH.Sample then TH.Sample(DM.SHOWTIME) end end },
+    { "Meters: damage and healing - click a bar for its breakdown." },
+    { "Combat text: hits, crits, heals and messages where you set them." },
+    { "Nameplates: looks, threat colours and casts on every plate.", function() local P = pfUI.plates if P and P.Test then P.Test(DM.SHOWTIME) end end },
+    { "Action bars: proc glows, cooldowns and press effects.", function() local AB = pfUI.barsOcto if AB and AB.Test then AB.Test(DM.SHOWTIME) end end },
+    { "Swing timer: your swings, the target's and your shots.", function() local ST = pfUI.swing if ST and ST.Test then ST.Test(DM.SHOWTIME) end end },
+    { "OctoDoTs: every DoT on every mob, with its timer.", function() local D = pfUI.dots if D and D.Test then D.Test(DM.SHOWTIME) end end },
+  }
+
   local function NewMob(def)
     local b = { name = def.name, ctype = def.ctype, level = def.level, cls = def.cls, max = def.max, hp = def.max,
-      def = def, enemy = true, mark = 8, debuffs = {}, buffs = {}, next = {} }
+      def = def, enemy = true, mark = def.mark or 8, debuffs = {}, buffs = {}, next = {} }
+    -- (an enemy player: its class, its flag, the other faction)
+    if def.player then
+      b.player, b.class, b.cl, b.pvp, b.faction, b.mark = true, def.class, DM.LOCAL[def.class] or def.class, true, def.faction, nil
+    end
+    if def.cc then
+      b.cc = true
+      b.debuffs = { { tex = I .. "Spell_Nature_Polymorph", type = "Magic", left = 999, count = 1 } }
+    end
     for i, a in ipairs(def.abilities) do b.next[i] = Rand(3, a.every) end
     b.swing = 1.5
     return b
@@ -178,16 +321,16 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     UnitClassification = function(d) return d.cls or "normal" end,
     UnitCreatureType = function(d) return d.ctype or (d.player and "Humanoid") end,
     UnitIsVisible = function(d) return 1 end,
-    UnitInRaid = function(d) return d.player and 1 or nil end,
+    UnitInRaid = function(d) return (d.player and DM.roster == "raid") and 1 or nil end,
     UnitInParty = function(d) return d.player and 1 or nil end,
     UnitIsPartyLeader = function(d) return d.leader and 1 or nil end,
     UnitAffectingCombat = function(d) return DM.fight and 1 or nil end,
-    UnitIsPVP = function(d) return nil end,
+    UnitIsPVP = function(d) return d.pvp and 1 or nil end,
     UnitIsAFK = function(d) return nil end,
     UnitIsFeignDeath = function(d) return nil end,
     UnitIsCharmed = function(d) return nil end,
     UnitIsTapped = function(d) return nil end,
-    UnitFactionGroup = function(d) if d.player then return _G.UnitFactionGroup("player") end end,
+    UnitFactionGroup = function(d) if d.faction then return d.faction, d.faction end if d.player then return _G.UnitFactionGroup("player") end end,
     GetRaidTargetIndex = function(d) return d.mark end,
     CheckInteractDistance = function(d) return 1 end,
     UnitDebuff = function(d, i)
@@ -246,6 +389,12 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     end,
   }
   DM.ROSTER = ROSTER
+  -- a party of five (dungeon, PvP): no raid
+  DM.PARTYROSTER = {
+    GetNumRaidMembers = function() return 0 end,
+    GetNumPartyMembers = function() return 4 end,
+    GetRaidRosterInfo = function() return nil end,
+  }
 
   -- not really in a group: nothing may be said to one (the pretend raid makes pfUI think it is in one)
   function DM.NotGrouped()
@@ -254,8 +403,9 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   DM.GROUPCHAN = { RAID = true, PARTY = true, RAID_WARNING = true, BATTLEGROUND = true }
 
   -- put the answers into pfUI's environment / take them out again (exactly what was there before);
-  -- raid = the raid of 40 too (the target dummy needs only the target)
-  function DM.Install(raid)
+  -- roster = "raid" (40) | "party" (5) | nil (the target dummy and AFK: only the target or nothing)
+  function DM.Install(roster)
+    DM.roster = roster
     local env = pfUI.env
     DM.saved, DM.orig = {}, {}
     local function Put(name, fn)
@@ -272,7 +422,9 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       end)
     end
     for _, name in ipairs(DM.TWO) do Put(name, Two(name)) end
-    if raid then
+    if roster == "party" then
+      for name, fn in pairs(DM.PARTYROSTER) do Put(name, fn) end
+    elseif roster == "raid" then
       for name, fn in pairs(ROSTER) do Put(name, fn) end
       -- "am I in a raid?" asked of the player
       rawset(env, "UnitInRaid", function(u)
@@ -290,6 +442,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     end)
     Put("SendChatMessage", function(msg, chan, lang, who)
       if DM.GROUPCHAN[chan or ""] and DM.NotGrouped() then return end
+      -- (the AFK demo: pfUI's AFK screen ends with SendChatMessage("", "AFK") - that would mark you AFK for real)
+      if chan == "AFK" and DM.kind == "afk" then return end
       return DM.orig.SendChatMessage(msg, chan, lang, who)
     end)
     -- pfUI's mob health (libhealth) asks the game itself: the boss showed "0 - 93%" on the target frame
@@ -332,7 +486,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local M = pfUI.meters
     local TH = M and M.threat
     if not TH then return end
-    if not DM.fight or not DM.boss then
+    if not DM.fight or not DM.boss or DM.kind == "pvp" or DM.kind == "afk" then
       if TH.list then TH.list = nil if M.Changed then pcall(M.Changed) end end
       return
     end
@@ -357,7 +511,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         for _, u in ipairs(DM.list) do if u.name == name and u.dead then dead = true end end
         if not dead then table.insert(list, { name = name, tank = false, threat = math.floor(v), perc = 0, melee = true }) end
       end
-      local holder = DM.tank and not DM.tank.dead and DM.tank.name or (DM.units.raid3 and DM.units.raid3.name)
+      local holder = DM.tank and not DM.tank.dead and DM.tank.name or (DM.offtank and DM.offtank.name)
       local tankT = 0
       for _, e in ipairs(list) do if e.name == holder then e.tank = true tankT = e.threat end end
       for _, e in ipairs(list) do
@@ -426,7 +580,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if a.what == "raid" then hits = alive
     elseif a.what == "tank" then
       local tk = DM.tank
-      if tk and tk.dead then tk = DM.units.raid3 end
+      if tk and tk.dead then tk = DM.offtank end
       if tk and not tk.dead then hits = { tk } else hits = { Pick(alive) } end
     else
       for _ = 1, math.min(a.n or 1, table.getn(alive)) do table.insert(hits, Pick(alive)) end
@@ -438,46 +592,156 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   end
   DM.Use = Use
 
+  -- chat lines of the demo: in the chat frame's own colours (nothing is sent, nothing is logged)
+  function DM.Chat(kind, text)
+    local i = _G.ChatTypeInfo and _G.ChatTypeInfo[kind]
+    local f = _G.DEFAULT_CHAT_FRAME
+    if f and f.AddMessage then f:AddMessage(text, i and i.r or 1, i and i.g or 1, i and i.b or 1) end
+  end
+
+  -- how long a fight lasts with the whole group alive (seconds); fewer damage dealers = longer
+  function DM.KillTime()
+    local k, ph = DM.kind, DM.phase
+    if k == "dungeon" then return ph == "boss" and 45 or 9 end
+    if k == "pvp" then return 12 end
+    return ph == "trash" and 14 or 70
+  end
+  local function CountDps()
+    local n = 0
+    for _, u in ipairs(DM.list or {}) do if not u.dead and u.role == "dps" then n = n + 1 end end
+    return n
+  end
+
+  -- the next mob of a dungeon pack to kill: marked order, the sheeped one last
+  local function NextInPack()
+    local best
+    for _, m in ipairs(DM.pack or {}) do
+      if not m.dead and (not best or (best.cc and not m.cc)) then best = m end
+    end
+    if best and best.cc then best.cc, best.debuffs = nil, {} end
+    return best
+  end
+
   function DM.SetPhase(ph)
+    local was = DM.phase
     DM.phase, DM.pt = ph, 0
-    if ph == "trash" or ph == "boss" then DM.tt = {} end
+    if ph == "trash" or ph == "boss" then DM.tt, DM.lastFight = {}, ph end
     if ph == "dummy" then
       DM.rank = math.mod(DM.rank or 0, table.getn(DM.DUMMIES)) + 1
       DM.boss = NewMob(DM.DUMMIES[DM.rank])
       DM.boss.mark = nil
       DM.fight = true
       DM.tt = {}
+    elseif ph == "afk" then
+      DM.boss, DM.fight = nil, false
+      local cam = _G.pfAFKCam
+      if cam and cam.start then
+        pcall(cam.start, cam)
+        local ov = cam.overlay
+        if ov and not DM.afkNote then
+          DM.afkNote = ov:CreateFontString(nil, "OVERLAY")
+          DM.afkNote:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, 14, "OUTLINE")
+          DM.afkNote:SetPoint("TOP", ov, "TOP", 0, -52)
+          DM.afkNote:SetText("|cff33ccffpfUI Octo demo|r - click or press any key to end it")
+        end
+        if DM.afkNote then DM.afkNote:Show() end
+      end
+      DM.chatAt = 1
     elseif ph == "trash" then
-      DM.boss = NewMob(DM.TRASH)
       DM.fight = true
-      Warn("Pull in 3... 2... 1...")
+      if DM.kind == "dungeon" then
+        DM.packIndex = math.mod(DM.packIndex or 0, table.getn(DM.PACKS)) + 1
+        DM.pack = {}
+        for _, def in ipairs(DM.PACKS[DM.packIndex]) do table.insert(DM.pack, NewMob(def)) end
+        DM.boss = NextInPack()
+        Warn("Pulling: skull first - moon stays sheeped")
+      elseif DM.kind == "pvp" then
+        DM.pack = nil
+        DM.boss = NewMob(DM.EnemyDef())
+        DM.Chat("BG_SYSTEM_NEUTRAL", DM.boss.name .. " (" .. (DM.boss.cl or "") .. ") attacks your group!")
+      else
+        DM.pack = nil
+        DM.boss = NewMob(DM.TRASH)
+        Warn("Pull in 3... 2... 1...")
+      end
     elseif ph == "boss" then
-      -- (after a wipe the same boss again, as a raid would)
-      if not DM.retry then DM.bossIndex = math.mod(DM.bossIndex or 0, table.getn(DM.BOSSES)) + 1 end
-      DM.retry, DM.trashDone = nil, nil
-      DM.boss = NewMob(DM.BOSSES[DM.bossIndex])
+      DM.pack = nil
       DM.fight = true
-      DM.pulls = (DM.pulls or 0) + 1
-      local every = tonumber(S().wipes) or 0
-      DM.willWipe = every > 0 and math.mod(DM.pulls, every) == 0
+      if DM.kind == "dungeon" then
+        DM.dbossIndex = math.mod(DM.dbossIndex or 0, table.getn(DM.DBOSSES)) + 1
+        DM.boss = NewMob(DM.DBOSSES[DM.dbossIndex])
+        DM.willWipe = false
+      else
+        -- (after a wipe the same boss again, as a raid would)
+        if not DM.retry then DM.bossIndex = math.mod(DM.bossIndex or 0, table.getn(DM.BOSSES)) + 1 end
+        DM.boss = NewMob(DM.BOSSES[DM.bossIndex])
+        DM.pulls = (DM.pulls or 0) + 1
+        local every = tonumber(S().wipes) or 0
+        DM.willWipe = every > 0 and math.mod(DM.pulls, every) == 0
+      end
+      DM.retry, DM.trashDone = nil, nil
       Warn(DM.boss.name .. " engaged!")
       DM.Joins(true)
     elseif ph == "ended" then
       DM.fight = false
-      if DM.boss then DM.boss.cast = nil end
-      if DM.wiped then DM.retry = true DM.trashDone = true Warn("Wipe! Run back and rebuff.") else Warn(DM.boss and (DM.boss.name .. " is defeated!") or nil) end
+      local b = DM.boss
+      if b then b.cast = nil end
+      if DM.wiped then
+        DM.retry, DM.trashDone = true, true
+        Warn("Wipe! Run back and rebuff.")
+      elseif DM.kind == "pvp" and b then
+        Warn("Killing blow: " .. b.name .. "!")
+        DM.Chat("COMBAT_HONOR_GAIN", b.name .. " dies, honorable kill Rank: Knight (Estimated Honor Points: " .. math.random(120, 199) .. ")")
+      elseif DM.kind == "dungeon" and was == "trash" then
+        DM.packsDone = (DM.packsDone or 0) + 1
+      elseif b then
+        Warn(b.name .. " is defeated!")
+      end
     elseif ph == "rest" then
       DM.fight = false
-      DM.boss = nil
+      DM.boss, DM.pack = nil, nil
       for _, u in ipairs(DM.list) do
-        u.dead, u.hp, u.debuffs, u.cast = nil, u.max, {}, nil
+        u.dead, u.hp, u.debuffs, u.cast, u.deadT = nil, u.max, {}, nil, nil
         if u.ptype ~= 1 then u.pw = u.pmax else u.pw = 0 end
       end
       DM.wiped = nil
     end
+    DM.dpsFull = CountDps()
     DM.dirty, DM.adirty = true, true
     DM.Touch(true)
     if DM.onPhase then pcall(DM.onPhase, ph) end
+  end
+
+  -- what comes after a fight ended / a rest
+  function DM.AfterEnded()
+    local k = DM.kind
+    if k == "pvp" then return "trash" end
+    if k == "dungeon" then
+      if DM.lastFight == "boss" then return "rest" end
+      if (DM.packsDone or 0) >= table.getn(DM.PACKS) then return "boss" end
+      return "trash"
+    end
+    return "rest"
+  end
+  function DM.AfterRest()
+    if DM.kind == "dungeon" then DM.packsDone = 0 return "trash" end
+    return DM.trashDone and "boss" or "trash"
+  end
+
+  -- the AFK demo: chat lines on the AFK screen; the screen closing ends the demo
+  local function AfkStep(dt)
+    local cam = _G.pfAFKCam
+    if DM.pt > 1 and not (cam and cam._spinning) then DM.Stop() return end
+    DM.chatAt = (DM.chatAt or 0) - dt
+    if DM.chatAt > 0 then return end
+    DM.chatAt = Rand(3, 6)
+    local c = Pick(DM.AFKCHAT)
+    local who = Pick(DM.NAMES)
+    local chat = cam and cam.overlay and cam.overlay.chat
+    local i = _G.ChatTypeInfo and _G.ChatTypeInfo[c[1]]
+    local tag = ({ GUILD = "[Guild] ", OFFICER = "[Officer] ", PARTY = "[Party] ", WHISPER = "", SAY = "" })[c[1]] or ""
+    local line = tag .. who .. (c[1] == "WHISPER" and " whispers" or (c[1] == "SAY" and " says" or "")) .. ": " .. c[2]
+    if chat and chat.AddMessage then chat:AddMessage(line, i and i.r or 1, i and i.g or 1, i and i.b or 1, 1) end
   end
 
   -- one step of the pretend fight, dt seconds of demo time
@@ -485,6 +749,11 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.t = DM.t + dt
     DM.pt = DM.pt + dt
     local ph = DM.phase
+    if DM.kind == "showcase" then
+      DM.showT = (DM.showT or 0) + dt
+      if DM.showT >= DM.SHOWTIME then DM.ShowNext() end
+    end
+    if ph == "afk" then AfkStep(dt) return end
     if ph == "dummy" then
       local b = DM.boss
       if b then
@@ -495,23 +764,60 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       if DM.pt >= DM.RANKTIME then DM.SetPhase("dummy") end
       return
     end
+    -- PvP: the dead come back from the graveyard; the battleground's flag lines now and then
+    if DM.kind == "pvp" then
+      for _, u in ipairs(DM.list) do
+        if u.dead then
+          u.deadT = (u.deadT or 0) + dt
+          if u.deadT > 12 then u.dead, u.hp, u.debuffs, u.deadT, DM.dirty = nil, u.max, {}, nil, true end
+        end
+      end
+      DM.bgAt = (DM.bgAt or 8) - dt
+      if DM.bgAt <= 0 then
+        DM.bgAt = Rand(18, 30)
+        local l = Pick(DM.BGLINES)
+        DM.Chat(l[1], string.format(l[2], math.random() < .5 and Pick(DM.ENEMYNAMES) or Pick(DM.list).name))
+      end
+    end
     if ph == "rest" then
-      if DM.pt >= DM.PHASES.rest then DM.SetPhase(DM.trashDone and "boss" or "trash") end
+      if DM.pt >= DM.PHASES.rest then DM.SetPhase(DM.AfterRest()) end
       return
     end
     if ph == "ended" then
-      if DM.pt >= DM.PHASES.ended then DM.SetPhase("rest") end
+      local hold = 3
+      if DM.kind == "raid" or DM.kind == "showcase" then hold = DM.PHASES.ended end
+      if DM.pt >= hold then DM.SetPhase(DM.AfterEnded()) end
       return
     end
     local b = DM.boss
     if not b then return end
-    -- the boss: melee on the tank, its abilities on their timers, its cast bar
-    b.swing = b.swing - dt
-    if b.swing <= 0 then
-      b.swing = 2
-      local tk = DM.tank
-      if tk and tk.dead then tk = DM.units.raid3 end
-      if tk then Hurt(tk, Rand(b.def.melee[1], b.def.melee[2])) end
+    -- the boss: melee on the tank (and the rest of a pack too), its abilities on their timers, its cast bar
+    local function Swing(m)
+      m.swing = m.swing - dt
+      if m.swing <= 0 then
+        m.swing = 2
+        local tk = DM.tank
+        if tk and tk.dead then tk = DM.offtank end
+        if DM.kind == "pvp" then tk = Pick(Alive()) end
+        if tk then Hurt(tk, Rand(m.def.melee[1], m.def.melee[2])) end
+      end
+    end
+    Swing(b)
+    for _, m in ipairs(DM.pack or {}) do
+      if m ~= b and not m.dead and not m.cc then Swing(m) end
+    end
+    if b.cast then
+      -- (dungeon / PvP: most casts get kicked a moment after they start)
+      local a = b.cast.a
+      if a.kick and not b.cast.tried and GetTime() - b.cast.start > .6 / DM.speed then
+        b.cast.tried = true
+        if math.random() < .6 and DM.kind ~= "raid" and DM.kind ~= "showcase" then
+          local kicker = DM.offtank and not DM.offtank.dead and DM.offtank.name or "Your group"
+          DM.Chat("PARTY", kicker .. " interrupts " .. b.name .. "'s " .. a.name .. ".")
+          b.cast = nil
+          DM.Touch(false)
+        end
+      end
     end
     if b.cast and GetTime() >= b.cast.finish then
       local a = b.cast.a
@@ -532,11 +838,11 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         if a.say then Warn(a.say) end
       end
     end
-    -- the raid: healers heal the lowest, damage dealers drain the boss, mana goes down
+    -- the group: healers heal the lowest, damage dealers drain the mob, mana goes down
     local alive = Alive()
-    local healers, dps = 0, 0
+    local dps = 0
     for _, u in ipairs(alive) do
-      if u.role == "heal" then healers = healers + 1 elseif u.role == "dps" then dps = dps + 1 end
+      if u.role == "dps" then dps = dps + 1 end
       if u.ptype == 1 then u.pw = math.min(100, (u.pw or 0) + dt * 6)
       elseif u.ptype == 3 then u.pw = math.max(0, math.min(100, (u.pw or 0) + dt * 10 - (math.random() < .3 and 20 or 0)))
       elseif u.role ~= "heal" then u.pw = math.max(0, (u.pw or 0) - dt * 25) end
@@ -579,17 +885,34 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         if u then Hurt(u, u.max * .6) end
       end
     end
-    b.hp = b.hp - dps * dt * Rand(.8, 1.2) * b.max / (ph == "trash" and 14 or 75) / 22
+    b.hp = b.hp - dt * b.max / DM.KillTime() * Rand(.8, 1.2) * (dps + 1) / ((DM.dpsFull or dps) + 1)
     if b.hp <= 0 then
       b.hp, b.dead = 0, true
+      -- (a dungeon pack: the next mob, until the pack is down)
+      local nxt = DM.pack and NextInPack()
+      if nxt then
+        DM.boss = nxt
+        DM.Touch(true)
+        return
+      end
       if ph == "trash" then DM.trashDone = true end
       DM.SetPhase("ended")
       return
     end
-    if table.getn(Alive()) == 0 then
+    if table.getn(Alive()) == 0 and DM.kind ~= "pvp" then
       DM.wiped = true
       DM.SetPhase("ended")
     end
+  end
+
+  -- the showcase: the next caption and its test
+  function DM.ShowNext()
+    DM.showT = 0
+    DM.showIndex = math.mod(DM.showIndex or 0, table.getn(DM.SHOW)) + 1
+    local s = DM.SHOW[DM.showIndex]
+    DM.caption = s[1]
+    if s[2] then pcall(s[2]) end
+    if DM.PaintBar then DM.PaintBar() end
   end
 
   -- the meter test fight and the combat text test while a boss is up
@@ -613,28 +936,38 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     { key = "dungeon", label = "Dungeon (5)" }, { key = "pvp", label = "PvP" }, { key = "afk", label = "AFK" },
     { key = "dummy", label = "Target dummy" }, { key = "showcase", label = "Showcase" },
   }
-  DM.READY = { raid = true, dummy = true }
-  DM.LABEL = { raid = "Raid", dummy = "Target dummy" }
+  DM.READY = { raid = true, dummy = true, dungeon = true, pvp = true, afk = true, showcase = true }
+  DM.LABEL = { raid = "Raid", dummy = "Target dummy", dungeon = "Dungeon", pvp = "PvP", afk = "AFK", showcase = "Showcase" }
+  -- which pretend group each demo has
+  DM.ROSTERS = { raid = "raid", showcase = "raid", dungeon = "party", pvp = "party" }
   function DM.Start(kind)
     kind = kind or "raid"
-    if not DM.READY[kind] then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: the " .. kind .. " demo comes in a later update. Starting the raid demo.")
-      kind = "raid"
-    end
+    if not DM.READY[kind] then kind = "raid" end
     if _G.UnitAffectingCombat and _G.UnitAffectingCombat("player") then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: not while you are in a fight.")
       return false
     end
+    if kind == "afk" and not (_G.pfAFKCam and _G.pfAFKCam.start) then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: the AFK screen is switched off (Quality of Life > Helpers: AFK camera).")
+      return false
+    end
     if DM.on then DM.Stop(true) end
     math.randomseed(math.floor((GetTime() or 0) * 1000))
-    if kind == "raid" then DM.MakeRaid() else DM.units, DM.list, DM.tank = {}, {}, nil end
+    local roster = DM.ROSTERS[kind]
+    if roster == "raid" then DM.MakeRaid() elseif roster == "party" then DM.MakeParty()
+    else DM.units, DM.list, DM.tank, DM.offtank = {}, {}, nil, nil end
     DM.kind, DM.on, DM.paused, DM.t = kind, true, false, 0
     DM.speed = tonumber(S().speed) or 1
-    DM.pulls, DM.bossIndex, DM.trashDone, DM.rank = 0, 0, nil, 0
-    DM.Install(kind == "raid")
-    DM.SetPhase(kind == "dummy" and "dummy" or "trash")
+    DM.pulls, DM.bossIndex, DM.dbossIndex, DM.packIndex, DM.packsDone = 0, 0, 0, 0, 0
+    DM.trashDone, DM.rank, DM.retry, DM.wiped, DM.pack = nil, 0, nil, nil, nil
+    DM.showIndex, DM.showT, DM.caption, DM.bgAt = 0, 0, nil, 8
+    DM.Install(roster)
+    if kind == "dummy" then DM.SetPhase("dummy")
+    elseif kind == "afk" then DM.SetPhase("afk")
+    else DM.SetPhase("trash") end
     DM.Regroup()
-    DM.Joins(true)
+    if kind ~= "afk" then DM.Joins(true) end
+    if kind == "showcase" then DM.ShowNext() end
     DM.bar:Show()
     DM.PaintBar()
     return true
@@ -642,22 +975,31 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.Stop(quiet)
     if not DM.on then return end
     DM.Joins(false)
-    DM.on, DM.boss, DM.fight = false, nil, false
+    local wasKind = DM.kind
+    DM.on, DM.boss, DM.fight, DM.pack, DM.caption = false, nil, false, nil, nil
     DM.Uninstall()
     DM.Regroup()
+    if wasKind == "afk" then
+      if DM.afkNote then DM.afkNote:Hide() end
+      local cam = _G.pfAFKCam
+      if cam and cam._spinning and cam.stop then pcall(cam.stop, cam) end
+    end
     DM.bar:Hide()
     if not quiet then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo stopped: everything is back as it was.") end
   end
   function DM.Next()
     if not DM.on then return end
+    if DM.kind == "showcase" then DM.ShowNext() return end
     local ph = DM.phase
     if ph == "dummy" then DM.SetPhase("dummy") DM.PaintBar() return end
+    if ph == "afk" then return end
     if ph == "trash" or ph == "boss" then
-      if DM.boss then DM.boss.hp = 0 end
+      for _, m in ipairs(DM.pack or {}) do m.hp, m.dead = 0, true end
+      if DM.boss then DM.boss.hp, DM.boss.dead = 0, true end
       if ph == "trash" then DM.trashDone = true end
       DM.SetPhase("ended")
-    elseif ph == "ended" then DM.SetPhase("rest")
-    else DM.SetPhase(DM.trashDone and "boss" or "trash") end
+    elseif ph == "ended" then DM.SetPhase(DM.AfterEnded())
+    else DM.SetPhase(DM.AfterRest()) end
     DM.PaintBar()
   end
   DM.SPEEDS = { .5, 1, 2, 4 }
@@ -709,7 +1051,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local O = pfUI.octoui and pfUI.octoui.Options
     if O and O.Open then O:Open("demo") elseif pfUI.gui then pfUI.gui:Show() end
   end, "Opens the options over the demo: change anything and watch it here at once.")
-  bar.next = Btn("Next", 48, function() DM.Next() end, "Skips to the next part: trash -> boss -> kill -> rest.")
+  bar.next = Btn("Next", 48, function() DM.Next() end, "Skips to the next part: the next pull, mob, enemy, rank or showcase step.")
   bar.speedb = Btn("1x", 40, function() DM.CycleSpeed() end, "Demo speed: 0.5x, 1x, 2x, 4x.")
   bar.pause = Btn("Pause", 56, function() DM.paused = not DM.paused DM.PaintBar() end, "Holds the fight where it is.")
   local x = -6
@@ -717,14 +1059,29 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     b:SetPoint("RIGHT", bar, "RIGHT", x, 0)
     x = x - b:GetWidth() - 4
   end
+  -- the showcase's caption: a line under the bar
+  bar.caption = bar:CreateFontString(nil, "OVERLAY")
+  bar.caption:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, 14, "OUTLINE")
+  bar.caption:SetPoint("TOP", bar, "BOTTOM", 0, -8)
+  bar.caption:SetTextColor(1, .9, .55)
   local PHASENAME = { trash = "Trash", boss = "Boss", ended = "", rest = "Rest" }
+  DM.TRASHNAME = { dungeon = "Pack", pvp = "Enemy" }
   local function Clock(s) s = math.floor(s or 0) return math.floor(s / 60) .. ":" .. string.format("%02d", math.mod(s, 60)) end
   DM.Clock = Clock
   function DM.PaintBar()
     if not DM.on then return end
+    if DM.caption then bar.caption:SetText(DM.caption) bar.caption:Show() else bar.caption:Hide() end
     local b = DM.boss
     local what = PHASENAME[DM.phase] or ""
-    if DM.phase == "ended" then what = DM.wiped and "|cffff5544Wipe|r" or "|cff55ff66Kill|r" end
+    if DM.phase == "trash" and DM.TRASHNAME[DM.kind] then
+      what = DM.TRASHNAME[DM.kind]
+      if DM.kind == "dungeon" then what = what .. " " .. (DM.packIndex or 1) end
+    end
+    if DM.phase == "ended" then
+      what = DM.wiped and "|cffff5544Wipe|r" or "|cff55ff66Kill|r"
+      if DM.kind == "dungeon" and DM.lastFight == "trash" then what = "|cff55ff66Pack down|r" end
+    end
+    if b and b.player and b.cl then b = { name = b.name .. " (" .. b.cl .. ")", hp = b.hp, max = b.max } end
     local line = "|cff33ccffDEMO|r  " .. (DM.LABEL[DM.kind] or "Raid") .. "  |cff888888-|r  " .. what
     if DM.phase == "dummy" and b then
       local d = DM.DUMMIES[DM.rank]
