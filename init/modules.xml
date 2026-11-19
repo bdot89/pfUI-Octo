@@ -69,6 +69,7 @@
   <Include file="..\modules\meters-capi.lua"/>
   <Include file="..\modules\meters-options.lua"/>
   <Include file="..\modules\meters-breakdown.lua"/>
+  <Include file="..\modules\meters-hover.lua"/>
   <Include file="..\modules\meters-test.lua"/>
   <Include file="..\modules\sct-core.lua"/>
   <Include file="..\modules\sct-engine.lua"/>

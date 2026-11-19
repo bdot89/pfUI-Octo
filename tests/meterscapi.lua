@@ -91,6 +91,55 @@ CA.Apply()
 M.current = { name = "Test", actors = { Stabby = { class = "ROGUE", damage = 900, heal = 0 } }, foes = {}, start = 0, time = 10 }
 rows = M.Rows("damage", "current")
 ok(not (rows[1] and rows[1].capi), "option off: our own numbers")
+ok(cvar == "0", "switched off: ClassicAPI's meter (and its window) switched off again, since we switched it on")
+ok(pfUI_config.meters.capireset == "1", "1.1.66's on-by-default reset once")
+
+-- the hover panel: spell rows with pictures and bars instead of the plain tooltip
+do
+  local win = { mode = "damage", segment = "current", GetCenter = function() return 100 end, GetEffectiveScale = function() return 1 end }
+  local bar = CreateFrame("Button", nil, UIParent)
+  bar.win = win
+  bar.row = { name = "Stabby", class = "ROGUE", text = "1.2k", value = 1200,
+              actor = { class = "ROGUE", damage = 1200, active = 10, spells = { ["Sinister Strike"] = { total = 800 }, ["Eviscerate"] = { total = 400 } } } }
+  ok(M.HoverPanel and M.HoverPanel(bar), "hover panel drawn for a player's damage")
+  local hv = M.hover
+  ok(hv and hv:IsShown() and hv.rows[1] and hv.rows[1].name:GetText() == "Sinister Strike", "top spell first")
+  ok(hv.rows[2] and math.abs(hv.rows[2].bar:GetValue() - .5) < .001, "bar as long as its share of the top one")
+  ok(string.find(hv.rows[1].value:GetText() or "", "67%%"), "total, per second and share: " .. tostring(hv.rows[1].value:GetText()))
+  M.HoverHide()
+  ok(not hv:IsShown(), "hidden on leave")
+  bar.row = { name = "Pull", pullrow = "pull" }
+  ok(not M.HoverPanel(bar), "the threat pull line keeps the plain tooltip")
+end
+
+-- pfUI Octo / ClassicAPI / Blizzard at the top of Meters
+do
+  local BZ = pfUI.blizz
+  local third = BZ and BZ.S and BZ.S.meters and BZ.S.meters.third
+  ok(third and third.label == "ClassicAPI" and third.shown(), "the Meters strip offers ClassicAPI when it is installed")
+  local setTo
+  local keepSet = BZ.Set
+  BZ.Set = function(id, which) setTo = id .. ":" .. which return true end
+  local built
+  pfUI_config.meters.capiwindow = "0"
+  third.pick()
+  ok(third.on() and pfUI_config.meters.mode == "capi" and setTo == "meters:blizz", "ClassicAPI picked: our windows away")
+  ok(vis ~= 2, "its window shows")
+  ok(cvar == "1", "its counting is on")
+  -- the Windows page is its page now, with a preview
+  local MO = pfUI.metersOcto
+  if MO and MO.capiPage then
+    local O = pfUI.octoui.Options
+    MO.capiPage.Paint = nil
+    local okOpen, err = pcall(O.Open, O, "mtwindows")
+    ok(okOpen, "Windows page opens in ClassicAPI mode " .. tostring(err))
+    ok(MO.capiPage.Paint ~= nil, "it is ClassicAPI's page, with its preview")
+    if MO.capiPage.Paint then ok(pcall(MO.capiPage.Paint), "its preview paints") end
+  end
+  third.off()
+  ok(not third.on() and pfUI_config.meters.mode == "octo" and vis == 2, "back to pfUI Octo: its window hidden again")
+  BZ.Set = keepSet
+end
 
 for k, v in pairs(keep) do _G[k] = v end
 pfUI_config.meters.capi, pfUI_config.meters.capiwindow = keepCfg[1], keepCfg[2]

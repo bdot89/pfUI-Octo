@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.76", {
+    { "Pick your meter", "the top of /pfui Meters now has pfUI Octo / ClassicAPI / Blizzard. \"ClassicAPI\" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset." },
+    { "New hover panel on meter bars", "each spell with its picture and a bar in the player's class colour, then total, per second and share - no other add-ons' tooltip lines mixed in." },
+    { "ClassicAPI's numbers in our windows are now opt-in", "(Meters Data), after a crash on one PC when ClassicAPI's meter window loaded. You get one chat line about the new choice the first time you log in with ClassicAPI 1.22. New file: restart the game fully once." },
+  } },
   { "1.1.75", {
     { "Totem order", "OctoTotems > Bars > Layout has an Element order choice, so the bars can go Air, Water, Fire, Earth (or any order you like)." },
     { "Earthen Bulwark bar fixed", "it said 0% with a full bulwark. It now reads the integrity from the aura's stack count and from your debuffs too. /bulwark debug prints what the game reports, if it still looks wrong." },
@@ -166,10 +171,5 @@ pfUI.octoNotes = {
     { "Performance HUD", "a small click-through text in a corner with FPS, latency, memory and the 5 busiest scripts right now, once a second (/pfperf window \"HUD\", Settings > Performance, or /pfperf hud; move it in layout mode)." },
     { "Smoother", "the game's own UI ticker runs 30 times a second (option, Settings > Performance); swing timer and idle cast bars rest when nothing happens; unit frame extras, octolazy, transports and pfQuest's map pins tick less often at the same speed; the gathering finder no longer makes garbage." },
     { "/pfperf", "names pfQuest's and pfUI's own frames by the file that made them." },
-  } },
-  { "1.1.36", {
-    { "Smoother", "the swing timer no longer makes memory garbage every frame (about 480 KB a minute before); the unit frame extras only work every frame while something fades or flashes; the action bars' range check only looks at buttons you can see." },
-    { "Performance window", "(/pfperf): a scroll bar with \"21-40 of 2679\", columns that fit inside the window (long names cut, full name on hover), wrapping tooltips, pfUI's unnamed frames named by the file that made them, and its own measuring cost taken off the numbers." },
-    { "Copy all", "every script and add-on as text, frozen when pressed and cut into parts of 400 lines - Previous / Next, copied parts marked green, \"Copy this part\" or \"Copy all at once\" with ClassicAPI." },
   } },
 }

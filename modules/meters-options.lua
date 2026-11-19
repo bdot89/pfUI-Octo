@@ -493,7 +493,225 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     })
   end
 
+  -- ---------------------------------------------------------------- ClassicAPI's meter (18 Nov 2026)
+  -- (user: "pfUI Octo first, classicAPI second and third is blizzard whenever you choose one it changes the whole page
+  -- and preview to that which it is all the options change in the windows for this meter make it work cleanly")
+  -- Shown instead of our window settings while the strip's "ClassicAPI" is picked: ClassicAPI's own meter window
+  -- (ClassicAPI_DamageMeter) with every setting it has, and a preview drawn the way that window draws its bars.
+  local CAP = {}
+  MO.capiPage = CAP
+  local CLASSICON = (pfUI.media and pfUI.media["img:classicons"]) or "Interface\\AddOns\\pfUI\\img\\classicons"
+  local SAMPLE = {
+    { name = "Upsilon", class = "PRIEST", v = 6982, ps = 274 }, { name = "Stabby", class = "ROGUE", v = 6120, ps = 240 },
+    { name = "Frostbolt", class = "MAGE", v = 5410, ps = 212 }, { name = "Tankguy", class = "WARRIOR", v = 3980, ps = 156 },
+    { name = "Pewpew", class = "HUNTER", v = 3550, ps = 139 }, { name = "Healbot", class = "DRUID", v = 980, ps = 38 },
+  }
+  local function CapRows()
+    local CA = M.capi
+    local s = CA and CA.On() and CA.Session("current", "damage")
+    local out = {}
+    for _, src in ipairs(s and s.combatSources or {}) do
+      table.insert(out, { name = src.name, class = src.classFilename, v = src.totalAmount or 0, ps = src.amountPerSecond or 0 })
+    end
+    if not out[1] then return SAMPLE, true end
+    return out
+  end
+  local function CapNum(v)
+    local mode = M.capi and M.capi.Get("Numbers")
+    local E = _G.Enum and _G.Enum.DamageMeterNumbers
+    if E and mode == E.Complete then return tostring(math.floor(v + .5)) end
+    if E and mode == E.Minimal and v >= 1000 then return math.floor(v / 1000 + .5) .. "k" end
+    if v >= 1000000 then return string.format("%.2fm", v / 1000000) end
+    if v >= 1000 then return string.format("%.1fk", v / 1000) end
+    return tostring(math.floor(v + .5))
+  end
+  local function CapPreview(p)
+    W.Pin(p, "Preview", "ClassicAPI's meter as it draws its bars, with your settings below: the current fight's damage "
+      .. "when you have one, else a made-up fight. Click this bar to fold it away.", function(pp)
+      local box = (W.ZoomBox or W.Box)(pp, 210)
+      local win = CreateFrame("Frame", nil, box)
+      win:SetFrameStrata("FULLSCREEN")
+      win:SetWidth(400)
+      win:SetHeight(180)
+      win:SetPoint("CENTER", box, "CENTER", 0, 0)
+      win.bg = win:CreateTexture(nil, "BACKGROUND")
+      win.bg:SetTexture("Interface\\Buttons\\WHITE8X8")
+      win.bg:SetAllPoints(win)
+      win.head = win:CreateFontString(nil, "OVERLAY")
+      win.head:SetPoint("TOPLEFT", win, "TOPLEFT", 8, -6)
+      win.head:SetJustifyH("LEFT")
+      win.note = win:CreateFontString(nil, "OVERLAY")
+      win.note:SetPoint("TOPRIGHT", win, "TOPRIGHT", -8, -7)
+      win.note:SetJustifyH("RIGHT")
+      win.rows = {}
+      local function Row(i)
+        local r = win.rows[i]
+        if r then return r end
+        r = CreateFrame("Frame", nil, win)
+        r.icon = r:CreateTexture(nil, "ARTWORK")
+        r.icon:SetTexture(CLASSICON)
+        r.bar = CreateFrame("StatusBar", nil, r)
+        r.bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+        r.bar:SetMinMaxValues(0, 1)
+        r.edge = r.bar:CreateTexture(nil, "BACKGROUND")
+        r.edge:SetTexture("Interface\\Buttons\\WHITE8X8")
+        r.back = r.bar:CreateTexture(nil, "BORDER")
+        r.back:SetTexture("Interface\\Buttons\\WHITE8X8")
+        r.name = r:CreateFontString(nil, "OVERLAY")
+        r.name:SetJustifyH("LEFT")
+        r.value = r:CreateFontString(nil, "OVERLAY")
+        r.value:SetJustifyH("RIGHT")
+        win.rows[i] = r
+        return r
+      end
+      function CAP.Paint()
+        local CA = M.capi
+        local get = function(k, d) local v = CA and CA.Get(k) return v == nil and d or v end
+        local E = _G.Enum and _G.Enum.DamageMeterStyle or { Default = 0, Bordered = 1, Thin = 2 }
+        local style = get("Style", E.Default)
+        local bh, pad = get("BarHeight", 16), get("Padding", 4)
+        local ts = (get("TextSize", 100) or 100) / 100
+        local alpha = (get("Transparency", 100) or 100) / 100
+        local bga = (get("BackgroundTransparency", 50) or 50) / 100
+        local icons, classc = get("ShowSpecIcon", 1) == 1, get("ShowClassColor", 1) == 1
+        local font = pfUI.font_default
+        win:SetAlpha(alpha)
+        win.bg:SetVertexColor(0, 0, 0, bga)
+        win.head:SetFont(font, 12 * ts, "OUTLINE")
+        win.head:SetText("|cffffd100Damage Done|r")
+        local rows, sample = CapRows()
+        win.note:SetFont(font, 10, "")
+        win.note:SetText(sample and "|cff8a8f99made-up fight|r" or "|cff40d977current fight|r")
+        local top = rows[1] and rows[1].v or 1
+        local y = 24
+        local thin = style == E.Thin
+        for i = 1, math.min(6, table.getn(rows)) do
+          local e, r = rows[i], Row(i)
+          local h = thin and (bh + 6) or bh
+          r:ClearAllPoints()
+          r:SetPoint("TOPLEFT", win, "TOPLEFT", 6, -y)
+          r:SetPoint("RIGHT", win, "RIGHT", -6, 0)
+          r:SetHeight(h)
+          local x = 0
+          if icons then
+            local tc = CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[e.class or ""]
+            r.icon:SetWidth(bh) r.icon:SetHeight(bh)
+            r.icon:ClearAllPoints()
+            r.icon:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+            if tc then r.icon:SetTexCoord(tc[1], tc[2], tc[3], tc[4]) end
+            r.icon:Show()
+            x = bh + 3
+          else
+            r.icon:Hide()
+          end
+          local cc = classc and RAID_CLASS_COLORS and RAID_CLASS_COLORS[e.class or ""]
+          local cr, cg, cb = .6, .6, .62
+          if cc then cr, cg, cb = cc.r, cc.g, cc.b end
+          r.bar:ClearAllPoints()
+          if thin then
+            r.bar:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", x, 0)
+            r.bar:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, 0)
+            r.bar:SetHeight(4)
+          else
+            r.bar:SetPoint("TOPLEFT", r, "TOPLEFT", x, 0)
+            r.bar:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", 0, 0)
+          end
+          r.bar:SetStatusBarColor(cr, cg, cb, 1)
+          r.bar:SetValue(e.v / top)
+          r.back:SetAllPoints(r.bar)
+          r.back:SetVertexColor(cr * .25, cg * .25, cb * .25, .6)
+          r.edge:ClearAllPoints()
+          r.edge:SetPoint("TOPLEFT", r.bar, "TOPLEFT", -1, 1)
+          r.edge:SetPoint("BOTTOMRIGHT", r.bar, "BOTTOMRIGHT", 1, -1)
+          r.edge:SetVertexColor(0, 0, 0, 1)
+          if style == E.Bordered then r.edge:Show() else r.edge:Hide() end
+          r.name:SetFont(font, 11 * ts, "OUTLINE")
+          r.value:SetFont(font, 11 * ts, "OUTLINE")
+          r.name:ClearAllPoints()
+          r.value:ClearAllPoints()
+          if thin then
+            r.name:SetPoint("TOPLEFT", r, "TOPLEFT", x + 2, 0)
+            r.value:SetPoint("TOPRIGHT", r, "TOPRIGHT", -2, 0)
+          else
+            r.name:SetPoint("LEFT", r.bar, "LEFT", 4, 0)
+            r.value:SetPoint("RIGHT", r.bar, "RIGHT", -4, 0)
+          end
+          r.name:SetText(i .. ". " .. (e.name or "?"))
+          r.value:SetText(CapNum(e.v) .. " (" .. CapNum(e.ps or 0) .. ")")
+          r:Show()
+          y = y + h + pad
+        end
+        for i = math.min(6, table.getn(rows)) + 1, table.getn(win.rows) do win.rows[i]:Hide() end
+        win:SetHeight(y + 4)
+      end
+      CAP.Paint()
+      win:SetScript("OnUpdate", function()
+        if (this.tick or 0) > GetTime() then return end
+        this.tick = GetTime() + 1
+        CAP.Paint()
+      end)
+      W.Buttons(pp, {
+        { "Unlock to move", function()
+          local CA = M.capi
+          if CA then CA.Unlock() end
+        end, nil, "Unlocks ClassicAPI's meter window so you can drag it or its corner; click again to lock it.",
+          on = function() return M.capi and M.capi.unlocked end },
+        { "New window", function() if M.capi then M.capi.NewWindow() end end, nil, "A second ClassicAPI meter window (up to its limit)." },
+        { "Reset all fights", function() if M.capi then M.capi.ResetAll() end end, nil, "Clears ClassicAPI's sessions (and ours)." },
+      })
+    end)
+  end
+  local function CapDrop(p, label, desc, key, options)
+    return W.Dropdown(p, label, desc, options, function() return tostring(M.capi and M.capi.Get(key) or "") end,
+      function(v) if M.capi then M.capi.Set(key, tonumber(v)) end if CAP.Paint then CAP.Paint() end end)
+  end
+  local function CapSld(p, label, desc, key, min, max, step, fmt)
+    return W.Slider(p, label, desc, min, max, step, function() return tonumber(M.capi and M.capi.Get(key)) or min end,
+      function(v) if M.capi then M.capi.Set(key, v) end if CAP.Paint then CAP.Paint() end end, fmt)
+  end
+  local function CapChk(p, label, desc, key)
+    return W.Check(p, label, desc, function() return M.capi and M.capi.Get(key) == 1 end,
+      function(v) if M.capi then M.capi.Set(key, v and 1 or 0) end if CAP.Paint then CAP.Paint() end end)
+  end
+  function CAP.Build(p)
+    W.Heading(p, "ClassicAPI's meter", { about = "You picked ClassicAPI's meter at the top: our meter windows are away and "
+      .. "ClassicAPI's own window shows. Everything here changes that window; its own gear button has the same choices. "
+      .. "Click \"pfUI Octo\" at the top to go back to our windows (theirs hides again)." })
+    local CA = M.capi
+    if not (CA and CA.Available()) then
+      W.Note(p, "ClassicAPI 1.22 or newer is not installed: run pfUI Octo's DLL installer, restart the game, then pick it again.")
+      return
+    end
+    CapPreview(p)
+    local E = _G.Enum or {}
+    local ST, NU, VI = E.DamageMeterStyle or {}, E.DamageMeterNumbers or {}, E.DamageMeterVisibility or {}
+    local function O2(list) local out = {} for _, d in ipairs(list) do if d[1] ~= nil then table.insert(out, { key = tostring(d[1]), label = d[2] }) end end return out end
+    W.Card(p, "The window", { icon = "Interface\\Icons\\INV_Misc_PocketWatch_01" })
+    CapDrop(p, "Style", "How each bar is drawn: the full bar, the bar with a border, or a thin bar under the name.", "Style",
+      O2({ { ST.Default, "Default" }, { ST.Bordered, "Bordered" }, { ST.Thin, "Thin" } }))
+    CapDrop(p, "Numbers", "Minimal 7k, compact 6.9k, or every digit.", "Numbers",
+      O2({ { NU.Minimal, "Minimal" }, { NU.Compact, "Compact" }, { NU.Complete, "Complete" } }))
+    CapDrop(p, "When it shows", nil, "Visibility",
+      O2({ { VI.Always, "Always" }, { VI.InCombat, "In combat" }, { VI.InGroup, "In a group" }, { VI.Hidden, "Hidden" } }))
+    W.Card(p, "Bars", { icon = "Interface\\Icons\\Ability_MeleeDamage" })
+    CapSld(p, "Bar height", nil, "BarHeight", 15, 40, 1, Px)
+    CapSld(p, "Gap", "Space between the bars.", "Padding", 2, 12, 1, Px)
+    CapSld(p, "Text size", nil, "TextSize", 50, 150, 10, Pct2)
+    CapChk(p, "Class colours", "Bars in each player's class colour.", "ShowClassColor")
+    CapChk(p, "Pictures", "A picture beside each bar.", "ShowSpecIcon")
+    W.Card(p, "Look", { icon = "Interface\\Icons\\INV_Misc_Eye_01" })
+    CapSld(p, "Window opacity", nil, "Transparency", 50, 100, 1, Pct2)
+    CapSld(p, "Background opacity", nil, "BackgroundTransparency", 0, 100, 1, Pct2)
+    W.Card(p, "Fights", { icon = "Interface\\Icons\\INV_Misc_Note_01" })
+    W.Check(p, "Clear when entering a new instance", "ClassicAPI's \"Auto Reset Damage Meter\" (per character).",
+      function() return CA.CVarGet("damageMeterResetOnNewInstance") == "1" end,
+      function(v) CA.CVarSet("damageMeterResetOnNewInstance", v and "1" or "0") end)
+    W.Note(p, "The Data and Threat tabs stay pfUI Octo's. ClassicAPI's meter keeps the last 30 fights; a boss fight is always its own.")
+  end
+
   local function BuildWindows(p)
+    -- (18 Nov 2026) ClassicAPI's meter picked at the top: its page instead of ours
+    if C.meters.mode == "capi" then CAP.Build(p) return end
     W.Heading(p, "Meter windows", { on = { function() return C.meters.hidden ~= "1" end, function(v) M.ShowAll(v) end,
       "Show or hide every meter window (the same as the meters button)." },
       about = "Pick a window with the tabs above the preview (or make a new one), then change it card by card: "
@@ -701,7 +919,9 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       .. "those numbers from it - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and "
       .. "every other display stay ours." })
     Chk(p, "Use ClassicAPI's damage meter numbers", "Current fight and Overall: damage, DPS, healing, HPS, interrupts, dispels, "
-      .. "damage taken, deaths and enemy damage taken come from ClassicAPI. Switches its counting on for this character.", G, "capi",
+      .. "damage taken, deaths and enemy damage taken come from ClassicAPI. Switches its counting on for this character, which "
+      .. "also loads ClassicAPI's own meter window. |cffff8c4dOff by default: with some d3d9.dll graphics wrappers the game "
+      .. "crashed while that window loaded (ERROR #132). Try it, and switch it off again if the game crashes.|r", G, "capi",
       function() if M.capi then M.capi.Apply() end end)
     Chk(p, "Show ClassicAPI's own meter window too", "Its retail-style window. Off: it stays hidden and only our windows show.",
       G, "capiwindow", function() if M.capi then M.capi.ApplyWindow() end end)

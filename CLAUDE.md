@@ -1453,3 +1453,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   pfOctoTotems). Stands aside when CallOfElements is loaded (TT.aside); /totems, /coe without it. Bindings PFTOTEM*.
   Unverified in game: all of it, GetTotemInfo's name format (rank numerals stripped by pattern), QueueSpellByName with a
   "(Rank n)" name, the CooldownFrameTemplate on 1.12 buttons.
+  Then (18-19 Nov, NOT seen in game): the source is OFF by default (C.meters.capi; switching ClassicAPI's meter on loads its
+  window and the game crashed once in d3d9.dll while it loaded - reset once via capireset, cvar put back if we set it,
+  capicvar). The Meters strip has a third choice (octo-options swap part.third, from BZ.S[id].third = { label, tip,
+  shown, on, pick, off }): pfUI Octo / ClassicAPI / Blizzard. ClassicAPI = C.meters.mode "capi": our windows away
+  (BZ.Set "blizz"), its window shown (its Visibility kept in C.meters.capivis while hidden), and the Windows page is
+  MO.capiPage.Build: a preview drawn like its bars (Style / bar height / padding / text size / icons / class colour /
+  opacity) and every DamageMeterSystemSetting via DamageMeter:OnSystemSettingChange (CA.Get / CA.Set), unlock, new
+  window, reset, damageMeterResetOnNewInstance. modules/meters-hover.lua: M.HoverPanel(bar) = our bar hover as spell
+  rows with pictures and class-coloured bars (plain GameTooltip only for the threat pull line). One chat line per
+  character when ClassicAPI 1.22 is first seen (capitold).

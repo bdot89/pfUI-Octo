@@ -19,7 +19,14 @@ pfUI:RegisterModule("meters-capi", "vanilla", function ()
   M.capi = CA
 
   -- defaults (kept here: no other file to touch)
-  if C.meters.capi == nil then C.meters.capi = "1" end
+  -- (18 Nov 2026: OFF until you switch it on. Switching ClassicAPI's meter on (cvar damageMeterEnabled) loads its own
+  -- meter window and textures, and on the user's PC the game then crashed while loading (ERROR #132 in d3d9.dll's
+  -- texture copy, called from ClassicAPI). 1.1.66 switched it on for everyone: put back to off once.)
+  if C.meters.capireset ~= "1" then
+    C.meters.capireset = "1"
+    C.meters.capi = "0"
+  end
+  if C.meters.capi == nil then C.meters.capi = "0" end
   if C.meters.capiwindow == nil then C.meters.capiwindow = "0" end
 
   function CA.Available()
@@ -132,24 +139,142 @@ pfUI:RegisterModule("meters-capi", "vanilla", function ()
     local ok, v = pcall(get, "damageMeterEnabled")
     return ok and v or nil
   end
-  -- ClassicAPI's window: Hidden unless C.meters.capiwindow = "1"
+  -- ClassicAPI's window shows when its meter is the one picked at the top (C.meters.mode = "capi") or when asked for
+  -- beside ours (C.meters.capiwindow); else Hidden. Its own "When it shows" choice is kept while it is in use.
+  function CA.WindowWanted() return C.meters.mode == "capi" or C.meters.capiwindow == "1" end
   function CA.ApplyWindow()
     local dm, enum = _G.DamageMeter, _G.Enum
     if not (dm and dm.OnSystemSettingChange and enum and enum.DamageMeterVisibility and _G.DamageMeterSystemSetting) then return end
-    local want = C.meters.capiwindow == "1" and enum.DamageMeterVisibility.Always or enum.DamageMeterVisibility.Hidden
-    local cur = dm.GetSettingValue and dm:GetSettingValue(_G.DamageMeterSystemSetting.Visibility)
-    if cur ~= want then pcall(dm.OnSystemSettingChange, dm, _G.DamageMeterSystemSetting.Visibility, want) end
+    local key = _G.DamageMeterSystemSetting.Visibility
+    local cur = dm.GetSettingValue and dm:GetSettingValue(key)
+    local want
+    if CA.WindowWanted() then
+      if cur == enum.DamageMeterVisibility.Hidden then want = tonumber(C.meters.capivis) or enum.DamageMeterVisibility.Always end
+    else
+      if cur ~= enum.DamageMeterVisibility.Hidden then
+        C.meters.capivis = tostring(cur or enum.DamageMeterVisibility.Always)
+        want = enum.DamageMeterVisibility.Hidden
+      end
+    end
+    if want ~= nil then pcall(dm.OnSystemSettingChange, dm, key, want) end
     if dm.UpdateShownState then pcall(dm.UpdateShownState, dm) end
   end
+  -- counting is needed for our numbers (C.meters.capi) or for its own window
+  local function Counting() return C.meters.capi == "1" or C.meters.mode == "capi" end
   function CA.Apply()
     CA.enabled = nil
     if not CA.Available() then return end
-    if C.meters.capi == "1" then
-      if CA.CVar() ~= "1" then pcall(_G.SetCVar, "damageMeterEnabled", "1") end
-      CA.enabled = CA.CVar() == "1"
+    if Counting() then
+      if CA.CVar() ~= "1" then
+        pcall(_G.SetCVar, "damageMeterEnabled", "1")
+        C.meters.capicvar = "1"
+      end
+      CA.enabled = CA.CVar() == "1" and C.meters.capi == "1"
+      CA.Load()
       CA.ApplyWindow()
+    elseif C.meters.capicvar == "1" or C.meters.capireset == "1" and C.meters.capicvar == nil and CA.CVar() == "1" then
+      -- switched off: ClassicAPI's meter goes off again if we were the ones who switched it on
+      -- (1.1.66 switched it on without marking it: the first time after that, off as well)
+      pcall(_G.SetCVar, "damageMeterEnabled", "0")
+      C.meters.capicvar = "0"
     end
+    -- its window follows the choice whichever way (shown for "ClassicAPI", hidden otherwise)
+    CA.ApplyWindow()
     M.Changed()
+  end
+
+  -- its window's addon (load on demand: the client loads it when the cvar goes on; asked here too)
+  function CA.Load()
+    if _G.DamageMeter then return true end
+    local load = (_G.C_AddOns and _G.C_AddOns.LoadAddOn) or _G.LoadAddOn
+    if load then pcall(load, "ClassicAPI_DamageMeter") end
+    return _G.DamageMeter and true or nil
+  end
+  function CA.CVarGet(name)
+    local ok, v = pcall(_G.GetCVar, name)
+    return ok and v or nil
+  end
+  function CA.CVarSet(name, v) pcall(_G.SetCVar, name, v) end
+  -- one of its window settings (DamageMeterSystemSetting key, e.g. "BarHeight"); nil when it is not loaded
+  function CA.Get(key)
+    local dm, set = _G.DamageMeter, _G.DamageMeterSystemSetting
+    if not (dm and dm.GetSettingValue and set and set[key]) then return end
+    local ok, v = pcall(dm.GetSettingValue, dm, set[key])
+    if ok then return v end
+  end
+  function CA.Set(key, v)
+    if v == nil or not CA.Load() then return end
+    local dm, set = _G.DamageMeter, _G.DamageMeterSystemSetting
+    if not (dm.OnSystemSettingChange and set and set[key]) then return end
+    pcall(dm.OnSystemSettingChange, dm, set[key], v)
+    if key == "Visibility" then
+      local enum = _G.Enum
+      if enum and enum.DamageMeterVisibility and v ~= enum.DamageMeterVisibility.Hidden then C.meters.capivis = tostring(v) end
+      if dm.UpdateShownState then pcall(dm.UpdateShownState, dm) end
+    end
+  end
+  function CA.Unlock()
+    if not CA.Load() then return end
+    local dm = _G.DamageMeter
+    local w = dm.GetPrimarySessionWindow and dm:GetPrimarySessionWindow()
+    if not (w and dm.SetSessionWindowLocked) then return end
+    CA.unlocked = not CA.unlocked
+    pcall(dm.SetSessionWindowLocked, dm, w, not CA.unlocked)
+  end
+  function CA.NewWindow()
+    if not CA.Load() then return end
+    local dm = _G.DamageMeter
+    if dm.CanShowNewSecondarySessionWindow and not dm:CanShowNewSecondarySessionWindow() then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo meters|r: ClassicAPI's meter has as many windows as it allows.")
+      return
+    end
+    if dm.ShowNewSecondarySessionWindow then pcall(dm.ShowNewSecondarySessionWindow, dm) end
+  end
+  function CA.ResetAll()
+    if M.Reset then M.Reset() end
+    if _G.C_DamageMeter and _G.C_DamageMeter.ResetAllCombatSessions then pcall(_G.C_DamageMeter.ResetAllCombatSessions) end
+  end
+
+  -- ---------------------------------------------------------------- pfUI Octo / ClassicAPI / Blizzard at the top
+  -- (18 Nov 2026) the Meters section's strip: "ClassicAPI" = our windows away (as "Blizzard" does: the game has no
+  -- meter), ClassicAPI's window shown, its counting on, and the Windows page becomes its page. "pfUI Octo" or
+  -- "Blizzard" turn it off again. The choice is kept (C.meters.mode).
+  function CA.Rebuild()
+    local O = pfUI.octoui and pfUI.octoui.Options
+    if O and O.Rebuild then pcall(O.Rebuild, O, "mtwindows") end
+  end
+  function CA.Pick(on)
+    local BZ = pfUI.blizz
+    if on then
+      C.meters.mode = "capi"
+      if BZ and BZ.Set then BZ.Set("meters", "blizz") end
+    else
+      C.meters.mode = "octo"
+    end
+    CA.Apply()
+    CA.Rebuild()
+  end
+  local BZ = pfUI.blizz
+  if BZ and BZ.S and BZ.S.meters then
+    BZ.S.meters.third = {
+      label = "ClassicAPI",
+      tip = "ClassicAPI's own meter window (ClassicAPI 1.22 and newer) instead of ours. Its settings take the Windows page.",
+      shown = function() return CA.Available() end,
+      on = function() return C.meters.mode == "capi" end,
+      pick = function() CA.Pick(true) end,
+      off = function() CA.Pick(false) end,
+    }
+  end
+
+  -- ---------------------------------------------------------------- telling people once
+  -- (18 Nov 2026, user: "Make people who download the new version be told this is an option") one chat line per
+  -- character the first time they log in with ClassicAPI 1.22, pointing at the strip; a click on it opens the page.
+  function CA.Tell()
+    if C.meters.capitold == "1" or not CA.Available() then return end
+    C.meters.capitold = "1"
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: your ClassicAPI has its own damage meter now. Pick |cffffd24dpfUI Octo|r, "
+      .. "|cffffd24dClassicAPI|r or |cffffd24dBlizzard|r at the top of |cffffd24d/pfui > Meters|r, or keep ours and let it feed "
+      .. "our windows (Meters > Data).")
   end
 
   -- our Reset clears the DLL's sessions too, so Overall means the same in both
@@ -209,6 +334,7 @@ pfUI:RegisterModule("meters-capi", "vanilla", function ()
   f:SetScript("OnEvent", function()
     if event == "PLAYER_ENTERING_WORLD" then
       CA.Apply()
+      CA.Tell()
     elseif event == "ADDON_LOADED" then
       if arg1 == "ClassicAPI_DamageMeter" then CA.ApplyWindow() end
     elseif CA.On() then

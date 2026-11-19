@@ -55,6 +55,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if C.meters.timemeasure == "effective" and timeSeg then return M.Duration(timeSeg) end
     return max(1, a.active or 0)
   end
+  M.ActiveTime = ActiveTime
 
   -- ---------------------------------------------------------------- per window
   -- (user, 22 Oct 2026, Details! as the model: "able to add windows and set
@@ -887,6 +888,12 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       GameTooltip:Show()
       return
     end
+    -- (18 Nov 2026, user: "make our tooltip look like this with icons and the bar" - ClassicAPI's meter's spell
+    -- window) the new hover panel, when it has spells / sources to draw; the plain tooltip stays for the rest
+    if M.HoverPanel and M.HoverPanel(bar) then
+      GameTooltip:Hide()
+      return
+    end
     GameTooltip:AddLine(row.name, 1, 1, 1)
     local a = row.actor
     local mode = MODE[bar.win.mode] or MODE.damage
@@ -956,8 +963,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     b.right:SetJustifyH("RIGHT")
     b.left:SetPoint("RIGHT", b.right, "LEFT", -6, 0)
     b:SetScript("OnEnter", function() if not this.win.preview then Tooltip(this) end end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    b:SetScript("OnClick", function()
+    b:SetScript("OnLeave", function() GameTooltip:Hide() if M.HoverHide then M.HoverHide() end end)
+  b:SetScript("OnClick", function()
       if this.win.preview then
         if M.PreviewClick then M.PreviewClick(this.win, "bars") end
         return

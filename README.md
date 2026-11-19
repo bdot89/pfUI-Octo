@@ -120,6 +120,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.76
+
+- 📊 **Pick your meter:** the top of `/pfui` → Meters now has **pfUI Octo / ClassicAPI / Blizzard**. "ClassicAPI" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset.
+- 🖱️ **New hover panel on meter bars:** each spell with its picture and a bar in the player's class colour, then total, per second and share - no other add-ons' tooltip lines mixed in.
+- 🛟 **ClassicAPI's numbers in our windows are now opt-in** (Meters → Data), after a crash on one PC when ClassicAPI's meter window loaded. You get one chat line about the new choice the first time you log in with ClassicAPI 1.22. New file: restart the game fully once.
+
 ## 📜 New in 1.1.75
 
 - 🪨 **Totem order:** OctoTotems > Bars > Layout has an **Element order** choice, so the bars can go Air, Water, Fire, Earth (or any order you like).

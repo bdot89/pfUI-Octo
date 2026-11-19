@@ -1038,15 +1038,39 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       part.label = W.Font(swap:CreateFontString(nil, "OVERLAY"), 12, K.text[1], K.text[2], K.text[3])
       part.octo = W.Button(swap, "pfUI Octo", 76, 22)
       part.blizz = W.Button(swap, "Blizzard", 68, 22)
+      -- (18 Nov 2026) a section may offer a third choice between them (Meters: ClassicAPI's own meter); its
+      -- section says how: BZ.S[id].third = { label, tip, shown(), on(), pick(), off() }
+      part.third = W.Button(swap, "ClassicAPI", 86, 22)
+      part.third:Hide()
       part.octo.which, part.blizz.which = "octo", "blizz"
       for _, b in ipairs({ part.octo, part.blizz }) do
         b:SetScript("OnClick", function()
           local BZ = pfUI.blizz
+          local third = BZ and this.id and BZ.S and BZ.S[this.id] and BZ.S[this.id].third
+          if third and third.on() then pcall(third.off) end
           if BZ and this.id then (BZ.Pick or BZ.Set)(this.id, this.which) end
           O:PaintSwap()
           O:PaintPower()
         end)
       end
+      part.third:SetScript("OnClick", function()
+        local BZ = pfUI.blizz
+        local third = BZ and this.id and BZ.S and BZ.S[this.id] and BZ.S[this.id].third
+        if third and not third.on() then pcall(third.pick) end
+        O:PaintSwap()
+        O:PaintPower()
+        if O.current then O:Select(O.current) end
+      end)
+      part.third:SetScript("OnEnter", function()
+        local BZ = pfUI.blizz
+        local third = BZ and this.id and BZ.S and BZ.S[this.id] and BZ.S[this.id].third
+        if not third then return end
+        GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(third.label, 1, 1, 1)
+        if third.tip then GameTooltip:AddLine(third.tip, .8, .82, .86, 1) end
+        GameTooltip:Show()
+      end)
+      part.third:SetScript("OnLeave", function() GameTooltip:Hide() end)
       swap.parts[i] = part
     end
     swap.note = W.Font(swap:CreateFontString(nil, "OVERLAY"), 10, K.dim[1], K.dim[2], K.dim[3])
@@ -2077,12 +2101,23 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         part.octo:ClearAllPoints()
         part.octo:SetPoint("LEFT", swap, "LEFT", x + lw, 0)
         part.blizz:ClearAllPoints()
-        part.blizz:SetPoint("LEFT", part.octo, "RIGHT", 2, 0)
+        local third = s.third and (not s.third.shown or s.third.shown()) and s.third
+        part.third.id = id
+        if third then
+          part.third:ClearAllPoints()
+          part.third:SetPoint("LEFT", part.octo, "RIGHT", 2, 0)
+          if part.third.label then part.third.label:SetText(third.label) end
+          part.third:Show()
+          part.blizz:SetPoint("LEFT", part.third, "RIGHT", 2, 0)
+        else
+          part.third:Hide()
+          part.blizz:SetPoint("LEFT", part.octo, "RIGHT", 2, 0)
+        end
         part.octo.id, part.blizz.id = id, id
         part.label:Show() part.octo:Show() part.blizz:Show()
-        x = x + lw + 76 + 2 + 68 + 20
+        x = x + lw + 76 + 2 + 68 + 20 + (third and 88 or 0)
       else
-        part.label:Hide() part.octo:Hide() part.blizz:Hide()
+        part.label:Hide() part.octo:Hide() part.blizz:Hide() part.third:Hide()
       end
     end
     -- (three sections fill the strip: no room for the note)
@@ -2096,8 +2131,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     for _, part in ipairs(self.swap.parts) do
       if part.octo.id then
         local blizz = BZ.IsBlizz(part.octo.id)
-        W.Lit(part.octo, not blizz)
-        W.Lit(part.blizz, blizz)
+        local third = BZ.S and BZ.S[part.octo.id] and BZ.S[part.octo.id].third
+        local thirdOn = third and part.third:IsShown() and third.on()
+        W.Lit(part.octo, not blizz and not thirdOn)
+        W.Lit(part.blizz, blizz and not thirdOn)
+        W.Lit(part.third, thirdOn and true or false)
       end
     end
   end
