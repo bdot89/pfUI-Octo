@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.80
+
+- 💬 **Whisper windows really open now:** a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - `/whispers test` included. Each window now starts hidden, gets its place, then shows.
+
 ## 📜 New in 1.1.79
 
 - 💬 **Whisper windows fixed:** the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made.

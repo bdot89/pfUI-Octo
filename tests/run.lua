@@ -2376,6 +2376,8 @@ do
       WHm.OnEvent("CHAT_MSG_WHISPER", "hello there", "Jaina")
       local wf = WHm.windows.Jaina
       ok(wf and wf:IsShown() and wf.unread == 1, "a whisper opens a window, one unread")
+      -- (19 Nov 2026: in the real client a new frame is shown at once, so the window was never placed = never drawn)
+      ok(wf and wf:GetPoint() ~= nil, "the new window has a place on the screen")
       WHm.OnEvent("CHAT_MSG_WHISPER_INFORM", "hi!", "Jaina")
       local kept = pfUI_cache.whispers
       local n = 0

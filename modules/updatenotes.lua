@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.80", {
+    { "Whisper windows really open now", "a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - /whispers test included. Each window now starts hidden, gets its place, then shows." },
+  } },
   { "1.1.79", {
     { "Whisper windows fixed", "the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made." },
   } },
@@ -163,10 +166,5 @@ pfUI.octoNotes = {
     { "Quick menu in combat", "click the Players picture on the bar - class pictures, raid groups and every player. Left-click = cure first, right-click = never cure, plus My group first and Pets." },
     { "Faster with DLLs", "cures react the moment a debuff lands; ClassicAPI reads every debuff's school and caster, UnitXP / ClassicAPI check range and sight, SuperWoW cures without swapping your target." },
     { "Cleansing totems", "for shamans on by default, with the totem's own icon. Choose where it runs (raids, dungeons, battlegrounds, arenas, world); title bar can hide until you mouse over it; right-click its box in layout mode for its options." },
-  } },
-  { "1.1.40", {
-    { "Mail sends everything in one press", "every queued item goes back to back, the next mail the moment the server accepts the last one (no pauses). A mail the server refuses once is tried again instead of stopping the whole run." },
-    { "Update window", "when someone in your guild or group runs a newer pfUI Octo, a small window at login shows the OctoLauncher link (Copy button), what to do, and what's new since your version. \"Remind me later\" or \"Don't show for this version\"; switch it off in Settings > Scale, profiles and look; /octoupdate opens it. New file: restart the game fully once." },
-    { "/pfperf events", "also counts how often the action bar events fire." },
   } },
 }

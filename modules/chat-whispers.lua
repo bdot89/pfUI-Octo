@@ -183,6 +183,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       local a = .55 + .45 * math.abs(math.sin(GetTime() * 3))
       this:SetBackdropBorderColor(r, g, b, a)
     end)
+    -- (19 Nov 2026: "no window opens with the test") a new frame counts as shown in the real client, so WH.Open's
+    -- "not shown yet: place and show it" never ran and the window had no place on the screen - nothing drawn. Made
+    -- hidden, it is placed and shown like any other.
+    f:Hide()
     return f
   end
 
