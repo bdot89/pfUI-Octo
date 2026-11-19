@@ -141,6 +141,26 @@ do
   BZ.Set = keepSet
 end
 
+-- an old ClassicAPI (OctoLauncher's v1.15): one chat line on how to get the newest
+do
+  local said = {}
+  local keepChat = DEFAULT_CHAT_FRAME.AddMessage
+  DEFAULT_CHAT_FRAME.AddMessage = function(_, msg) table.insert(said, msg) end
+  local keepUA, keepDM = rawget(_G, "C_UnitAuras"), rawget(_G, "C_DamageMeter")
+  _G.C_UnitAuras = keepUA or {}
+  _G.C_DamageMeter = nil
+  pfUI_config.meters.capioldtold = nil
+  CA.Tell()
+  CA.Tell()
+  local n = 0
+  for _, m in ipairs(said) do if string.find(m, "older one") and string.find(m, "Install pfUI Octo DLLs.bat") then n = n + 1 end end
+  ok(n == 1, "old ClassicAPI: told once how to get the newest (" .. n .. ")")
+  _G.C_DamageMeter = keepDM
+  ok(not CA.Old() or keepDM == nil, "a ClassicAPI with the damage meter is not called old")
+  _G.C_UnitAuras = keepUA
+  DEFAULT_CHAT_FRAME.AddMessage = keepChat
+end
+
 for k, v in pairs(keep) do _G[k] = v end
 pfUI_config.meters.capi, pfUI_config.meters.capiwindow = keepCfg[1], keepCfg[2]
 M.current, M.history, M.overall = keepCur, keepHist, keepOverall

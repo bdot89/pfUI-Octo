@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.77", {
+    { "Old ClassicAPI? You'll be told", "OctoLauncher installs an older ClassicAPI (v1.15) with no damage meter. If that's yours, you get one chat line per character on how to get the newest: close the game, run Install pfUI Octo DLLs.bat in your pfUI folder (or the Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI and doesn't swap it back." },
+  } },
   { "1.1.76", {
     { "Pick your meter", "the top of /pfui Meters now has pfUI Octo / ClassicAPI / Blizzard. \"ClassicAPI\" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset." },
     { "New hover panel on meter bars", "each spell with its picture and a bar in the player's class colour, then total, per second and share - no other add-ons' tooltip lines mixed in." },
@@ -166,10 +169,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.38", {
     { "Mail: sending many items works", "With several items queued, Send stopped after the first mail. Now every item goes, one mail each. If a mail can't go (wrong name, mailbox closed, an item that won't attach or stays locked), sending stops and says why and how many went. The items that went come off the list, so Send again only sends the rest." },
-  } },
-  { "1.1.37", {
-    { "Performance HUD", "a small click-through text in a corner with FPS, latency, memory and the 5 busiest scripts right now, once a second (/pfperf window \"HUD\", Settings > Performance, or /pfperf hud; move it in layout mode)." },
-    { "Smoother", "the game's own UI ticker runs 30 times a second (option, Settings > Performance); swing timer and idle cast bars rest when nothing happens; unit frame extras, octolazy, transports and pfQuest's map pins tick less often at the same speed; the gathering finder no longer makes garbage." },
-    { "/pfperf", "names pfQuest's and pfUI's own frames by the file that made them." },
   } },
 }

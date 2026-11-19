@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.77
+
+- 🧬 **Old ClassicAPI? You'll be told.** OctoLauncher installs an older ClassicAPI (v1.15) with no damage meter. If that's yours, you get one chat line per character on how to get the newest: close the game, run **Install pfUI Octo DLLs.bat** in your pfUI folder (or the Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI and doesn't swap it back.
+
 ## 📜 New in 1.1.76
 
 - 📊 **Pick your meter:** the top of `/pfui` → Meters now has **pfUI Octo / ClassicAPI / Blizzard**. "ClassicAPI" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset.

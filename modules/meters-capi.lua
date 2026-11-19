@@ -269,7 +269,22 @@ pfUI:RegisterModule("meters-capi", "vanilla", function ()
   -- ---------------------------------------------------------------- telling people once
   -- (18 Nov 2026, user: "Make people who download the new version be told this is an option") one chat line per
   -- character the first time they log in with ClassicAPI 1.22, pointing at the strip; a click on it opens the page.
+  -- (19 Nov 2026, user: OctoLauncher ships an old ClassicAPI - "can we not make it ship the newest version?" - it pins
+  -- v1.15.16 in its own code, so: tell those players once how to get the newest.) ClassicAPI loaded (C_UnitAuras /
+  -- C_Spell) but no C_DamageMeter = older than 1.22. The launcher keeps a ClassicAPI the player installed and never
+  -- swaps it back, so one run of the installer is enough.
+  function CA.Old()
+    return (_G.C_UnitAuras or _G.C_Spell) and not _G.C_DamageMeter and true or nil
+  end
+  function CA.TellOld()
+    if C.meters.capioldtold == "1" or not CA.Old() then return end
+    C.meters.capioldtold = "1"
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: your ClassicAPI is an older one (OctoLauncher installs v1.15). The newest "
+      .. "has a damage meter and more. Close the game and run |cffffd24dInstall pfUI Octo DLLs.bat|r in your pfUI folder (or the "
+      .. "Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI.")
+  end
   function CA.Tell()
+    CA.TellOld()
     if C.meters.capitold == "1" or not CA.Available() then return end
     C.meters.capitold = "1"
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: your ClassicAPI has its own damage meter now. Pick |cffffd24dpfUI Octo|r, "
