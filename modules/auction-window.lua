@@ -1103,13 +1103,21 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   -- now stands where d stood (at = d's place before the buy)
   function UI.NextAfter(l, d, at)
     local best
+    -- (the one still on its way to the auction house is not offered again)
+    local busy = AH.pending and AH.pending.row
+    local function free(r) return r ~= d and r ~= busy and not r.gone and not r.queued end
     for _, r in ipairs(l.data or {}) do
-      if r ~= d and not r.gone and r.key == d.key and r.unit and (not best or r.unit < best.unit) then best = r end
+      if free(r) and r.key == d.key and r.unit and (not best or r.unit < best.unit) then best = r end
     end
     if best and d.unit and best.unit <= d.unit then return best end
-    local here = l.Index(d)
-    if here then return l.data[here + 1] end
-    return at and l.data[at] or nil
+    -- the next row down that is not already waiting to be bought
+    local here = l.Index(d) or ((at or 1) - 1)
+    local data = l.data or {}
+    for n = here + 1, table.getn(data) do
+      local r = data[n]
+      if r and free(r) then return r end
+    end
+    return nil
   end
   function UI.ScrollTo(l, d)
     local n = d and l.Index(d)
@@ -1125,6 +1133,21 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if table.getn(picked) > 1 then UI.BuyMany(how, picked) return end
     local d = l.sel
     local at = l.Index(d)
+    -- (19 Nov 2026, user: "possible to spam buyout ... it just moves to the next item down") a click while the
+    -- last buy's page is still on its way waits its turn instead of being refused; the pick moves on at once
+    if d and AH.pending and AH.pending.row ~= d and AH.CanBuy(d, how) == "ok" then
+      UI.waiting = UI.waiting or {}
+      table.insert(UI.waiting, { row = d, how = how })
+      UI.Note("Next: " .. d.name .. " for " .. AH.Money(AH.Cost(d, how), true) .. " (after the last one).")
+      d.queued = true
+      l.sel = UI.NextAfter(l, d, at)
+      if l.sel and l.sel.queued then l.sel = nil end
+      l.picks = {}
+      l.Paint()
+      UI.ScrollTo(l, l.sel)
+      UI.PaintBuy()
+      return
+    end
     local ok, why = AH.Buy(d, how)
     if not ok then UI.Note("Cannot " .. (how == "buyout" and "buy" or "bid") .. ": " .. tostring(why) .. ".") UI.Refresh() return end
     if why then UI.Note(why .. "...")
@@ -1216,7 +1239,27 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     q.spent = q.spent + AH.Cost(r, q.kind)
     UI.Note((q.kind == "buyout" and "Buying " or "Bidding ") .. (q.i - 1) .. " of " .. q.total .. "...")
   end
-  Q:SetScript("OnUpdate", function() if UI.queue then UI.QueueStep(GetTime()) end end)
+  -- the buyout clicks that came while a page was being fetched, one at a time
+  function UI.WaitStep()
+    local w = UI.waiting
+    if not w or not w[1] or AH.pending or not AH.open then
+      if w and not AH.open then for _, e in ipairs(w) do e.row.queued = nil end UI.waiting = nil end
+      return
+    end
+    local e = table.remove(w, 1)
+    e.row.queued = nil
+    if table.getn(w) == 0 then UI.waiting = nil end
+    if e.row.gone then return end
+    local ok, why = AH.Buy(e.row, e.how)
+    if not ok then UI.Note("Cannot buy " .. tostring(e.row.name) .. ": " .. tostring(why) .. ".")
+    elseif not why then UI.Note((e.how == "buyout" and "Bought " or "Bid on ") .. e.row.name .. " for " .. AH.Money(AH.Cost(e.row, e.how), true) .. ".") end
+    UI.Refresh()
+    UI.PaintBuy()
+  end
+  Q:SetScript("OnUpdate", function()
+    if UI.queue then UI.QueueStep(GetTime()) end
+    if UI.waiting then UI.WaitStep() end
+  end)
   -- the last searches, newest first (per account)
   function UI.Recent(name)
     if not name or name == "" then return end
@@ -1318,27 +1361,88 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     e.changed = function() UI.PaintSell() end
     return e
   end
+  -- (19 Nov 2026, user: "add quick option for list 1 by 1 add sliders under the numbers for stack size")
+  -- a slider under Stack size and under Number of stacks; dragging writes the box, typing moves the slider
+  local function NumSlider(e, y, onMove)
+    local s = CreateFrame("Slider", nil, P.box)
+    s:SetOrientation("HORIZONTAL")
+    s:SetPoint("TOPLEFT", P.box, "TOPLEFT", 120, y)
+    s:SetWidth(196)
+    s:SetHeight(12)
+    s:EnableMouseWheel(true)
+    s.track = s:CreateTexture(nil, "BACKGROUND")
+    s.track:SetTexture("Interface\\Buttons\\WHITE8X8")
+    s.track:SetVertexColor(.2, .2, .24, 1)
+    s.track:SetPoint("LEFT", s, "LEFT", 0, 0)
+    s.track:SetPoint("RIGHT", s, "RIGHT", 0, 0)
+    s.track:SetHeight(4)
+    s.fill = s:CreateTexture(nil, "BORDER")
+    s.fill:SetTexture("Interface\\Buttons\\WHITE8X8")
+    s.fill:SetVertexColor(Accent())
+    s.fill:SetHeight(4)
+    s.thumb = s:CreateTexture(nil, "OVERLAY")
+    s.thumb:SetTexture("Interface\\Buttons\\WHITE8X8")
+    s.thumb:SetVertexColor(1, 1, 1, 1)
+    s.thumb:SetWidth(8)
+    s.thumb:SetHeight(12)
+    s:SetThumbTexture(s.thumb)
+    s.fill:SetPoint("LEFT", s, "LEFT", 0, 0)
+    s.fill:SetPoint("RIGHT", s.thumb, "CENTER", 0, 0)
+    s:SetMinMaxValues(1, 1)
+    s:SetValueStep(1)
+    s:SetValue(1)
+    s:SetScript("OnValueChanged", function()
+      if this.quiet then return end
+      local v = math.floor((this:GetValue() or 1) + .5)
+      if tostring(v) ~= e:GetText() then e:SetText(tostring(v)) if onMove then onMove(v) end end
+    end)
+    s:SetScript("OnMouseWheel", function()
+      local lo, hi = this:GetMinMaxValues()
+      this:SetValue(math.max(lo, math.min(hi, (this:GetValue() or 1) + (arg1 > 0 and 1 or -1))))
+    end)
+    -- range lo..hi, value v, without writing the box back
+    function s.Put(lo, hi, v)
+      s.quiet = true
+      hi = math.max(lo, hi)
+      s:SetMinMaxValues(lo, hi)
+      s:SetValue(math.max(lo, math.min(hi, v or lo)))
+      s.quiet = nil
+      if hi > lo then s:SetAlpha(1) s:EnableMouse(true) else s:SetAlpha(.35) s:EnableMouse(false) end
+    end
+    return s
+  end
   P.size = Field("Stack size", -34, 60)
-  P.stacks = Field("Number of stacks", -62, 60)
-  P.bidp = Field("Starting price each", -90, 130, "1g 20s 5c")
-  P.buyp = Field("Buyout each", -118, 130, "1g 20s 5c")
+  P.sizeS = NumSlider(P.size, -60, function()
+    -- a new stack size: keep the stacks inside what the bags hold
+    local d, size = UI.sell, tonumber(P.size:GetText())
+    local stacks = tonumber(P.stacks:GetText()) or 1
+    if d and size and size > 0 and stacks * size > d.total then P.stacks:SetText(tostring(math.max(1, math.floor(d.total / size)))) end
+  end)
+  P.stacks = Field("Number of stacks", -78, 60)
+  P.stacksS = NumSlider(P.stacks, -104)
+  P.bidp = Field("Starting price each", -122, 130, "1g 20s 5c")
+  P.buyp = Field("Buyout each", -150, 130, "1g 20s 5c")
+  P.one = Btn(P.box, "1 by 1", 70, function() UI.OneByOne() end, "Every item on its own: stack size 1, as many as you have.")
+  P.one:SetPoint("LEFT", P.size, "RIGHT", 6, 0)
+  P.full = Btn(P.box, "Full stacks", 90, function() UI.FullStacks() end, "The biggest stack this item makes (or all you have, when less), as many as fit.")
+  P.full:SetPoint("LEFT", P.one, "RIGHT", 6, 0)
   P.maxb = Btn(P.box, "All I have", 90, function() UI.FillStacks() end, "As many stacks of this size as your bags hold.")
   P.maxb:SetPoint("LEFT", P.stacks, "RIGHT", 6, 0)
   P.hours = {}
   local hl = Label(P.box, "Lasts")
-  hl:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -151)
+  hl:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -183)
   for i, h in ipairs({ 2, 8, 24 }) do
     local hours = h
     local b = Btn(P.box, hours .. " h", 50, function() UI.hours = hours UI.PaintSell() end)
-    b:SetPoint("TOPLEFT", P.box, "TOPLEFT", 120 + (i - 1) * 54, -146)
+    b:SetPoint("TOPLEFT", P.box, "TOPLEFT", 120 + (i - 1) * 54, -178)
     P.hours[hours] = b
   end
   P.info = Text(P.box, 12)
-  P.info:SetPoint("TOPLEFT", P.box, "TOPLEFT", 330, -34)
+  P.info:SetPoint("TOPLEFT", P.box, "TOPLEFT", 372, -34)
   P.info:SetWidth(250)
   P.info:SetJustifyV("TOP")
   P.look = Btn(P.box, "Look up prices", 120, function() UI.Lookup() end, "Searches the auction house for this item to see what it sells for now.")
-  P.look:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -180)
+  P.look:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -210)
   P.under = Btn(P.box, "Undercut cheapest", 130, function() UI.Price("under") end, "Just under the cheapest other seller (how much: Options).")
   P.under:SetPoint("LEFT", P.look, "RIGHT", 6, 0)
   P.usual = Btn(P.box, "Usual price", 100, function() UI.Price("value") end, "The item's usual price from the history.")
@@ -1346,19 +1450,19 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   P.last = Btn(P.box, "My last price", 100, function() UI.Price("saved") end, "What you asked last time.")
   P.last:SetPoint("LEFT", P.usual, "RIGHT", 6, 0)
   P.sum = Text(P.box, 12)
-  P.sum:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -212)
+  P.sum:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -240)
   P.sum:SetWidth(580)
   P.post = Role(Btn(P.box, "Post", 160, function() UI.Post() end), "go")
-  P.post:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -236)
+  P.post:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -262)
   P.rivals = NewList(P.box, { { "On the auction house now", 250, "LEFT", "name", "count" }, { "Seller", 110, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
-    { "Buyout each", 110, "RIGHT", "unit" } }, 10, function(r, d)
+    { "Buyout each", 110, "RIGHT", "unit" } }, 9, function(r, d)
     ItemCell(r, d, d.count)
     r.cell[2]:SetText(UI.Seller(d.owner))
     r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
     if d.owner == UnitName("player") then r.cell[2]:SetTextColor(.4, .9, .5) else r.cell[2]:SetTextColor(.8, .8, .84) end
   end)
-  P.rivals:SetPoint("TOPLEFT", P.box, "TOPLEFT", 0, -268)
+  P.rivals:SetPoint("TOPLEFT", P.box, "TOPLEFT", 0, -292)
   P.rivals:SetPoint("RIGHT", P.box, "RIGHT", 0, 0)
   P.rivals.sortBy = "unit"
   UI.hours = 24
@@ -1378,6 +1482,34 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if sug.saved then SetMoney(P.bidp, sug.saved.bid) SetMoney(P.buyp, sug.saved.buyout) else P.bidp:SetText("") P.buyp:SetText("") end
     UI.PaintSell()
     if S().autolookup ~= "0" then UI.Lookup() end
+  end
+  -- the biggest stack the item makes: GetItemInfo's max stack (7th on 1.12), else the biggest in the bags
+  function UI.MaxStack(d)
+    if d.most then return d.most end
+    local biggest = 1
+    for _, s in ipairs(d.slots or {}) do if s.count > biggest then biggest = s.count end end
+    local _, _, id = string.find(d.link or "", "item:(%d+)")
+    local gi = rawget(_G, "GetItemInfo")
+    if id and gi then
+      local ok, _, _, _, _, _, _, most = pcall(gi, tonumber(id))
+      if ok and tonumber(most) and tonumber(most) > biggest then biggest = tonumber(most) d.most = biggest end
+    end
+    return biggest
+  end
+  function UI.OneByOne()
+    local d = UI.sell
+    if not d then return end
+    P.size:SetText("1")
+    P.stacks:SetText(tostring(d.total))
+    UI.PaintSell()
+  end
+  function UI.FullStacks()
+    local d = UI.sell
+    if not d then return end
+    local size = math.min(UI.MaxStack(d), d.total)
+    P.size:SetText(tostring(size))
+    P.stacks:SetText(tostring(math.max(1, math.floor(d.total / size))))
+    UI.PaintSell()
   end
   function UI.FillStacks()
     local d = UI.sell
@@ -1427,7 +1559,17 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   function UI.PaintSell()
     for h, b in pairs(P.hours) do b.Lit(h == UI.hours) end
     local d = UI.sell
-    if not d then P.post.Able(false) P.sum:SetText("") P.info:SetText("") P.rivals.Set({}) return end
+    if not d then
+      P.post.Able(false) P.sum:SetText("") P.info:SetText("") P.rivals.Set({})
+      P.sizeS.Put(1, 1, 1) P.stacksS.Put(1, 1, 1)
+      return
+    end
+    do
+      local size = tonumber(P.size:GetText()) or 1
+      local most = math.max(1, math.min(UI.MaxStack(d), d.total))
+      P.sizeS.Put(1, most, size)
+      P.stacksS.Put(1, math.max(1, math.floor(d.total / math.max(1, size))), tonumber(P.stacks:GetText()) or 1)
+    end
     local sug = AH.Suggest(d.key, d.name)
     local value, days = AH.Value(d.key)
     P.info:SetText("Cheapest now:  " .. (sug.other and AH.Money(sug.other) or (AH.Searching() and "|cff9a9aa0looking...|r" or "|cff9a9aa0none seen|r"))
@@ -1919,7 +2061,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     return c
   end
   P.chart = UI.NewChart(P.box, 260, 78)
-  P.chart:SetPoint("TOPLEFT", P.box, "TOPLEFT", 330, -94)
+  P.chart:SetPoint("TOPLEFT", P.box, "TOPLEFT", 372, -94)
 
   -- ---------------------------------------------------------------- showing
 

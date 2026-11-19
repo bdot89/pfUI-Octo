@@ -120,6 +120,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.72
+
+- 💰 **Sell tab, quicker:** a **1 by 1** button lists every item on its own (stack size 1, as many as you have). **Full stacks** uses the biggest stack the item makes. **Sliders** under Stack size and Number of stacks let you drag or wheel the numbers, and the stacks slider only goes as far as your bags allow.
+- ⚡ **Spam Buyout:** keep clicking Buyout and it buys the picked auction and moves to the next one down. A click while the last buy is still going through now waits its turn instead of being refused, and the pick never jumps back to the one being bought.
+
 ## 📜 New in 1.1.71
 
 - 📥 **Profile import no longer goes dead.** The Import button stays clickable, and a line above it says why a string can't go in yet. If the string is cut short (Discord splits long messages), it tells you to copy all of it or send it as a file. A string pasted with Discord's ``` code block around it now imports too.

@@ -388,8 +388,22 @@ do
     UI.RunQueue({ kind = "buyout", rows = { d, a, b } })
     for t = 1, 10 do UI.QueueStep(1000 + t) end
     ok(table.getn(bought) == 3 and not UI.queue, "the queue buys every picked one [" .. table.getn(bought) .. "]")
-    AH.Buy, AH.open = buyWas, openWas
+    -- (19 Nov 2026, "possible to spam buyout") a click while a page is fetched waits its turn, the pick moves down
     for _, r in ipairs({ a, b, c, d, e }) do r.gone = nil end
+    l.Set({ a, b, d })
+    l.picks, l.sel = {}, b
+    AH.pending = { row = a }
+    local moneyWas = _G.GetMoney
+    _G.GetMoney = function() return 1e9 end
+    local okw, ew = pcall(UI.Buy, "buyout")
+    ok(okw and UI.List() == l and UI.waiting and UI.waiting[1] and UI.waiting[1].row == b and l.sel == d, "a click during a fetch waits and the pick moves to the next row (" .. tostring(ew) .. ", " .. tostring(UI.List() == l) .. ", " .. tostring(AH.CanBuy(b, "buyout")) .. ", w " .. tostring(UI.waiting and UI.waiting[1] and UI.waiting[1].row.seq) .. ", sel " .. tostring(l.sel and l.sel.seq) .. ", bought " .. table.getn(bought) .. ")")
+    bought = {}
+    AH.pending = nil
+    UI.WaitStep()
+    ok(bought[1] == b and not UI.waiting, "it is bought once the last one went through")
+    _G.GetMoney = moneyWas
+    AH.Buy, AH.open = buyWas, openWas
+    for _, r in ipairs({ a, b, c, d, e }) do r.gone = nil r.queued = nil end
     -- My auctions are read afresh: picks are found again by what they are
     local fresh = {}
     for _, r in ipairs({ a, b, c }) do local n = {} for k, v in pairs(r) do n[k] = v end table.insert(fresh, n) end
@@ -418,6 +432,24 @@ do
   ok(okay2 and tostring(UI.pages.sell.size:GetText()) == "12" and AH.ParseMoney(UI.pages.sell.buyp:GetText()) == 90, "Sell: your last stack size and the usual price are filled in " .. tostring(err2 or "") .. " [" .. tostring(UI.pages.sell.size:GetText()) .. " / " .. tostring(UI.pages.sell.buyp:GetText()) .. " / " .. tostring(AH.Value("2589")) .. "]")
   local nums = UI.SellNumbers()
   ok(nums and nums.size == 12 and nums.stacks == 1 and nums.buy == 90 and nums.bid == 85, "the starting price follows the buyout (95%)")
+  -- (19 Nov 2026, user: "quick option for list 1 by 1 add sliders under the numbers")
+  do
+    local P = UI.pages.sell
+    UI.OneByOne()
+    local n1 = UI.SellNumbers()
+    ok(n1 and n1.size == 1 and n1.stacks == 40, "1 by 1: stack size 1, as many as you have [" .. tostring(n1 and n1.stacks) .. "]")
+    P.size:SetText("20") UI.PaintSell()
+    local lo, hi = P.stacksS:GetMinMaxValues()
+    ok(P.sizeS and hi == 2, "the stacks slider goes up to what fits (" .. tostring(hi) .. ")")
+    _G.this = P.sizeS
+    P.sizeS.quiet = nil
+    P.sizeS:SetValue(10)
+    P.sizeS:GetScript("OnValueChanged")()
+    ok(P.size:GetText() == "10", "dragging the size slider writes the box [" .. tostring(P.size:GetText()) .. "]")
+    UI.FullStacks()
+    local nf = UI.SellNumbers()
+    ok(nf and nf.size * nf.stacks <= 40 and nf.size >= 20, "Full stacks: the biggest stack, as many as fit")
+  end
   -- saved searches
   UI.pages.browse.name:SetText("linen cloth/exact")
   UI.SearchPick("!save")
