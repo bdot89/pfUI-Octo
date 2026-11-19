@@ -412,6 +412,16 @@ CT:Show("nope", 1, 1, 1, "out", {})
 ok(not LiveText("nope"), "off: nothing shown")
 SlashCmdList.PFUI("sct on")
 ok(B.db.sct.enabled and Mock.cvars.CombatDamage == "0", "/pfui sct on: ours again, the game's off")
+-- (19 Nov 2026) SuperWoW's HealingText is not saved: back on at a client start, ours puts it off at every login,
+-- but a number you switched on yourself on the page stays on
+Mock.cvars.HealingText = "1"
+CT:KeepGameNumbersOff()
+ok(Mock.cvars.HealingText == "0", "heal numbers back on by themselves: off again at login")
+CT:GameNumbers("heal", true)
+CT:KeepGameNumbersOff()
+ok(Mock.cvars.HealingText == "1", "heal numbers you switched on stay on")
+CT:GameNumbers("heal", false)
+ok(not (B.db.sct.gameWanted or {}).heal, "switched off again: no longer kept on")
 -- Blizzard's scrolling text over you (LoadOnDemand): the switch takes it along,
 -- and healer GUIDs ("+875 [0x...]") become names even when it loads late
 local fctMsgs, fctUpdates = {}, 0

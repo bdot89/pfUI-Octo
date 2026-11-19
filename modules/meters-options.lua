@@ -971,8 +971,9 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Chk(p, "Tooltips on the bars", nil, G, "tooltip", function() end)
     Drop(p, "Tooltip lines", nil, List({ { "5", "5" }, { "8", "8" }, { "12", "12" }, { "20", "20" } }), G, "tooltiplines", function() end)
     Chk(p, "Windows snap together", "A window dropped near another sits flush against it.", G, "snap", function() end)
-    Chk(p, "Snapped windows move together", "Dragging a window moves every window snapped against it. Hold Alt "
-      .. "while you start dragging to move one on its own (and pull it away).", G, "snapgroup", function() end)
+    Chk(p, "Snapped windows move together", "Off by default. When on, dragging a window moves every window snapped "
+      .. "against it. Hold Alt while you start dragging to move one on its own (and pull it away).", G, "snapgroup",
+      function() end)
 
     -- custom displays (Details' custom tab, without code)
     W.Card(p, "Custom displays", { tip = "Your own displays: one spell's damage, healing, casts or damage taken, or one buff's "

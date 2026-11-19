@@ -6831,6 +6831,7 @@ do
     pfUI_config.meters.snapgroup = "0"
     M.GroupStart(a)
     ok(a.followers == nil, "switched off: a window moves alone")
+    ok(keepG == "0" and pfUI_config.meters.snapgroupreset == "1", "moving together is off after load (" .. tostring(keepG) .. ")")
     M.windows, pfUI_config.meters.snapgroup = keepW, keepG
   end
 end

@@ -1238,6 +1238,30 @@ function CT:GameNumbers(which, on)
   local cvar = GAME_CVARS[which] or "CombatDamage"
   local ok = pcall(SetCVar, cvar, on and "1" or "0")
   if not ok then B:Print(cvar .. ": not on this client") end
+  -- what you picked on the page is kept (CT:KeepGameNumbersOff leaves the ones you want alone)
+  local db = B.db and B.db.sct
+  if db then
+    db.gameWanted = db.gameWanted or {}
+    db.gameWanted[which] = on and true or nil
+  end
+end
+
+-- (19 Nov 2026, user in a raid: "i have normal heal text coming now" - SuperWoW's heal numbers over every
+-- healed player. SuperWoW's HealingText cvar is not saved in Config.wtf, so it came back on at a client start
+-- and the once-only switch below never ran again.) While our combat text is on, the game's damage / pet /
+-- heal numbers are kept off at every login, unless you switched one on yourself on the Combat Text page.
+function CT:KeepGameNumbersOff()
+  local db = B.db.sct
+  if not db.enabled then return end
+  local wanted = db.gameWanted or {}
+  local off = {}
+  for _, w in ipairs({ "dmg", "pet", "heal" }) do
+    if not wanted[w] and CT:GameNumbersOn(w) then
+      pcall(SetCVar, GAME_CVARS[w], "0")
+      table.insert(off, w)
+    end
+  end
+  return off
 end
 
 function CT:GameNumbersOn(which)
@@ -1284,6 +1308,8 @@ B:On("PLAYER_ENTERING_WORLD", function()
         .. "/obg sct to switch them back on")
     end
   end
+  -- every login after that: quietly, only what you did not switch on yourself
+  CT:KeepGameNumbersOff()
   -- once (added later, so its own flag): Blizzard's scrolling text over you
   if db.enabled and not db.gameFctDone then
     db.gameFctDone = true

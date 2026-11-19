@@ -1276,6 +1276,12 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
 
   -- (11 Nov 2026, Wolfahrt: "a way to move 2 windows together") windows snapped flush
   -- against each other are a group: dragging one moves the others with it (Alt = alone)
+  -- (19 Nov 2026, user: "my meters are snapping together and when i move them it is dragging them all") moving
+  -- together is off by default now; everyone who had the old default is switched off once. Meters > Data has it.
+  if C.meters.snapgroupreset ~= "1" then
+    C.meters.snapgroupreset = "1"
+    C.meters.snapgroup = "0"
+  end
   local TOUCH = 2
   function M.Touching(a, b)
     local la, ta, ra, ba = Outer(a)
