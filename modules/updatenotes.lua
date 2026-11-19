@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.88", {
+    { "Every demo is in", "Demo Mode now has its own highlighted row in the sidebar (under More, above Add-ons) and tiles on the Quality of Life page. Six demos, each looping until you press Stop:" },
+    { "Nothing a demo does reaches anyone: no raid messages or threat requ...", "Nothing a demo does reaches anyone: no raid messages or threat requests are sent while you are not really in a group." },
+  } },
   { "1.1.87", {
     { "Demo mode (raid)", "Quality of Life > Demo mode, or /demo. A pretend 40-player raid on your own frames with all your settings: raid and party frames, a boss on your target frame with its crest, cast bar and abilities, debuffs to cure, raid warnings, meters and combat text. It loops trash, boss, kill or wipe and rest until you stop it. The bar at the top has Pause, speed (0.5x-4x), Next, Edit and Stop. Nothing real happens and Stop puts everything back; a real fight stops it. Needs a full client restart (new files). Dungeon, target dummy, PvP, AFK and showcase demos come next." },
   } },
@@ -154,12 +158,5 @@ pfUI.octoNotes = {
   { "1.1.49", {
     { "Cleaner mob info", "short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more \"Resists: None\". MobStats' own yellow lines are hidden while ours are on." },
     { "Profession lines only for you", "skinning, herb and ore lines show only if you have that profession (Shift shows them anyway)." },
-  } },
-  { "1.1.48", {
-    { "Where it drops", "item tooltips list who drops it (with zone and chance), where it is found and who sells it; Shift shows more. Left out when Atlas already names the boss." },
-    { "Disenchants into", "what an item turns into, the Enchanting it needs and what that is worth at the auction house - always for enchanters, with Shift for everyone else." },
-    { "Herbs, ore and skinning", "nodes and skinnable creatures show the skill they need against yours (trainer colours) and what they give." },
-    { "Mob stats", "enemies show their armor (and how much of your damage it takes off), melee hits and speed, and their resists - MobStats built in." },
-    { "Item level", "beside the item's name. Every part can be set to always / Shift / never under Quality of Life > Tooltip extras." },
   } },
 }

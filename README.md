@@ -120,6 +120,17 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.88
+
+- 🎬 **Every demo is in:** Demo Mode now has its own highlighted row in the sidebar (under More, above Add-ons) and tiles on the Quality of Life page. Six demos, each looping until you press Stop:
+  - **Raid (40)** - now with the threat meter running and the boss's real health number on your target frame.
+  - **Dungeon (5)** - a party of five, marked packs (one sheeped, casters kicked), then an end boss.
+  - **Target dummy** - one dummy stepping through Normal, Elite, Rare, Rare elite and World boss, so you see every crest and dragon.
+  - **PvP** - enemy players of the other faction on your target with their class spells, killing blows, honour and flag carrier lines.
+  - **AFK** - your AFK screen with chat coming in. It never marks you AFK; click or press a key to end it.
+  - **Showcase** - the raid demo with a caption walking you through what pfUI Octo does, each part playing its own test.
+- 🛡️ Nothing a demo does reaches anyone: no raid messages or threat requests are sent while you are not really in a group.
+
 ## 📜 New in 1.1.87
 
 - 🎬 **Demo mode (raid):** Quality of Life > Demo mode, or `/demo`. A pretend 40-player raid on your own frames with all your settings: raid and party frames, a boss on your target frame with its crest, cast bar and abilities, debuffs to cure, raid warnings, meters and combat text. It loops trash, boss, kill or wipe and rest until you stop it. The bar at the top has Pause, speed (0.5x-4x), Next, Edit and Stop. Nothing real happens and Stop puts everything back; a real fight stops it. Needs a full client restart (new files). Dungeon, target dummy, PvP, AFK and showcase demos come next.
