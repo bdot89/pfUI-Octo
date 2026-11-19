@@ -1036,8 +1036,12 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     btn:SetHeight(size)
     local cur, partly = GR.Current()
     local set = cur and C.gear.sets[cur]
-    btn.icon:SetTexture(set and set.icon or "Interface\\Icons\\INV_Chest_Plate06")
-    btn.icon:SetDesaturated(set == nil)
+    -- (19 Nov 2026, user: "when changing items in character frame the logo doesn't change from the set ... it should
+    -- change to what is equipped everytime") a set's own picture only while that set is worn exactly; otherwise (a piece
+    -- changed by hand, or no set) the picture of what you have on now
+    local pic = (set and not partly) and set.icon or GR.WornTex() or "Interface\\Icons\\INV_Chest_Plate06"
+    btn.icon:SetTexture(pic)
+    btn.icon:SetDesaturated(false)
     btn.label:SetText(C.gear.showname ~= "0" and (cur and (partly and (cur .. " |cffaaaaaa(part)|r") or cur) or "No set") or "")
     local ar, ag, ab = Accent()
     if partly then ar, ag, ab = ar * .55, ag * .55, ab * .55 end
@@ -1045,7 +1049,14 @@ pfUI:RegisterModule("gear", "vanilla", function ()
     if GR.queue and GR.queue.waiting then btn.wait:Show() else btn.wait:Hide() end
     if C.gear.button == "0" then btn:Hide() else btn:Show() end
     if C.gear.minimap == "0" then mm:Hide() else mm:Show() GR.PlaceMinimap() end
-    if set then mm.icon:SetTexture(set.icon) end
+    mm.icon:SetTexture(pic)
+  end
+  -- the picture of what is worn now: chest, else main hand, head, off hand, shoulders, legs
+  function GR.WornTex()
+    for _, inv in ipairs({ 5, 16, 1, 17, 3, 7 }) do
+      local tex = GR.InvTex and GR.InvTex(inv)
+      if tex and (not GR.GoodTex or GR.GoodTex(tex)) then return tex end
+    end
   end
   GR.listeners.buttons = GR.UpdateButtons
 

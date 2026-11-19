@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.78", {
+    { "ItemRack button shows what you wear", "the set button and the minimap button show a set's picture only while that set is worn exactly. Swap a piece by hand (or wear no set) and they show your worn gear instead, updated every time your gear changes." },
+  } },
   { "1.1.77", {
     { "Old ClassicAPI? You'll be told", "OctoLauncher installs an older ClassicAPI (v1.15) with no damage meter. If that's yours, you get one chat line per character on how to get the newest: close the game, run Install pfUI Octo DLLs.bat in your pfUI folder (or the Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI and doesn't swap it back." },
   } },
@@ -166,8 +169,5 @@ pfUI.octoNotes = {
   { "1.1.39", {
     { "Uses ClassicAPI to do less work", "25 every-few-seconds checks run on ClassicAPI's timers instead of being asked every frame; cast bars wake on the game's cast events and rest when nobody casts; action bars learn range changes from the game instead of checking every button 5 times a second; the range scan stops (ClassicAPI already answers); gathering arrows and pfQuest's route rest while you stand still. Each one keeps the old way until its event has really been seen, so nothing changes without ClassicAPI." },
     { "/pfperf events", "(and the end of Copy all) shows which ClassicAPI events and timers are in use." },
-  } },
-  { "1.1.38", {
-    { "Mail: sending many items works", "With several items queued, Send stopped after the first mail. Now every item goes, one mail each. If a mail can't go (wrong name, mailbox closed, an item that won't attach or stays locked), sending stops and says why and how many went. The items that went come off the list, so Send again only sends the rest." },
   } },
 }
