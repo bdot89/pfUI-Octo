@@ -4084,7 +4084,7 @@ do
       local labels = {}
       for _, b in ipairs(qgrp and qgrp.buttons or {}) do table.insert(labels, b.text:GetText() or "") end
       ok(qgrp and qgrp.name == "Quality of Life" and labels[1] == "QoL" and labels[2] == "Raid Tools" and labels[3] == "Screenshots"
-        and labels[4] == "Demo mode" and labels[5] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
+        and labels[4] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
       for _, k in ipairs({ "qolgeneral", "qolraid", "qolshots" }) do
         local okq, errq = pcall(function() O:Select("o:" .. k) end)
         ok(okq and O.pages[k], "QoL page " .. k .. " builds: " .. tostring(errq))

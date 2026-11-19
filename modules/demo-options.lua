@@ -16,12 +16,12 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
       .. "trash, boss, kill or wipe and rest until you stop it. Nothing real happens: the game and other add-ons see none "
       .. "of it, and Stop puts everything back. Use Edit on the bar at the top of the screen to change things while it runs." })
 
-    W.Card(p, "Start a demo", { icon = I .. "INV_Misc_Head_Dragon_01", tip = "Pick one. The raid demo is ready; the others "
+    W.Card(p, "Start a demo", { icon = I .. "INV_Misc_Head_Dragon_01", tip = "Pick one. The raid and target dummy demos are ready; the others "
       .. "come in the next updates." })
     W.Tiles(p, {
       { "Raid (40)", "Bosses, trash, wipes, on a loop", I .. "INV_Misc_Head_Dragon_01", function() DM.Start("raid") end, "go" },
       { "Dungeon (5)", "Coming next", I .. "INV_Misc_Key_03", function() DM.Start("dungeon") end, "open" },
-      { "Target dummy", "Coming next", I .. "INV_Misc_Bone_HumanSkull_01", function() DM.Start("dummy") end, "open" },
+      { "Target dummy", "Every rank and crest in turn", I .. "INV_Misc_Bone_HumanSkull_01", function() DM.Start("dummy") end, "go" },
     })
     W.Tiles(p, {
       { "PvP", "Coming later", I .. "INV_BannerPVP_02", function() DM.Start("pvp") end, "open" },
@@ -31,7 +31,7 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
     W.Live(p, function()
       if not DM.on then return "|cff888888No demo running.|r" end
       local b = DM.boss
-      return "Running: |cffffffffRaid|r" .. (b and (" - " .. b.name .. " " .. math.floor(b.hp / b.max * 100 + .5) .. "%") or "")
+      return "Running: |cffffffff" .. (DM.LABEL[DM.kind] or "Raid") .. "|r" .. (b and (" - " .. b.name .. " " .. math.floor(b.hp / b.max * 100 + .5) .. "%") or "")
         .. (DM.paused and "  |cffffaa33paused|r" or "") .. "  |cff888888" .. DM.speed .. "x|r"
     end)
     W.Buttons(p, {

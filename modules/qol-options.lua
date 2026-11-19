@@ -38,6 +38,14 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
   local function BuildQoL(p)
     W.Heading(p, "Quality of life", { about = "The small helpers in one place: vendor and loot, the map, tooltips, "
       .. "screen glows, error messages, and helpers that are whole modules. The same settings are also on their own pages." })
+    -- (19 Nov 2026) Demo mode has its own row in the sidebar (More); a way there from here too
+    if W.Tiles and pfUI.demo then
+      W.Tiles(p, {
+        { "Raid demo", "A pretend raid with your settings", "Interface\\Icons\\INV_Misc_Head_Dragon_01", function() pfUI.demo.Start("raid") end, "go" },
+        { "Target dummy demo", "Every rank and crest in turn", "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", function() pfUI.demo.Start("dummy") end, "go" },
+        { "Demo mode page", "All demos and their settings", "Interface\\Icons\\INV_Misc_Spyglass_03", function() O:Open("demo") end, "open" },
+      })
+    end
     W.Card(p, "Vendor and loot")
     Chk(p, "Auto sell grey items", "Grey items are sold when you open a vendor.", "global", nil, "autosell")
     Chk(p, "Auto repair", "Everything is repaired when you open a vendor that repairs.", "global", nil, "autorepair")

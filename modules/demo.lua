@@ -104,6 +104,19 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   -- the phases: trash (20 s), boss (until it dies or the raid does), kill / wipe (6 s), rest (12 s)
   DM.PHASES = { trash = 20, ended = 6, rest = 12 }
 
+  -- the target dummy demo (user: "a dummy ... different levels it will change to bosses"): one dummy on your
+  -- target that steps through every rank, DM.RANKTIME seconds each (Next = the next one now), so every crest,
+  -- dragon, colour and frame look shows in turn. It never dies: near the end its health fills again.
+  DM.RANKTIME = 12
+  DM.DUMMIES = {
+    { name = "Training Dummy", ctype = "Mechanical", level = 60, cls = "normal", max = 120000, label = "Normal" },
+    { name = "Elite Training Dummy", ctype = "Mechanical", level = 62, cls = "elite", max = 380000, label = "Elite" },
+    { name = "Rare Training Dummy", ctype = "Mechanical", level = 61, cls = "rare", max = 200000, label = "Rare" },
+    { name = "Rare Elite Training Dummy", ctype = "Mechanical", level = 62, cls = "rareelite", max = 520000, label = "Rare elite" },
+    { name = "Boss Training Dummy", ctype = "Mechanical", level = -1, cls = "worldboss", max = 2400000, label = "World boss" },
+  }
+  for _, d in ipairs(DM.DUMMIES) do d.abilities, d.melee = {}, { 0, 0 } end
+
   local function NewMob(def)
     local b = { name = def.name, ctype = def.ctype, level = def.level, cls = def.cls, max = def.max, hp = def.max,
       def = def, enemy = true, mark = 8, debuffs = {}, buffs = {}, next = {} }
@@ -234,8 +247,15 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   }
   DM.ROSTER = ROSTER
 
-  -- put the answers into pfUI's environment / take them out again (exactly what was there before)
-  function DM.Install()
+  -- not really in a group: nothing may be said to one (the pretend raid makes pfUI think it is in one)
+  function DM.NotGrouped()
+    return (_G.GetNumRaidMembers and _G.GetNumRaidMembers() or 0) == 0 and (_G.GetNumPartyMembers and _G.GetNumPartyMembers() or 0) == 0
+  end
+  DM.GROUPCHAN = { RAID = true, PARTY = true, RAID_WARNING = true, BATTLEGROUND = true }
+
+  -- put the answers into pfUI's environment / take them out again (exactly what was there before);
+  -- raid = the raid of 40 too (the target dummy needs only the target)
+  function DM.Install(raid)
     local env = pfUI.env
     DM.saved, DM.orig = {}, {}
     local function Put(name, fn)
@@ -252,19 +272,103 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       end)
     end
     for _, name in ipairs(DM.TWO) do Put(name, Two(name)) end
-    for name, fn in pairs(ROSTER) do Put(name, fn) end
-    -- "am I in a raid?" asked of the player
-    rawset(env, "UnitInRaid", function(u)
-      if type(u) == "string" and string.lower(u) == "player" then return 1 end
-      local d = Fake(u)
-      if d then return d.player and 1 or nil end
-      return DM.orig.UnitInRaid(u)
+    if raid then
+      for name, fn in pairs(ROSTER) do Put(name, fn) end
+      -- "am I in a raid?" asked of the player
+      rawset(env, "UnitInRaid", function(u)
+        if type(u) == "string" and string.lower(u) == "player" then return 1 end
+        local d = Fake(u)
+        if d then return d.player and 1 or nil end
+        return DM.orig.UnitInRaid(u)
+      end)
+    end
+    -- (user's first run, 19 Nov 2026) nothing goes out to a raid that is not there: pfUI's threat asks, price
+    -- sharing, pull timers... are dropped while you are not really grouped
+    Put("SendAddonMessage", function(prefix, text, chan, who)
+      if DM.GROUPCHAN[chan or ""] and DM.NotGrouped() then return end
+      return DM.orig.SendAddonMessage(prefix, text, chan, who)
     end)
+    Put("SendChatMessage", function(msg, chan, lang, who)
+      if DM.GROUPCHAN[chan or ""] and DM.NotGrouped() then return end
+      return DM.orig.SendChatMessage(msg, chan, lang, who)
+    end)
+    -- pfUI's mob health (libhealth) asks the game itself: the boss showed "0 - 93%" on the target frame
+    local lh = pfUI.libhealth
+    if lh and lh.GetUnitHealth then
+      DM.lhGet = lh.GetUnitHealth
+      lh.GetUnitHealth = function(self, u)
+        local d = Fake(u)
+        if d then return math.max(0, math.floor(d.hp)), d.max, true end
+        return DM.lhGet(self, u)
+      end
+    end
+    -- the threat meter: never ask the server about a pretend boss; DM.Threat fills it
+    local TH = pfUI.meters and pfUI.meters.threat
+    if TH and TH.Ask then
+      DM.thAsk = TH.Ask
+      TH.Ask = function() end
+    end
   end
   function DM.Uninstall()
     local env = pfUI.env
     for name, was in pairs(DM.saved or {}) do rawset(env, name, was[1]) end
     DM.saved, DM.orig = nil, nil
+    if DM.lhGet and pfUI.libhealth then pfUI.libhealth.GetUnitHealth = DM.lhGet end
+    DM.lhGet = nil
+    local TH = pfUI.meters and pfUI.meters.threat
+    if TH and DM.thAsk then
+      TH.Ask = DM.thAsk
+      TH.list, TH.base = nil, nil
+      if pfUI.meters.Changed then pcall(pfUI.meters.Changed) end
+    end
+    DM.thAsk = nil
+  end
+
+  -- ---------------------------------------------------------------- threat
+  -- a made-up threat list on the boss, the shape the server's answers have (meters-threat.lua TH.list): the main
+  -- tank on top, damage dealers below, healers low, you somewhere in between - sometimes close to the tank, so the
+  -- warnings and the label show too
+  function DM.Threat(dt)
+    local M = pfUI.meters
+    local TH = M and M.threat
+    if not TH then return end
+    if not DM.fight or not DM.boss then
+      if TH.list then TH.list = nil if M.Changed then pcall(M.Changed) end end
+      return
+    end
+    DM.tt = DM.tt or {}
+    local me = _G.UnitName("player") or "You"
+    local list = {}
+    if DM.kind == "dummy" then
+      DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(500, 900)
+      list = { { name = me, tank = true, threat = math.floor(DM.tt[me]), perc = 100, melee = true } }
+    else
+      for _, u in ipairs(DM.list) do
+        if not u.dead then
+          local k = (u.role == "tank" and (u == DM.tank and 1300 or 700)) or (u.role == "heal" and Rand(80, 220)) or Rand(250, 700)
+          DM.tt[u.name] = (DM.tt[u.name] or 0) + dt * k
+        end
+      end
+      -- you: climbing towards the tank now and then
+      local push = math.mod(math.floor(DM.pt / 20), 2) == 1 and 1500 or 600
+      DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(push * .7, push)
+      for name, v in pairs(DM.tt) do
+        local dead = false
+        for _, u in ipairs(DM.list) do if u.name == name and u.dead then dead = true end end
+        if not dead then table.insert(list, { name = name, tank = false, threat = math.floor(v), perc = 0, melee = true }) end
+      end
+      local holder = DM.tank and not DM.tank.dead and DM.tank.name or (DM.units.raid3 and DM.units.raid3.name)
+      local tankT = 0
+      for _, e in ipairs(list) do if e.name == holder then e.tank = true tankT = e.threat end end
+      for _, e in ipairs(list) do
+        if e.tank then e.perc = 100 elseif tankT > 0 then e.perc = math.floor(e.threat / tankT * 1000 + .5) / 10 end
+      end
+      table.sort(list, function(a, b) return a.threat > b.threat end)
+    end
+    TH.list, TH.at, TH.estimated, TH.base = list, GetTime(), nil, nil
+    if TH.Warn then pcall(TH.Warn) end
+    if M.RefreshThreat then pcall(M.RefreshThreat) end
+    if TH.Draw then pcall(TH.Draw) end
   end
 
   -- ---------------------------------------------------------------- telling pfUI's frames
@@ -336,7 +440,14 @@ pfUI:RegisterModule("demo", "vanilla", function ()
 
   function DM.SetPhase(ph)
     DM.phase, DM.pt = ph, 0
-    if ph == "trash" then
+    if ph == "trash" or ph == "boss" then DM.tt = {} end
+    if ph == "dummy" then
+      DM.rank = math.mod(DM.rank or 0, table.getn(DM.DUMMIES)) + 1
+      DM.boss = NewMob(DM.DUMMIES[DM.rank])
+      DM.boss.mark = nil
+      DM.fight = true
+      DM.tt = {}
+    elseif ph == "trash" then
       DM.boss = NewMob(DM.TRASH)
       DM.fight = true
       Warn("Pull in 3... 2... 1...")
@@ -374,6 +485,16 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.t = DM.t + dt
     DM.pt = DM.pt + dt
     local ph = DM.phase
+    if ph == "dummy" then
+      local b = DM.boss
+      if b then
+        b.hp = b.hp - dt * b.max / 40 * Rand(.6, 1.4)
+        if b.hp < b.max * .05 then b.hp = b.max end
+        DM.dirty = true
+      end
+      if DM.pt >= DM.RANKTIME then DM.SetPhase("dummy") end
+      return
+    end
     if ph == "rest" then
       if DM.pt >= DM.PHASES.rest then DM.SetPhase(DM.trashDone and "boss" or "trash") end
       return
@@ -492,9 +613,11 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     { key = "dungeon", label = "Dungeon (5)" }, { key = "pvp", label = "PvP" }, { key = "afk", label = "AFK" },
     { key = "dummy", label = "Target dummy" }, { key = "showcase", label = "Showcase" },
   }
+  DM.READY = { raid = true, dummy = true }
+  DM.LABEL = { raid = "Raid", dummy = "Target dummy" }
   function DM.Start(kind)
     kind = kind or "raid"
-    if kind ~= "raid" then
+    if not DM.READY[kind] then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: the " .. kind .. " demo comes in a later update. Starting the raid demo.")
       kind = "raid"
     end
@@ -504,12 +627,12 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     end
     if DM.on then DM.Stop(true) end
     math.randomseed(math.floor((GetTime() or 0) * 1000))
-    DM.MakeRaid()
+    if kind == "raid" then DM.MakeRaid() else DM.units, DM.list, DM.tank = {}, {}, nil end
     DM.kind, DM.on, DM.paused, DM.t = kind, true, false, 0
     DM.speed = tonumber(S().speed) or 1
-    DM.pulls, DM.bossIndex, DM.trashDone = 0, 0, nil
-    DM.Install()
-    DM.SetPhase("trash")
+    DM.pulls, DM.bossIndex, DM.trashDone, DM.rank = 0, 0, nil, 0
+    DM.Install(kind == "raid")
+    DM.SetPhase(kind == "dummy" and "dummy" or "trash")
     DM.Regroup()
     DM.Joins(true)
     DM.bar:Show()
@@ -528,6 +651,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.Next()
     if not DM.on then return end
     local ph = DM.phase
+    if ph == "dummy" then DM.SetPhase("dummy") DM.PaintBar() return end
     if ph == "trash" or ph == "boss" then
       if DM.boss then DM.boss.hp = 0 end
       if ph == "trash" then DM.trashDone = true end
@@ -601,11 +725,15 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local b = DM.boss
     local what = PHASENAME[DM.phase] or ""
     if DM.phase == "ended" then what = DM.wiped and "|cffff5544Wipe|r" or "|cff55ff66Kill|r" end
-    local line = "|cff33ccffDEMO|r  Raid  |cff888888-|r  " .. what
-    if b and (DM.phase == "boss" or DM.phase == "trash") then
+    local line = "|cff33ccffDEMO|r  " .. (DM.LABEL[DM.kind] or "Raid") .. "  |cff888888-|r  " .. what
+    if DM.phase == "dummy" and b then
+      local d = DM.DUMMIES[DM.rank]
+      line = "|cff33ccffDEMO|r  Target dummy  |cff888888-|r  |cffffffff" .. (d and d.label or "") .. "|r " .. math.floor(b.hp / b.max * 100 + .5)
+        .. "%  |cff888888next rank in " .. math.max(0, math.ceil((DM.RANKTIME - DM.pt) / math.max(DM.speed, .1))) .. " s|r"
+    elseif b and (DM.phase == "boss" or DM.phase == "trash") then
       line = line .. ": |cffffffff" .. b.name .. "|r " .. math.floor(b.hp / b.max * 100 + .5) .. "%"
     end
-    line = line .. "  |cff888888" .. Clock(DM.pt) .. "|r"
+    if DM.phase ~= "dummy" then line = line .. "  |cff888888" .. Clock(DM.pt) .. "|r" end
     bar.title:SetText(line)
     bar.pause.text:SetText(DM.paused and "Resume" or "Pause")
     bar.speedb.text:SetText((DM.speed == .5 and "0.5" or tostring(DM.speed)) .. "x")
@@ -626,6 +754,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if DM.paused then return end
     DM.dirty, DM.adirty = false, false
     DM.Step(dt * DM.speed)
+    DM.Threat(dt * DM.speed)
     if DM.adirty then DM.Touch(false, true) end
     if DM.dirty or DM.fight then DM.Touch(false) end
   end)

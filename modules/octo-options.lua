@@ -44,7 +44,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "OctoLazy", { "OctoLazy" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
     -- in here") qol-options.lua's pages, then Auto Loot's
-    { "Quality of Life", { "Quality of Life", "Demo Mode", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer" } },
+    { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer" } },
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     -- (16 Nov 2026, user: "Call Questing pfQuest")
@@ -79,6 +79,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Swing Timer", { "Swing Timer" } },
     { "Bags & Loot", { "Bags", "Bags & Bank", "Loot" } },
     { "Tooltip", { "Tooltip" } },
+    -- (19 Nov 2026, user: "add a demo button on the UI at the bottom on the top of addons make it stand out like the rest")
+    { "Demo Mode", { "Demo Mode" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
   }
@@ -100,11 +102,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
     { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
-    { "More", { "Add-ons", "About" } },
+    { "More", { "Demo Mode", "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -118,6 +120,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
+    ["Demo Mode"] = "A pretend raid or target dummy on your screen with all your settings running.",
     ["Blizzard UI"] = "Use the game's own frames for any part, switched at once.",
     ["UI layouts"] = "Whole screens saved by name, switched by hand or by zone.",
     ["Unit Frames"] = "Player, target, party and raid frames, and their cast bars.",
@@ -1921,7 +1924,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- rows fill the column (bigger in a tall window), never below 13 (15 until the Auctions section,
     -- 15 Nov 2026: 22 sections no longer fitted a 600 px window at 15)
     -- (17 Nov 2026: OctoRinse made 24 rows - 12 px, 11 px text, keeps them all on a 600 px window)
-    rh = math.max(12, math.min(32, rh))
+    -- (19 Nov 2026: Demo Mode made 27 rows - 11 px at the smallest window)
+    rh = math.max(11, math.min(32, rh))
     local rows, y = {}, NAV_TOP
     for _, grp in ipairs(self.groups) do
       -- (a section with a big entry at the top - Quality of Life - is opened from there, not a row here)

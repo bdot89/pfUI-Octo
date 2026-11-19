@@ -108,3 +108,43 @@ ok(rawget(env, "UnitName") == before.UnitName and rawget(env, "GetNumRaidMembers
   and rawget(env, "UnitHealth") == before.UnitHealth and rawget(env, "UnitInRaid") == before.UnitInRaid, "every function put back as it was")
 ok(DM.Fake("raid5") == nil and not getglobal("pfDemoBar"):IsShown(), "no pretend units, the bar gone")
 Mock.now = now
+
+-- (19 Nov 2026, the user's first run) threat on the boss, the target's health number, nothing sent to a pretend raid
+local TH = pfUI.meters and pfUI.meters.threat
+local sent = 0
+local keepSend = rawget(_G, "SendAddonMessage")
+_G.SendAddonMessage = function() sent = sent + 1 end
+local keepRaid, keepParty = rawget(_G, "GetNumRaidMembers"), rawget(_G, "GetNumPartyMembers")
+_G.GetNumRaidMembers, _G.GetNumPartyMembers = function() return 0 end, function() return 0 end
+DM.Start("raid")
+DM.SetPhase("boss")
+for _ = 1, 10 do Mock.now = Mock.now + .5 DM.Step(.5) DM.Threat(.5) end
+ok(TH and TH.list and table.getn(TH.list) > 5 and TH.list[1].tank and TH.list[1].perc == 100, "the threat meter: the tank on top, the raid under it")
+local me = _G.UnitName("player")
+local mine
+for _, e in ipairs(TH and TH.list or {}) do if e.name == me then mine = e end end
+ok(mine and mine.perc > 0, "you are on the threat list")
+if TH and TH.Ask then TH.Ask() end
+env.SendAddonMessage("TEST", "x", "RAID")
+ok(sent == 0, "nothing goes out to a raid that is not there")
+local lh = pfUI.libhealth
+if lh and lh.GetUnitHealth then
+  local cur, max = lh:GetUnitHealth("target")
+  ok(cur == math.floor(DM.boss.hp) and max == DM.boss.max, "the boss's health number on the target frame (was 0)")
+end
+DM.Stop(true)
+ok(TH == nil or TH.list == nil, "threat list cleared at stop")
+_G.SendAddonMessage, _G.GetNumRaidMembers, _G.GetNumPartyMembers = keepSend, keepRaid, keepParty
+
+-- the target dummy: every rank in turn, the raid left alone
+ok(DM.Start("dummy") and DM.phase == "dummy", "the target dummy demo starts")
+ok(env.UnitClassification("target") == "normal" and env.UnitName("target") == "Training Dummy", "rank 1: a normal dummy")
+ok(rawget(env, "GetNumRaidMembers") == before.GetNumRaidMembers and DM.Fake("raid5") == nil, "no pretend raid with the dummy")
+local seen = {}
+for _ = 1, 5 do seen[env.UnitClassification("target")] = true DM.Next() end
+ok(seen.normal and seen.elite and seen.rare and seen.rareelite and seen.worldboss, "Next steps through normal, elite, rare, rare elite, boss")
+for _ = 1, 30 do Mock.now = Mock.now + 1 DM.Step(1) end
+ok(DM.boss and DM.boss.hp > 0, "the dummy never dies")
+DM.Stop(true)
+ok(rawget(env, "UnitName") == before.UnitName and (not lh or lh.GetUnitHealth ~= nil), "dummy stopped, everything back")
+Mock.now = now

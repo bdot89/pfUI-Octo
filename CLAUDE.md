@@ -1491,3 +1491,11 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   Stop; a real PLAYER_REGEN_DISABLED stops it; /demo [stop|next]. Page "Demo mode" (O.NAV group "Demo Mode", 4th tab of
   Quality of Life). Next phases: target dummy (rank stepping normal -> elite -> rare -> boss), dungeon, PvP / arena, AFK,
   showcase. Unverified in game: every part; ClassicAPI paths (C_UnitAuras, UnitGUID) ignore pretend units.
+  Phase 2 (19 Nov 2026, NOT seen in game; the raid demo itself WAS seen working: 40 raid frames, boss + dragons on the
+  target, raid warning, meters). Fixes from that screenshot: the target's health text said "0" (libhealth asks _G -
+  pfUI.libhealth.GetUnitHealth is wrapped while a demo runs) and the threat window was empty (TH.Ask is a no-op during
+  the demo; DM.Threat writes TH.list each step: tank on top, you climbing to ~98% every other 20 s). SendAddonMessage /
+  SendChatMessage to RAID / PARTY / RAID_WARNING / BATTLEGROUND are dropped in pfUI.env while not really grouped.
+  Target dummy demo (kind "dummy", DM.DUMMIES normal -> elite -> rare -> rare elite -> world boss, DM.RANKTIME 12 s, Next =
+  next rank, never dies; only the target is pretend - no raid roster). Demo Mode is its own featured sidebar row under
+  More, above Add-ons (O.NAV / NAVGROUPS / FEATURED; sidebar rows may now be 11 px); the QoL page has tiles to it.
