@@ -730,10 +730,29 @@ function pfUI:LoadConfig()
     pfUI:UpdateConfig("rinse", nil, k, {})
   end
   -- Earthen Bulwark bar for tank shamans (modules/bulwark.lua, 18 Nov 2026)
-  for k, v in pairs({ enable = "1", show = "auto", textmode = "both", text = "1", timer = "1", shieldtag = "1", icon = "1",
+  for k, v in pairs({ enable = "1", show = "auto", attach = "1", attachgap = "5", textmode = "both", text = "1", timer = "1", shieldtag = "1", icon = "1",
     width = "180", height = "14", textsize = "11", alpha = "1", texture = "",
     color = ".72,.52,.28,1", activecolor = "1,.82,.35,1", bgcolor = ".1,.08,.05,.8", timercolor = "1,1,1,.9", textcolor = "1,1,1,1",
   }) do pfUI:UpdateConfig("bulwark", nil, k, v) end
+  -- OctoTotems (modules/octototems.lua, 19 Nov 2026; pfUI's own totem bar keeps C.totems)
+  for k, v in pairs({ enable = "1", layout = "together", anchor = "active", static = "1", flexdelay = ".6", dock = "1",
+    mode_fire = "flex", mode_earth = "flex", mode_water = "flex", mode_air = "flex",
+    dir_fire = "up", dir_earth = "up", dir_water = "up", dir_air = "up",
+    size = "36", spacing = "3", scale = "1", alpha = "1", timersize = "12", timers = "1", timerbar = "1", cooldown = "1",
+    cdtext = "1", activeedge = "1", setmark = "1", elementborder = "1", tooltip = "1", tipside = "right", hideooc = "0",
+    rank1mod = "alt", ctrlset = "1", recall = "1", recallremind = "1", range = "20", redrop = "1", refresh = "0",
+    queueall = "1", setnotice = "1", warn = "1", warn1 = "10", warn2 = "5", expired = "1", destroyed = "1", rangealert = "1",
+    alerttext = "1", alertchat = "0", alertsound = "1", advisor = "1", remindshield = "1", remindimbue = "1",
+    remindbutton = "1", remindooc = "0", remindevery = "30", remindsound = "0", shield = "auto", imbue = "auto",
+    pvpauto = "1", namesets = "1", healbelow = "90", healcover = "90", cur = "1",
+    col_fire = "1,.42,.12,1", col_earth = ".78,.58,.3,1", col_water = ".3,.62,1,1", col_air = ".72,.86,1,1",
+  }) do pfUI:UpdateConfig("octototems", nil, k, v) end
+  for _, k in ipairs({ "order", "hide", "pvp" }) do pfUI:UpdateConfig("octototems", nil, k, {}) end
+  pfUI:UpdateConfig("octototems", nil, "sets", {
+    { name = "Default", t1 = "Searing Totem", t2 = "Strength of Earth Totem", t3 = "Mana Spring Totem", t4 = "Windfury Totem", order = "2,1,3,4" },
+    { name = "Tank", t1 = "Searing Totem", t2 = "Stoneskin Totem", t3 = "Healing Stream Totem", t4 = "Grace of Air Totem", order = "2,4,3,1" },
+    { name = "PvP", t1 = "Searing Totem", t2 = "Earthbind Totem", t3 = "Poison Cleansing Totem", t4 = "Grounding Totem", order = "2,4,1,3" },
+  })
   -- flight timer (modules/flight.lua, 15 Nov 2026)
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")

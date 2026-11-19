@@ -51,6 +51,8 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     ["CDM%d"]         = { "cdmbars", nil },
     ["FlightBar"]     = { "flight", nil },
     ["Bulwark"]       = { "bulwark", nil },
+    ["OctoTotems"]    = { "totembars", nil, "Layout" },
+    ["OctoTotem%a+"]  = { "totembars", nil, "Each element" },
     -- (16 Nov 2026, user: right-clicking it "does nothing it should take us to the table options to resize add more rows")
     ["DotTracker"]    = { "dotdisplay", nil, "Layout" },
     ["DotTargetBar"]  = { "dottarget", nil, "Look" },

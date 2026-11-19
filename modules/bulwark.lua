@@ -244,6 +244,22 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
     holder:SetWidth(Num("width", 180))
     holder:SetHeight(Num("height", 14))
     holder:SetAlpha(Num("alpha", 1))
+    -- (19 Nov 2026) merged with OctoTotems: stuck under the totem bars, as wide as them
+    local tot = _G.pfOctoTotems
+    if On("attach") and tot and tot:IsShown() and C.octototems and C.octototems.layout ~= "apart" then
+      local w = (tot:GetWidth() or 160) * (tot:GetScale() or 1)
+      holder:ClearAllPoints()
+      holder:SetPoint("TOP", tot, "BOTTOM", 0, -Num("attachgap", 5) / (tot:GetScale() or 1))
+      holder:SetScale(1)
+      S().width = tostring(math.floor(w + .5))
+      holder:SetWidth(w)
+      BW.attached = true
+    elseif BW.attached then
+      BW.attached = nil
+      holder:ClearAllPoints()
+      holder:SetPoint("CENTER", UIParent, "CENTER", 0, -170)
+      if UpdateMovable then UpdateMovable(holder) end
+    end
     if not show then
       if bar:IsShown() then bar:Hide() end
       return view

@@ -102,6 +102,15 @@
   <Binding name="PFGEARSLOT19">if pfUI and pfUI.gear then pfUI.gear.UseSlot(19) end</Binding>
   <Binding name="PFGEARNAKED">if pfUI and pfUI.gear then pfUI.gear.ToggleNaked() end</Binding>
   <Binding name="PFCONSUMENEXT" header="PFCONSUMES">if pfUI and pfUI.consumes then pfUI.consumes.UseNext() end</Binding>
+  <Binding name="PFTOTEMSET" header="PFTOTEMS">if pfUI and pfUI.octototems then pfUI.octototems.ThrowSet() end</Binding>
+  <Binding name="PFTOTEMSETFORCE">if pfUI and pfUI.octototems then pfUI.octototems.ThrowSet(nil, true) end</Binding>
+  <Binding name="PFTOTEMADVISED">if pfUI and pfUI.octototems then pfUI.octototems.ThrowAdvised() end</Binding>
+  <Binding name="PFTOTEMNEXTSET">if pfUI and pfUI.octototems then pfUI.octototems.NextSet(1) end</Binding>
+  <Binding name="PFTOTEMPRIORSET">if pfUI and pfUI.octototems then pfUI.octototems.NextSet(-1) end</Binding>
+  <Binding name="PFTOTEMRECALL">if pfUI and pfUI.octototems then pfUI.octototems.Recall() end</Binding>
+  <Binding name="PFTOTEMBATTLEHEAL">if pfUI and pfUI.octototems then pfUI.octototems.Heal("battle") end</Binding>
+  <Binding name="PFTOTEMBESTHEAL">if pfUI and pfUI.octototems then pfUI.octototems.Heal("best") end</Binding>
+  <Binding name="PFTOTEMSHIELD">if pfUI and pfUI.octototems then pfUI.octototems.Reapply() end</Binding>
   <Binding name="PFRINSE" header="PFRINSE">if pfUI and pfUI.rinse then pfUI.rinse.Run() end</Binding>
   <Binding name="PFRINSEBOSSES">if pfUI and pfUI.rinse then pfUI.rinse.OpenOptions("rinsebosses") end</Binding>
   <Binding name="PFRINSEOPTIONS">if pfUI and pfUI.rinse then pfUI.rinse.OpenOptions("rinsegeneral") end</Binding>

@@ -1,5 +1,5 @@
 pfUI:RegisterModule("bulwark-options", "vanilla", function ()
-  -- pfUI Octo :: the Earthen Bulwark page (18 Nov 2026, modules/bulwark.lua), a tab under Unit Frames.
+  -- pfUI Octo :: the Earthen Bulwark page (18 Nov 2026, modules/bulwark.lua), a tab of OctoTotems since 19 Nov.
   local OU = pfUI.octoui
   local W = OU and OU.W
   local O = OU and OU.Options
@@ -71,6 +71,8 @@ pfUI:RegisterModule("bulwark-options", "vanilla", function ()
       { key = "combat", label = "Only in combat" },
       { key = "always", label = "Always" },
     }, function() return G().show end, function(v) G().show = v end)
+    Chk(p, "Stick it under the totem bars", "Sits right under OctoTotems' bars (when they are together), as wide as them. Off = move it anywhere in layout mode.", "attach")
+    Sld(p, "Gap under the totems", nil, 0, 20, 1, "attachgap", O.Px)
 
     W.Card(p, "What it shows", { icon = "Interface\\Icons\\INV_Shield_04", tip = "The parts of the bar." })
     W.Dropdown(p, "Text", "The amount is how full it is times 20% of your maximum health.", {
@@ -96,5 +98,5 @@ pfUI:RegisterModule("bulwark-options", "vanilla", function ()
     W.Note(p, "Command: /bulwark (this page). Right-click its box in layout mode also opens it.")
   end
 
-  O:AddPage("Earthen Bulwark", "bulwark", "Earthen Bulwark", Build)
+  O:AddPage("OctoTotems", "bulwark", "Earthen Bulwark", Build)
 end)

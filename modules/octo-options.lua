@@ -53,8 +53,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
     -- same day: named CoolDownManager, under Interface
     { "CoolDownManager", { "CoolDownManager" } },
-    -- (18 Nov 2026, Lobo on Discord: Rockbiter's earthen bulwark for tank shamans) bulwark-options.lua
-    { "Unit Frames", { "Unit Frames", "Castbar", "Earthen Bulwark" } },
+    { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Nameplates", { "Nameplates" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
     { "Chat & Panels", { "Chat", "Panel", "XP Bar" } },
@@ -65,6 +64,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- octodots") rinse-options.lua
     { "OctoRinse", { "OctoRinse" } },
     { "OctoDoTs", { "OctoDoTs" } },
+    -- (19 Nov 2026, user: Call of Elements "our own version ... its own page and preview ... merge with the bulwark")
+    -- octototems-options.lua + bulwark-options.lua (Lobo's Rockbiter bulwark, 18 Nov)
+    { "OctoTotems", { "OctoTotems" } },
     { "Meters", { "Meters" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
@@ -97,12 +99,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
-    { "Combat & Items", { "OctoRinse", "OctoDoTs", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
+    { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -112,7 +114,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -132,6 +134,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["OctoRinse"] = "One key cures your group's debuffs, with boss lists of what to skip, hide or cure first.",
+    ["OctoTotems"] = "Shaman totems: bars with timers and range, one-key sets, alerts, the advisor, smart heals and your earthen bulwark.",
     ["OctoDoTs"] = "Every enemy with its debuffs: your DoTs and the raid's, with real timers (Cursive Raid, built in).",
     ["ItemRack"] = "Gear sets, talent specs and swaps that happen by themselves.",
     ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",

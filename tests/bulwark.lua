@@ -5,7 +5,7 @@ local BW = pfUI.bulwark
 ok(BW and BW.Read and BW.View and BW.Paint and BW.Sample, "bulwark bar loaded (pfUI.bulwark)")
 if not BW then return end
 local O = pfUI.octoui and pfUI.octoui.Options
-ok(O and O.BUILD and O.BUILD.bulwark, "Unit Frames > Earthen Bulwark registered")
+ok(O and O.BUILD and O.BUILD.bulwark, "OctoTotems > Earthen Bulwark registered")
 local S = pfUI_config.bulwark
 ok(S and S.enable == "1" and S.show == "auto" and S.textmode == "both", "defaults")
 

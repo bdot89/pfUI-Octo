@@ -120,6 +120,15 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.69
+
+- 🔥 **OctoTotems, our own Call of Elements:** a new section for shamans. Four totem bars (fire, earth, water, air) side by side or each on its own, opening on hover, always or never, in any direction, with your own order and hidden totems. Each button shows its timer, a timer line, the cooldown in red once the totem is gone, a glow for the one that is down, red when you've walked out of its range, and a gold dot for the set's totems. Durations come from this server's own spell data (the 90 s Windfury Totem too).
+- 🎯 **Totem sets:** one key throws the next totem that isn't down (or is out of range, or about to run out). With **nampower** the whole set is queued on one press. Enemy players switch to their class's set, and a set named after a boss is picked when you target it. Ctrl-click a totem to put it in the set; right-click a bar for sets, throw, recall and options.
+- 🔔 **Alerts and reminders:** 10 / 5 seconds left, run out, destroyed, out of range, and "all out of range - recall?" with a glowing Totemic Recall button. Shield and weapon imbue reminders come with a button that puts them back on. The totem advisor lights Poison Cleansing, Disease Cleansing or Tremor when your group needs it.
+- 💧 **Smart heals:** battle heal and best heal keys heal the most hurt member of your group with the smallest rank that covers it. With SuperWoW it does this without changing your target.
+- 🪨 **Earthen Bulwark is now part of OctoTotems** and sticks under the totem bars at the same width (switch that off to place it anywhere).
+- Uses **ClassicAPI** (real totem slots, early deaths, time left, usable/mana), **nampower** (whole set in one press) and **SuperWoW / UnitXP** (range from where each totem was dropped), each with a plain fallback. `/totems` (and `/coe` while Call of Elements isn't loaded). New files: restart the game fully once.
+
 ## 📜 New in 1.1.68
 
 - 🪨 **Earthen Bulwark bar for tank shamans:** with Elemental Weapons and Rockbiter, a small movable bar shows how full your earthen bulwark is (the server's own integrity %) and about how much it holds (up to 20% of your max health). It turns bright with an 8 s timer line while it is absorbing, and says x3 while you wear a shield. Unit Frames > Earthen Bulwark or `/bulwark`. New file: restart the game fully once.

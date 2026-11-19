@@ -159,6 +159,9 @@
   <Include file="..\modules\rinse-data.lua"/>
   <Include file="..\modules\rinse.lua"/>
   <Include file="..\modules\rinse-options.lua"/>
+  <Include file="..\modules\octototems-data.lua"/>
+  <Include file="..\modules\octototems.lua"/>
+  <Include file="..\modules\octototems-options.lua"/>
   <Include file="..\modules\bulwark.lua"/>
   <Include file="..\modules\bulwark-options.lua"/>
   <Include file="..\modules\flight.lua"/>
