@@ -4,7 +4,7 @@
 ## Notes: A complete user interface replacement. Octo edition: ElvUI-style look, movers, install wizard, profiles, meters and combat text.
 ## Notes-ruRU: Полная замена пользовательского интерфейса.
 ## Version: 5.5.4
-## X-Octo-Version: 1.1.86
+## X-Octo-Version: 1.1.87
 ## X-pfQuest-Version: 8.0.51
 ## X-pfQuest-Turtle-Version: 1.0.39
 ## SavedVariables: pfUI_profiles, pfUI_addon_profiles, pfUI_cache, pfQuest_questcache, pfQuest_turtlecount, pfQuest_global

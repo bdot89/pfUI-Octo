@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.87
+
+- 🎬 **Demo mode (raid):** Quality of Life > Demo mode, or `/demo`. A pretend 40-player raid on your own frames with all your settings: raid and party frames, a boss on your target frame with its crest, cast bar and abilities, debuffs to cure, raid warnings, meters and combat text. It loops trash, boss, kill or wipe and rest until you stop it. The bar at the top has Pause, speed (0.5x-4x), Next, Edit and Stop. Nothing real happens and Stop puts everything back; a real fight stops it. Needs a full client restart (new files). Dungeon, target dummy, PvP, AFK and showcase demos come next.
+
 ## 📜 New in 1.1.86
 
 - 🗂️ **Unit Frames options sorted like ElvUI / EllesmereUI:** the tabs are now the parts of the frame, in order - Frame, Health, Power, Text, Portrait, Buffs & debuffs, Icons & art, Raid layout - and everything every frame shares sits on one gold **All frames** tab at the end. Names are written in full.

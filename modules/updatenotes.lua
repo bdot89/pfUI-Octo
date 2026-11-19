@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.87", {
+    { "Demo mode (raid)", "Quality of Life > Demo mode, or /demo. A pretend 40-player raid on your own frames with all your settings: raid and party frames, a boss on your target frame with its crest, cast bar and abilities, debuffs to cure, raid warnings, meters and combat text. It loops trash, boss, kill or wipe and rest until you stop it. The bar at the top has Pause, speed (0.5x-4x), Next, Edit and Stop. Nothing real happens and Stop puts everything back; a real fight stops it. Needs a full client restart (new files). Dungeon, target dummy, PvP, AFK and showcase demos come next." },
+  } },
   { "1.1.86", {
     { "Unit Frames options sorted like ElvUI / EllesmereUI", "the tabs are now the parts of the frame, in order - Frame, Health, Power, Text, Portrait, Buffs & debuffs, Icons & art, Raid layout - and everything every frame shares sits on one gold All frames tab at the end. Names are written in full." },
     { "Change together", "tick Player, Target, Focus (or any frame) under the tabs and every change you make goes to them too. Not their position; it stops when you log out." },
@@ -158,8 +161,5 @@ pfUI.octoNotes = {
     { "Herbs, ore and skinning", "nodes and skinnable creatures show the skill they need against yours (trainer colours) and what they give." },
     { "Mob stats", "enemies show their armor (and how much of your damage it takes off), melee hits and speed, and their resists - MobStats built in." },
     { "Item level", "beside the item's name. Every part can be set to always / Shift / never under Quality of Life > Tooltip extras." },
-  } },
-  { "1.1.47", {
-    { "Cash on delivery in one click", "a COD letter's button says Pay, and clicking the item or right-clicking the row pays and takes it at once." },
   } },
 }
