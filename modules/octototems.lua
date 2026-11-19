@@ -528,6 +528,11 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
     b.timer:SetPoint("BOTTOM", b, "BOTTOM", 0, 2)
     b.cdtext = b.over:CreateFontString(nil, "OVERLAY")
     b.cdtext:SetPoint("CENTER", b, "CENTER", 0, 0)
+    -- a font from the start: SetText on a font string with none raises "Font not set" (the reminder button is
+    -- never painted by TT.PaintButton, 19 Nov 2026, Lobo)
+    local font0 = pfUI.font_unit or pfUI.font_default or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+    b.timer:SetFont(font0, 12, "OUTLINE")
+    b.cdtext:SetFont(font0, 14, "OUTLINE")
     b.mark = b.over:CreateTexture(nil, "OVERLAY")
     b.mark:SetTexture("Interface\\Buttons\\WHITE8X8")
     b.mark:SetWidth(5) b.mark:SetHeight(5)

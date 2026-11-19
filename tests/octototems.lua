@@ -8,6 +8,7 @@ if not TT then return end
 -- (19 Nov 2026) pfUI's own small totem bar (modules\totems.lua) is a different module: never share its names
 ok(pfUI.totems ~= TT and _G.pfOctoTotems and _G.pfOctoTotems ~= _G.pfTotems, "pfUI's own totem bar (pfUI.totems, pfTotems) left alone")
 ok(pfUI_config.totems and pfUI_config.totems.iconsize and not pfUI_config.totems.sets, "pfUI's C.totems keeps only its own settings")
+ok(TT.remind and TT.remind.timer.font and TT.remind.cdtext.font, "every button's texts have a font from the start (octototems.lua:952 'Font not set', Lobo)")
 local D = pfUI.totemData
 ok(D and D["Searing Totem"] and D["Searing Totem"].el == 1 and D["Searing Totem"].dur["Rank 6"] == 55, "data: Searing Totem fire, rank 6 = 55 s")
 ok(D["Windfury Totem"] and D["Windfury Totem"].dur["Rank 3"] == 90 and D["Tremor Totem"].el == 2 and D["Mana Tide Totem"].el == 3, "data: server's own Windfury 3 (90 s), elements")
