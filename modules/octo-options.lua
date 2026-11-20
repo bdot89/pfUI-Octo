@@ -53,6 +53,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (15 Nov 2026, user: EllesmereUI's Cooldown Manager, "yes build it") cdm-options.lua;
     -- same day: named CoolDownManager, under Interface
     { "CoolDownManager", { "CoolDownManager" } },
+    -- (20 Nov 2026, user: ProcDoc "our own version ... its own tab on the right under cooldown manager highlighted the
+    -- same as" it) procs-options.lua
+    { "OctoProcs", { "OctoProcs" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Nameplates", { "Nameplates" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
@@ -101,13 +104,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- combat list ... make important ones stand out") most used first in each group; O.FEATURED stand out
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
-    { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
+    { "Interface", { "CoolDownManager", "OctoProcs", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
     { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Demo Mode", "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["OctoProcs"] = true, ["Demo Mode"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -117,7 +120,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" },
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoProcs"] = { "procs", "OctoProcs" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" },
     -- (20 Nov 2026, user: "add on off switches here like the rest anything that can be turned off should be able to
     -- be done here") every section with a module of its own; pfQuest is built in and loads before any setting can
     -- stop it, and Blizzard UI, UI layouts, Settings, Add-ons and About are not things to switch off
@@ -148,6 +151,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["OctoConsumes"] = "Flasks, elixirs, food and oils: what is missing, what runs out, one click to put it on.",
     ["Auctions"] = "Our own auction window and mailbox: search every page, sell at the going price, collect mail.",
     ["CoolDownManager"] = "Bars of your cooldowns that fill by themselves: ready, on cooldown, active.",
+    ["OctoProcs"] = "Big pulsing alerts round your character the moment a proc is up, with timers and stacks.",
     ["Tooltip"] = "What the tooltip shows and where.",
     ["Add-ons"] = "Other add-ons pfUI skins or works with.",
     ["About"] = "Version, updates and thanks.",
@@ -854,6 +858,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "dots", "OctoDoTs", "dotgeneral", "General", "OctoDoTs" },
     { "consumes", "OctoConsumes", "consumes", "Tracker", "OctoConsumes" },
     { "cdm", "CoolDownManager", "cdmbars", "Bars", "CoolDownManager" },
+    { "procs", "OctoProcs", "procs", "Procs", "OctoProcs" },
     { "octolazy", "OctoLazy", "lzrolls", "Loot rolls", "OctoLazy" },
     { "auction", "Auctions", "auction", "Auction house", "The auction house" },
   }
@@ -1601,7 +1606,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     thirdparty = "INV_Gizmo_01", components = "Trade_Engineering", about = "INV_Misc_QuestionMark",
     skins = "INV_Misc_Orb_01", threat = "Ability_Warrior_DefensiveStance", uilayouts = "INV_Misc_Map_01",
     actionbars = "Ability_DualWield", chatpanels = "INV_Scroll_03", minimapbuffs = "INV_Misc_Map_01",
-    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", dottracker = "Spell_Shadow_AbominationExplosion", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", qualityoflife = "INV_Misc_PocketWatch_01", questing = "INV_Misc_Book_08", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01",
+    bagsloot = "INV_Misc_Bag_08", addons = "INV_Gizmo_01", swingtimer = "INV_Sword_04", dottracker = "Spell_Shadow_AbominationExplosion", gear = "INV_Chest_Plate06", weirdutils = "Ability_Hunter_MarkedForDeath", autoloot = "INV_Misc_Bag_10_Blue", qualityoflife = "INV_Misc_PocketWatch_01", questing = "INV_Misc_Book_08", artextras = "INV_Misc_Gem_Variety_01", combat = "Spell_Fire_FlameBolt", art = "INV_Misc_Gem_Variety_01", octoprocs = "Spell_Holy_PowerInfusion",
   }
   function O.IconFor(name)
     local k = string.gsub(string.lower(name or ""), "[^%a]", "")

@@ -698,6 +698,10 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("cdm",        nil,           "known",            {})
   pfUI:UpdateConfig("cdm",        nil,           "maxc",             {})
   pfUI:UpdateConfig("cdm",        nil,           "timers",           "1")
+  -- OctoProcs (modules/procs.lua, 20 Nov 2026): off / place per proc name, custom = your own
+  for k, v in pairs({ size = "56", spread = "150", alpha = "1", speed = "2", pulse = "1", glow = "1", timer = "1",
+    names = "0", edge = "1", edgealpha = ".35", sound = "RaidWarning", stacksfrom = "1" }) do pfUI:UpdateConfig("procs", nil, k, v) end
+  for _, k in ipairs({ "off", "place", "custom" }) do pfUI:UpdateConfig("procs", nil, k, {}) end
   pfUI:UpdateConfig("cdm",        nil,           "textsize",         ".36")
   pfUI:UpdateConfig("cdm",        nil,           "zoom",             ".08")
   pfUI:UpdateConfig("cdm",        nil,           "bordercolor",      ".2,.2,.24,1")

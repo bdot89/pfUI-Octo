@@ -154,6 +154,8 @@
   <Include file="..\modules\consumes-options.lua"/>
   <Include file="..\modules\cdm.lua"/>
   <Include file="..\modules\cdm-options.lua"/>
+  <Include file="..\modules\procs.lua"/>
+  <Include file="..\modules\procs-options.lua"/>
   <Include file="..\modules\dots-data.lua"/>
   <Include file="..\modules\dots.lua"/>
   <Include file="..\modules\dots-target.lua"/>
