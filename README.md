@@ -120,6 +120,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.95
+
+- 🌊 **Smooth bars in every meter:** with ClassicAPI the bars glide to their new size in the game client itself. It's smoother and costs the add-on nothing. A bar that changes player jumps at once.
+- 📊 **Neat columns everywhere:** per second, total and % in columns of their own that line up down every window, with small headings. A narrow window drops columns before it squashes names.
+- 📏 **Windows fit their lines:** no empty space under the last bar.
+- 🎯 **Clearer threat window:** the DoTs line names whose DoTs pull next ("DoTs Gul'dan in 7 s"), the title shows your own %, "You hold aggro" while you tank, calm top lines with their own colour options, and a preview that always matches your meter.
+
 ## 📜 New in 1.1.94
 
 - 🎯 **Threat is back inside Meters:** a big "Damage, healing & more | Threat" switch at the top of every Meters page, and a working preview of your threat window.

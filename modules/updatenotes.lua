@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.95", {
+    { "Smooth bars in every meter", "with ClassicAPI the bars glide to their new size in the game client itself. It's smoother and costs the add-on nothing. A bar that changes player jumps at once." },
+    { "Neat columns everywhere", "per second, total and % in columns of their own that line up down every window, with small headings. A narrow window drops columns before it squashes names." },
+    { "Windows fit their lines", "no empty space under the last bar." },
+    { "Clearer threat window", "the DoTs line names whose DoTs pull next (\"DoTs Gul'dan in 7 s\"), the title shows your own %, \"You hold aggro\" while you tank, calm top lines with their own colour options, and a preview that always matches your meter." },
+  } },
   { "1.1.94", {
     { "Threat is back inside Meters", "a big \"Damage, healing & more | Threat\" switch at the top of every Meters page, and a working preview of your threat window." },
     { "% of the pull point", "each player's % is of where THEY pull aggro (110% of the tank in melee, 130% at range). The one the boss is on is first, on \"Aggro\". Nobody else ever reaches 100% until the boss turns to them." },
@@ -168,8 +174,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.56", {
     { "Quest tracker error fixed for real", "no more \"tracker.lua:282: attempt to index a nil value\". The real cause was the game's quest watch frame going missing (another add-on), and the tracker now copes without it." },
-  } },
-  { "1.1.55", {
-    { "World map drawn right again", "OctoWoW's own zones (Thalassian Highlands and others) no longer show in wrong patches with ClassicAPI installed. The map reveal uses pieces that match the real map pictures." },
   } },
 }
