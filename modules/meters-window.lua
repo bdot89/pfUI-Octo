@@ -162,27 +162,40 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local rows = {}
     -- (12 Nov 2026) threat as the real window shows it: the pull line, then threat and % of the tank's
     if modekey == "threat" then
+      -- (20 Nov 2026) as the live window: % of each one's pull point, the tank on Aggro, your DoTs and the next to pull
       local tank = 21400 * 2.2
       local pred = C.meters.tpredict ~= "0"
+      local at = tank * 1.1
+      local mine = 8600 * 3.4
       if C.meters.threatpull ~= "0" then
-        table.insert(rows, { name = pred and "|cffff6040DoTs pull in 4 s|r" or T["You pull aggro at"], pullrow = "pull", value = 8600 * 3.4, max = tank * 1.1,
-                             extra = Num(tank * 1.1), text = "+" .. Num(tank * 1.1 - 8600 * 3.4), gap = tank * 1.1 - 8600 * 3.4, at = tank * 1.1,
-                             ghost = pred and tank * 1.1 * .98 or nil, stopNow = pred, soon = pred and "DoTs pull in 4 s" or nil })
-      end
-      table.insert(rows, { name = "Garrosh", class = "WARRIOR", value = 100, max = 100, extra = Num(tank), text = "100%", tank = true })
-      for _, p in ipairs(SAMPLE) do
-        if p[1] ~= "Garrosh" and p[1] ~= "Anduin" and p[1] ~= "Uther" then
-          local th = p[3] * .62
-          -- (the preview's "you" is the second line: Valeera - its threat on the way)
-          table.insert(rows, { name = p[1], class = p[2], value = th / tank * 100, max = 100, extra = Num(th),
-                               text = floor(th / tank * 100) .. "%", ghost = (pred and p[1] == "Valeera") and (th / tank * 100 + 30) or nil,
-                               stopNow = pred and p[1] == "Valeera" })
+        table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = mine, max = at,
+                             extra = Num(at), text = "+" .. Num(at - mine), gap = at - mine, at = at,
+                             label = pred and "|cffff6040DoTs pull in 4 s|r" or nil,
+                             ghost = pred and at * .99 or nil, stopNow = pred })
+        if pred and C.meters.tdotrow ~= "0" then
+          table.insert(rows, { name = "DoTs", pullrow = "dots", value = at, max = at, gap = -1, at = at, stopNow = true,
+                               label = "|cffb8b8b8" .. T["DoTs on the way"] .. "|r  +" .. Num(at * .32), text = "4 s" })
         end
       end
-      table.sort(rows, function(x, y)
-        if x.pullrow or y.pullrow then return x.pullrow and not y.pullrow end
-        return x.value > y.value
-      end)
+      if pred and C.meters.tnextpull ~= "0" then
+        table.insert(rows, { name = "Gul'dan", pullrow = "next", value = 1, max = 1, gap = -1, at = 1, text = "6 s",
+                             label = "|cffb8b8b8" .. T["Next to pull"] .. "|r  Gul'dan |cffff6040(DoTs)|r" })
+      end
+      local players = { { "Garrosh", "WARRIOR", 100, true } }
+      for _, p in ipairs(SAMPLE) do
+        if p[1] ~= "Garrosh" and p[1] ~= "Anduin" and p[1] ~= "Uther" then
+          local v = math.min(99, p[3] * .62 / tank * 100 / 1.1 * 100 * .9)
+          table.insert(players, { p[1], p[2], v })
+        end
+      end
+      table.sort(players, function(x, y) return x[3] > y[3] end)
+      for n, p in ipairs(players) do
+        local soon = pred and (p[1] == "Valeera" and 4 or (p[1] == "Gul'dan" and 6)) or nil
+        local pct = p[4] and T["Aggro"] or (floor(p[3]) .. "%")
+        table.insert(rows, { name = p[1], class = p[2], value = p[3], max = 100, rank = n, tank = p[4],
+                             extra = Num(p[3] / 100 * at), text = soon and ("|cffff6040" .. soon .. "s|r " .. pct) or pct,
+                             ghost = soon and math.min(100, p[3] + 25) or nil, stopNow = soon and true or nil })
+      end
       return rows
     end
     for _, p in ipairs(SAMPLE) do
@@ -409,37 +422,85 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if mode.key == "threat" then
       local TH = M.threat
       if not TH or not TH.list then return rows end
-      local top = 1
+      -- (20 Nov 2026, user: "when somebody overtakes the tank it would be the point the boss targets them. nothing
+      -- ever goes above tank without this happening") A player's % is of THEIR pull point (110% of the tank's threat
+      -- in melee range, 130% at range): 100% = the boss turns to them. The tank - whoever the boss is on - is the
+      -- only one at 100; anyone else stops at 99 until the server moves the boss to them.
+      local pctToPull = C.meters.tpullpct ~= "0"
+      local function PullPct(e, perc)
+        if e.tank then return 100 end
+        local v = pctToPull and (perc / (e.melee and 110 or 130) * 100) or perc
+        if v > 99 then v = 99 end
+        return v
+      end
       -- (bars glide: TH.shown holds the value on its way to e.perc)
-      local function Shown(e) return (TH.shown and TH.shown[e.name]) or e.perc end
-      for _, e in ipairs(TH.list) do if Shown(e) > top then top = Shown(e) end end
+      local function Shown(e) return PullPct(e, (TH.shown and TH.shown[e.name]) or e.perc) end
+      local top = 100
+      local me = UnitName("player")
+      local tankE
+      for _, e in ipairs(TH.list) do if e.tank then tankE = e end end
+      local preds = TH.PredictAll and TH.PredictAll() or {}
+      local pred = preds[me]
+      local soonSec = TH.SoonSec and TH.SoonSec() or 8
+      local function Soon(p) return p and p.aggroIn and p.aggroIn <= soonSec and p.aggroIn end
       -- (12 Nov 2026) the pull line first: where you take aggro and how far off it is (tank: your lead)
       local kind, a, b
       if TH.Pull then kind, a, b = TH.Pull() end
-      -- (20 Nov 2026, Shemp / user: "where is the dots pull aggro shown?") what is on its way, on your rows too
-      local pred = TH.Predict and TH.Predict() or nil
-      local me = UnitName("player")
-      local tankT
-      for _, e in ipairs(TH.list) do if e.tank then tankT = e.threat end end
       if kind and C.meters.threatpull ~= "0" then
         if kind == "pull" then
           -- (17 Nov 2026) the bar fills with your threat towards the pull point
           local soon = pred and TH.SoonText and TH.SoonText(pred)
           local now = math.max(0, a - b)
-          table.insert(rows, { name = soon and ("|cffff6040" .. soon .. "|r") or T["You pull aggro at"], pullrow = kind, value = now, max = math.max(1, a),
+          table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = now, max = math.max(1, a),
                                extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a,
-                               ghost = pred and pred.pending > 0 and (now + pred.pending) or nil, soon = soon, stopNow = pred and pred.stopNow })
+                               label = soon and ("|cffff6040" .. string.upper(string.sub(soon, 1, 1)) .. string.sub(soon, 2) .. "|r") or nil,
+                               ghost = pred and pred.pending > 0 and (now + pred.pending) or nil, stopNow = pred and pred.stopNow })
+          -- (20 Nov 2026, user: "add an extra row to the actual meter showing this info live to dot players") your DoTs
+          if pred and pred.pending > 0 and C.meters.tdotrow ~= "0" then
+            local with = now + pred.pending
+            local left = a - with
+            table.insert(rows, { name = "DoTs", pullrow = "dots", value = math.min(with, a), max = math.max(1, a),
+                                 label = "|cffb8b8b8" .. T["DoTs on the way"] .. "|r  +" .. Num(pred.pending),
+                                 text = (left >= 0) and ("+" .. Num(left)) or (pred.stopNow and Soon(pred) and (math.ceil(pred.aggroIn) .. " s") or "pulls"),
+                                 gap = left, at = a, stopNow = pred.stopNow })
+          end
         else
           table.insert(rows, { name = T["Your lead on"] .. " " .. b.name, pullrow = kind, value = top, max = top,
                                extra = Num(math.abs(a)), text = "", gap = a })
         end
       end
-      for _, e in ipairs(M.SteadyOrder(TH.list, top)) do
+      -- (20 Nov 2026, user: "if a raid leader wanted to see whos dots would overaggro in xxx seconds") the next one
+      -- to pull, whoever it is
+      if C.meters.tnextpull ~= "0" and TH.NextToPull then
+        local who, p = TH.NextToPull()
+        if who and who ~= me then
+          table.insert(rows, { name = who, pullrow = "next", value = 1, max = 1, gap = -1, at = 1,
+                               label = "|cffb8b8b8" .. T["Next to pull"] .. "|r  " .. who .. (p.stopNow and " |cffff6040(DoTs)|r" or ""),
+                               text = math.max(0, math.ceil(p.aggroIn)) .. " s" })
+        end
+      end
+      -- the order goes by the shown %: the one the boss is on first, always
+      local order = {}
+      for _, e in ipairs(TH.list) do table.insert(order, { name = e.name, perc = PullPct(e, e.perc), e = e }) end
+      local n = 0
+      for _, oe in ipairs(M.SteadyOrder(order, 100)) do
+        local e = oe.e
         local w = M.Who(e.name)
+        n = n + 1
+        local p = preds[e.name]
+        local v = Shown(e)
         local ghost
-        if e.name == me and pred and pred.pending > 0 and tankT and tankT > 0 then ghost = Shown(e) + pred.pending / tankT * 100 end
-        table.insert(rows, { name = e.name, value = Shown(e), max = top, class = w and w.class,
-                             text = floor(e.perc) .. "%", extra = Num(e.threat), tank = e.tank, ghost = ghost })
+        if p and p.pending > 0 and tankE and tankE.threat > 0 then
+          local add = p.pending / tankE.threat * 100
+          if pctToPull then add = add / (e.melee and 110 or 130) * 100 end
+          ghost = math.min(100, v + add)
+        end
+        local soon = Soon(p)
+        local pct = floor(PullPct(e, e.perc)) .. "%"
+        if e.tank then pct = T["Aggro"] end
+        table.insert(rows, { name = e.name, value = v, max = top, class = w and w.class, rank = n,
+                             text = soon and ("|cffff6040" .. math.ceil(soon) .. "s|r " .. pct) or pct,
+                             extra = Num(e.threat), tank = e.tank, ghost = ghost, stopNow = p and p.stopNow })
       end
       return rows
     end
@@ -1060,7 +1121,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if s.shadow == "1" then fs:SetShadowOffset(1, -1) fs:SetShadowColor(0, 0, 0, 1) else fs:SetShadowOffset(0, 0) end
       fs:SetHeight(vsize + 4)
     end
-    b.pct:SetWidth(floor(vsize * 3.4))
+    -- (20 Nov 2026) "4s 92%": room for the seconds when a countdown shows
+    b.pct:SetWidth(floor(vsize * ((row.text and string.find(row.text, "|c", 1, true)) and 4.8 or 3.4)))
     b.mid:SetWidth(floor(vsize * 3.6))
     b.pct:ClearAllPoints()
     b.pct:SetPoint("RIGHT", b, "RIGHT", -4 - (rightpad or 0), 0)
@@ -1080,7 +1142,11 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       b.pct:SetWidth(floor(vsize * 5))
       -- (17 Nov 2026, user: "cleaner ... easier to see") a short grey label, the number in white, the
       -- room left in its state colour (the bar under it fills in the same colour, M.PullColor)
-      if row.pullrow == "pull" then
+      -- (20 Nov 2026: the countdown in row.name never showed - this line wrote its own words over it) a line with its
+      -- own words (the countdown, your DoTs, the next to pull) shows them
+      if row.label then
+        b.left:SetText(row.label)
+      elseif row.pullrow == "pull" then
         b.left:SetText("|cffb8b8b8" .. T["Pull at"] .. "|r  " .. (row.extra or ""))
       else
         b.left:SetText("|cffb8b8b8" .. T["Lead on"] .. "|r  " .. (string.gsub(row.name, "^.- on ", "")))
@@ -1545,7 +1611,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         elseif s.valuecolor == "custom" then b.right:SetTextColor(Col(s.valuecustom, "1,1,1,1"))
         else b.right:SetTextColor(1, 1, 1) end
         -- (the pull line has no rank, and the players under it count from 1)
-        local rank = i + win.offset - ((rows[1] and rows[1].pullrow) and 1 or 0)
+        local rank = row.rank or (i + win.offset - ((rows[1] and rows[1].pullrow) and 1 or 0))
         b.left:SetText((s.rank ~= "0" and not row.pullrow and (Hex(s.rankcolor, "0.67,0.67,0.67,1") .. rank .. ".|r ") or "") .. row.name)
         if win.mode == "threat" then
           ThreatColumns(b, s, row, vsize, font, outline, iconright and iconw or 0)

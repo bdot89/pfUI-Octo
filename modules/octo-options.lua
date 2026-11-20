@@ -67,9 +67,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (19 Nov 2026, user: Call of Elements "our own version ... its own page and preview ... merge with the bulwark")
     -- octototems-options.lua + bulwark-options.lua (Lobo's Rockbiter bulwark, 18 Nov)
     { "OctoTotems", { "OctoTotems" } },
+    -- (20 Nov 2026) the threat pages are in Meters, behind its Meters / Threat switch (O.TABSIDE)
     { "Meters", { "Meters" } },
-    -- (20 Nov 2026, user: "a dedicated threat options window ... this needs to be alot better") meters-options.lua
-    { "OctoThreat", { "OctoThreat" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
     -- (16 Nov 2026, user: "Rename Gear to ItemRack ... gear is to simple")
@@ -103,12 +102,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
-    { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "OctoThreat", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
+    { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Demo Mode", "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["OctoThreat"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -137,7 +136,6 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["OctoLazy"] = "Rolls by your rules, invites, summons, battlegrounds, NPCs and bags - done for you.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
-    ["OctoThreat"] = "Your threat window, when you pull aggro (DoTs too), the label and the warnings.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["OctoRinse"] = "One key cures your group's debuffs, with boss lists of what to skip, hide or cure first.",
     ["OctoTotems"] = "Shaman totems: bars, timers, one-key sets, alerts, smart heals and your earthen bulwark.",
@@ -1376,7 +1374,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local x, line, width = 0, 0, row:GetWidth() or 600
     -- (8 Nov 2026) one row: the words step down (15 -> 12 px, less padding)
     -- until every tab fits; only past that does a second row start
-    local list = grp and grp.buttons or {}
+    -- (20 Nov 2026, user: threat "inside meters tab with then a big option inside for threat that toggles") a section
+    -- can hold two sets of tabs (O.TABSIDE[key] = side): only the open page's set shows, the page's own switch
+    -- flips between them
+    local list = {}
+    local side = O.TABSIDE and O.TABSIDE[self.current or ""]
+    for _, b in ipairs(grp and grp.buttons or {}) do
+      local bs = O.TABSIDE and O.TABSIDE[b.key or ""]
+      if side and bs and bs ~= side then b:Hide() else table.insert(list, b) end
+    end
     local size, pad = 15, 30
     for _, try in ipairs({ { 15, 30 }, { 14, 24 }, { 13, 20 }, { 12, 16 } }) do
       size, pad = try[1], try[2]

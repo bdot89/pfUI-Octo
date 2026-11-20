@@ -709,7 +709,40 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     W.Note(p, "The Data and Threat tabs stay pfUI Octo's. ClassicAPI's meter keeps the last 30 fights; a boss fight is always its own.")
   end
 
+  -- (20 Nov 2026, user: threat "should be inside meters tab with then a big option inside for threat that toggles to
+  -- the threat options from normal meters") two big halves at the top of every Meters page; the tab row shows the
+  -- open half's pages only (octo-options O.TABSIDE)
+  O.TABSIDE = O.TABSIDE or {}
+  O.TABSIDE["o:mtwindows"], O.TABSIDE["o:mtdata"] = "meters", "meters"
+  O.TABSIDE["o:thwindow"], O.TABSIDE["o:mtthreat"] = "threat", "threat"
+  function MO.SideSwitch(p, side)
+    local row = W.Row(p, 44, 0, 6)
+    local half = math.floor(((row:GetWidth() or 640) - 8) / 2)
+    local parts = {
+      { "meters", "Damage, healing & more", "Interface\\Icons\\INV_Misc_Book_09", "mtwindows" },
+      { "threat", "Threat", "Interface\\Icons\\Ability_Warrior_Challange", "thwindow" },
+    }
+    for i, d in ipairs(parts) do
+      local b = W.Button(row, d[2], half, 40)
+      b:SetPoint("TOPLEFT", row, "TOPLEFT", (i - 1) * (half + 8), 0)
+      local fs = b.GetFontString and b:GetFontString()
+      if fs and fs.SetFont and W.Font then W.Font(fs, 15) end
+      local ic = b:CreateTexture(nil, "ARTWORK")
+      ic:SetTexture(d[3])
+      ic:SetTexCoord(.08, .92, .08, .92)
+      ic:SetWidth(24)
+      ic:SetHeight(24)
+      ic:SetPoint("LEFT", b, "LEFT", 12, 0)
+      if W.Pick then W.Pick(b, d[1] == side) end
+      local key = d[4]
+      local mine = d[1] == side
+      b:SetScript("OnClick", function() if not mine then O:Open(key) end end)
+    end
+    return row
+  end
+
   local function BuildWindows(p)
+    MO.SideSwitch(p, "meters")
     -- (18 Nov 2026) ClassicAPI's meter picked at the top: its page instead of ours
     if C.meters.mode == "capi" then CAP.Build(p) return end
     W.Heading(p, "Meter windows", { on = { function() return C.meters.hidden ~= "1" end, function(v) M.ShowAll(v) end,
@@ -900,6 +933,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
 
 
   local function BuildData(p)
+    MO.SideSwitch(p, "meters")
     W.Heading(p, "Meter data", { about = "What the meters track and keep." })
     W.Card(p, "Meters")
     Chk(p, "Use the meters", "After a reload.", G, "enable", Reload)
@@ -1161,36 +1195,60 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
   -- work on it better ... this needs to be alot better") OctoThreat, its own section: page 1 = your threat window
   -- (a live preview, locked to threat) and the meter's settings; page 2 = the label and the warnings.
   local function ThreatHeading(p)
-    W.Heading(p, "OctoThreat", { on = O.KeySwitch(function() return C.meters end, "threat", "Ask the server for threat on or off (takes a reload).", function() pfUI.gui.settingChanged = true end), about = "Your threat on the mob you target, from the server (the same answers TWThreat shows): "
+    W.Heading(p, "Threat meter", { on = O.KeySwitch(function() return C.meters end, "threat", "Ask the server for threat on or off (takes a reload).", function() pfUI.gui.settingChanged = true end), about = "Your threat on the mob you target, from the server (the same answers TWThreat shows): "
       .. "only in a party or raid, on a mob in combat. Your threat window lists everyone; the line at its top says where "
       .. "you pull aggro and - with what your DoTs and casts still add - when. A label by your target's nameplate turns "
       .. "yellow near your cap and red past it, and a popup and a sound warn you." })
   end
+  -- (20 Nov 2026, user screenshot: the preview was empty - the window was made but never sized, placed or shown - and
+  -- the pin's long title ran into its Hide button)
+  function MO.SyncThreatPreview()
+    local pw, box = MO.threatPw, MO.threatBox
+    if not pw or not box then return end
+    local tw = M.ThreatWindow and M.ThreatWindow(false)
+    pw.cfg = tw and tw.id or 1
+    pw.mode, pw.segment = "threat", "current"
+    local s = C.meters["win" .. pw.cfg] or {}
+    M.ApplyStyle(pw)
+    local w, h = tonumber(s.width) or 260, math.max(200, tonumber(s.height) or 160)
+    pw:SetWidth(w)
+    pw:SetHeight(h)
+    local k = math.min(1, ((box:GetWidth() or 600) - 20) / w, ((box:GetHeight() or 220) - 20) / h)
+    pw:SetScale(math.max(.4, k))
+    pw:ClearAllPoints()
+    pw:SetPoint("CENTER", box, "CENTER", 0, 0)
+    pw:Show()
+    pw:SetAlpha(1)
+    pcall(pw.Refresh, pw)
+  end
   local function ThreatWindowPreview(p)
-    W.Pin(p, "Your threat window", "As your threat window shows it: the pull line on top (red with \"DoTs pull in 4 s\" when "
-      .. "the threat already on its way pulls you), your line with its lighter part = what is still coming, the tank in dark red. "
-      .. "Click it for its look.", function(pp)
-      local box = (W.ZoomBox or W.Box)(pp, 210)
+    W.Pin(p, "Preview", "Your threat window as it shows: the pull line on top (red with \"DoTs pull in 4 s\" when the "
+      .. "threat already on its way pulls you), the line for what your DoTs still add, then everyone - the tank in dark red. "
+      .. "In a fight (or a demo) it shows the real numbers. Click it for its look.", function(pp)
+      local box = (W.ZoomBox or W.Box)(pp, 230)
+      MO.threatBox = box
       local tw = M.ThreatWindow and M.ThreatWindow(false)
       local id = tw and tw.id or 1
       local pw = M.CreateWindow(id, { parent = box, cfg = id })
-      pw.mode = "threat"
       MO.threatPw = pw
+      pw.threatLive = true
       local spot = CreateFrame("Button", nil, pw)
       spot:SetAllPoints(pw)
       spot:SetFrameLevel(pw:GetFrameLevel())
-      spot:SetScript("OnClick", function() MO.cur = id O:Open("mtwindows") end)
+      spot:SetScript("OnClick", function() MO.cur = pw.cfg or id O:Open("mtwindows") end)
       local t = 0
       pw:SetScript("OnUpdate", function()
         if GetTime() < t then return end
-        t = GetTime() + .5
-        this.mode = "threat"
-        if this.Refresh then pcall(this.Refresh, this) end
+        t = GetTime() + .25
+        MO.SyncThreatPreview()
       end)
+      table.insert(pp.items or p.items, { Refresh = function() MO.SyncThreatPreview() end })
+      MO.SyncThreatPreview()
     end)
   end
   local function BuildThreatWindow(p)
     local TH = M.threat
+    MO.SideSwitch(p, "threat")
     ThreatHeading(p)
     if not TH then
       W.Card(p, "Threat")
@@ -1228,6 +1286,12 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Chk(p, "Pull aggro line", "A line at the top of the threat window: the threat the mob turns on you at and how much "
       .. "room you have left (green, gold when close, red past it). As the tank: how far ahead of the next player you are.",
       G, "threatpull")
+    Chk(p, "% of the pull point", "Each player's % is of where THEY pull aggro (110% of the tank in melee range, 130% at "
+      .. "range): 100% = the boss turns to them. Nobody but the one the boss is on ever shows 100%. Off: % of the tank's threat.",
+      G, "tpullpct")
+    Chk(p, "Your DoTs line", "A line under the pull line while your DoTs still add threat: how much, and when it pulls you.", G, "tdotrow")
+    Chk(p, "Next to pull line", "Whoever pulls aggro next within the countdown's seconds - their DoTs or their pace - for "
+      .. "everyone to see (a raid leader too). Each player's line shows their own seconds as well.", G, "tnextpull")
     Sld(p, "Update speed", "How often the server is asked (seconds). Lower = faster numbers, a little more traffic. "
       .. "Each answer is on screen the moment it arrives.", .1, 1, .05, G, "threatrate",
       function(v) return string.format("%.2f s", v) end, function() end)
@@ -1251,6 +1315,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
 
   local function BuildThreat(p)
     local TH = M.threat
+    MO.SideSwitch(p, "threat")
     ThreatHeading(p)
     if not TH then return end
     ThreatPreview(p)
@@ -1317,6 +1382,6 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
   O.replaced[T["Meters"]] = true
   O:AddPage("Meters", "mtwindows", "Windows", BuildWindows)
   O:AddPage("Meters", "mtdata", "Data", BuildData)
-  O:AddPage("OctoThreat", "thwindow", "Threat window", BuildThreatWindow)
-  O:AddPage("OctoThreat", "mtthreat", "Label & warnings", BuildThreat)
+  O:AddPage("Meters", "thwindow", "Threat window", BuildThreatWindow)
+  O:AddPage("Meters", "mtthreat", "Label & warnings", BuildThreat)
 end)

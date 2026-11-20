@@ -153,3 +153,80 @@ do
   for k, v in pairs(sv) do if k == "Who" then pfUI.meters.Who = v else _G[k] = v end end
   TH.est, TH.gaveUp = {}, nil
 end
+
+-- (20 Nov 2026, user: "if a raid leader wanted to see whos dots would overaggro in xxx seconds he can easily see it")
+-- everyone's DoTs: learnt from their ticks on your target, their countdown, the next to pull
+do
+  local sv = rawget(_G, "UnitName")
+  _G.UnitName = function(u) if u == "target" then return "Onyxia" end return "Leader" end
+  local mc = pfUI_config.meters
+  mc.tpredict, mc.tpredsec = "1", "8"
+  TH.others, TH.hist, TH.k, TH.mods, TH.all = {}, {}, { Lock = 1 }, {}, nil
+  TH.targetGuid = nil
+  TH.LearnHit({ kind = "dmg", src = "Lock", tgt = "Onyxia", spl = "Corruption", amt = 300, dot = true }, 100)
+  TH.LearnHit({ kind = "dmg", src = "Lock", tgt = "Onyxia", spl = "Corruption", amt = 300, dot = true }, 103)
+  TH.LearnHit({ kind = "dmg", src = "Lock", tgt = "Someone else", spl = "Immolate", amt = 900, dot = true }, 103)
+  local t = TH.others.Lock and TH.others.Lock.Corruption
+  ok(t and t.amt == 300 and math.abs(t.gap - 3) < .01 and math.abs(t.start - 97) < .01 and not TH.others.Lock.Immolate,
+    "another player's DoT on your target: its tick, its gap and when it went on (other mobs left out)")
+  -- Corruption 18 s from 97: at 103 it has 12 s = 4 ticks of 300 left
+  local pend, steps = TH.OthersOnTheWay("Lock", 103)
+  ok(pend == 1200 and table.getn(steps) == 4 and math.abs(steps[1][1] - 3) < .01, "its ticks still to come: 1200 (" .. pend .. ")")
+  TH.list = TH.Parse("TWTv4=Tank:1:10000:100:1;Lock:0:12100:101:0;Leader:0:3000:30:1;")
+  local p = TH.PredictFor("Lock", 103)
+  -- at range Lock pulls at 13000: 900 to go, the 3rd tick does it, in 9 s
+  ok(p and p.stopNow and math.abs(p.aggroIn - 9) < .01 and p.pending == 1200, "their DoTs pull them in 9 s (" .. tostring(p and p.aggroIn) .. ")")
+  mc.tpredsec = "10"
+  TH.all = nil
+  local who, np = TH.NextToPull(103)
+  ok(who == "Lock" and np and np.stopNow, "the next to pull, for anyone to see")
+  -- 4 s since the last tick (> 1.6 gaps): the DoT has fallen off
+  pend = TH.OthersOnTheWay("Lock", 108)
+  ok(pend == 0, "no tick for a while: their DoT is gone")
+  -- the window: the tank first on Aggro; Lock, above the tank's threat (101%) but at range, on 77% of their own pull
+  -- point (130%) - not past the tank - with their seconds; the next-to-pull line
+  local w = pfUI.meters.ThreatWindow and pfUI.meters.ThreatWindow()
+  if w and pfUI.meters.Rows then
+    local svGT = rawget(_G, "GetTime")
+    _G.GetTime = function() return 103 end
+    TH.all = nil
+    local rows = pfUI.meters.Rows("threat", "current")
+    local nextRow, tankRow, lockRow
+    for _, r in ipairs(rows) do
+      if r.pullrow == "next" then nextRow = r end
+      if r.name == "Tank" and not r.pullrow then tankRow = r end
+      if r.name == "Lock" and not r.pullrow then lockRow = r end
+    end
+    ok(nextRow and string.find(nextRow.label or "", "Lock") and nextRow.text == "9 s", "the threat window's Next to pull line (" .. tostring(nextRow and nextRow.text) .. ")")
+    ok(tankRow and tankRow.rank == 1 and tankRow.value == 100, "the tank first, the only one at 100")
+    ok(lockRow and lockRow.value < 100 and math.floor(lockRow.value) == 77 and string.find(lockRow.text or "", "9s", 1, true) and lockRow.ghost,
+      "Lock: 77% of their pull point, their seconds and what is still coming (" .. tostring(lockRow and lockRow.text) .. ")")
+    _G.GetTime = svGT
+    -- locked to threat: the display menu cannot switch it away
+    pfUI.meters.SetMode(w, "damage")
+    ok(w.mode == "threat", "your threat window stays on threat")
+    pfUI.meters.UnlockThreatWindow()
+    pfUI.meters.SetMode(w, "damage")
+    ok(w.mode == "damage", "unlocked, it switches again")
+  end
+  -- the Meters section: its Meters / Threat halves show their own tabs only
+  local O = pfUI.octoui and pfUI.octoui.Options
+  if O and O.Select and O.TABSIDE then
+    O:Select("o:thwindow")
+    local shown = {}
+    for _, grp in ipairs(O.groups or {}) do
+      for _, b in ipairs(grp.buttons or {}) do if b:IsShown() then shown[b.key] = true end end
+    end
+    ok(shown["o:thwindow"] and shown["o:mtthreat"] and not shown["o:mtwindows"], "Threat half: its two tabs, not the meter ones")
+    ok(pfUI.metersOcto and pfUI.metersOcto.threatPw and pfUI.metersOcto.threatPw:IsShown() and pfUI.metersOcto.threatPw.mode == "threat",
+      "the Threat window page's preview is shown, on threat")
+    O:Select("o:mtwindows")
+    shown = {}
+    for _, grp in ipairs(O.groups or {}) do
+      for _, b in ipairs(grp.buttons or {}) do if b:IsShown() then shown[b.key] = true end end
+    end
+    ok(shown["o:mtwindows"] and not shown["o:thwindow"], "Meters half: the meter tabs only")
+  end
+  TH.others, TH.hist, TH.k, TH.list, TH.all = {}, {}, {}, nil, nil
+  _G.UnitName = sv
+end

@@ -414,11 +414,42 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   TH.SPELLK = { ["Searing Pain"] = 2 }
   function TH.PredictOn() return C.meters.tpredict ~= "0" end
   -- every record the meters read: your own ticks and hits teach what the next ones will do
+  -- (20 Nov 2026, user: "this info should be available to all - if a raid leader wanted to see whos dots would
+  -- overaggro in xxx seconds he can easily see it on his meters too") everyone's DoT ticks on your target, from the
+  -- combat log: what a tick does, the gap between ticks, and when this application started (time left = the
+  -- spell's length since then, TH.DOTDUR; no tick for 1.6 gaps = it is gone). Yours stay exact (TH.MyDots).
+  TH.others = {}
+  TH.DOTDUR = {
+    ["Corruption"] = 18, ["Curse of Agony"] = 24, ["Immolate"] = 15, ["Siphon Life"] = 30, ["Curse of Doom"] = 60,
+    ["Shadow Word: Pain"] = 18, ["Devouring Plague"] = 24, ["Vampiric Embrace"] = 60, ["Holy Fire"] = 10,
+    ["Rend"] = 21, ["Deep Wounds"] = 12, ["Rupture"] = 16, ["Garrote"] = 18, ["Serpent Sting"] = 15,
+    ["Moonfire"] = 12, ["Insect Swarm"] = 12, ["Rake"] = 9, ["Rip"] = 12, ["Flame Shock"] = 12, ["Ignite"] = 4,
+    ["Consecration"] = 8, ["Pyroblast"] = 12, ["Fireball"] = 8,
+  }
+  local function LearnOther(r, amt, now)
+    if not TH.IsTarget(r) then return end
+    local o = TH.others[r.src] or {}
+    TH.others[r.src] = o
+    local t = o[r.spl] or {}
+    o[r.spl] = t
+    local gap = t.gap or 3
+    if t.at then
+      local g = now - t.at
+      if g > .8 and g < 6 then t.gap = t.gap and (t.gap * .5 + g * .5) or g end
+    end
+    -- a new application: the first tick comes one gap after it went on
+    if not t.at or now - t.at > gap * 1.8 then t.start = now - gap end
+    t.at, t.amt = now, t.amt and (t.amt * .5 + amt * .5) or amt
+  end
   function TH.LearnHit(r, now)
     if not r or M.testOn or r.kind ~= "dmg" or not r.spl then return end
     local amt = tonumber(r.amt)
-    if not amt or amt <= 0 or r.src ~= UnitName("player") then return end
+    if not amt or amt <= 0 or not r.src then return end
     now = now or GetTime()
+    if r.src ~= UnitName("player") then
+      if r.dot then LearnOther(r, amt, now) end
+      return
+    end
     if r.dot then
       local t = TH.ticks[r.spl] or {}
       TH.ticks[r.spl] = t
@@ -491,6 +522,40 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     table.sort(steps, function(a, b) return a[1] < b[1] end)
     return total, steps
   end
+  -- another player's DoTs on your target: the threat still to come and its moments (as TH.OnTheWay)
+  function TH.OthersOnTheWay(name, now)
+    now = now or GetTime()
+    local k = TH.K(name)
+    local total, steps = 0, {}
+    for spl, t in pairs(TH.others[name] or {}) do
+      local gap = t.gap or 3
+      if t.at and t.amt and now - t.at <= gap * 1.6 then
+        local left = (TH.DOTDUR[spl] or 18) - (now - (t.start or t.at))
+        if left < gap then left = gap end   -- still ticking past its length: refreshed, at least one more
+        local n = math.ceil(left / gap - .01)
+        local each = t.amt * k * (TH.SPELLK[spl] or 1)
+        local first = gap - (now - t.at)
+        if first < 0 then first = 0 end
+        for i = 1, n do
+          local at = first + (i - 1) * gap
+          if at <= left then
+            table.insert(steps, { at, each })
+            total = total + each
+          end
+        end
+      end
+    end
+    table.sort(steps, function(a, b) return a[1] < b[1] end)
+    return total, steps
+  end
+  -- everyone's threat for a few seconds (TH.hist[name] = { { time, threat }, ... }): how fast each is going
+  TH.hist = {}
+  function TH.RateOf(name)
+    local s = TH.hist[name]
+    local a, b = s and s[1], s and s[table.getn(s)]
+    if not a or not b or b[1] - a[1] < 1.5 then return end
+    return math.max(0, (b[2] - a[2]) / (b[1] - a[1]))
+  end
   -- your threat and the tank's, a few seconds of them: how fast each is going
   function TH.TakeSample(now)
     if not TH.list then return end
@@ -499,6 +564,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     for _, e in ipairs(TH.list) do
       if e.name == me then mine = e end
       if e.tank then tank = e end
+      local h = TH.hist[e.name] or {}
+      TH.hist[e.name] = h
+      local last = h[table.getn(h)]
+      if not last or now - last[1] >= .1 then
+        -- (a taunt or a new holder starts that player's history again)
+        if last and e.threat < last[2] then for i = table.getn(h), 1, -1 do h[i] = nil end end
+        table.insert(h, { now, e.threat })
+        while h[1] and now - h[1][1] > 6 do table.remove(h, 1) end
+      end
     end
     if not mine or not tank or mine.tank then return end
     local s = TH.samples
@@ -546,6 +620,54 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     -- at the rate you are going
     if myRate and myRate > tr then p.aggroIn = room / (myRate - tr) end
     return p
+  end
+  -- the same for anyone on the list (not the tank): yours = TH.Predict; others from their DoT ticks and pace
+  function TH.PredictFor(name, now)
+    if not TH.PredictOn() or not TH.list or not name then return end
+    if name == UnitName("player") then return TH.Predict(now) end
+    now = now or GetTime()
+    local e, tank
+    for _, x in ipairs(TH.list) do
+      if x.name == name then e = x end
+      if x.tank then tank = x end
+    end
+    if not e or not tank or e.tank then return end
+    local mult = e.melee and 1.1 or 1.3
+    local room = tank.threat * mult - e.threat
+    local pending, steps = TH.OthersOnTheWay(name, now)
+    local p = { pending = pending, room = room }
+    if room <= 0 then p.aggroIn = 0 return p end
+    local tr = (TH.RateOf(tank.name) or 0) * mult
+    local got = 0
+    for _, st in ipairs(steps) do
+      got = got + st[2]
+      if got >= room + tr * st[1] then
+        p.aggroIn, p.stopNow = st[1], true
+        return p
+      end
+    end
+    local rate = TH.RateOf(name)
+    if rate and rate > tr then p.aggroIn = room / (rate - tr) end
+    return p
+  end
+  -- everyone's at once, kept for a fifth of a second (the window asks for every row)
+  function TH.PredictAll(now)
+    now = now or GetTime()
+    if TH.all and TH.allAt and now >= TH.allAt and now - TH.allAt < .2 and TH.allFor == TH.list then return TH.all end
+    local out = {}
+    for _, e in ipairs(TH.list or {}) do
+      if not e.tank then out[e.name] = TH.PredictFor(e.name, now) end
+    end
+    TH.all, TH.allAt, TH.allFor = out, now, TH.list
+    return out
+  end
+  -- who pulls next, and in how long (within the countdown's seconds): name, prediction
+  function TH.NextToPull(now)
+    local best, bp
+    for name, p in pairs(TH.PredictAll(now)) do
+      if p and p.aggroIn and p.aggroIn <= TH.SoonSec() and (not bp or p.aggroIn < bp.aggroIn) then best, bp = name, p end
+    end
+    return best, bp
   end
   -- the spell you are casting (its hit lands a moment after the cast ends)
   local castf = CreateFrame("Frame")
@@ -595,7 +717,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     else
       TH.list, TH.warned, TH.estimated = nil, nil, nil
       TH.base, TH.baseBy, TH.dmg, TH.shown = nil, nil, {}, {}
-      TH.samples, TH.predWarned = {}, nil
+      TH.samples, TH.predWarned, TH.others, TH.hist, TH.all = {}, nil, {}, {}, nil
       -- (a fight over: the solo tallies start again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
       -- a new target: ask at once

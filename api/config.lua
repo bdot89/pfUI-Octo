@@ -209,6 +209,9 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("meters",     nil,           "tpredsec",         "8")    -- show "aggro in" from this many seconds
   pfUI:UpdateConfig("meters",     nil,           "tpredpopup",       "1")
   pfUI:UpdateConfig("meters",     nil,           "tpredwarn",        "3")    -- popup this many seconds before
+  pfUI:UpdateConfig("meters",     nil,           "tpullpct",         "1")    -- threat window: % of each one's pull point
+  pfUI:UpdateConfig("meters",     nil,           "tdotrow",          "1")    -- threat window: your DoTs line
+  pfUI:UpdateConfig("meters",     nil,           "tnextpull",        "1")    -- threat window: the next to pull line
   pfUI:UpdateConfig("meters",     nil,           "tcolsafe",         "0.35,1,0.35,1")
   pfUI:UpdateConfig("meters",     nil,           "tcolnear",         "1,0.82,0.23,1")
   pfUI:UpdateConfig("meters",     nil,           "tcolover",         "1,0.29,0.23,1")

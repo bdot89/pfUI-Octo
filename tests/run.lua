@@ -1182,10 +1182,13 @@ if ME then
       w2.Refresh(w2)
       -- (12 Nov 2026) the pull line first, then the players; threat and % in their own columns
       local b1, b2, b3 = w2.bars[1], w2.bars[2], w2.bars[3]
-      ok(b2 and string.find(b2.left.text or "", "Tester") and b2.pct and string.find(b2.pct.text or "", "102%%") and string.find(b3.left.text or "", "Tankguy"), "threat window: most threat first")
+      -- (20 Nov 2026, user: "nothing ever goes above tank without [the boss targeting them]") the tank first on Aggro;
+      -- Tester's 102% of the tank is 92% of their own pull point (110%)
+      ok(b2 and string.find(b2.left.text or "", "Tankguy") and b2.pct and (b2.pct.text or "") ~= "" and not string.find(b2.pct.text, "%%")
+        and string.find(b3.left.text or "", "Tester") and string.find(b3.pct.text or "", "^92%%"), "threat window: the tank first, then % of each one's pull point")
       ok(b1 and b1.row and b1.row.pullrow == "pull" and string.find(b1.left.text or "", "Pull at", 1, true) and math.abs(b1.row.value / b1.row.max - 5100 / 5500) < .001 and string.find(b1.left.text or "", "5.50k", 1, true) and (b1.mid.text or "") == "" and b1.pct.text == "+400",
         "threat window: the pull line (" .. tostring(b1 and b1.mid and b1.mid.text) .. " / " .. tostring(b1 and b1.pct and b1.pct.text) .. ")")
-      ok(b2.mid.text == "5.10k" and (b2.right.text or "") == "" and string.find(b2.left.text or "", "^|c%x+1%.|r"), "threat and % in two columns; ranks start under the pull line")
+      ok(b3.mid.text == "5.10k" and (b3.right.text or "") == "" and string.find(b2.left.text or "", "^|c%x+1%.|r"), "threat and % in two columns; ranks start under the pull line")
       ok(string.find(w2.seg.text or "", "Onyxia") or (w2.seg.text or "") ~= nil, "the mob's name beside the title")
       ok(string.find(Mock.sent[1][2] or "", "^limit=%d+$") and tonumber(string.sub(Mock.sent[1][2], 7)) >= 10, "asks for at least 10 players (" .. tostring(Mock.sent[1][2]) .. ")")
       w2.visibleRows = 18
