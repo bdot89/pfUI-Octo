@@ -120,6 +120,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.92
+
+- 🎬 **Demo mode never gets stuck:** if a demo can't start, everything is put back at once and chat says why. Stop always finishes, so you can start again without a reload. Before, a demo that failed to start could leave Stop doing nothing until you reloaded.
+
 ## 📜 New in 1.1.91
 
 - 🔮 **Threat on the way, for warlocks and every DoT class:** the threat label shows where your DoTs and the spell you are casting will take you ("72% > 88%"), like incoming heals on a health bar.

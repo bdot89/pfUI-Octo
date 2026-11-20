@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.92", {
+    { "Demo mode never gets stuck", "if a demo can't start, everything is put back at once and chat says why. Stop always finishes, so you can start again without a reload. Before, a demo that failed to start could leave Stop doing nothing until you reloaded." },
+  } },
   { "1.1.91", {
     { "Threat on the way, for warlocks and every DoT class", "the threat label shows where your DoTs and the spell you are casting will take you (\"72% > 88%\"), like incoming heals on a health bar." },
     { "\"DoTs pull in 4 s\"", "a countdown before you pull aggro. \"DoTs pull\" means the DoTs already ticking will do it even if you stop now, so move to the tank. \"Aggro in\" means your current pace gets you there." },
@@ -159,8 +162,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.53", {
     { "Gear sets swap at once", "every piece of a set goes on in the same click, as ItemRack does, so you can put on one set, do something and put on another straight away. Armour still waits for combat to end." },
-  } },
-  { "1.1.52", {
-    { "Minimap preview fixed", "the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller." },
   } },
 }
