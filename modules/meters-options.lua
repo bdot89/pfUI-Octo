@@ -106,6 +106,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       pw:SetWidth(w)
       pw:SetHeight(h)
     end
+    pw.previewH = h
     -- fits the box (the window keeps its own size; the view scales)
     local box = MO.box
     -- (11 Nov 2026, Wolfahrt on Discord: crash #132 ACCESS_VIOLATION at 0x005A0959 in the client's
@@ -1213,6 +1214,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     local w, h = tonumber(s.width) or 260, math.max(200, tonumber(s.height) or 160)
     pw:SetWidth(w)
     pw:SetHeight(h)
+    pw.previewH = h
     local k = math.min(1, ((box:GetWidth() or 600) - 20) / w, ((box:GetHeight() or 220) - 20) / h)
     pw:SetScale(math.max(.4, k))
     pw:ClearAllPoints()
@@ -1298,9 +1300,13 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         .. "quiet ground and fill; the mark at a line's left edge and its number say which kind it is." })
     Chk(p, "Pull line", "Where the boss turns to you and how much room is left (its number green with room, gold when "
       .. "close, red past it). With what is on its way: \"Pull in 4 s\". As the tank: your lead on the next player.", G, "threatpull")
-    Chk(p, "Your DoTs line", "While your DoTs still add threat: how much, and how much room it leaves - or when it pulls you.", G, "tdotrow")
-    Chk(p, "Next to pull line", "Whoever pulls aggro next within the countdown's seconds - their DoTs or their pace - for "
-      .. "everyone to see (a raid leader too). Each player's line shows their own seconds as well.", G, "tnextpull")
+    Chk(p, "DoTs line", "Whose DoTs take them closest to their pull point - you or anyone - by name in class colour, \"in 4 s\" "
+      .. "when they will pull, and the threat their DoTs still add.", G, "tdotrow")
+    Chk(p, "Next to pull line", "Whoever pulls aggro next at their pace within the countdown's seconds (the DoTs line "
+      .. "names whose DoTs do it). Each player's line shows their own seconds as well.", G, "tnextpull")
+    Chk(p, "Column headings", "Small grey \"Threat  %\" over the numbers.", G, "theads")
+    Chk(p, "TPS column", "Threat per second for everyone, over the last few seconds (it goes first when the window is narrow).", G, "ttps")
+    Chk(p, "Fit the lines", "The window is as tall as the lines it shows - no empty space under them. Its size is the most it grows to.", G, "tfit")
     Color(p, "Ground", "Behind the top lines.", G, "tinfobg", function() end)
     Color(p, "Fill", "How far along a line is (your threat towards the pull point).", G, "tinfofill", function() end)
     Color(p, "Room left", "The pull line's number and mark while you have room.", G, "tcolsafe", function() end)

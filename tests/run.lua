@@ -1181,7 +1181,9 @@ if ME then
     if w2 then
       w2.Refresh(w2)
       -- (12 Nov 2026) the pull line first, then the players; threat and % in their own columns
-      local b1, b2, b3 = w2.bars[1], w2.bars[2], w2.bars[3]
+      -- (20 Nov 2026) the pull line, the column headings, then the players
+      local b1, bh, b2, b3 = w2.bars[1], w2.bars[2], w2.bars[3], w2.bars[4]
+      ok(bh and bh.row and bh.row.pullrow == "head" and bh.pct.text == "%", "the column headings over the players")
       -- (20 Nov 2026, user: "nothing ever goes above tank without [the boss targeting them]") the tank first on Aggro;
       -- Tester's 102% of the tank is 92% of their own pull point (110%)
       ok(b2 and string.find(b2.left.text or "", "Tankguy") and b2.pct and (b2.pct.text or "") ~= "" and not string.find(b2.pct.text, "%%")

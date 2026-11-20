@@ -212,6 +212,9 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("meters",     nil,           "tpullpct",         "1")    -- threat window: % of each one's pull point
   pfUI:UpdateConfig("meters",     nil,           "tdotrow",          "1")    -- threat window: your DoTs line
   pfUI:UpdateConfig("meters",     nil,           "tnextpull",        "1")    -- threat window: the next to pull line
+  pfUI:UpdateConfig("meters",     nil,           "ttps",             "0")    -- threat window: a TPS column
+  pfUI:UpdateConfig("meters",     nil,           "theads",           "1")    -- threat window: column headings
+  pfUI:UpdateConfig("meters",     nil,           "tfit",             "1")    -- threat window: height fits its lines
   -- threat window's top lines: one ground and fill for all, a mark + number colour per kind (meters-window M.InfoColor)
   pfUI:UpdateConfig("meters",     nil,           "tinfobg",          "0.07,0.08,0.1,0.92")
   pfUI:UpdateConfig("meters",     nil,           "tinfofill",        "0.24,0.27,0.32,1")

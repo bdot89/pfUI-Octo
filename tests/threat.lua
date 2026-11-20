@@ -191,13 +191,16 @@ do
     _G.GetTime = function() return 103 end
     TH.all = nil
     local rows = pfUI.meters.Rows("threat", "current")
-    local nextRow, tankRow, lockRow
+    local dotRow, tankRow, lockRow
     for _, r in ipairs(rows) do
-      if r.pullrow == "next" then nextRow = r end
+      if r.pullrow == "dots" then dotRow = r end
       if r.name == "Tank" and not r.pullrow then tankRow = r end
       if r.name == "Lock" and not r.pullrow then lockRow = r end
     end
-    ok(nextRow and string.find(nextRow.label or "", "Lock") and nextRow.text == "9 s", "the threat window's Next to pull line (" .. tostring(nextRow and nextRow.text) .. ")")
+    -- (20 Nov 2026, user: "the name of the person whos dots will take over next should be clear and visibile under or
+    -- next to DoTs") the DoTs line names whose DoTs pull next, and when
+    ok(dotRow and string.find(dotRow.label or "", "Lock", 1, true) and string.find(dotRow.label or "", "in 9 s", 1, true) and dotRow.text == "+1.20k",
+      "the DoTs line: Lock in 9 s, +1.20k on the way (" .. tostring(dotRow and dotRow.label) .. ")")
     ok(tankRow and tankRow.rank == 1 and tankRow.value == 100, "the tank first, the only one at 100")
     ok(lockRow and lockRow.value < 100 and math.floor(lockRow.value) == 77 and lockRow.text == "77%" and lockRow.cd == "9s" and lockRow.ghost,
       "Lock: 77% of their pull point, their seconds in a column of their own, what is still coming (" .. tostring(lockRow and lockRow.cd) .. ")")
@@ -217,6 +220,53 @@ do
       ok((inTitle or onLine) and not string.find(w.seg.text or "", "...", 1, true),
         "a long target name is shown whole (" .. (inTitle and "title" or (onLine and "its own line" or "cut")) .. ")")
       _G.UnitName, _G.UnitExists = svU, svE
+    end
+    -- (20 Nov 2026, the pfUI continuation session: "make ours neat and clear") columns drop when narrow, TPS first,
+    -- then threat - a name keeps M.NAMEMIN px
+    do
+      local mcfg = pfUI_config.meters
+      local keepTps = mcfg.ttps
+      mcfg.ttps = "1"
+      local function Win(wd) return { GetWidth = function() return wd end } end
+      local u300 = pfUI.meters.ThreatCols(Win(300), 12, 0, 0)
+      local u200 = pfUI.meters.ThreatCols(Win(200), 12, 0, 0)
+      local u140 = pfUI.meters.ThreatCols(Win(140), 12, 0, 0)
+      ok(u300.tps and u300.mid, "wide: TPS, threat and %")
+      ok(not u200.tps and u200.mid, "narrower: TPS goes first")
+      ok(not u140.tps and not u140.mid, "narrow: threat goes too, the name keeps its room")
+      mcfg.ttps = keepTps
+    end
+    -- someone pulling at their pace (no DoTs): the Next line names them
+    do
+      local svGT = rawget(_G, "GetTime")
+      _G.GetTime = function() return 200 end
+      TH.others, TH.all = {}, nil
+      TH.list = TH.Parse("TWTv4=Tank:1:10000:100:1;Valeera:0:9000:90:1;Leader:0:3000:30:1;")
+      TH.hist = { Tank = { { 196, 10000 }, { 200, 10000 } }, Valeera = { { 196, 7000 }, { 200, 9000 } } }
+      local rows = pfUI.meters.Rows("threat", "current")
+      local nx
+      for _, r in ipairs(rows) do if r.pullrow == "next" then nx = r end end
+      ok(nx and string.find(nx.label or "", "Valeera", 1, true) and nx.text == "4 s", "the Next line: Valeera pulls in 4 s at her pace (" .. tostring(nx and nx.text) .. ")")
+      -- the window is as tall as the lines it shows
+      local s = pfUI_config.meters["win" .. w.id]
+      local keepH = s.height
+      s.height = "400"
+      pfUI_config.meters.tfit = "1"
+      w:SetHeight(400)
+      pfUI.meters.SetMode(w, "threat")
+      w.Refresh(w)
+      local shownBars = 0
+      for _, b in ipairs(w.bars or {}) do if b:IsShown() and b.row then shownBars = shownBars + 1 end end
+      ok(shownBars >= 4 and w.fitH and math.abs(w:GetHeight() - w.fitH) < 1 and w:GetHeight() < 400,
+        "the threat window fits its " .. shownBars .. " lines (" .. tostring(w:GetHeight()) .. " px, not 400)")
+      TH.list = TH.Parse("TWTv4=Tank:1:10000:100:1;Leader:0:3000:30:1;")
+      TH.all = nil
+      local tall = w:GetHeight()
+      w.Refresh(w)
+      ok(w:GetHeight() < tall, "fewer lines, a shorter window")
+      s.height = keepH
+      _G.GetTime = svGT
+      TH.hist = {}
     end
     -- locked to threat: the display menu cannot switch it away
     pfUI.meters.SetMode(w, "damage")
@@ -253,7 +303,8 @@ do
       local function Lines(w)
         local out = {}
         for _, b in ipairs(w.bars or {}) do
-          if b:IsShown() and b.row then table.insert(out, (b.row.pullrow or "player") .. ":" .. (b.row.name or "") .. ":" .. (b.pct.text or "")) end
+          -- (the mob's own line comes and goes with the title's room, which is the window's width)
+          if b:IsShown() and b.row and b.row.pullrow ~= "mob" then table.insert(out, (b.row.pullrow or "player") .. ":" .. (b.row.name or "") .. ":" .. (b.pct.text or "")) end
         end
         return table.concat(out, " | ")
       end
