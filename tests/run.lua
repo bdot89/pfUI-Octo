@@ -6819,6 +6819,7 @@ dofile(DIR .. "/tests/updatepopup.lua")
 dofile(DIR .. "/tests/mail.lua")
 dofile(DIR .. "/tests/scrm.lua")
 dofile(DIR .. "/tests/procs.lua")
+dofile(DIR .. "/tests/challenges.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)
 do

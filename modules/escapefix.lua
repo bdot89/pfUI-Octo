@@ -34,4 +34,25 @@ pfUI:RegisterModule("escapefix", "vanilla", function ()
       return orig(a1, a2)
     end
   end
+
+  -- (20 Nov 2026, Iso on Discord: "Interface\FrameXML\TargetFrame.lua:291: attempt to index global
+  -- `Turtle_ChallengesCache' (a nil value)", over and over) The game's own target frame looks up a player's
+  -- challenges in Turtle_ChallengesCache[realm][guid], a table its Turtle_General saved data fills. When that table is
+  -- not there (that saved file missing or broken, or read before it loads) every target change errors. Before the
+  -- game's challenge functions run, the table and this realm's part of it are made if missing (the game's own saved
+  -- table, when it loads, simply takes their place).
+  function E.ChallengesCache()
+    if type(rawget(_G, "Turtle_ChallengesCache")) ~= "table" then _G.Turtle_ChallengesCache = {} end
+    local realm = GetRealmName and GetRealmName() or "?"
+    if type(Turtle_ChallengesCache[realm]) ~= "table" then Turtle_ChallengesCache[realm] = {} end
+  end
+  for _, fname in ipairs({ "TargetFrame_CheckChallenges", "TargetFrame_HandleChallenges", "TargetFrame_UpdateChallenges" }) do
+    local fn = rawget(_G, fname)
+    if type(fn) == "function" then
+      _G[fname] = function(a1, a2, a3)
+        E.ChallengesCache()
+        return fn(a1, a2, a3)
+      end
+    end
+  end
 end)
