@@ -17,6 +17,8 @@
 
 ## 🔗 Which link is which
 
+> **Two repos, one add-on:** `bdot89/pfUI` and `bdot89/pfUI-Octo` hold the very same code and update together. `bdot89/pfUI` only exists so OctoLauncher puts it in a folder called `pfUI`: **use that one in the launcher.** The zip, the notes and the home page live on `bdot89/pfUI-Octo`.
+
 | | Link | What it's for |
 |---|---|---|
 | ⬇️ **Download (ZIP)** | [pfUI.zip](https://github.com/bdot89/pfUI-Octo/releases/latest/download/pfUI.zip) | The newest version. Unzip, put the **pfUI** folder in `Interface\AddOns`. |
