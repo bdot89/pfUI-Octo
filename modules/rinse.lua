@@ -516,6 +516,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   R.usable, R.slot, R.totem = {}, {}, {}
   function R.UpdateSpells()
     Wipe(R.usable) Wipe(R.slot) Wipe(R.totem)
+    if R.ranges then Wipe(R.ranges) end
     local all = {}
     if book == "pet" then
       local n = HasPetSpells and HasPetSpells() or 0
@@ -597,21 +598,57 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
 
   local unitxp = pcall(UnitXP, "nop", "nop")
   R.unitxp = unitxp
+  -- (20 Nov 2026, a druid friend: "it doesnt range his cleanses ... with his talent. His action bar or spell icon can
+  -- read when he has range") the cure's own range, talents included: C.rinse.range when set by hand, else what its
+  -- spell tooltip says ("36 yd range"), else 30. Read again when the spells change (talents, ranks).
+  R.ranges = {}
+  function R.Range(spell)
+    local own = tonumber(C.rinse.range)
+    if own and own > 0 then return own end
+    if not spell then return 30 end
+    if R.ranges[spell] then return R.ranges[spell] end
+    local yd = 30
+    local slot = R.slot[spell]
+    if slot then
+      local tt = Tooltip()
+      tt:ClearLines()
+      local good = pcall(tt.SetSpell, tt, slot, book)
+      if good then
+        for i = 1, 8 do
+          for _, side in ipairs({ "Right", "Left" }) do
+            local l = _G["pfRinseScanText" .. side .. i]
+            local t = l and l:GetText()
+            local _, _, n = t and string.find(t, "(%d+) yd")
+            if n and tonumber(n) and tonumber(n) > 5 then yd = tonumber(n) end
+          end
+        end
+      end
+    end
+    R.ranges[spell] = yd
+    return yd
+  end
   function R.InRange(unit, spell)
     if not unit then return false end
     local ok
     if UnitIsFriend("player", unit) and not UnitCanAttack("player", unit) then
-      if unitxp then
-        local o, d = pcall(UnitXP, "distanceBetween", "player", unit)
-        if o and d then ok = d < 30 end
+      -- ClassicAPI: the very check the action bar's range colour uses - talents, the target's size and all
+      local cs = _G.C_Spell
+      if spell and cs and cs.IsSpellInRange and lc and lc.IsToken and lc.IsToken(unit) then
+        local o, r = pcall(cs.IsSpellInRange, spell, unit)
+        if o and r ~= nil then ok = (r == true or r == 1) end
       end
       if ok == nil and _G.C_UnitAuras and _G.IsSpellInRange and spell then
         local o, r = pcall(_G.IsSpellInRange, spell, unit)
         if o and (r == 1 or r == 0) then ok = r == 1 end
       end
+      -- distances: against the cure's own range (its tooltip, or your setting)
+      if ok == nil and unitxp then
+        local o, d = pcall(UnitXP, "distanceBetween", "player", unit)
+        if o and d then ok = d < R.Range(spell) end
+      end
       if ok == nil and lc and lc.Distance then
         local d = lc.Distance(unit)
-        if d then ok = d <= 33 end
+        if d then ok = d <= R.Range(spell) + 3 end
       end
     end
     if ok == nil then ok = CheckInteractDistance(unit, 4) and true or false end
@@ -1425,6 +1462,15 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     b.hl:SetTexture("Interface\\Buttons\\WHITE8X8")
     b.hl:SetAllPoints(b)
     b.hl:SetVertexColor(1, 1, 1, .07)
+    -- (20 Nov 2026) a border in the school's colour, and the top row's pulse
+    b.rim = CreateFrame("Frame", nil, b)
+    b.rim:SetAllPoints(b)
+    b.rim:SetFrameLevel(b:GetFrameLevel() + 2)
+    b.glow = b:CreateTexture(nil, "OVERLAY")
+    b.glow:SetTexture("Interface\\Buttons\\WHITE8X8")
+    b.glow:SetAllPoints(b)
+    b.glow:SetBlendMode("ADD")
+    b.glow:Hide()
     b:SetScript("OnClick", function() R.Cleanse(this) end)
     b:SetScript("OnEnter", function()
       if not this.unit then return end
@@ -1441,11 +1487,30 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     return b
   end
 
+  -- (20 Nov 2026, user: "our rinse is quite hard to see give it different layout options ... different UI options and
+  -- bar options") the looks: fill = the row's school-colour fill (0 = only the fade at its left), rim = a border in the
+  -- school's colour, big = larger words, oneline = player and debuff on one line, grid = a row of big icons
+  R.LOOKS = {
+    { key = "octo", label = "pfUI Octo", tip = "Dark rows, a fade of the school's colour at the left, the debuff over the player." },
+    { key = "bars", label = "Bars", fill = .55, edge = 4, tip = "Each row filled with its school's colour - you see what to cure from across the screen." },
+    { key = "bright", label = "Bright", fill = .75, rim = 2, big = 2, edge = 4, tip = "A strong fill, a border in the school's colour and bigger words: the easiest to see." },
+    { key = "compact", label = "Compact", oneline = true, small = true, tip = "Slim rows: player and debuff on one line." },
+    { key = "icons", label = "Icons", grid = true, rim = 2, tip = "A row of big debuff icons, each framed in its school's colour, the player's name under it." },
+  }
+  function R.Look()
+    for _, l in ipairs(R.LOOKS) do if l.key == C.rinse.look then return l end end
+    return R.LOOKS[1]
+  end
   function R.ApplyLayout()
+    local L = R.Look()
     local w, h = Num("width", 200), Num("rowh", 32)
+    if L.small then h = math.max(16, math.floor(h * .66)) end
     local n = math.max(1, math.min(20, Num("buttons", 5)))
     local gap = Num("spacing", 2)
-    local font, fs = Font(), Num("fontsize", 11)
+    local font, fs = Font(), Num("fontsize", 11) + (L.big or 0)
+    local rim = tonumber(C.rinse.border) or L.rim or 0
+    -- the Icons look: square buttons side by side
+    local isz = L.grid and math.max(24, math.floor(h * 1.4)) or nil
     -- (17 Nov 2026, user: the size "keeps resetting ... should be set always to where i put it and what size can never
     -- change") one scale only: layout mode's saved one (C.position.pfRinse.scale) wins and is mirrored into C.rinse.scale;
     -- the bar used to set its own option's scale on every option change and undo the layout mode size
@@ -1453,7 +1518,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     if pos and tonumber(pos.scale) then C.rinse.scale = tostring(pos.scale) end
     frame:SetScale(Num("scale", 1))
     frame:SetAlpha(Num("alpha", 1))
-    frame:SetWidth(w)
+    frame:SetWidth(L.grid and math.max(w, n * (isz + gap) - gap) or w)
     local showHead = On("header")
     local hh = showHead and 20 or 0
     head:ClearAllPoints()
@@ -1474,39 +1539,87 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     for i = 1, n do
       local b = R.buttons[i] or NewButton(i)
       R.buttons[i] = b
-      b:SetWidth(w)
-      b:SetHeight(h)
       b:ClearAllPoints()
-      local y = hh + 2 + (i - 1) * (h + gap)
-      if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, y) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y) end
+      b.look = L
+      if L.grid then
+        -- a row of big icons, the player's name under each
+        b:SetWidth(isz)
+        b:SetHeight(isz)
+        local x = (i - 1) * (isz + gap)
+        if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", x, hh + 2 + fs + 4) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -(hh + 2)) end
+      else
+        b:SetWidth(w)
+        b:SetHeight(h)
+        local y = hh + 2 + (i - 1) * (h + gap)
+        if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, y) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y) end
+      end
       b.bg:SetVertexColor(.06, .065, .075, On("backdrop") and .88 or .35)
-      local isz = h - 6
+      -- the school-colour fill: the whole row, or the fade at its left
+      b.wash:ClearAllPoints()
+      b.wash:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+      b.wash:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      b.wash:SetWidth(L.fill and (L.grid and isz or w) or 60)
+      if b.wash.SetGradientAlpha then
+        if L.fill then b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, L.fill, 1, 1, 1, L.fill * .55)
+        else b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, .35, 1, 1, 1, 0) end
+      end
+      b.edge:SetWidth(L.edge or 3)
+      if L.grid then b.edge:Hide() else b.edge:Show() end
+      -- the border in the school's colour
+      if rim > 0 then
+        b.rim:SetBackdrop({ edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = rim })
+        b.rim:Show()
+      else
+        b.rim:Hide()
+      end
+      local ic = L.grid and (isz - 2 * math.max(rim, 1) - 2) or (h - 6)
       b.iconbg:ClearAllPoints()
-      b.iconbg:SetPoint("LEFT", b, "LEFT", 6, 0)
-      b.iconbg:SetWidth(isz + 2)
-      b.iconbg:SetHeight(isz + 2)
+      if L.grid then b.iconbg:SetPoint("CENTER", b, "CENTER", 0, 0) else b.iconbg:SetPoint("LEFT", b, "LEFT", 6, 0) end
+      b.iconbg:SetWidth(ic + 2)
+      b.iconbg:SetHeight(ic + 2)
       b.icon:ClearAllPoints()
       b.icon:SetPoint("CENTER", b.iconbg, "CENTER", 0, 0)
-      b.icon:SetWidth(isz)
-      b.icon:SetHeight(isz)
+      b.icon:SetWidth(ic)
+      b.icon:SetHeight(ic)
       b.count:SetFont(font, fs - 1, "OUTLINE")
       b.count:ClearAllPoints()
       b.count:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, 0)
       b.debuff:SetFont(font, fs, "OUTLINE")
       b.debuff:ClearAllPoints()
-      b.debuff:SetPoint("TOPLEFT", b.iconbg, "TOPRIGHT", 6, -1)
-      b.debuff:SetPoint("RIGHT", b, "RIGHT", -6, 0)
       b.player:SetFont(font, fs - 1, "OUTLINE")
       b.player:ClearAllPoints()
-      b.player:SetPoint("BOTTOMLEFT", b.iconbg, "BOTTOMRIGHT", 6, 1)
-      b.player:SetPoint("RIGHT", b, "RIGHT", -40, 0)
       b.tag:SetFont(font, fs - 2, "OUTLINE")
       b.tag:ClearAllPoints()
-      b.tag:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 2)
+      if L.grid then
+        b.debuff:Hide()
+        b.tag:Hide()
+        b.player:SetPoint("TOP", b, "BOTTOM", 0, -1)
+        b.player:SetWidth(isz + gap)
+        b.player:SetJustifyH("CENTER")
+      elseif L.oneline then
+        -- "Player  Debuff" on one line, the school on the right
+        b.debuff:Show()
+        b.tag:Show()
+        b.player:SetJustifyH("LEFT")
+        b.player:SetPoint("LEFT", b.iconbg, "RIGHT", 6, 0)
+        b.debuff:SetPoint("LEFT", b.player, "RIGHT", 6, 0)
+        b.debuff:SetPoint("RIGHT", b.tag, "LEFT", -4, 0)
+        b.tag:SetPoint("RIGHT", b, "RIGHT", -6, 0)
+      else
+        b.debuff:Show()
+        b.tag:Show()
+        b.player:SetJustifyH("LEFT")
+        b.debuff:SetPoint("TOPLEFT", b.iconbg, "TOPRIGHT", 6, -1)
+        b.debuff:SetPoint("RIGHT", b, "RIGHT", -6, 0)
+        b.player:SetPoint("BOTTOMLEFT", b.iconbg, "BOTTOMRIGHT", 6, 1)
+        b.player:SetPoint("RIGHT", b, "RIGHT", -40, 0)
+        b.tag:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 2)
+      end
     end
     for i = n + 1, table.getn(R.buttons) do R.buttons[i]:Hide() R.buttons[i].unit = nil end
     R.shown = n
-    frame:SetHeight(hh + 2 + n * (h + gap))
+    if L.grid then frame:SetHeight(hh + 2 + isz + fs + 6)
+    else frame:SetHeight(hh + 2 + n * (h + gap)) end
     R.dirty = true
   end
 
@@ -1529,6 +1642,8 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     b.iconbg:SetVertexColor(c[1], c[2], c[3], 1)
     b.edge:SetVertexColor(c[1], c[2], c[3], 1)
     b.wash:SetVertexColor(c[1], c[2], c[3], 1)
+    if b.rim and b.rim:IsShown() then b.rim:SetBackdropBorderColor(c[1], c[2], c[3], 1) end
+    if b.glow then b.glow:SetVertexColor(c[1], c[2], c[3]) end
     b.debuff:SetText(d.totem and ("Totem - " .. d.name) or d.name)
     b.debuff:SetTextColor(1, 1, 1)
     b.player:SetText("|cff" .. (R.CLASSHEX[d.class] or "ffffff") .. (d.unitName or "") .. "|r")
@@ -1550,7 +1665,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         used[d.unitName] = true
         Fill(b, d)
         -- a totem is dropped at your feet: no range to check
-        b:SetAlpha((d.totem or R.InRange(d.unit, R.usable[d.school])) and 1 or .45)
+        b:SetAlpha((d.totem or R.InRange(d.unit, R.usable[d.school])) and 1 or Num("oor", .45))
         if bi == 1 and playNotice then
           Sound(NOTICE)
           playNotice = false
@@ -1686,7 +1801,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   R.events = ev
   for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "RAID_ROSTER_UPDATE", "PARTY_MEMBERS_CHANGED", "SPELLS_CHANGED",
     "LEARNED_SPELL_IN_TAB", "UNIT_AURA", "PLAYER_TARGET_CHANGED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
-    "ZONE_CHANGED_NEW_AREA", "UNIT_PET" }) do ev:RegisterEvent(e) end
+    "ZONE_CHANGED_NEW_AREA", "UNIT_PET", "CHARACTER_POINTS_CHANGED" }) do ev:RegisterEvent(e) end
   if myClass == "PRIEST" then ev:RegisterEvent("PLAYER_AURAS_CHANGED") end
   if GetNampowerVersion then ev:RegisterEvent("SPELL_QUEUE_EVENT") end
   if not superwow then
@@ -1699,7 +1814,8 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       R.dirty = true
     elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "UNIT_PET" then
       prioAt = GetTime() + 2
-    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" then
+    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" or event == "CHARACTER_POINTS_CHANGED" then
+      -- (a talent that lengthens a cure's range: its range is read again)
       R.UpdateSpells()
     elseif event == "PLAYER_AURAS_CHANGED" then
       shadowform = Shadowform()
@@ -1734,9 +1850,21 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     head.fade = a
     head:SetAlpha(a)
   end
+  -- (20 Nov 2026) the top row pulses in its school's colour, so the next cure stands out (C.rinse.pulse)
+  function R.Pulse(now)
+    local b = R.buttons and R.buttons[1]
+    if not b or not b.glow then return end
+    if On("pulse") and b:IsShown() and b.unit then
+      b.glow:SetAlpha(.12 + .14 * (math.sin((now or 0) * 6) + 1) / 2)
+      b.glow:Show()
+    else
+      b.glow:Hide()
+    end
+  end
   ev:SetScript("OnUpdate", function()
     R.HeadFade(arg1)
     local now = GetTime()
+    R.Pulse(now)
     if R.Testing() then
       if not frame:IsShown() then frame:Show() R.Sample() end
       return

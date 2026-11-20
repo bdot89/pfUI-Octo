@@ -750,6 +750,10 @@ function pfUI:LoadConfig()
     header = "1", backdrop = "1", flip = "0", lock = "0",
     print = "1", msbt = "1", sound = "1", shadowform = "1", abolish = "1", pets = "0", totems = "1", onlymine = "0",
     seeded = "0", imported = "0", asked = "0", mygroupfirst = "0", headhover = "0",
+    -- (20 Nov 2026, user: "our rinse is quite hard to see give it different layout options") look octo | bars |
+    -- bright | compact | icons; border px in the school's colour ("" = the look's own); out-of-range opacity; the top
+    -- row pulses; range = your cures' range in yards by hand ("" = read from the spell, ClassicAPI first)
+    look = "octo", border = "", oor = "0.45", pulse = "1", range = "",
   }) do pfUI:UpdateConfig("rinse", nil, k, v) end
   for _, k in ipairs({ "skip", "prio", "black", "hide", "priority", "prioclass", "hideclass", "boss", "firstclass", "neverclass", "firstgroup", "nevergroup" }) do
     pfUI:UpdateConfig("rinse", nil, k, {})

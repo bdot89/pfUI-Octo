@@ -319,3 +319,47 @@ R.engaged = {}
 R.Cfg("boss")[NOTH] = nil
 for k, v in pairs(keep) do _G[k] = v end
 R.UpdateActive()
+
+-- (20 Nov 2026, a druid friend: his talent-lengthened cure range was not counted) ClassicAPI's own spell range check
+-- (the action bar's range colour) wins over a fixed 30 yd; without it, the cure's range from its spell or your setting
+do
+  local keepCS, keepUX, keepF, keepCA = rawget(_G, "C_Spell"), R.unitxp, rawget(_G, "UnitIsFriend"), rawget(_G, "UnitCanAttack")
+  local keepLc = pfUI.api.libclient and pfUI.api.libclient.IsToken
+  _G.UnitIsFriend = function() return 1 end
+  _G.UnitCanAttack = function() return nil end
+  if pfUI.api.libclient then pfUI.api.libclient.IsToken = function() return true end end
+  local asked
+  _G.C_Spell = { IsSpellInRange = function(sp, u) asked = sp return true end }
+  ok(R.InRange("raid5", "Remove Curse") and asked == "Remove Curse", "ClassicAPI says in range (36 yd with his talent): in range")
+  _G.C_Spell = { IsSpellInRange = function() return false end }
+  ok(not R.InRange("raid5", "Remove Curse"), "ClassicAPI says out of range: out")
+  _G.C_Spell = keepCS
+  S.range = "36"
+  ok(R.Range("Remove Curse") == 36, "your own cure range is used when set")
+  S.range = ""
+  ok(R.Range("No Such Spell") == 30, "nothing known: 30 yd")
+  _G.UnitIsFriend, _G.UnitCanAttack = keepF, keepCA
+  if pfUI.api.libclient then pfUI.api.libclient.IsToken = keepLc end
+  R.unitxp = keepUX
+end
+
+-- (20 Nov 2026, user: "our rinse is quite hard to see give it different layout options") every look lays out
+do
+  local keepLook, keepBorder = S.look, S.border
+  for _, l in ipairs(R.LOOKS) do
+    S.look, S.border = l.key, tostring(l.rim or 0)
+    local good, err = pcall(R.ApplyLayout)
+    ok(good, "the " .. l.label .. " look lays out (" .. tostring(err) .. ")")
+  end
+  S.look = "icons"
+  R.ApplyLayout()
+  local b1, b2 = R.buttons[1], R.buttons[2]
+  local _, _, _, x1 = b1:GetPoint()
+  local _, _, _, x2 = b2:GetPoint()
+  ok(b1:GetWidth() == b1:GetHeight() and x2 and x1 and x2 > x1, "Icons: square buttons side by side")
+  S.look = "bright"
+  R.ApplyLayout()
+  ok(R.buttons[1].rim:IsShown(), "Bright: a border in the school's colour")
+  S.look, S.border = keepLook, keepBorder
+  R.ApplyLayout()
+end

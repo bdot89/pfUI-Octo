@@ -703,6 +703,30 @@ pfUI:RegisterModule("rinse-options", "vanilla", function ()
       })
     end)
 
+    -- (20 Nov 2026, user: "our rinse is quite hard to see give it different layout options in the menu") a look in one
+    -- click; the bar shows on the screen for 12 s so you see it at once
+    W.Card(p, "Look", { icon = ICON .. "INV_Misc_Gem_Pearl_04", tip = "How the bar looks. Picking one shows the bar with made-up "
+      .. "debuffs for 12 seconds. Everything under The bar still changes on top of it." })
+    W.Live(p, function()
+      local L = R.Look and R.Look()
+      return "Now: |cffffffff" .. (L and L.label or "pfUI Octo") .. "|r   " .. (L and ("|cff888888" .. L.tip .. "|r") or "")
+    end)
+    local tiles = {}
+    for _, l in ipairs(R.LOOKS or {}) do
+      local look = l
+      table.insert(tiles, { look.label, look.tip, ICON .. ({ octo = "Spell_Holy_DispelMagic", bars = "INV_Misc_Bandage_15",
+        bright = "Spell_Holy_SearingLight", compact = "INV_Misc_Note_01", icons = "INV_Misc_Gem_Variety_01" })[look.key],
+        function()
+          C.rinse.look = look.key
+          C.rinse.border = tostring(look.rim or 0)
+          R.ApplyLayout()
+          R.Test(12)
+          O:Refresh()
+        end, "pick" })
+      if table.getn(tiles) == 3 then W.Tiles(p, tiles) tiles = {} end
+    end
+    if table.getn(tiles) > 0 then W.Tiles(p, tiles) end
+
     -- (17 Nov 2026, user: "this bar should be fully hidable until hover over fast to do in options") first card
     W.Card(p, "Title bar", { icon = ICON .. "INV_Misc_Spyglass_02", tip = "The strip with OctoRinse's name and the Boss lists / "
       .. "Players / Options pictures. With no debuffs up, it is all you see of the bar." })
@@ -758,6 +782,29 @@ pfUI:RegisterModule("rinse-options", "vanilla", function ()
     Sld(p, "Opacity", nil, .1, 1, .05, "alpha", function(v) return math.floor(v * 100 + .5) .. "%" end)
     Chk(p, "Background", nil, "backdrop")
     Chk(p, "Grow upwards", "The title at the bottom, rows above it.", "flip")
+    -- (20 Nov 2026) easier to see
+    Sld(p, "Border", "A border in the debuff school's colour round each row (0 = none).", 0, 4, 1, "border",
+      function(v) return v == 0 and "none" or (v .. " px") end)
+    Sld(p, "Out of range", "How see-through a row is while its player is out of your cure's range.", .1, 1, .05, "oor",
+      function(v) return math.floor(v * 100 + .5) .. "%" end)
+    Chk(p, "Pulse the top row", "The next cure - the top row - softly pulses in its school's colour.", "pulse")
+
+    -- (20 Nov 2026, a druid friend: talents that lengthen his cures' range were not counted)
+    W.Card(p, "Range", { icon = ICON .. "Ability_Hunter_SniperShot", tip = "When a player counts as in range of your cure." })
+    W.Live(p, function()
+      if _G.C_Spell and _G.C_Spell.IsSpellInRange then
+        return "|cff40d977ClassicAPI:|r the same range check as your action bar's range colour - talents and all."
+      end
+      local parts = {}
+      for _, sc in ipairs(R.SCHOOLS or {}) do
+        local sp = R.usable and R.usable[sc]
+        if sp and R.Range then table.insert(parts, sp .. " " .. R.Range(sp) .. " yd") end
+      end
+      return "Without ClassicAPI: each cure's range from its spell: " .. (table.getn(parts) > 0 and table.concat(parts, ", ") or "none") .. "."
+    end)
+    Sld(p, "My cure range", "Yards, when the range read from your spell is wrong for you (a talent the tooltip does not "
+      .. "show). 0 = read it from the spell. With ClassicAPI the action bar's own check wins.", 0, 50, 1, "range",
+      function(v) return v == 0 and "from the spell" or (v .. " yd") end)
 
     W.Card(p, "Messages and sounds", { icon = ICON .. "INV_Misc_Note_01" })
     Chk(p, "Say what was cured", "A chat line for each cure (or when a queued cure goes off, with nampower).", "print")
