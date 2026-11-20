@@ -196,7 +196,8 @@ pfUI:RegisterModule("procs", "vanilla", function ()
   P.anchor = anchor
   if pfUI.api and pfUI.api.UpdateMovable then pcall(pfUI.api.UpdateMovable, anchor) end
 
-  -- the screen's edge glows in the colour of the newest proc
+  -- the screen's edge glows in the colour of the newest proc (fading inward: the colour goes in the gradient
+  -- itself - SetVertexColor would wipe it)
   local edge = CreateFrame("Frame", nil, UIParent)
   edge:SetAllPoints(UIParent)
   edge:SetFrameStrata("BACKGROUND")
@@ -205,21 +206,32 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     local t = edge:CreateTexture(nil, "BACKGROUND")
     t:SetTexture("Interface\\Buttons\\WHITE8X8")
     t:SetBlendMode("ADD")
+    t.side = side
     if side == "LEFT" or side == "RIGHT" then
-      t:SetPoint("TOP" .. side, edge, "TOP" .. side, 0, 0) t:SetPoint("BOTTOM" .. side, edge, "BOTTOM" .. side, 0, 0) t:SetWidth(90)
-      if t.SetGradientAlpha then
-        if side == "LEFT" then t:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 0) else t:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 0, 1, 1, 1, 1) end
-      end
+      t:SetPoint("TOP" .. side, edge, "TOP" .. side, 0, 0) t:SetPoint("BOTTOM" .. side, edge, "BOTTOM" .. side, 0, 0)
     else
-      t:SetPoint(side .. "LEFT", edge, side .. "LEFT", 0, 0) t:SetPoint(side .. "RIGHT", edge, side .. "RIGHT", 0, 0) t:SetHeight(70)
-      if t.SetGradientAlpha then
-        if side == "TOP" then t:SetGradientAlpha("VERTICAL", 1, 1, 1, 0, 1, 1, 1, 1) else t:SetGradientAlpha("VERTICAL", 1, 1, 1, 1, 1, 1, 1, 0) end
-      end
+      t:SetPoint(side .. "LEFT", edge, side .. "LEFT", 0, 0) t:SetPoint(side .. "RIGHT", edge, side .. "RIGHT", 0, 0)
     end
     edge.parts[i] = t
   end
   edge:Hide()
   P.edge = edge
+  function P.EdgeColour(r, g, b, a)
+    local w = tonumber(S().edgesize) or 110
+    for _, t in ipairs(edge.parts) do
+      local s = t.side
+      if s == "LEFT" or s == "RIGHT" then t:SetWidth(w) else t:SetHeight(w * .75) end
+      if t.SetGradientAlpha then
+        -- strong at the screen's edge, nothing inward
+        if s == "LEFT" then t:SetGradientAlpha("HORIZONTAL", r, g, b, a, r, g, b, 0)
+        elseif s == "RIGHT" then t:SetGradientAlpha("HORIZONTAL", r, g, b, 0, r, g, b, a)
+        elseif s == "TOP" then t:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, a)
+        else t:SetGradientAlpha("VERTICAL", r, g, b, a, r, g, b, 0) end
+      else
+        t:SetVertexColor(r, g, b, a * .4)
+      end
+    end
+  end
 
   local function Col(s)
     local _, _, r, g, b = string.find(s or "", "([%d%.]+),([%d%.]+),([%d%.]+)")
@@ -227,28 +239,55 @@ pfUI:RegisterModule("procs", "vanilla", function ()
   end
   P.Col = Col
 
-  -- one alert picture: icon, glow behind it, countdown, stacks
+  -- ---------------------------------------------------------------- looks: our own art (tools\mkprocart.c)
+  -- art = picture, w / h = its size against the icon size, mirror = the right-hand one is flipped,
+  -- icon = where the spell's icon sits on it (x, y in icon sizes; nil = no icon unless asked)
+  local ART = "Interface\\AddOns\\pfUI\\img\\procs\\"
+  P.LOOKS = {
+    { key = "wings", label = "Wings", art = ART .. "wing", w = 1.6, h = 3.2, mirror = true, icon = { -.15, 0 } },
+    { key = "crown", label = "Crown", art = ART .. "crown", w = 3.6, h = 1.8, icon = { 0, -.35 } },
+    { key = "beam", label = "Light beam", art = ART .. "beam", w = 1.1, h = 3.6, icon = { 0, 0 } },
+    { key = "ring", label = "Ring", art = ART .. "ring", w = 1.9, h = 1.9, icon = { 0, 0 } },
+    { key = "orb", label = "Glow", art = ART .. "orb", w = 2.4, h = 2.4, icon = { 0, 0 } },
+    { key = "icon", label = "Icon only", icon = { 0, 0 } },
+  }
+  local LOOK = {}
+  for _, l in ipairs(P.LOOKS) do LOOK[l.key] = l end
+  -- "auto": what suits the place - wings at the sides, a crown above, a ring below
+  local AUTO = { sides = "wings", sides2 = "wings", left = "wings", right = "wings", top = "crown", top2 = "crown", below = "ring" }
+  function P.LookOf(p)
+    local k = S().look[p.name]
+    if not k or k == "" or k == "default" then k = S().lookall end
+    if not k or k == "auto" or not LOOK[k] then k = AUTO[p.place] or "ring" end
+    return LOOK[k]
+  end
+
+  -- one alert picture: the art, the icon on it, a burst as it starts, countdown, stacks, name
   local function Make()
     local f = CreateFrame("Frame", nil, anchor)
     f:SetFrameStrata("HIGH")
-    f.glow = f:CreateTexture(nil, "BACKGROUND")
-    f.glow:SetTexture(pfUI.media and pfUI.media["img:glow"] or "Interface\\AddOns\\pfUI\\img\\glow")
-    f.glow:SetBlendMode("ADD")
-    f.glow:SetPoint("CENTER", f, "CENTER", 0, 0)
-    f.icon = f:CreateTexture(nil, "ARTWORK")
-    f.icon:SetAllPoints(f)
+    f:SetWidth(1)
+    f:SetHeight(1)
+    f.art = f:CreateTexture(nil, "BACKGROUND")
+    f.art:SetBlendMode("ADD")
+    f.art:SetPoint("CENTER", f, "CENTER", 0, 0)
+    f.burst = f:CreateTexture(nil, "BORDER")
+    f.burst:SetTexture("Interface\\Cooldown\\star4")
+    f.burst:SetBlendMode("ADD")
+    f.burst:SetPoint("CENTER", f, "CENTER", 0, 0)
+    f.iconf = CreateFrame("Frame", nil, f)
+    f.icon = f.iconf:CreateTexture(nil, "ARTWORK")
+    f.icon:SetAllPoints(f.iconf)
     f.icon:SetTexCoord(.08, .92, .08, .92)
-    f.edge = f:CreateTexture(nil, "OVERLAY")
+    f.edge = f.iconf:CreateTexture(nil, "BORDER")
     f.edge:SetTexture("Interface\\Buttons\\WHITE8X8")
-    f.edge:SetPoint("TOPLEFT", f, "TOPLEFT", -2, 2)
-    f.edge:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 2, -2)
-    f.edge:SetDrawLayer("BORDER")
-    f.time = f:CreateFontString(nil, "OVERLAY")
-    f.time:SetPoint("CENTER", f, "CENTER", 0, 0)
-    f.count = f:CreateFontString(nil, "OVERLAY")
-    f.count:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 3)
+    f.edge:SetPoint("TOPLEFT", f.iconf, "TOPLEFT", -2, 2)
+    f.edge:SetPoint("BOTTOMRIGHT", f.iconf, "BOTTOMRIGHT", 2, -2)
+    f.time = f.iconf:CreateFontString(nil, "OVERLAY")
+    f.time:SetPoint("CENTER", f.iconf, "CENTER", 0, 0)
+    f.count = f.iconf:CreateFontString(nil, "OVERLAY")
+    f.count:SetPoint("BOTTOMRIGHT", f.iconf, "BOTTOMRIGHT", -2, 3)
     f.name = f:CreateFontString(nil, "OVERLAY")
-    f.name:SetPoint("TOP", f, "BOTTOM", 0, -3)
     f:Hide()
     return f
   end
@@ -262,48 +301,94 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     return f
   end
 
-  -- an alert drawn at time t (pulse) with left seconds (or nil) and count stacks
+  -- an alert drawn at time t: pulse between the opacity and size ranges (ProcDoc's four sliders)
   function P.Draw(p, a, t)
     local pics = Pics(p)
     local pl = PLACE[p.place] or PLACE.top
+    local lk = P.LookOf(p)
     local size = tonumber(S().size) or 56
     local spread = tonumber(S().spread) or 150
-    local r, g, b = Col(p.col)
+    local lift = tonumber(S().height) or 0
+    local artsize = tonumber(S().artsize) or 1
+    local r, g, b = Col(S().col[p.name] or p.col)
     local speed = tonumber(S().speed) or 2
     local wave = On("pulse") and (.5 + .5 * math.sin((t - a.since) * speed * 3)) or 1
-    -- the first moment: a quick grow, then the steady pulse
-    local born = math.min(1, (t - a.since) / .25)
-    local scale = (1 + (1 - born) * .6) * (1 + .08 * wave)
+    local amin, amax = tonumber(S().alphamin) or .7, tonumber(S().alphamax) or 1
+    local smin, smax = tonumber(S().sizemin) or .95, tonumber(S().sizemax) or 1.05
+    if amax < amin then amax = amin end
+    if smax < smin then smax = smin end
+    local alpha = amin + (amax - amin) * wave
+    -- the first moment: grows in from big and faint, with a burst
+    local age = t - a.since
+    local born = math.min(1, age / .25)
+    local scale = (smin + (smax - smin) * wave) * (1 + (1 - born) * .5)
+    local showIcon = lk.key == "icon" or (On("icons") and lk.icon)
     local font = pfUI.font_default
     for i = 1, 2 do
       local f = pics[i]
       if i == 2 and not pl.pair then
         f:Hide()
       else
+        local right = (i == 1 and pl.x > 0) or (i == 2 and pl.x < 0)
         local sx = (i == 2) and -pl.x or pl.x
         f:ClearAllPoints()
-        f:SetPoint("CENTER", anchor, "CENTER", sx * spread, pl.y * spread * .7)
-        f:SetWidth(size * scale)
-        f:SetHeight(size * scale)
-        f.icon:SetTexture(p.icon)
-        f.edge:SetVertexColor(r, g, b, 1)
-        f.glow:SetVertexColor(r, g, b, 1)
-        f.glow:SetWidth(size * scale * 2.2)
-        f.glow:SetHeight(size * scale * 2.2)
-        if On("glow") then f.glow:SetAlpha(.45 + .55 * wave) f.glow:Show() else f.glow:Hide() end
-        f:SetAlpha((tonumber(S().alpha) or 1) * (.75 + .25 * wave) * born)
-        f.time:SetFont(font, math.floor(size * .42), "OUTLINE")
-        f.count:SetFont(font, math.floor(size * .3), "OUTLINE")
-        f.name:SetFont(font, 12, "OUTLINE")
+        f:SetPoint("CENTER", anchor, "CENTER", sx * spread, pl.y * spread * .7 + (pl.y > 0 and lift or 0))
+        f:SetAlpha(alpha * born)
+        -- the art, tinted; the right-hand wing mirrored
+        if lk.art then
+          f.art:SetTexture(lk.art)
+          f.art:SetWidth(size * lk.w * scale * artsize)
+          f.art:SetHeight(size * lk.h * scale * artsize)
+          f.art:SetVertexColor(r, g, b, 1)
+          if lk.mirror and right then f.art:SetTexCoord(1, 0, 0, 1) else f.art:SetTexCoord(0, 1, 0, 1) end
+          f.art:Show()
+        else
+          f.art:Hide()
+        end
+        -- the burst as it starts
+        if On("burst") and age < .45 then
+          local k = age / .45
+          f.burst:SetWidth(size * (1.5 + 2.5 * k))
+          f.burst:SetHeight(size * (1.5 + 2.5 * k))
+          f.burst:SetVertexColor(r, g, b, 1)
+          f.burst:SetAlpha(1 - k)
+          f.burst:Show()
+        else
+          f.burst:Hide()
+        end
+        -- the spell icon, its countdown and stacks
+        local isz = size * scale * (lk.key == "icon" and 1 or .62)
+        if showIcon then
+          local ix = (lk.icon[1] or 0) * size * (right and -1 or 1)
+          f.iconf:ClearAllPoints()
+          f.iconf:SetPoint("CENTER", f, "CENTER", ix, (lk.icon[2] or 0) * size)
+          f.iconf:SetWidth(isz)
+          f.iconf:SetHeight(isz)
+          f.icon:SetTexture(p.icon)
+          f.edge:SetVertexColor(r, g, b, 1)
+          f.iconf:Show()
+        else
+          f.iconf:Hide()
+        end
+        -- the countdown: on the icon, else in the art's middle
+        local tsize = math.floor(size * (tonumber(S().timersize) or .42))
+        f.time:SetFont(font, tsize > 6 and tsize or 6, "OUTLINE")
+        f.time:ClearAllPoints()
+        f.time:SetPoint("CENTER", showIcon and f.iconf or f, "CENTER", 0, 0)
+        f.time:SetParent(showIcon and f.iconf or f)
         local left = a.left
-        if On("timer") and left then
+        if On("timer") and left and (i == 1 or not On("onetimer")) then
           f.time:SetText(left < 3 and string.format("%.1f", left) or tostring(math.floor(left + .5)))
           if left < 3 then f.time:SetTextColor(1, .3, .3) else f.time:SetTextColor(1, 1, 1) end
           f.time:Show()
         else
           f.time:Hide()
         end
+        f.count:SetFont(font, math.floor(size * .3), "OUTLINE")
         f.count:SetText((a.count or 0) > 1 and tostring(a.count) or "")
+        f.name:SetFont(font, 12, "OUTLINE")
+        f.name:ClearAllPoints()
+        f.name:SetPoint("TOP", f, "CENTER", 0, -(math.max(isz, lk.h and size * lk.h * .5 * artsize or 0)) * .5 - 4)
         if On("names") and i == 1 then f.name:SetText(p.name) f.name:SetTextColor(r, g, b) f.name:Show() else f.name:Hide() end
         f:Show()
       end
@@ -329,6 +414,8 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     local buffs
     local up = {}
     local fight = UnitAffectingCombat("player")
+    -- (only in a fight, if asked)
+    if On("combatonly") and not fight then return up end
     for _, p in ipairs(P.mine or {}) do
       if not p.off then
         if p.kind == "buff" then
@@ -375,9 +462,9 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     end
     -- the edge glow
     if newest and On("edge") then
-      local r, g, b = Col(newest.p.col)
+      local r, g, b = Col(S().col[newest.p.name] or newest.p.col)
       local wave = .5 + .5 * math.sin((t - newest.since) * (tonumber(S().speed) or 2) * 3)
-      for _, e in ipairs(P.edge.parts) do e:SetVertexColor(r, g, b, (tonumber(S().edgealpha) or .35) * (.6 + .4 * wave)) end
+      P.EdgeColour(r, g, b, (tonumber(S().edgealpha) or .35) * (.6 + .4 * wave))
       P.edge:Show()
     else
       P.edge:Hide()
@@ -415,7 +502,7 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     if t - P.testStart > 8 then P.StopTest() return {} end
     local up = {}
     for name, p in pairs(P.testing) do
-      up[name] = { left = p.dur and nil or (8 - (t - P.testStart)), count = p.stacks or 0 }
+      up[name] = { left = p.dur and nil or (12 - (t - P.testStart)), count = p.stacks or 0 }
     end
     return up
   end
@@ -432,6 +519,8 @@ pfUI:RegisterModule("procs", "vanilla", function ()
     S().off = S().off or {}
     S().place = S().place or {}
     S().custom = S().custom or {}
+    S().look = S().look or {}
+    S().col = S().col or {}
     P.mine = P.Mine()
     P.watchCustom = false
     for _, p in ipairs(P.mine) do if p.custom and p.kind == "buff" then P.watchCustom = true end end

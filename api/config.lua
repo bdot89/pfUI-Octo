@@ -699,9 +699,12 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("cdm",        nil,           "maxc",             {})
   pfUI:UpdateConfig("cdm",        nil,           "timers",           "1")
   -- OctoProcs (modules/procs.lua, 20 Nov 2026): off / place per proc name, custom = your own
-  for k, v in pairs({ size = "56", spread = "150", alpha = "1", speed = "2", pulse = "1", glow = "1", timer = "1",
-    names = "0", edge = "1", edgealpha = ".35", sound = "RaidWarning", stacksfrom = "1" }) do pfUI:UpdateConfig("procs", nil, k, v) end
-  for _, k in ipairs({ "off", "place", "custom" }) do pfUI:UpdateConfig("procs", nil, k, {}) end
+  -- (look per proc name in look / col, else lookall: "auto" = wings at the sides, a crown above, a ring below)
+  for k, v in pairs({ size = "56", spread = "150", height = "0", artsize = "1", lookall = "auto", icons = "1", burst = "1",
+    speed = "2", pulse = "1", alphamin = ".7", alphamax = "1", sizemin = ".95", sizemax = "1.05", timer = "1", timersize = ".42",
+    onetimer = "1", names = "0", edge = "1", edgealpha = ".35", edgesize = "110", sound = "RaidWarning", stacksfrom = "1",
+    combatonly = "0" }) do pfUI:UpdateConfig("procs", nil, k, v) end
+  for _, k in ipairs({ "off", "place", "custom", "look", "col" }) do pfUI:UpdateConfig("procs", nil, k, {}) end
   pfUI:UpdateConfig("cdm",        nil,           "textsize",         ".36")
   pfUI:UpdateConfig("cdm",        nil,           "zoom",             ".08")
   pfUI:UpdateConfig("cdm",        nil,           "bordercolor",      ".2,.2,.24,1")

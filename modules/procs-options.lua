@@ -22,6 +22,13 @@ pfUI:RegisterModule("procs-options", "vanilla", function ()
     for _, pl in ipairs(P() and P().PLACES or {}) do table.insert(out, { key = pl.key, label = pl.label }) end
     return out
   end
+  -- all = the one for every proc ("Auto" first); else a proc's own ("As the rest" first)
+  local function Looks(all)
+    local out = { all and { key = "auto", label = "Auto (by where it is)" } or { key = "default", label = "As the rest" } }
+    if not all then table.insert(out, { key = "auto", label = "Auto (by where it is)" }) end
+    for _, l in ipairs(P() and P().LOOKS or {}) do table.insert(out, { key = l.key, label = l.label }) end
+    return out
+  end
   local new = { name = "", kind = "buff", place = "top" }
 
   local function Build(p)
@@ -36,20 +43,36 @@ pfUI:RegisterModule("procs-options", "vanilla", function ()
     })
     W.Note(p, "Move frames (in the footer) moves them all: drag the OctoProcs box.")
 
-    W.Card(p, "Look", { tip = "How every alert looks." })
-    Sld(p, "Icon size", nil, 24, 128, 2, "size", Px)
-    Sld(p, "Spread", "How far from the middle they sit.", 40, 400, 5, "spread", Px)
-    Sld(p, "Opacity", nil, .2, 1, .05, "alpha", Pct)
-    Sld(p, "Pulse speed", nil, .5, 6, .5, "speed")
-    Chk(p, "Pulse", "Grow and fade a little, over and over.", "pulse")
-    Chk(p, "Glow behind", "A soft glow in the proc's colour.", "glow")
-    Chk(p, "Countdown", "Seconds left, red under 3.", "timer")
-    Chk(p, "Names", "The proc's name under its icon.", "names")
+    W.Card(p, "Look", { tip = "How every alert looks. Auto: wings at the sides, a crown above, a ring below." })
+    W.Dropdown(p, "Look", "For every proc (each one can have its own below).", Looks(true), function() return G().lookall or "auto" end,
+      function(v) G().lookall = v Up() end)
+    Sld(p, "Icon size", "Everything is sized from this.", 24, 128, 2, "size", Px)
+    Sld(p, "Art size", "The wings, crown, beam or glow against the icon.", .5, 2, .05, "artsize", Pct)
+    Sld(p, "Side offset", "How far from the middle the side ones sit.", 40, 400, 5, "spread", Px)
+    Sld(p, "Top offset", "Extra height for the ones above.", -100, 300, 5, "height", Px)
+    Chk(p, "Spell icon on the art", "Off: only the wings, crown or beam.", "icons")
+    Chk(p, "Burst as it starts", "A flash of light the moment a proc comes up.", "burst")
+    Chk(p, "Names", "The proc's name under it.", "names")
     Chk(p, "Screen edge glow", "The edges of your screen glow in the colour of the newest proc.", "edge")
     Sld(p, "Edge glow strength", nil, .05, 1, .05, "edgealpha", Pct)
+    Sld(p, "Edge glow width", nil, 30, 300, 10, "edgesize", Px)
+
+    W.Card(p, "Pulse", { tip = "Each alert breathes between these: fainter and smaller, then brighter and bigger." })
+    Chk(p, "Pulse", "Off: still, at the most opacity and size.", "pulse")
+    Sld(p, "Pulse speed", nil, .2, 6, .1, "speed")
+    Sld(p, "Least opacity", nil, 0, 1, .05, "alphamin", Pct)
+    Sld(p, "Most opacity", nil, 0, 1, .05, "alphamax", Pct)
+    Sld(p, "Least size", nil, .5, 2, .05, "sizemin", Pct)
+    Sld(p, "Most size", nil, .5, 2, .05, "sizemax", Pct)
+
+    W.Card(p, "Timers and sound", { tip = "What it says and plays." })
+    Chk(p, "Countdown", "Seconds left, red under 3.", "timer")
+    Chk(p, "One countdown for a pair", "Both sides: the number on one only.", "onetimer")
+    Sld(p, "Countdown size", nil, .2, .8, .02, "timersize", Pct)
     Sld(p, "Stacking procs from", "Procs that stack (Hot Streak) show from this many stacks.", 1, 5, 1, "stacksfrom")
+    Chk(p, "Only in a fight", "Nothing shows out of combat.", "combatonly")
     local CT = pfUI.sctB and pfUI.sctB.SCT
-    local sounds = { { key = "none", label = "No sound" }, { key = "RaidWarning", label = "Raid warning" } }
+    local sounds = { { key = "none", label = "No sound (mute)" }, { key = "RaidWarning", label = "Raid warning" } }
     for _, s in ipairs(CT and CT.SOUNDS or {}) do
       if s.key and s.key ~= "none" and s.key ~= "RaidWarning" then table.insert(sounds, { key = s.key, label = s.label }) end
     end
@@ -61,17 +84,22 @@ pfUI:RegisterModule("procs-options", "vanilla", function ()
 
     local _, class = UnitClass("player")
     local mine = P() and P().Mine() or {}
-    W.Card(p, "Your procs", { tip = "Your class's (" .. (class or "?") .. "): switch each off, or show it somewhere else." })
+    W.Card(p, "Your procs", { tip = "Your class's (" .. (class or "?") .. "): each on or off, where it shows, its look and colour." })
     local any
     for _, e in ipairs(mine) do
       if not e.custom then
         any = true
-        local name = e.name
+        local name, entry = e.name, e
         local what = e.kind == "buff" and "buff" or (e.kind == "spell" and "usable" or "cooldown ready")
         W.Check(p, name .. "  |cff888888(" .. what .. ")|r", nil, function() return G().off[name] ~= "1" end,
           function(v) G().off[name] = (not v) and "1" or nil Up() end)
-        W.Dropdown(p, "   Where", nil, Places(), function() return e.place end,
-          function(v) G().place[name] = v Again() end)
+        W.Dropdown(p, "   Where", nil, Places(), function() return entry.place end, function(v) G().place[name] = v Again() end)
+        W.Dropdown(p, "   Look", nil, Looks(), function() return G().look[name] or "default" end,
+          function(v) G().look[name] = (v ~= "default") and v or nil Up() end)
+        W.Color(p, "   Colour", "Its art, edge and glow.", function()
+          local r, g, b = P().Col(G().col[name] or entry.col)
+          return r, g, b, 1
+        end, function(r, g, b) G().col[name] = string.format("%.2f,%.2f,%.2f", r, g, b) Up() end)
       end
     end
     if not any then W.Note(p, "Nothing built in for your class yet: add your own below.") end
