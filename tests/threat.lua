@@ -202,6 +202,22 @@ do
     ok(lockRow and lockRow.value < 100 and math.floor(lockRow.value) == 77 and string.find(lockRow.text or "", "9s", 1, true) and lockRow.ghost,
       "Lock: 77% of their pull point, their seconds and what is still coming (" .. tostring(lockRow and lockRow.text) .. ")")
     _G.GetTime = svGT
+    -- (20 Nov 2026, user: "Molten Guar..." - the target's name must always show in full)
+    do
+      local long = "Molten Guardian of the Burning Depths Champion"
+      local svU, svE = rawget(_G, "UnitName"), rawget(_G, "UnitExists")
+      _G.UnitName = function(u) if u == "target" then return long end return "Leader" end
+      _G.UnitExists = function() return true end
+      w:SetWidth(200)
+      w:Show()
+      w.Refresh(w)
+      local inTitle = (w.seg.text or "") ~= "" and string.find(w.seg.text, long, 1, true)
+      local b1 = w.bars[1]
+      local onLine = b1 and b1.row and b1.row.pullrow == "mob" and string.find(b1.left.text or "", long, 1, true)
+      ok((inTitle or onLine) and not string.find(w.seg.text or "", "...", 1, true),
+        "a long target name is shown whole (" .. (inTitle and "title" or (onLine and "its own line" or "cut")) .. ")")
+      _G.UnitName, _G.UnitExists = svU, svE
+    end
     -- locked to threat: the display menu cannot switch it away
     pfUI.meters.SetMode(w, "damage")
     ok(w.mode == "threat", "your threat window stays on threat")

@@ -1194,6 +1194,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local tfont = (s.titlefont and s.titlefont ~= "") and s.titlefont or pfUI.font_default
     win.title:SetFont(tfont, tsize, "OUTLINE")
     win.seg:SetFont(tfont, max(6, tsize - 1), "OUTLINE")
+    win.segFont, win.segSize = tfont, max(6, tsize - 1)
     if s.titleaccent == "1" then
       local ar, ag, ab = GetAccentColor()
       win.title:SetTextColor(ar, ag, ab, 1)
@@ -1477,12 +1478,33 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if mode.custom then M.CustomNames() end
     win.title:SetText(mode.name)
     win.titlebtn:SetWidth(win.title:GetStringWidth() + 10)
+    -- (20 Nov 2026, user: the target's name "is always like this not showing the full ... it should be clear and all
+    -- there") the name beside the title is never cut: it gets smaller (to 8 px) until it fits; still too long, the
+    -- threat window shows it in full on a line of its own at the top instead
+    local mobLine
+    local function FitSeg(text)
+      local size = win.segSize or 11
+      win.seg:SetFont(win.segFont or pfUI.font_default, size, "OUTLINE")
+      win.seg:SetText(text)
+      local room = (win.segbtn:GetWidth() or 0) - 2
+      if room <= 0 or text == "" then return true end
+      while size > 8 and (win.seg:GetStringWidth() or 0) > room do
+        size = size - 1
+        win.seg:SetFont(win.segFont or pfUI.font_default, size, "OUTLINE")
+      end
+      return (win.seg:GetStringWidth() or 0) <= room
+    end
     if win.mode == "threat" then
       -- (12 Nov 2026) the mob the numbers are for, beside the title
       local mob = UnitExists("target") and UnitName("target")
-      win.seg:SetText(mob and ("|cffaaaaaa" .. mob .. "|r") or "")
+      if mob and not FitSeg("|cffaaaaaa" .. mob .. "|r") then
+        win.seg:SetText("")
+        mobLine = mob
+      elseif not mob then
+        win.seg:SetText("")
+      end
     else
-      win.seg:SetText(SegmentName(win.segment, win))
+      FitSeg(SegmentName(win.segment, win) or "")
     end
 
     -- (test bars: every window shows the made-up fight; with the test fight
@@ -1493,6 +1515,13 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       rows = M.SampleRows(win.mode)
     else
       rows = M.Rows(win.mode, win.segment)
+    end
+    -- (the mob's name too long for the title: in full on the first line, with its health)
+    if mobLine and win.mode == "threat" then
+      local hp, hpmax = UnitHealth("target") or 0, UnitHealthMax("target") or 0
+      local f = hpmax > 0 and hp / hpmax or 0
+      table.insert(rows, 1, { name = mobLine, pullrow = "mob", value = f, max = 1, gap = 1, at = 1,
+                              label = "|cffe6e6e6" .. mobLine .. "|r", text = floor(f * 100 + .5) .. "%" })
     end
     local height = tonumber(s.barheight) or 16
     local gap = tonumber(s.spacing) or 1
