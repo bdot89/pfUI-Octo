@@ -417,6 +417,40 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     if hand == "off" then s.ohStart = t else s.mhStart = t end
     s.lastSwing = t
   end
+
+  -- (20 Nov 2026, Wolfahrt: "the module does not include st variable, that I use on my macros") SP_SwingTimer /
+  -- ST_Swingtimer keep the seconds left on your swing in the globals st_timer (main hand) and st_timerOff (off
+  -- hand), 0 when no swing is running; macros read them (its Slam macro: if st_timer > UnitAttackSpeed"player" * 0.9).
+  -- Ours fills the same two every frame - unless such an add-on is loaded: then they are its own.
+  function ST.Left(hand)
+    local start, speed = s.mhStart, s.mhSpeed
+    if hand == "off" then start, speed = s.ohStart, s.ohSpeed end
+    if not (start and speed) or start <= 0 then return 0 end
+    local left = start + speed - now()
+    return left > 0 and left or 0
+  end
+  function ST.OtherTimer()
+    if type(GetNumAddOns) ~= "function" or not IsAddOnLoaded then return nil end
+    for i = 1, GetNumAddOns() do
+      local name = GetAddOnInfo(i)
+      local n = name and string.lower(name)
+      if n and (string.find(n, "^sp_swingtimer") or string.find(n, "^st_swingtimer")) and IsAddOnLoaded(name) then return name end
+    end
+  end
+  local stvars = CreateFrame("Frame")
+  stvars:RegisterEvent("PLAYER_LOGIN")
+  stvars:SetScript("OnEvent", function()
+    -- (every add-on is loaded by now)
+    ST.stOther = ST.OtherTimer()
+    if ST.stOther then this:SetScript("OnUpdate", nil) end
+  end)
+  function ST.PublishST()
+    if ST.stOther then return end
+    _G.st_timer = ST.Left("main")
+    _G.st_timerOff = s.dual and ST.Left("off") or 0
+  end
+  stvars:SetScript("OnUpdate", function() ST.PublishST() end)
+  ST.PublishST()
   -- your cast with a cast time is over (13 Nov 2026). C.swing.castswing:
   --   pause   (default) the swing waited while you cast and goes on from where it was: both hands' bars
   --           move later by the time the cast took (how this server treats Slam)

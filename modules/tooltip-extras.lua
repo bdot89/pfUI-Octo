@@ -455,6 +455,12 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
   function TX.ArmorCut(armor, plevel)
     return armor / (armor + 400 + 85 * plevel) * 100
   end
+  -- one school's figure as asked: "20%", "75" or "75 (20%)"
+  function TX.ResistText(raw, pct, form)
+    if form == "raw" then return tostring(raw) end
+    if form == "pct" then return pct .. "%" end
+    return raw .. DIM .. " (" .. pct .. "%)|r"
+  end
   -- average resisted %, from the resistance, your level and the mob's
   function TX.Resist(amount, plevel, mlevel, school)
     amount = math.max(0, amount or 0)
@@ -528,15 +534,23 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
       shown = true
     end
     -- resistances: only the ones that take something; all the same = "All x%"
-    local list, same, first = {}, true, nil
+    -- (20 Nov 2026, Wolfahrt: "it shows Target resistance with % and not raw values") C.tooltip.x_resistform:
+    -- pct = the share your spells lose (as before), raw = the resistance itself, both = "Fire 75 (20%)"
+    local form = C.tooltip.x_resistform or "both"
+    local list, same, first, firstRaw = {}, true, nil, nil
     for _, s in ipairs(SCHOOLS) do
       local _, eff = UnitResistance(unit, s[1])
-      local p = math.floor(TX.Resist(tonumber(eff) or 0, plevel, mlevel, s[1]) + .5)
-      if first == nil then first = p elseif p ~= first then same = false end
-      if p > 0 then table.insert(list, "|cff" .. s[3] .. s[2] .. " " .. p .. "%|r") end
+      local raw = math.max(0, math.floor(tonumber(eff) or 0))
+      local p = math.floor(TX.Resist(raw, plevel, mlevel, s[1]) + .5)
+      local key = p .. ":" .. raw
+      if first == nil then first, firstRaw = key, raw elseif key ~= first then same = false end
+      local text = TX.ResistText(raw, p, form)
+      if (p > 0 or (form ~= "pct" and raw > 0)) and text then table.insert(list, "|cff" .. s[3] .. s[2] .. " " .. text .. "|r") end
     end
     if table.getn(list) > 0 then
-      local right = (same and table.getn(list) == 6) and ("All " .. first .. "%") or table.concat(list, DIM .. ", |r")
+      local _, _, fp = string.find(first or "", "^(%d+)")
+      local right = (same and table.getn(list) == 6) and ("All " .. TX.ResistText(firstRaw or 0, tonumber(fp) or 0, form))
+        or table.concat(list, DIM .. ", |r")
       tt:AddDoubleLine("Resists", right, HEAD[1], HEAD[2], HEAD[3], 1, 1, 1)
       shown = true
     end

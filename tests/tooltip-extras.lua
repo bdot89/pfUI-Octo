@@ -100,6 +100,11 @@ pfUI_config.tooltip.x_mobstats = "0"
 ok(_G.MobStats.ApplicationService:GetMobStats("mouseover") ~= nil, "ours off: MobStats draws again")
 pfUI_config.tooltip.x_mobstats = "1"
 _G.MobStats, TX.msOrig = oldMS, nil
+-- (20 Nov 2026, Wolfahrt) resistances as the raw value, the %, or both
+ok(TX.ResistText(75, 20, "raw") == "75" and TX.ResistText(75, 20, "pct") == "20%"
+  and string.find(TX.ResistText(75, 20, "both"), "^75") and string.find(TX.ResistText(75, 20, "both"), "(20%)", 1, true),
+  "resists: raw 75, 20%, or 75 (20%)")
+ok(CT.x_resistform == "both", "resists show both by default")
 local r = TX.SkillColor(250, 300)
 ok(r == 1, "skill colour: red below what it needs")
 

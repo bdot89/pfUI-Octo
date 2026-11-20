@@ -44,6 +44,11 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
       function() return G().hours or "24" end, function(v) G().hours = v end)
     O.PfChk(p, "Start with every stack I have", "Off: the number of stacks starts at 1.", G, "allstacks")
     O.PfChk(p, "Look prices up when I pick an item", "Picking an item on the Sell tab searches the auction house for it at once.", G, "autolookup")
+    -- (20 Nov 2026, Wolfahrt: "click on item to align on prices", as Aux)
+    W.Dropdown(p, "A picked item's price", "What the price starts at once the item has been looked up. Clicking an auction "
+      .. "under \"On the auction house now\" always lines your price up with it.",
+      { { key = "under", label = "Just under the cheapest now" }, { key = "saved", label = "My last price for it" } },
+      function() return G().sellprice or "under" end, function(v) G().sellprice = v end)
 
     W.Card(p, "Window", { icon = "Interface\\Icons\\INV_Misc_Note_01", tip = "Drag its title bar to move it; the place is kept." })
     O.PfSld(p, "Size", nil, .6, 1.4, .05, G, "scale", nil, Pct)

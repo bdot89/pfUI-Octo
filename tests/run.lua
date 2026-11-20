@@ -2646,6 +2646,24 @@ do
     local SW = pfUI.swing
     O:Select("o:stbars")
     ok(SW and O.pages.stbars and pfUI.swingOcto and pfUI.swingOcto.bars and pfUI.swingOcto.bars.player, "Swing Timer page with a preview")
+    -- (20 Nov 2026, Wolfahrt: "the module does not include st variable, that I use on my macros") SP / ST_Swingtimer's
+    -- st_timer (seconds left on the main-hand swing) and st_timerOff, for macros
+    if SW and SW.PublishST then
+      local st, keepOther = SW.state, SW.stOther
+      local keepM, keepS = st.mhStart, st.mhSpeed
+      SW.stOther = nil
+      st.mhStart, st.mhSpeed = GetTime() - 1, 2.6
+      SW.PublishST()
+      ok(math.abs((rawget(_G, "st_timer") or -1) - 1.6) < .01, "st_timer = seconds left on the swing (" .. tostring(rawget(_G, "st_timer")) .. ")")
+      st.mhStart = GetTime() - 5
+      SW.PublishST()
+      ok(rawget(_G, "st_timer") == 0 and rawget(_G, "st_timerOff") == 0, "no swing running: 0, as SP_SwingTimer")
+      SW.stOther = "ST_Swingtimer"
+      _G.st_timer = 9
+      SW.PublishST()
+      ok(rawget(_G, "st_timer") == 9, "with ST_Swingtimer loaded its own values are left alone")
+      st.mhStart, st.mhSpeed, SW.stOther = keepM, keepS, keepOther
+    end
     -- (1 Nov 2026) every style applies, reads back as itself and has a bar picture
     if SW and SW.STYLES then
       local look, keep = pfUI_config.swing.look, {}

@@ -1466,7 +1466,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
     if d.owner == UnitName("player") then r.cell[2]:SetTextColor(.4, .9, .5) else r.cell[2]:SetTextColor(.8, .8, .84) end
-  end)
+  end, function(d) UI.MatchPrice(d) end)
   P.rivals:SetPoint("TOPLEFT", P.box, "TOPLEFT", 0, -292)
   P.rivals:SetPoint("RIGHT", P.box, "RIGHT", 0, 0)
   P.rivals.sortBy = "unit"
@@ -1541,7 +1541,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if not d then return end
     AH.Search({ name = d.name, exact = true }, function() UI.PaintSell() end, function()
       -- (first look at an item with no price yet: start from the cheapest)
-      if UI.sell == d and P.buyp:GetText() == "" then UI.Price("under", true) end
+      -- (20 Nov 2026, Wolfahrt: "click on item to align on prices", as Aux) C.auction.sellprice "under" (default):
+      -- a picked item always starts just under the cheapest other seller now; "saved" keeps your last price
+      if UI.sell == d and (P.buyp:GetText() == "" or S().sellprice ~= "saved") then UI.Price("under", true) end
       UI.PaintSell()
     end)
   end
@@ -1562,6 +1564,18 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     local share = (tonumber(S().bidshare) or 95) / 100
     SetMoney(P.bidp, (which == "saved" and sug.saved.bid) or math.max(1, math.floor(buy * share)))
     UI.PaintSell()
+  end
+  -- (20 Nov 2026, Wolfahrt, as Aux) click an auction on "On the auction house now": your price lines up with it -
+  -- just under someone else's (the undercut setting), the same as your own
+  function UI.MatchPrice(d)
+    if not (UI.sell and d and d.unit and d.unit > 0) then return end
+    local buy = d.owner == UnitName("player") and d.unit or AH.Undercut(d.unit)
+    SetMoney(P.buyp, buy)
+    local share = (tonumber(S().bidshare) or 95) / 100
+    SetMoney(P.bidp, math.max(1, math.floor(buy * share)))
+    UI.PaintSell()
+    UI.Note("Priced " .. AH.Money(buy, true) .. " each: " .. (d.owner == UnitName("player") and "the same as your auction."
+      or ("under " .. (d.owner or "?") .. "'s " .. AH.Money(d.unit, true) .. ".")))
   end
   function UI.SellNumbers()
     local d = UI.sell

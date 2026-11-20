@@ -93,6 +93,10 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Drop(p, "Mob armor, hits and resists", "An enemy's armor and how much of your physical damage it takes off, its "
       .. "melee hits and speed, and how much of your spells each school's resistance takes on average (MobStats' "
       .. "formulas; MobStats' own lines are hidden while these are on).", SHOWN, "tooltip", nil, "x_mobstats", Live)
+    -- (20 Nov 2026, Wolfahrt: resistances in % "and not raw values. I did not find where to configure it")
+    Drop(p, "Resists shown as", "The resistance itself (75), the share of your spells it takes (20%), or both: "
+      .. "Fire 75 (20%).", { { key = "both", label = "Both: 75 (20%)" }, { key = "raw", label = "Resistance: 75" },
+      { key = "pct", label = "Spell share: 20%" } }, "tooltip", nil, "x_resistform", Live)
 
     W.Card(p, "Screen and messages")
     Chk(p, "Glow: in combat", "A soft glow round the screen's edge while you fight.", "appearance", "infight", "screen")

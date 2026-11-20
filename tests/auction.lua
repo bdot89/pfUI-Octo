@@ -441,6 +441,17 @@ do
   ok(okay2 and tostring(UI.pages.sell.size:GetText()) == "12" and AH.ParseMoney(UI.pages.sell.buyp:GetText()) == 90, "Sell: your last stack size and the usual price are filled in " .. tostring(err2 or "") .. " [" .. tostring(UI.pages.sell.size:GetText()) .. " / " .. tostring(UI.pages.sell.buyp:GetText()) .. " / " .. tostring(AH.Value("2589")) .. "]")
   local nums = UI.SellNumbers()
   ok(nums and nums.size == 12 and nums.stacks == 1 and nums.buy == 90 and nums.bid == 85, "the starting price follows the buyout (95%)")
+  -- (20 Nov 2026, Wolfahrt: "click on item to align on prices", as Aux) a click on an auction lines your price up with it
+  do
+    UI.MatchPrice({ unit = 200, owner = "Rival" })
+    local m = UI.SellNumbers()
+    ok(m and m.buy == AH.Undercut(200) and m.buy < 200, "clicking someone's auction: just under it (" .. tostring(m and m.buy) .. ")")
+    UI.MatchPrice({ unit = 150, owner = UnitName("player") })
+    m = UI.SellNumbers()
+    ok(m and m.buy == 150, "clicking your own: the same price")
+    ok(pfUI_config.auction.sellprice == "under", "a picked item starts under the cheapest by default")
+    UI.Price("value")
+  end
   -- (19 Nov 2026, user: "quick option for list 1 by 1 add sliders under the numbers")
   do
     local P = UI.pages.sell
