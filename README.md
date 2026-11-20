@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.2
+
+- 🎯 **No more target frame error:** "TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing.
+
 ## 📜 New in 1.2.1
 
 - ✨ **OctoProcs looks:** our own art - wings, a crown, a light beam, a ring and a glow - tinted in each proc's colour, with a burst as a proc starts. Pick a look for all or for each proc, plus its place and colour. ProcDoc's options are all there (least / most opacity and size, pulse speed, top and side offsets, mute, timers) and more: art size, countdown size, only in a fight, edge glow width. The hard light columns and solid screen bands are gone.

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.2", {
+    { "No more target frame error", "\"TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'\" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing." },
+  } },
   { "1.2.1", {
     { "OctoProcs looks", "our own art - wings, a crown, a light beam, a ring and a glow - tinted in each proc's colour, with a burst as a proc starts. Pick a look for all or for each proc, plus its place and colour. ProcDoc's options are all there (least / most opacity and size, pulse speed, top and side offsets, mute, timers) and more: art size, countdown size, only in a fight, edge glow width. The hard light columns and solid screen bands are gone." },
     { "Tanks are never told to hold off", "Meters > Threat > Label & warnings starts with \"I am a tank\" (Auto / Always / Never). Auto counts holding aggro, Defensive Stance, Bear Form, Righteous Fury, Rockbiter or a tank mark, and stance dancing in a fight no longer wakes the warnings." },
@@ -185,9 +188,5 @@ pfUI.octoNotes = {
     { "Pick a frame", "point at any frame of any add-on and press Enter (or /moveany <FrameName>) - it gets a box like ours." },
     { "Game windows", "Shift + drag the character window, spellbook, quest log, talents, trainers, vendors and more; they open there from then on." },
     { "Clearer layout mode bar", "grouped controls with headings, tooltips on everything, and the clicks always shown under it. Settings > Move anything has opacity per frame, your picked frames and moved windows. New files: restart the game fully once." },
-  } },
-  { "1.1.62", {
-    { "Important enemy buffs on nameplates without SuperWoW", "buff names now also come from ClassicAPI or the buff's tooltip, so \"Important ones\" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone." },
-    { "Your own important buffs", "Nameplates > Auras > Enemy buffs - add any buff you want treated as important (names separated by #)." },
   } },
 }
