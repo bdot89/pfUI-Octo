@@ -176,6 +176,9 @@ if DM.EVENTS then
   local holder
   for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
   ok(holder == me, "Overthreat: the boss turns to you (" .. tostring(holder) .. ")")
+  -- (20 Nov 2026, user: "when it demos an over threat the boss target does not change") its target is you now
+  ok(env.UnitName("targettarget") == me and env.UnitIsUnit("targettarget", "player"), "the boss's target is you (target of target: "
+    .. tostring(env.UnitName("targettarget")) .. ")")
   Run(14)
   holder = nil
   for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
@@ -227,6 +230,7 @@ if DM.EVENTS then
     local holder
     for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
     ok(who and holder == who, "then the boss turns to them (" .. tostring(holder) .. ")")
+    ok(who and env.UnitName("targettarget") == who, "and its target is them (target of target: " .. tostring(env.UnitName("targettarget")) .. ")")
     Run(14)
     holder = nil
     for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
@@ -253,14 +257,67 @@ if DM.EVENTS then
   for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end
   ok(dead >= 1, "Someone dies")
   DM.Event("res")
+  ok(DM.resq ~= nil, "Res everyone: the resses start")
+  local g0 = 0
+  while DM.resq and g0 < 60 do Run(1) g0 = g0 + 1 end
   dead = 0
   for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end
-  ok(dead == 0, "Res everyone brings them all up")
+  ok(dead == 0 and DM.resq == nil, "Res everyone brings them all up, one res at a time")
   DM.Event("wipe")
   Run(30)
   ok(DM.phase ~= "boss" and DM.wiped ~= false, "Wipe: the raid goes down and the fight ends (" .. tostring(DM.phase) .. ")")
   ok(DM.forceWipe == nil, "the wipe is over once the fight is")
+  -- (20 Nov 2026, user: after a wipe "resses one at a time starting with ressers first so we can track the res icons")
+  do
+    local guard = 0
+    while DM.phase ~= "rest" and guard < 40 do Run(1) guard = guard + 1 end
+    ok(DM.phase == "rest" and DM.resq, "after the wipe: the rest, with the resses running")
+    local deadNow = 0
+    for _, u in ipairs(DM.list) do if u.dead then deadNow = deadNow + 1 end end
+    ok(deadNow > 5, "nobody gets up at once (" .. deadNow .. " still down)")
+    -- (everyone down: a Soulstone first, then the first casts)
+    Run(8)
+    local casting, ressedIcon, firstUp
+    local lp = pfUI.api and pfUI.api.libpredict
+    for resser, c in pairs(DM.resq and DM.resq.busy or {}) do
+      if resser.cast and DM.RESSPELL[resser.class or ""] then casting = resser end
+      for tok, u in pairs(DM.units or {}) do
+        if u == c.target and lp and env.UnitName(tok) == u.name and lp:UnitHasIncomingResurrection(tok) then ressedIcon = u end
+      end
+    end
+    ok(casting and casting.cast.name == DM.RESSPELL[casting.class][1], "a resser casts " .. tostring(casting and casting.cast.name) .. " (its cast bar)")
+    ok(ressedIcon, "the one being ressed has the res icon")
+    -- the dead ressers come first
+    local upRessers, upOthers = 0, 0
+    for _, u in ipairs(DM.list) do
+      if not u.dead and u.role ~= "tank" then if DM.RESSPELL[u.class or ""] then upRessers = upRessers + 1 else upOthers = upOthers + 1 end end
+    end
+    ok(upRessers >= upOthers, "ressers first (" .. upRessers .. " ressers up, " .. upOthers .. " others)")
+    local g2 = 0
+    while DM.resq and g2 < 120 do Run(1) g2 = g2 + 1 end
+    deadNow = 0
+    for _, u in ipairs(DM.list) do if u.dead then deadNow = deadNow + 1 end end
+    ok(deadNow == 0 and DM.resq == nil, "in the end everyone is up")
+  end
   ok(DM.Event("kill") and true, "Kill the boss")
+  -- (20 Nov 2026, user: "all spells on action bars should rotate as they were being used ... trinkets anything")
+  do
+    local keepHas = rawget(_G, "HasAction")
+    _G.HasAction = function(s) return s == 1 or s == 2 or s == 3 or s == 61 end
+    DM.slots = nil
+    local now = GetTime()
+    for _ = 1, 6 do DM.UseNextSlot(now) end
+    local used = 0
+    for _ in pairs(DM.slotcd or {}) do used = used + 1 end
+    ok(table.getn(DM.slots) == 4 and used == 4, "every slot on your bars gets used in turn (" .. used .. " of 4)")
+    local s, d = env.GetActionCooldown(61)
+    ok(s and d and d >= 8 / DM.speed - .01, "a used slot shows its cooldown on the bar (" .. tostring(d) .. " s)")
+    local ts, td = env.GetInventoryItemCooldown("player", 13)
+    if not ts then ts, td = env.GetInventoryItemCooldown("player", 14) end
+    ok(ts and td and td > 60 / DM.speed - .01, "a trinket goes on cooldown too")
+    _G.HasAction = keepHas
+    DM.slots = nil
+  end
 end
 DM.Stop(true)
 ok(TH == nil or TH.list == nil, "threat list cleared at stop")

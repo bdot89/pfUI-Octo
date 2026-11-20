@@ -279,13 +279,35 @@ pfUI:RegisterModule("demo", "vanilla", function ()
 
   -- ---------------------------------------------------------------- the pretend unit answers
   -- the data behind a unit token while the demo runs (nil = ask the game)
+  -- (20 Nov 2026, user: "when it demos an over threat the boss target does not change") you as a pretend unit, from
+  -- your real health and power, for the boss's target when it turns to you
+  local meData = { isMe = true, player = true, debuffs = {}, buffs = {} }
+  function DM.MeData()
+    local d = meData
+    d.name = _G.UnitName("player")
+    d.cl, d.class = _G.UnitClass("player")
+    d.hp, d.max = _G.UnitHealth("player") or 1, _G.UnitHealthMax("player") or 1
+    d.pw, d.pmax, d.ptype = _G.UnitMana("player") or 0, _G.UnitManaMax("player") or 0, _G.UnitPowerType("player") or 0
+    d.level = _G.UnitLevel("player") or 60
+    return d
+  end
+  -- whoever the boss is on: the tank, someone who pulled it off (DM.aggroWho), or you (DM.aggroMe)
+  function DM.BossTarget()
+    if DM.aggroMe then return DM.MeData() end
+    if DM.aggroWho then
+      for _, u in ipairs(DM.list or {}) do if u.name == DM.aggroWho and not u.dead then return u end end
+    end
+    local tk = DM.tank
+    if tk and tk.dead then tk = DM.offtank end
+    return tk
+  end
   local function Fake(u)
     if not DM.on or type(u) ~= "string" then return nil end
     u = string.lower(u)
     local d = DM.units[u]
     if d then return d end
     if u == "target" or u == "playertarget" then return S().target == "1" and DM.boss or nil end
-    if u == "targettarget" then return S().target == "1" and DM.boss and DM.tank or nil end
+    if u == "targettarget" then return S().target == "1" and DM.boss and DM.BossTarget() or nil end
     local _, _, n, rest = string.find(u, "^raid(%d+)(.*)$")
     if n then
       if rest == "target" then return DM.boss end
@@ -362,8 +384,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       local fa, fb = Fake(a), Fake(b)
       local orig = DM.orig[name]
       if not fa and not fb then return orig(a, b) end
-      local pa = fa or (type(a) == "string" and (string.lower(a) == "player" or Is1(a)) and "me")
-      local pb = fb or (type(b) == "string" and (string.lower(b) == "player" or Is1(b)) and "me")
+      local pa = (fa and (fa.isMe and "me" or fa)) or (type(a) == "string" and (string.lower(a) == "player" or Is1(a)) and "me")
+      local pb = (fb and (fb.isMe and "me" or fb)) or (type(b) == "string" and (string.lower(b) == "player" or Is1(b)) and "me")
       local enemyA = fa and fa.enemy
       local enemyB = fb and fb.enemy
       if name == "UnitIsUnit" then return (pa and pa == pb) and 1 or nil end
@@ -474,6 +496,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.lhGet = nil
     local TH = pfUI.meters and pfUI.meters.threat
     if TH then TH.demoPredict, TH.demoPending, TH.demoPredictFor = nil, nil, nil end
+    -- (the pretend fight's threat history must not run on into a real fight's predictions)
+    if TH then TH.samples, TH.hist, TH.others, TH.all = {}, {}, {}, nil end
     DM.dotk = nil
     DM.thEvent, DM.forceWipe, DM.aggroMe, DM.aggroWho, DM.autoNext, DM.autoStep = nil, nil, nil, nil, nil, nil
     if TH and DM.thAsk then
@@ -725,7 +749,12 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local hits = {}
     if a.what == "raid" then hits = alive
     elseif a.what == "tank" then
-      local tk = DM.tank
+      -- (on whoever the boss is on - you after an overthreat: your combat text)
+      local tk = DM.BossTarget and DM.BossTarget() or DM.tank
+      if tk and tk.isMe then
+        DM.CT("inSpell", { amount = math.floor(Rand(a.dmg[1], a.dmg[2])), spell = a.name, school = 0 })
+        return
+      end
       if tk and tk.dead then tk = DM.offtank end
       if tk and not tk.dead then hits = { tk } else hits = { Pick(alive) } end
     else
@@ -857,10 +886,17 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     elseif ph == "rest" then
       DM.fight = false
       DM.boss, DM.pack = nil, nil
+      -- (20 Nov 2026, user: "when i use wipe event it should then do resses one at a time starting with ressers first
+      -- so we can track the res icons") the living are healed up; the dead get up one res at a time (DM.ResStep)
+      local anyDead
       for _, u in ipairs(DM.list) do
-        u.dead, u.hp, u.debuffs, u.cast, u.deadT = nil, u.max, {}, nil, nil
-        if u.ptype ~= 1 then u.pw = u.pmax else u.pw = 0 end
+        if u.dead then anyDead = true
+        else
+          u.hp, u.debuffs, u.cast = u.max, {}, nil
+          if u.ptype ~= 1 then u.pw = u.pmax else u.pw = 0 end
+        end
       end
+      if anyDead and DM.kind ~= "pvp" then DM.StartRes() end
       DM.wiped = nil
     end
     DM.dpsFull = CountDps()
@@ -938,8 +974,10 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         DM.Chat(l[1], string.format(l[2], math.random() < .5 and Pick(DM.ENEMYNAMES) or Pick(DM.list).name))
       end
     end
+    if DM.resq and not DM.forceWipe then DM.ResStep(dt) end
     if ph == "rest" then
-      if DM.pt >= DM.PHASES.rest then DM.SetPhase(DM.AfterRest()) end
+      -- (the next pull waits for everyone to be up)
+      if DM.pt >= DM.PHASES.rest and not DM.resq then DM.SetPhase(DM.AfterRest()) end
       return
     end
     if ph == "ended" then
@@ -955,10 +993,13 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       m.swing = m.swing - dt
       if m.swing <= 0 then
         m.swing = 2
-        local tk = DM.tank
+        -- (the boss hits whoever it is on - you too, after an overthreat: in your combat text)
+        local tk = (m == DM.boss) and DM.BossTarget() or DM.tank
         if tk and tk.dead then tk = DM.offtank end
         if DM.kind == "pvp" then tk = Pick(Alive()) end
-        if tk then Hurt(tk, Rand(m.def.melee[1], m.def.melee[2]) * ((m.enrageUntil and DM.t < m.enrageUntil) and 2 or 1)) end
+        local hit = Rand(m.def.melee[1], m.def.melee[2]) * ((m.enrageUntil and DM.t < m.enrageUntil) and 2 or 1)
+        if tk and tk.isMe then DM.CT("inMelee", { amount = math.floor(hit) })
+        elseif tk then Hurt(tk, hit) end
       end
     end
     Swing(b)
@@ -1198,6 +1239,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     end
     DM.kit = kit
     DM.cds, DM.procs, DM.react, DM.gcd = {}, {}, {}, nil
+    DM.slots = nil   -- your bars read again at the first cast
     DM.nextCast, DM.nextProc, DM.nextReact, DM.nextSwing, DM.nextTick = .5, 6, 10, 1, 3
     return kit
   end
@@ -1226,12 +1268,26 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       return DM.orig.GetSpellCooldown(i, book)
     end)
     Put("GetActionCooldown", function(slot)
+      -- (20 Nov 2026, user: "all spells on action bars should rotate as they were being used") the slot the demo
+      -- just used, then the global cooldown on every slot with something on it
+      local c = DM.slotcd and DM.slotcd[slot]
+      local now = GetTime()
+      if c and now < c.start + c.dur then return c.start, c.dur, 1 end
       local name = DM.kit and ActionName(slot)
       if name then
         local s, d, e = SpellCD(name)
         if s then return s, d, e end
       end
+      if DM.kit and DM.gcd and DM.slotset and DM.slotset[slot] and now < DM.gcd + DM.GCD / DM.speed then
+        return DM.gcd, DM.GCD / DM.speed, 1
+      end
       return DM.orig.GetActionCooldown(slot)
+    end)
+    -- your trinkets go on cooldown in turn too (gear slot bar, trinket bar, character window)
+    Put("GetInventoryItemCooldown", function(unit, slot)
+      local c = DM.invcd and type(unit) == "string" and string.lower(unit) == "player" and DM.invcd[slot]
+      if c and GetTime() < c.start + c.dur then return c.start, c.dur, 1 end
+      return DM.orig.GetInventoryItemCooldown(unit, slot)
     end)
     Put("IsUsableAction", function(slot)
       local name = DM.kit and ActionName(slot)
@@ -1273,6 +1329,45 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     _G.event, _G.this, _G.arg1 = e, t, a
   end
 
+  -- every action slot with something on it (1-120), read once at the start of a demo
+  function DM.ReadSlots()
+    DM.slots, DM.slotset, DM.slotcd, DM.invcd, DM.slotAt, DM.trinketN = {}, {}, {}, {}, 0, 0
+    local has = DM.orig and DM.orig.HasAction or _G.HasAction
+    for slot = 1, 120 do
+      local good, on = pcall(has or function() end, slot)
+      if good and on then
+        table.insert(DM.slots, slot)
+        DM.slotset[slot] = true
+      end
+    end
+    return table.getn(DM.slots)
+  end
+  function DM.UseNextSlot(now)
+    if not DM.slots then DM.ReadSlots() end
+    local n = table.getn(DM.slots)
+    if n > 0 then
+      -- the next slot that is not on its own cooldown already
+      for _ = 1, n do
+        DM.slotAt = math.mod(DM.slotAt or 0, n) + 1
+        local slot = DM.slots[DM.slotAt]
+        local c = DM.slotcd[slot]
+        if not c or now >= c.start + c.dur then
+          DM.slotcd[slot] = { start = now, dur = Rand(8, 45) / DM.speed }
+          DM.lastSlot = slot
+          break
+        end
+      end
+    end
+    -- a trinket every 6th cast, the two in turn (2 min)
+    DM.trinketN = (DM.trinketN or 0) + 1
+    if math.mod(DM.trinketN, 6) == 0 then
+      local inv = math.mod(math.floor(DM.trinketN / 6), 2) == 0 and 13 or 14
+      local c = DM.invcd[inv]
+      if not c or now >= c.start + c.dur then DM.invcd[inv] = { start = now, dur = 120 / DM.speed } end
+      DM.Poke("BAG_UPDATE_COOLDOWN")
+    end
+  end
+
   -- one step of you: the global cooldown, your next spell, your DoT ticks and swings, procs and reactive windows
   function DM.YouStep(dt)
     local kit, b = DM.kit, DM.boss
@@ -1305,6 +1400,10 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       DM.nextCast = DM.GCD
       DM.gcd = now
       DM.pokeCD = true
+      -- (20 Nov 2026, user: "all spells on action bars should rotate as they were being used ... trinkets anything")
+      -- the next slot on your bars is "used": its own cooldown sweep (8 - 45 s), every slot the global cooldown;
+      -- every few casts a trinket
+      DM.UseNextSlot(now)
       local pick, dot
       -- a DoT or debuff that is missing or nearly gone first, then a hit off cooldown, then the first hit (the filler)
       for _, list in ipairs({ kit.dots, kit.debuffs }) do
@@ -1700,6 +1799,13 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local wasKind = DM.kind
     DM.on, DM.boss, DM.fight, DM.pack, DM.caption = false, nil, false, nil, nil
     Try(DM.Uninstall)
+    DM.slots, DM.slotset, DM.slotcd, DM.invcd = nil, nil, nil, nil
+    -- (no res icon may stay behind)
+    if DM.resq then
+      local lp = pfUI.api and pfUI.api.libpredict
+      for r in pairs(DM.resq.busy or {}) do if lp and lp.RessStop then pcall(lp.RessStop, lp, r.name) end end
+      DM.resq = nil
+    end
     if DM.kit then
       DM.kit = nil
       Try(DM.Poke, "ACTIONBAR_UPDATE_COOLDOWN")
@@ -1740,6 +1846,92 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.speed = nxt
     S().speed = tostring(nxt)
     DM.PaintBar()
+  end
+
+  -- ---------------------------------------------------------------- resurrections, one at a time
+  -- Every living resser (priest, paladin, shaman, druid) casts a res on one of the dead - the dead ressers first, so more
+  -- hands get up sooner - with its cast bar and pfUI's res icon on the target (libpredict:Ress, as HealComm does); when
+  -- the cast ends the target is up. Nobody able to res: a Soulstone gets a resser up first.
+  DM.RESSPELL = { PRIEST = { "Resurrection", I .. "Spell_Holy_Resurrection" }, PALADIN = { "Redemption", I .. "Spell_Holy_Resurrection" },
+    SHAMAN = { "Ancestral Spirit", I .. "Spell_Nature_Regenerate" }, DRUID = { "Rebirth", I .. "Spell_Nature_Reincarnation" } }
+  DM.RESTIME = 3.5
+  local function LP() return pfUI.api and pfUI.api.libpredict end
+  function DM.StartRes()
+    DM.resq = { busy = {}, wait = 1.5 }
+    DM.Chat("SYSTEM", "Release and wait for a res - ressers first.")
+  end
+  function DM.ResStep(dt)
+    local q = DM.resq
+    if not q then return end
+    local now = GetTime()
+    local dead, alive = {}, {}
+    for _, u in ipairs(DM.list or {}) do if u.dead then table.insert(dead, u) else table.insert(alive, u) end end
+    -- casts that finished: the target is up
+    for resser, c in pairs(q.busy) do
+      if now >= c.finish then
+        q.busy[resser] = nil
+        resser.cast = nil
+        local lp = LP()
+        if lp and lp.RessStop then pcall(lp.RessStop, lp, resser.name) end
+        local t = c.target
+        if t.dead then
+          t.dead, t.hp, t.debuffs, t.cast, t.deadT = nil, t.max * .35, {}, nil, nil
+          if t.ptype ~= 1 then t.pw = (t.pmax or 0) * .35 else t.pw = 0 end
+          DM.Chat("SYSTEM", resser.name .. " resurrects " .. t.name .. ".")
+        end
+        resser.resRest = now + .6 / DM.speed
+        DM.dirty, DM.adirty = true, true
+        DM.Touch(true)
+      end
+    end
+    if table.getn(dead) == 0 then
+      local casting
+      for _ in pairs(q.busy) do casting = true end
+      if not casting then
+        DM.resq = nil
+        Warn("Everyone is up - rebuff and go")
+        if DM.phase == "rest" then DM.pt = 0 end
+      end
+      return
+    end
+    q.wait = (q.wait or 0) - dt
+    if q.wait > 0 then return end
+    -- who is being ressed already
+    local taken = {}
+    for _, c in pairs(q.busy) do taken[c.target] = true end
+    local function NextTarget()
+      for _, u in ipairs(dead) do if not taken[u] and DM.RESSPELL[u.class or ""] then return u end end
+      for _, u in ipairs(dead) do if not taken[u] then return u end end
+    end
+    local ressers = 0
+    for _, r in ipairs(alive) do
+      local sp = DM.RESSPELL[r.class or ""]
+      if sp then
+        ressers = ressers + 1
+        if not q.busy[r] and now >= (r.resRest or 0) then
+          local t = NextTarget()
+          if not t then break end
+          taken[t] = true
+          q.busy[r] = { target = t, finish = now + DM.RESTIME / DM.speed }
+          r.cast = { name = sp[1], icon = sp[2], start = now, finish = now + DM.RESTIME / DM.speed }
+          local lp = LP()
+          if lp and lp.Ress then pcall(lp.Ress, lp, r.name, t.name) end
+          DM.dirty = true
+        end
+      end
+    end
+    -- nobody alive can res: a Soulstone on a dead resser
+    if ressers == 0 then
+      local first
+      for _, u in ipairs(dead) do if not first and DM.RESSPELL[u.class or ""] then first = u end end
+      first = first or dead[1]
+      first.dead, first.hp, first.debuffs = nil, first.max * .5, {}
+      if first.ptype ~= 1 then first.pw = (first.pmax or 0) * .5 end
+      DM.Chat("SYSTEM", first.name .. " uses a Soulstone.")
+      q.wait = 1.5 / DM.speed
+      DM.dirty, DM.adirty = true, true
+      DM.Touch(true)
+    end
   end
 
   -- ---------------------------------------------------------------- events on demand
@@ -1851,14 +2043,21 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     { key = "res", label = "Res everyone", icon = I .. "Spell_Holy_Resurrection", group = "Deaths",
       tip = "Every dead raider is resurrected, one after another in chat.",
       fn = function()
-        local d, h = Dead(), Healer()
+        local d = Dead()
         if table.getn(d) == 0 then DM.Chat("SYSTEM", "Nobody is dead - press Wipe or Someone dies first.") return end
-        for _, u in ipairs(d) do Res(u, h) end
+        -- one at a time, ressers first, each with its cast bar and res icon (DM.ResStep)
+        if not DM.resq then DM.StartRes() end
       end },
     { key = "wipe", label = "Wipe", icon = I .. "Spell_Shadow_DeathScream", group = "Deaths",
       tip = "The raid goes down over a few seconds; after it, the same boss again (Res everyone to bring them up at once).",
       fn = function()
         if not Fight() then return end
+        -- (resses still going stop: nobody gets up while the raid goes down)
+        if DM.resq then
+          local lp = pfUI.api and pfUI.api.libpredict
+          for r in pairs(DM.resq.busy or {}) do r.cast = nil if lp and lp.RessStop then pcall(lp.RessStop, lp, r.name) end end
+          DM.resq = nil
+        end
         DM.forceWipe = true
         Warn("Wipe incoming!")
       end },
