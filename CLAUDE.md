@@ -1512,3 +1512,14 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   tests must close it with cam:stop(), or UIParent stays hidden). Showcase: the raid demo + DM.SHOW captions every 9 s
   (bar.caption under the bar), each step's own test (R.Test, TH.Sample, P.Test, AB.Test, ST.Test, D.Test); Next = next
   caption. DM.KillTime per kind and phase; damage scales by the dps alive vs DM.dpsFull.
+  Phase 4 (19-20 Nov 2026, NOT seen in game; user's dungeon run: "no party frames are showing up ... does the cooldown manager
+  all feature this also ... make sure it is all cycling properly"). The empty party could NOT be reproduced in the test host
+  (the user's WTF: party frames on, raidforgroup 0, hide_in_raid 1, positions half off the left edge): DM.Ensure now shows
+  every frame DM.Expected() names (party / raid-for-party / raid / target) and, once 1.5 s in, says in chat which are still
+  not on screen and why (DM.Why: switched off, hidden in raids, hidden parent, off the screen). DM.Cycle runs each module's
+  own test (DM.TESTS plates / bars / swing / dots / dottarget / range per DM.CYCLES[kind]) again every DM.CYCLETIME 20 s and
+  ends them at Stop; cdm.lua, octototems.lua and consumes.lua draw their layout-mode samples while DM.ShowSamples(). The
+  user has CoolDownManager and OctoConsumes switched off - the Demo page lists switched-off modules. AFK without pfUI's
+  afkcam (user's is off): DM.OwnAfk (pfDemoAfk on WorldFrame: gradients, clock, chat, camera turn, UIParent hidden; click /
+  key ends it). Wipe slider label "Wipe every ... bosses" (its number box showed "sses"). tests\demo.lua runs every demo
+  for 2 minutes at 4x and checks it keeps cycling.

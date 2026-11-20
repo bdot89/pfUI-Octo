@@ -116,6 +116,7 @@ local keepSend = rawget(_G, "SendAddonMessage")
 _G.SendAddonMessage = function() sent = sent + 1 end
 local keepRaid, keepParty = rawget(_G, "GetNumRaidMembers"), rawget(_G, "GetNumPartyMembers")
 _G.GetNumRaidMembers, _G.GetNumPartyMembers = function() return 0 end, function() return 0 end
+pfUI_config.unitframes.group.hide_in_raid = "1"
 DM.Start("raid")
 DM.SetPhase("boss")
 for _ = 1, 10 do Mock.now = Mock.now + .5 DM.Step(.5) DM.Threat(.5) end
@@ -150,7 +151,42 @@ ok(rawget(env, "UnitName") == before.UnitName and (not lh or lh.GetUnitHealth ~=
 Mock.now = now
 
 -- the dungeon (5): a party, no raid; packs by marks, the sheeped one last, kicks, then the end boss
+-- (19 Nov 2026, user: "no party frames are showing up") the user's settings: party frames hide in raids, raid demo first
+local hir = pfUI_config.unitframes.group.hide_in_raid
+pfUI_config.unitframes.group.hide_in_raid = "1"
+DM.Start("raid")
+for _ = 1, 3 do Mock.now = Mock.now + .3 _G.this = DM.ticker Mock.Run(DM.ticker, "OnUpdate", .3) end
+DM.Stop(true)
 ok(DM.Start("dungeon") and DM.kind == "dungeon", "the dungeon demo starts")
+for _ = 1, 12 do
+  Mock.now = Mock.now + .3
+  _G.this = DM.ticker Mock.Run(DM.ticker, "OnUpdate", .3)
+  for _, f in pairs(pfUI.uf.frames) do
+    if f:GetScript("OnUpdate") then _G.this = f _G.arg1 = .3 pcall(f:GetScript("OnUpdate")) end
+  end
+end
+local shownP = 0
+for i = 1, 4 do if pfUI.uf.group and pfUI.uf.group[i] and pfUI.uf.group[i]:IsShown() then shownP = shownP + 1 end end
+ok(shownP == 4, "the four party frames show (" .. shownP .. ")")
+ok(table.getn(DM.Ensure(false)) == 0, "nothing the dungeon needs is missing")
+-- a frame switched off is named with the reason, never forced on
+local gv = pfUI_config.unitframes.group.visible
+pfUI_config.unitframes.group.visible = "0"
+for i = 1, 4 do local f = pfUI.uf.group and pfUI.uf.group[i] if f then pcall(f.UpdateVisibility, f) end end
+local said
+local keepAdd = DEFAULT_CHAT_FRAME.AddMessage
+DEFAULT_CHAT_FRAME.AddMessage = function(self, t) said = t end
+DM.Ensure(true)
+DEFAULT_CHAT_FRAME.AddMessage = keepAdd
+ok(said and string.find(said, "switched off", 1, true), "a switched-off frame is named in chat: " .. tostring(said))
+pfUI_config.unitframes.group.visible = gv
+pfUI_config.unitframes.group.hide_in_raid = hir
+-- the other modules' tests run and come back, the samples show
+ok(DM.ShowSamples() and DM.cycled, "CoolDownManager / OctoTotems / OctoConsumes samples on, module tests started")
+local c0 = DM.cycled
+Mock.now = Mock.now + DM.CYCLETIME + 1
+_G.this = DM.ticker Mock.Run(DM.ticker, "OnUpdate", .3)
+ok(DM.cycled > c0, "the module tests start again before they run out")
 ok(env.GetNumRaidMembers() == 0 and env.GetNumPartyMembers() == 4 and env.UnitInRaid("party1") == nil, "a party of five, not a raid")
 ok(env.UnitName("party1") == DM.units.party1.name and DM.tank == DM.units.party1 and env.UnitIsPartyLeader("party1") == 1, "party1 tanks and leads")
 ok(DM.pack and table.getn(DM.pack) >= 3 and env.GetRaidTargetIndex("target") == 8, "a pack; skull on your target")
@@ -210,8 +246,18 @@ if cam and cam.start then
   DM.Step(1)
   ok(not DM.on, "the AFK screen closing ends the demo")
   _G.SendChatMessage = keepChat
-else
-  ok(DM.Start("afk") == false, "without the AFK screen the AFK demo says so")
+end
+-- (19 Nov 2026, the user's AFK camera is switched off) the demo's own AFK screen
+do
+  local keepCam = rawget(_G, "pfAFKCam")
+  _G.pfAFKCam = nil
+  ok(DM.Start("afk") and DM.afkUsesOwn and DM.afkOwn and DM.afkOwn:IsShown() and not UIParent:IsShown(),
+    "without pfUI's AFK camera: the demo's own AFK screen, the interface hidden")
+  for _ = 1, 6 do Mock.now = Mock.now + 2 DM.Step(2) end
+  _G.this = DM.afkOwn
+  Mock.Run(DM.afkOwn, "OnClick")
+  ok(not DM.on and not DM.afkOwn:IsShown() and UIParent:IsShown(), "a click ends it and the interface comes back")
+  _G.pfAFKCam = keepCam
 end
 
 -- the showcase: the raid underneath, a caption that steps through the modules
@@ -224,4 +270,33 @@ for _ = 1, 20 do Mock.now = Mock.now + 1 DM.Step(1) end
 ok(DM.showIndex >= 3, "the captions move on by themselves")
 DM.Stop(true)
 ok(DM.caption == nil and rawget(env, "UnitName") == before.UnitName, "showcase stopped, everything back")
+Mock.now = now
+
+-- (19 Nov 2026, user: "make sure it is all cycling properly") each demo, two minutes on its own clock at 4x
+for _, kind in ipairs({ "raid", "dungeon", "dummy", "pvp", "showcase" }) do
+  ok(DM.Start(kind), kind .. " demo starts")
+  DM.speed = 4
+  local phases, seen, errs = {}, 0, nil
+  local keepOn = DM.onPhase
+  local calls = 0
+  DM.onPhase = function(ph) calls = calls + 1 if not phases[ph] then phases[ph] = true seen = seen + 1 end end
+  for _ = 1, 240 do
+    Mock.now = Mock.now + .5
+    _G.this = DM.ticker
+    local good, err = pcall(Mock.Run, DM.ticker, "OnUpdate", .5)
+    if not good then errs = err break end
+    if not DM.on then break end
+  end
+  DM.onPhase = keepOn
+  local names = {}
+  for k in pairs(phases) do table.insert(names, k) end
+  local want = (kind == "dummy" and 1) or (kind == "pvp" and 2) or 3
+  ok(not errs and DM.on and seen >= want, kind .. " keeps cycling (" .. table.concat(names, ", ") .. ")" .. (errs and (": " .. tostring(errs)) or ""))
+  if kind == "dummy" then ok(calls >= 10, "the dummy stepped through its ranks " .. calls .. " times") end
+  if kind == "pvp" then ok(calls >= 6, "one enemy after another (" .. calls .. " changes)") end
+  if kind == "showcase" then ok(DM.showIndex and DM.showIndex > 3, "the showcase moved through its captions (" .. tostring(DM.showIndex) .. ")") end
+  DM.Stop(true)
+end
+DM.speed = 1
+ok(rawget(env, "UnitName") == before.UnitName and UIParent:IsShown(), "after every demo: all put back, the interface shown")
 Mock.now = now

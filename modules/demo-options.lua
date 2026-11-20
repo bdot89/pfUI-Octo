@@ -45,8 +45,20 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
     Chk(p, "Meters", "The meter windows show the test fight while the demo runs.", "meters")
     Chk(p, "Combat text", "Sample combat text while the demo runs.", "ctext")
     Chk(p, "Raid warnings", "Boss abilities and pulls in the middle of the screen, with the raid warning sound.", "warnings")
-    O.PfSld(p, "A wipe every", "0 = never. The raid goes down on that pull and tries the same boss again.", 0, 6, 1, G, "wipes", nil,
-      function(v) v = tonumber(v) or 0 if v == 0 then return "Never" end return v == 1 and "Every boss" or (v .. " bosses") end)
+    -- (the number box only has room for a number: the user's screenshot read "sses")
+    O.PfSld(p, "Wipe every ... bosses", "0 = never, 1 = every boss, 3 = every third. The raid goes down on that pull and "
+      .. "tries the same boss again.", 0, 6, 1, G, "wipes")
+    -- what cannot join in because it is switched off
+    W.Live(p, function()
+      local off = {}
+      for _, m in ipairs({ { "cdm", "CoolDownManager" }, { "consumes", "OctoConsumes" }, { "octototems", "OctoTotems" },
+        { "dots", "OctoDoTs" }, { "rinse", "OctoRinse" }, { "swing", "Swing Timer" }, { "plates", "Nameplates" },
+        { "meters", "Meters" }, { "raid", "Raid frames" }, { "group", "Party frames" } }) do
+        if C.disabled and C.disabled[m[1]] == "1" then table.insert(off, m[2]) end
+      end
+      if table.getn(off) == 0 then return "|cff55ff66Everything joins in.|r" end
+      return "|cffffaa33Switched off, so not in the demo:|r " .. table.concat(off, ", ")
+    end)
     W.Note(p, "/demo [raid | dungeon | dummy | pvp | afk | showcase] starts one, /demo stop ends it, /demo next skips ahead. "
       .. "A real fight ends the demo by itself. The AFK demo ends when you click or press a key.")
   end

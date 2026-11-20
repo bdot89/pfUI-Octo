@@ -898,7 +898,8 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
   local function MakeButton() return CS.NewButton(bar) end
 
   function CS.UpdateBar()
-    local layout = pfUI.unlock and pfUI.unlock:IsShown()
+    -- (19 Nov 2026) a running demo (modules/demo.lua) shows the samples too
+    local layout = (pfUI.unlock and pfUI.unlock:IsShown()) or (pfUI.demo and pfUI.demo.ShowSamples and pfUI.demo.ShowSamples())
     local rows = layout and CS.Samples() or CS.Shown(CS.rows)
     local n = CS.Layout(bar, bar.buttons, rows, MakeButton)
     bar:SetAlpha(Num(S().alpha, 1))
@@ -992,7 +993,7 @@ pfUI:RegisterModule("consumes", "vanilla", function ()
   -- a scan a second (timers count down), at once after an event
   ev:SetScript("OnUpdate", function()
     this.t = (this.t or 0) + arg1
-    local open = pfUI.unlock and pfUI.unlock:IsShown()
+    local open = (pfUI.unlock and pfUI.unlock:IsShown()) or (pfUI.demo and pfUI.demo.ShowSamples and pfUI.demo.ShowSamples())
     if open ~= this.open then this.open = open this.soon = true end
     if this.t < 1 and not (this.soon and this.t > .2) then return end
     this.t, this.soon = 0, nil

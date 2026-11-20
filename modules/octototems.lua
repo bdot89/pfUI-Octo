@@ -932,7 +932,8 @@ pfUI:RegisterModule("octototems", "vanilla", function ()
 
   function TT.Refresh(now)
     now = now or GetTime()
-    local layout = pfUI.unlock and pfUI.unlock.IsShown and pfUI.unlock:IsShown()
+    -- (19 Nov 2026) a running demo (modules/demo.lua) shows the sample bars too
+    local layout = (pfUI.unlock and pfUI.unlock.IsShown and pfUI.unlock:IsShown()) or (pfUI.demo and pfUI.demo.ShowSamples and pfUI.demo.ShowSamples())
     TT.Place()
     local show = TT.Wanted() or (layout and On("enable"))
     local together = (S().layout or "together") == "together"

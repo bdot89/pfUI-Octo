@@ -635,7 +635,9 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     elseif ph == "afk" then
       DM.boss, DM.fight = nil, false
       local cam = _G.pfAFKCam
-      if cam and cam.start then
+      DM.afkUsesOwn = not (cam and cam.start)
+      if DM.afkUsesOwn then DM.OwnAfk(true)
+      else
         pcall(cam.start, cam)
         local ov = cam.overlay
         if ov and not DM.afkNote then
@@ -731,13 +733,14 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   -- the AFK demo: chat lines on the AFK screen; the screen closing ends the demo
   local function AfkStep(dt)
     local cam = _G.pfAFKCam
-    if DM.pt > 1 and not (cam and cam._spinning) then DM.Stop() return end
+    local up = DM.afkUsesOwn and DM.afkOwn and DM.afkOwn:IsShown() or (not DM.afkUsesOwn and cam and cam._spinning)
+    if DM.pt > 1 and not up then DM.Stop() return end
     DM.chatAt = (DM.chatAt or 0) - dt
     if DM.chatAt > 0 then return end
     DM.chatAt = Rand(3, 6)
     local c = Pick(DM.AFKCHAT)
     local who = Pick(DM.NAMES)
-    local chat = cam and cam.overlay and cam.overlay.chat
+    local chat = DM.afkUsesOwn and DM.afkOwn and DM.afkOwn.chat or (cam and cam.overlay and cam.overlay.chat)
     local i = _G.ChatTypeInfo and _G.ChatTypeInfo[c[1]]
     local tag = ({ GUILD = "[Guild] ", OFFICER = "[Officer] ", PARTY = "[Party] ", WHISPER = "", SAY = "" })[c[1]] or ""
     local line = tag .. who .. (c[1] == "WHISPER" and " whispers" or (c[1] == "SAY" and " says" or "")) .. ": " .. c[2]
@@ -905,6 +908,154 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     end
   end
 
+  -- ---------------------------------------------------------------- the rest of pfUI Octo joins in
+  -- (19 Nov 2026, user: "does the cooldown manager all feature this also ... make sure everything works with the demo you
+  -- choose and make sure it is all cycling properly") Modules that read only you (your spells, cooldowns, swings, DoTs)
+  -- cannot see a pretend fight, so each one's own test effect runs, started again before it runs out, for as long as
+  -- the demo does. CooldownManager, OctoTotems and OctoConsumes draw their layout-mode samples while DM.ShowSamples().
+  function DM.ShowSamples() return DM.on and DM.kind ~= "afk" end
+  DM.TESTS = {
+    plates = function(s) local P = pfUI.plates if P and P.Test then P.Test(s) end end,
+    bars = function(s) local AB = pfUI.barsOcto if AB and AB.Test then AB.Test(s) end end,
+    swing = function(s) local ST = pfUI.swing if ST and ST.Test then ST.Test(s) end end,
+    dots = function(s) local D = pfUI.dots if D and D.Test then D.Test(s) end end,
+    dottarget = function(s) local TB = pfUI.dotsTarget if TB and TB.Test then TB.Test(s) end end,
+    range = function(s) local RG = pfUI.range if RG and RG.Test then RG.Test(s) end end,
+  }
+  DM.CYCLES = {
+    raid = { "plates", "bars", "swing", "dots", "dottarget", "range" },
+    dungeon = { "plates", "bars", "swing", "dots", "dottarget", "range" },
+    pvp = { "plates", "bars", "swing", "dots", "dottarget", "range" },
+    dummy = { "bars", "swing", "dots", "dottarget", "range" },
+    showcase = { "bars", "swing", "dottarget", "range" },
+  }
+  DM.CYCLETIME = 20
+  -- t: seconds the tests last (nil = start them for the next stretch; 0 = end them now)
+  function DM.Cycle(t)
+    local list = DM.CYCLES[DM.kind or ""]
+    if not list then return end
+    for _, key in ipairs(list) do
+      local fn = DM.TESTS[key]
+      if fn then pcall(fn, t or (DM.CYCLETIME + 3)) end
+    end
+    DM.cycled = GetTime()
+  end
+  -- every pfUI module the demo touched, for the tests and the Demo mode page
+  function DM.Cycled()
+    local out = {}
+    for _, key in ipairs(DM.CYCLES[DM.kind or ""] or {}) do table.insert(out, key) end
+    return out
+  end
+
+  -- ---------------------------------------------------------------- the frames that should show
+  -- (19 Nov 2026, user: "no party frames are showing up") the group frames are shown by the demo itself, and any that
+  -- still is not on screen after a moment is named in chat with the reason - so a setting never looks like a bug
+  function DM.Expected()
+    local uf, out = pfUI.uf, {}
+    if not uf then return out end
+    local cfg = C.unitframes or {}
+    if DM.roster == "party" then
+      if cfg.raidforgroup == "1" then
+        for i = 2, 5 do if uf.raid and uf.raid[i] then table.insert(out, { uf.raid[i], "Raid frame " .. i, cfg.raid }) end end
+      else
+        for i = 1, 4 do if uf.group and uf.group[i] then table.insert(out, { uf.group[i], "Party frame " .. i, cfg.group }) end end
+      end
+    elseif DM.roster == "raid" then
+      for i = 2, 40 do
+        local f = uf.raid and uf.raid[i]
+        if f then table.insert(out, { f, "Raid frame " .. i, cfg.raid }) end
+      end
+    end
+    if DM.boss and S().target == "1" and uf.target then table.insert(out, { uf.target, "Target frame", cfg.target }) end
+    return out
+  end
+  function DM.Why(f, c)
+    if c and c.visible == "0" then return "it is switched off (Unit Frames > Frame: Show this frame)" end
+    if f.label and string.sub(f.label, 1, 5) == "party" and C.unitframes.group.hide_in_raid == "1" and DM.roster == "raid" then
+      return "party frames hide in raids (Unit Frames > All frames: Hide party frames in a raid)"
+    end
+    local p = f:GetParent()
+    if p and p.IsVisible and not p:IsVisible() then return "what it sits on is hidden (" .. (p:GetName() or "a hidden frame") .. ")" end
+    local l, r = f:GetLeft(), f:GetRight()
+    local w = UIParent:GetWidth() or 0
+    if l and r and (r < 0 or l > w) then return "it is off the edge of the screen (Move Frames to bring it back)" end
+    return "something hid it"
+  end
+  -- shows every frame the demo needs; report = say in chat which still are not there
+  function DM.Ensure(report)
+    local missing = {}
+    for _, e in ipairs(DM.Expected()) do
+      local f, c = e[1], e[3]
+      if not f:IsShown() and not (c and c.visible == "0") then
+        if f.UpdateVisibility then pcall(f.UpdateVisibility, f) end
+        if not f:IsShown() and Fake((f.label or "") .. (f.id or "")) then f:Show() end
+        f.update_full = true
+      end
+      if not f:IsVisible() then table.insert(missing, e[2] .. ": " .. DM.Why(f, c)) end
+    end
+    if report and table.getn(missing) > 0 then
+      DM.Chat("SYSTEM", "|cff33ccffpfUI|r Demo: not on screen - " .. table.concat(missing, "; ", 1, math.min(4, table.getn(missing)))
+        .. (table.getn(missing) > 4 and (" (and " .. (table.getn(missing) - 4) .. " more)") or ""))
+    end
+    return missing
+  end
+
+  -- ---------------------------------------------------------------- an AFK screen of its own
+  -- (19 Nov 2026, user's run: "the AFK screen is switched off") without pfUI's AFK camera module the demo has its own:
+  -- the camera turns, the interface fades away, a clock and the chat on a dark band; any click or key ends it
+  function DM.OwnAfk(on)
+    local s = DM.afkOwn
+    if on then
+      if not s then
+        s = CreateFrame("Button", "pfDemoAfk", _G.WorldFrame)
+        s:SetAllPoints(_G.WorldFrame)
+        s:SetFrameStrata("DIALOG")
+        s:EnableMouse(true)
+        local top = s:CreateTexture(nil, "BACKGROUND")
+        top:SetTexture("Interface\\Buttons\\WHITE8X8")
+        top:SetPoint("TOPLEFT", s, "TOPLEFT") top:SetPoint("TOPRIGHT", s, "TOPRIGHT") top:SetHeight(110)
+        top:SetGradientAlpha("VERTICAL", 0, 0, 0, 0, 0, 0, 0, .9)
+        local bot = s:CreateTexture(nil, "BACKGROUND")
+        bot:SetTexture("Interface\\Buttons\\WHITE8X8")
+        bot:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT") bot:SetPoint("BOTTOMRIGHT", s, "BOTTOMRIGHT") bot:SetHeight(200)
+        bot:SetGradientAlpha("VERTICAL", 0, 0, 0, .9, 0, 0, 0, 0)
+        s.clock = s:CreateFontString(nil, "OVERLAY")
+        s.clock:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, 32, "OUTLINE")
+        s.clock:SetPoint("TOP", s, "TOP", 0, -14)
+        s.note = s:CreateFontString(nil, "OVERLAY")
+        s.note:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, 14, "OUTLINE")
+        s.note:SetPoint("TOP", s.clock, "BOTTOM", 0, -6)
+        s.note:SetText("|cff33ccffpfUI Octo demo|r - AFK screen. Click or press any key to end it.")
+        s.chat = CreateFrame("ScrollingMessageFrame", nil, s)
+        s.chat:SetPoint("BOTTOMLEFT", s, "BOTTOMLEFT", 14, 14)
+        s.chat:SetWidth(520) s.chat:SetHeight(150)
+        s.chat:SetFont(pfUI.font_default or STANDARD_TEXT_FONT, 13, "OUTLINE")
+        s.chat:SetJustifyH("LEFT")
+        s.chat:SetFading(false)
+        s.chat:SetMaxLines(60)
+        s:SetScript("OnClick", function() DM.Stop() end)
+        s:EnableKeyboard(true)
+        s:SetScript("OnKeyDown", function() DM.Stop() end)
+        s:SetScript("OnUpdate", function()
+          if (this.tick or 0) > GetTime() then return end
+          this.tick = GetTime() + 1
+          local h, m = _G.GetGameTime and _G.GetGameTime()
+          if h then this.clock:SetText(string.format("%.2d|cff33ccff:|r%.2d", h, m)) end
+        end)
+        DM.afkOwn = s
+      end
+      s.chat:Clear()
+      s.ui = UIParent:IsShown()
+      if s.ui then UIParent:Hide() end
+      if _G.MoveViewRightStart then pcall(_G.MoveViewRightStart, .08) end
+      s:Show()
+    elseif s and s:IsShown() then
+      s:Hide()
+      if _G.MoveViewRightStop then pcall(_G.MoveViewRightStop) end
+      if s.ui and not UIParent:IsShown() then UIParent:Show() end
+    end
+  end
+
   -- the showcase: the next caption and its test
   function DM.ShowNext()
     DM.showT = 0
@@ -947,10 +1098,6 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: not while you are in a fight.")
       return false
     end
-    if kind == "afk" and not (_G.pfAFKCam and _G.pfAFKCam.start) then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: the AFK screen is switched off (Quality of Life > Helpers: AFK camera).")
-      return false
-    end
     if DM.on then DM.Stop(true) end
     math.randomseed(math.floor((GetTime() or 0) * 1000))
     local roster = DM.ROSTERS[kind]
@@ -968,6 +1115,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.Regroup()
     if kind ~= "afk" then DM.Joins(true) end
     if kind == "showcase" then DM.ShowNext() end
+    DM.Cycle()
+    DM.ensureAt, DM.reported = GetTime() + 1.5, nil
     DM.bar:Show()
     DM.PaintBar()
     return true
@@ -975,6 +1124,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.Stop(quiet)
     if not DM.on then return end
     DM.Joins(false)
+    DM.Cycle(.01)
+    DM.OwnAfk(false)
     local wasKind = DM.kind
     DM.on, DM.boss, DM.fight, DM.pack, DM.caption = false, nil, false, nil, nil
     DM.Uninstall()
@@ -1106,6 +1257,13 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     acc, paint = acc + e, paint + e
     if paint >= .25 then paint = 0 DM.PaintBar() end
     if acc < .2 then return end
+    -- the other modules' tests again before they run out; the frames that should show, shown (and once, said)
+    if GetTime() - (DM.cycled or 0) >= DM.CYCLETIME then DM.Cycle() end
+    if DM.ensureAt and GetTime() >= DM.ensureAt then
+      DM.ensureAt = GetTime() + 2
+      DM.Ensure(not DM.reported)
+      DM.reported = true
+    end
     local dt = acc
     acc = 0
     if DM.paused then return end

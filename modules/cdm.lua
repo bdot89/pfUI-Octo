@@ -1196,7 +1196,8 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
   end
   function CDM.Update(now)
     local bars = CDM.Bars()
-    local layout = pfUI.unlock and pfUI.unlock:IsShown()
+    -- (19 Nov 2026) a running demo (modules/demo.lua) shows the sample icons too
+    local layout = (pfUI.unlock and pfUI.unlock:IsShown()) or (pfUI.demo and pfUI.demo.ShowSamples and pfUI.demo.ShowSamples())
     for i = 1, CDM.MAXBARS do
       local f, bar = CDM.frames[i], bars[i]
       if not bar then
