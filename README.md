@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.98
+
+- 🖥️ **Your monitor's Hz:** pick your refresh rate (only the ones your screen offers), vsync and triple buffering in Settings > Performance. Many games stay at 60 Hz on a faster screen until this is set. Apply restarts the graphics for a second and puts everything back by itself in 15 s unless you keep it.
+- 🎯 **Frame cap:** 1.12 has no frame cap of its own, so the page copies the DXVK line for you: a Steam / Lutris launch option, or one line for `dxvk.conf`. G-Sync / FreeSync screens get a cap 3 under the Hz.
+- 🐧 **Playing on Linux:** one switch for Wine / Proton / Lutris players: no forced wait for the graphics card (more frames), a smooth hardware mouse pointer, lighter effects in dungeons too and the memory ceiling on. Your own settings come back when you switch it off. It also shows which DLLs really loaded.
+- 👥 **Fewer far-away players (PerfBoost):** with the PerfBoost DLL, set how far players, pets and trash are drawn, in and out of combat. Three ready looks, and PvP-flagged or raid-marked players can always stay drawn. The biggest FPS gain in raids and cities.
+
 ## 📜 New in 1.1.97
 
 - 🛡️ **Raid chat window:** opens by itself when you join a raid and shows only what matters in a fight: raid chat and raid warnings, with the leader's and assists' calls standing out and the "+" answers gathered under each call as one line of names.

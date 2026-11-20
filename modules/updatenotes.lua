@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.98", {
+    { "Your monitor's Hz", "pick your refresh rate (only the ones your screen offers), vsync and triple buffering in Settings > Performance. Many games stay at 60 Hz on a faster screen until this is set. Apply restarts the graphics for a second and puts everything back by itself in 15 s unless you keep it." },
+    { "Frame cap", "1.12 has no frame cap of its own, so the page copies the DXVK line for you: a Steam / Lutris launch option, or one line for dxvk.conf. G-Sync / FreeSync screens get a cap 3 under the Hz." },
+    { "Playing on Linux", "one switch for Wine / Proton / Lutris players: no forced wait for the graphics card (more frames), a smooth hardware mouse pointer, lighter effects in dungeons too and the memory ceiling on. Your own settings come back when you switch it off. It also shows which DLLs really loaded." },
+    { "Fewer far-away players (PerfBoost)", "with the PerfBoost DLL, set how far players, pets and trash are drawn, in and out of combat. Three ready looks, and PvP-flagged or raid-marked players can always stay drawn. The biggest FPS gain in raids and cities." },
+  } },
   { "1.1.97", {
     { "Raid chat window", "opens by itself when you join a raid and shows only what matters in a fight: raid chat and raid warnings, with the leader's and assists' calls standing out and the \"+\" answers gathered under each call as one line of names." },
     { "Taunts and overaggro", "who taunted what (SuperWoW), resisted / missed / dodged / parried taunts in red, and a red OVERAGGRO line when a boss turns to someone who isn't tanking it." },
@@ -179,8 +185,5 @@ pfUI.octoNotes = {
     { "Closed bags stay quiet", "a closed bag window no longer redraws every slot (and reads every item's tooltip) each time your bags change - it catches up the moment you open it." },
     { "Lighter buff bars", "buff names are remembered until your buffs change, instead of read again every 0.4 seconds." },
     { "Druid stealth paging", "checked only when your buffs or form change (with ClassicAPI / SuperWoW's stealth check), not every frame." },
-  } },
-  { "1.1.58", {
-    { "World map pieces in the right place, every zone", "the map reveal now follows the game's own map table for all 53 zones, checked against a render of the real map pictures. No more wrong or doubled pieces in Thalassian Highlands and OctoWoW's other zones (the 1.1.55 change is undone)." },
   } },
 }
