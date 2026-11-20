@@ -122,6 +122,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.97
+
+- 🛡️ **Raid chat window:** opens by itself when you join a raid and shows only what matters in a fight: raid chat and raid warnings, with the leader's and assists' calls standing out and the "+" answers gathered under each call as one line of names.
+- 🎯 **Taunts and overaggro:** who taunted what (SuperWoW), resisted / missed / dodged / parried taunts in red, and a red OVERAGGRO line when a boss turns to someone who isn't tanking it.
+- 💧 **Healer mana after a fight:** every healer's mana, lowest first, with the raid average.
+- 💰 **Loot:** the master looter's links tagged [ML] and epic loot the raid receives. Links and names click as in any chat, and a box at the bottom talks to the raid.
+- 🔇 **Quiet chat in raids:** no General / Trade / LFG / World in your other chat windows while you raid, back the moment you leave or click Q. Chat & Panels > Raid chat, `/raidchat test` to try it.
+
 ## 📜 New in 1.1.96
 
 - 🎬 **The demo uses your whole action bar:** every spell, item and macro on your bars gets used in turn with its own cooldown sweep, every slot shows the global cooldown, and your trinkets go on cooldown too.

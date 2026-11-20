@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.97", {
+    { "Raid chat window", "opens by itself when you join a raid and shows only what matters in a fight: raid chat and raid warnings, with the leader's and assists' calls standing out and the \"+\" answers gathered under each call as one line of names." },
+    { "Taunts and overaggro", "who taunted what (SuperWoW), resisted / missed / dodged / parried taunts in red, and a red OVERAGGRO line when a boss turns to someone who isn't tanking it." },
+    { "Healer mana after a fight", "every healer's mana, lowest first, with the raid average." },
+    { "Loot", "the master looter's links tagged [ML] and epic loot the raid receives. Links and names click as in any chat, and a box at the bottom talks to the raid." },
+    { "Quiet chat in raids", "no General / Trade / LFG / World in your other chat windows while you raid, back the moment you leave or click Q. Chat & Panels > Raid chat, /raidchat test to try it." },
+  } },
   { "1.1.96", {
     { "The demo uses your whole action bar", "every spell, item and macro on your bars gets used in turn with its own cooldown sweep, every slot shows the global cooldown, and your trinkets go on cooldown too." },
     { "Resses like a real raid", "after a wipe nobody stands up at once. Ressers get up first, each res has its cast bar and the res icon shows on the one being ressed, and the next pull waits until everyone is up." },
@@ -175,8 +182,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.58", {
     { "World map pieces in the right place, every zone", "the map reveal now follows the game's own map table for all 53 zones, checked against a render of the real map pictures. No more wrong or doubled pieces in Thalassian Highlands and OctoWoW's other zones (the 1.1.55 change is undone)." },
-  } },
-  { "1.1.57", {
-    { "No freeze on instant gear swaps", "swapping a whole set changes every slot at once, and each change used to refresh the set buttons, heal prediction and durability right away - many times in one moment. Each now refreshes once, a fraction of a second after the swap." },
   } },
 }
