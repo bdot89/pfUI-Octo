@@ -794,6 +794,54 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   O:AddPage("Chat", "chwindows", "Windows", BuildWindows)
   O:AddPage("Chat", "chmessages", "Messages", BuildMessages)
   O:AddPage("Chat", "chwhispers", "Whispers", BuildWhispers)
+
+  -- chat-raid.lua: the raid chat window (20 Nov 2026)
+  local function RS() return C.chat.raidchat end
+  local function BuildRaid(p)
+    local RCm = pfUI.raidchat
+    W.Heading(p, "Raid chat", { on = O.ModuleSwitch("chat-raid", "Raid chat"), about = "A combat-ready chat window for raids: raid chat and "
+      .. "warnings (calls stand out, the \"+\" answers gather under them), taunts, overaggro, the healers' mana after a fight, the "
+      .. "master looter's links and epic loot. Links and names click as in any chat; the box at the bottom talks to the raid." })
+    W.Buttons(p, {
+      { "Show a test raid", function() if RCm then RCm.Test() end end, 150,
+        "A made-up raid in the window: a call with its + answers, a taunt, a resist, an overaggro, loot and healer mana.",
+        on = function() return RCm and RCm.test end },
+      { "End the test", function() if RCm then RCm.EndTest() end end, 110, "Clears the made-up lines." },
+    })
+    local function Up() if RCm then RCm.Roster() end end
+    W.Card(p, "When it shows", { tip = "It opens by itself when you join a raid." })
+    Chk(p, "Open in a raid", "Shows the window when you join a raid.", RS, "auto")
+    Chk(p, "Hide when you leave", nil, RS, "autohide")
+    Chk(p, "Quiet the other chat in raids", "No General / Trade / LFG / World channels in your chat windows while you are in a raid. "
+      .. "Back the moment you leave (or click Q on the window).", RS, "quiet", Up)
+    Chk(p, "Also say, yell and emotes", "Quiet those too while in a raid.", RS, "quietsay", Up)
+    W.Card(p, "What it shows", { tip = "Only what matters in a fight." })
+    Chk(p, "Everyone's raid chat", "Off: only the leader's and assists' calls, raid warnings and the master looter's links.", RS, "raid")
+    Chk(p, "Gather the + answers", "\"+\", \"1\", \"ok\"... under a call become one line: + 4 heard: names.", RS, "acks")
+    Chk(p, "Taunts", "Who taunted what, and resists, misses, dodges and parries (SuperWoW shows every taunt; without it only the failed ones).", RS, "taunts")
+    Chk(p, "Overaggro", "A boss turning to someone who is not tanking it, and tank swaps.", RS, "aggro")
+    Chk(p, "Elites too", "Overaggro on raid trash elites as well as bosses.", RS, "elites")
+    Chk(p, "Healer mana after a fight", "Priests, druids, shamans and paladins, lowest first, with the average.", RS, "mana")
+    Sld(p, "Fights shorter than this say nothing", nil, 0, 120, 5, RS, "manafight", function(v) return v .. " s" end)
+    Chk(p, "Loot", "Items the raid receives.", RS, "loot")
+    Drop(p, "Loot from", nil, { { key = "2", label = "Uncommon (green)" }, { key = "3", label = "Rare (blue)" },
+      { key = "4", label = "Epic (purple)" }, { key = "5", label = "Legendary (orange)" } }, RS, "lootq", function() end)
+    W.Card(p, "Window look", { tip = "Drag the bar to move it, the corner to size it." })
+    local function Re()
+      local F = RCm and RCm.frame
+      if not F then return end
+      F:SetWidth(tonumber(RS().width) or 400)
+      if not F.folded then F:SetHeight(tonumber(RS().height) or 220) end
+      RCm.Paint()
+    end
+    Sld(p, "Width", nil, 240, 900, 10, RS, "width", Px, Re)
+    Sld(p, "Height", nil, 110, 700, 10, RS, "height", Px, Re)
+    Sld(p, "Text size", nil, 8, 20, 1, RS, "fontsize", Px, Re)
+    W.Live(p, function()
+      return "|cffffd100/raidchat|r shows / hides it   |cffffd100/raidchat test|r a test raid   |cffffd100/raidchat quiet|r quiet chat on / off"
+    end)
+  end
+  O:AddPage("Chat", "chraid", "Raid chat", BuildRaid)
   O:AddPage("Chat", "chinput", "Typing and tools", BuildInput)
   O:AddPage("Chat", "chpanel", "Panel arrow", BuildArrow)
 end)

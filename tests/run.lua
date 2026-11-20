@@ -131,7 +131,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 -- modules that must start cleanly (the octo ones, as they are added)
 local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
-  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "swing", "swing-options",
+  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "chat-raid", "swing", "swing-options",
   "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
@@ -2548,6 +2548,67 @@ do
       _G.SendChatMessage = sendWas
       WHm.CloseAll()
       ws.mode, ws.combat = keepMode, keepCombat
+    end
+    -- (20 Nov 2026, user: "a raid chat window that enables when you enter a raid ... Shows Taunts, Overaggros, Healer %
+    -- of mana ... Loot that is linked from the masterlooter ... a raider puts + to show they have heard him")
+    local RCm = pfUI.raidchat
+    ok(RCm and O:Select("o:chraid") == nil and O.pages.chraid, "raid chat loaded, Raid chat page built")
+    if RCm then
+      local sent
+      local sendWas = _G.SendChatMessage
+      _G.SendChatMessage = function() sent = true end
+      RCm.Test()
+      local all = {}
+      for _, l in ipairs(RCm.lines) do table.insert(all, l.text) end
+      local text = table.concat(all, "\n")
+      local function has(s) return string.find(text, s, 1, true) ~= nil end
+      ok(RCm.frame and RCm.frame:IsShown() and RCm.frame:GetPoint() ~= nil, "the test raid opens the window in a place")
+      ok(has("[Lead]") and has("+ 4 heard:") and has("Valeera"), "a call stands out and its four + answers are one line")
+      ok(has("+ 1 heard:") and has("[RW]"), "a raid warning is a call too, with its own + line")
+      ok(has("TAUNT|r") and has("TAUNT RESISTED"), "taunts and a resisted taunt")
+      ok(has("OVERAGGRO") and has("pulled"), "a mage taking the boss off its tank is an overaggro")
+      ok(has("[ML]") and has("|Hitem:16800"), "the master looter's link is tagged and stays a link")
+      ok(has("HEALER MANA") and has("dead"), "healer mana after the fight, lowest first")
+      ok(has("LOOT|r"), "epic loot shows")
+      local function Count(who)
+        local n = 0
+        for _, l in ipairs(RCm.lines) do if string.find(l.text, who, 1, true) then n = n + 1 end end
+        return n
+      end
+      RCm.Raid("Valeera", "+", "RAID")
+      local n1 = Count("Valeera")
+      RCm.Raid("Valeera", "+", "RAID")
+      ok(n1 == 2 and Count("Valeera") == 2, "the same + twice under one call counts once (" .. n1 .. ")")
+      -- the combat log's failed taunts
+      local before = table.getn(RCm.lines)
+      RCm.CombatLine("Corvin's Mocking Blow was parried by Ragnaros.")
+      RCm.CombatLine("Corvin's Heroic Strike was parried by Ragnaros.")
+      ok(table.getn(RCm.lines) == before + 1 and string.find(RCm.lines[before + 1].text, "MOCKING BLOW PARRIED", 1, true),
+        "a parried Mocking Blow shows, a parried Heroic Strike does not")
+      before = table.getn(RCm.lines)
+      RCm.Loot("Jaina receives loot: |cff1eff00|Hitem:2589:0:0:0|h[Linen Cloth]|h|r.")
+      ok(table.getn(RCm.lines) == before, "green loot is left out by default")
+      RCm.Say("hello raid")
+      ok(not sent, "out of a raid the box sends nothing")
+      _G.SendChatMessage = sendWas
+      ok(RCm.IsAck(" + ") and RCm.IsAck("OK!") and not RCm.IsAck("+5 dkp please"), "what counts as a + answer")
+      -- the other chat goes quiet in a raid, and comes back
+      local rs = pfUI_config.chat.raidchat
+      RCm.inRaid = true
+      rs.quiet = "1"
+      RCm.ApplyQuiet()
+      local shown
+      local rawFrame = _G.ChatFrame1 and _G.ChatFrame1.AddMessage
+      if _G.ChatFrame1 then _G.ChatFrame1.AddMessage = function() shown = true end end
+      _G.this = _G.ChatFrame1
+      pcall(_G.ChatFrame_OnEvent, "CHAT_MSG_CHANNEL")
+      ok(RCm.quieted and not shown, "in a raid the trade channels are quiet")
+      RCm.inRaid = false
+      RCm.ApplyQuiet()
+      ok(not RCm.quieted, "and back after the raid")
+      if _G.ChatFrame1 then _G.ChatFrame1.AddMessage = rawFrame end
+      RCm.EndTest()
+      ok(not RCm.test and table.getn(RCm.lines) == 0, "the test ends clean")
     end
     -- the swing timer: its page and preview, then the engine
     local SW = pfUI.swing
