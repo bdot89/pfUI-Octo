@@ -87,6 +87,32 @@ Fire("SPELLS_CHANGED")
 Fire("AUTO_ATTACK_SELF", ME, FOE, 0, 0, 2, 1, 0, 0, 0)
 ok(LiveText("Dodge"), "your dodged swing shows Dodge")
 ok(LiveText("Overpower!"), "Overpower alert after a dodge")
+-- (20 Nov 2026, Javelin: Kill Command "should pop in yellow on me when procs but it just doesnt") procs the log
+-- cannot see: the moment a known reactive spell can be cast, it is said - once - as a crit, in gold by default
+do
+  local EV = CT.EV
+  table.insert(Mock.book, { "Kill Command", 0 })
+  Fire("SPELLS_CHANGED")
+  local can = {}
+  local keepCS = rawget(_G, "C_Spell")
+  rawset(_G, "C_Spell", { IsSpellUsable = function(name) return can[name] or false end })
+  EV.WatchUsable()
+  ok(EV.known["Kill Command"] and not LiveText("Kill Command!"), "Kill Command known, nothing while it cannot be cast")
+  can["Kill Command"] = true
+  EV.WatchUsable()
+  local kc = LiveText("Kill Command!")
+  ok(kc, "Kill Command! the moment it can be cast (no bar needed)")
+  local e = B.DEFAULTS.sct.events.reactive
+  ok(e and e.crit == true and e.r == 1 and e.g == 0.82, "reactive alerts pop as crits, gold by default")
+  EV.low["rKill Command"] = 0
+  EV.WatchUsable()
+  local n = 0
+  for _, o2 in ipairs(CT.live or {}) do if o2.fs and o2.fs.text == "Kill Command!" then n = n + 1 end end
+  ok(n <= 1, "still usable: said once, not every check (" .. n .. ")")
+  rawset(_G, "C_Spell", keepCS)
+  table.remove(Mock.book)
+  Fire("SPELLS_CHANGED")
+end
 
 -- spells on screen with merging
 B.db.sct.events.outSpell.area = "out"

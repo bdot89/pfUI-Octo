@@ -74,7 +74,7 @@ local LIST = {
   { "lowHp", "Low health", "warn", "note", 1, 0.5, 0.5, "Low Health!", true, "impact", true },
   { "lowMana", "Low mana", "warn", "note", 0.5, 0.5, 1, "Low Mana!", true, "bell", true },
   { "combo", "Combo points", "warn", "heal", 1, 0.5, 0, "%a CP", false },
-  { "reactive", "Reactive skills (Overpower, Revenge...)", "warn", "note", 0.9, 0.9, 0.9, "%s!", true, nil, true },
+  { "reactive", "Reactive skills and procs (Overpower, Revenge, Kill Command...)", "warn", "note", 1, 0.82, 0, "%s!", true, nil, true },
   { "extraAttack", "Extra attacks (Windfury...)", "warn", "heal", 1, 0.8, 0.4, "Extra Attack!" },
   { "proc", "Procs (your list)", "warn", "note", 1, 0.85, 0.3, "%s!", true, nil, true },
   { "cdReady", "Your cooldowns ready again", "warn", "note", 0.6, 0.9, 1, "%s ready!" },
@@ -1000,7 +1000,10 @@ B:On("UNIT_HEALTH", function(ev, unit) if unit == "target" then Execute() end en
 B:On("PLAYER_TARGET_CHANGED", function() executeShown = nil Execute() end)
 
 -- The spellbook: which reactive spells this character knows, and cooldowns.
-local REACTIVES = { "Overpower", "Revenge", "Execute", "Riposte", "Counterattack", "Mongoose Bite" }
+-- (20 Nov 2026, Javelin: "i cant seem to get Kill Command scrolling text to show on proc") + the server's own
+-- procs: Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate, Hammer of Wrath
+local REACTIVES = { "Overpower", "Revenge", "Execute", "Riposte", "Counterattack", "Mongoose Bite",
+  "Kill Command", "Arcane Surge", "Surprise Attack", "Baited Shot", "Lacerate", "Hammer of Wrath" }
 EV.knownIcon = {}
 local function ScanBook()
   EV.known, EV.knownIcon, EV.book = {}, {}, {}
@@ -1023,6 +1026,49 @@ end
 B:On("SPELLS_CHANGED", ScanBook)
 B:On("LEARNED_SPELL_IN_TAB", ScanBook)
 B:On("PLAYER_ENTERING_WORLD", ScanBook)
+
+-- (20 Nov 2026, Javelin: Kill Command "should pop in yellow on me when procs but it just doesnt") the dodges and
+-- parries above cannot see every proc (Kill Command comes from the pet's crits, Arcane Surge from a resist...).
+-- Every reactive spell you know is watched for the moment it CAN be cast: ClassicAPI / nampower
+-- C_Spell.IsSpellUsable by name (no bar needed), else an action bar slot with its icon. Execute keeps its health
+-- check. Reactive() says each one at most once in 4 s, so a dodge and this never say it twice.
+EV.USABLE_SKIP = { Execute = true }
+EV.wasUsable = {}
+function EV.Usable(name)
+  local cs = rawget(_G, "C_Spell")
+  if type(cs) == "table" and type(cs.IsSpellUsable) == "function" then
+    local ok, usable = pcall(cs.IsSpellUsable, name)
+    if ok and usable ~= nil then return usable and true or false end
+  end
+  local tex = EV.knownIcon[name]
+  if not tex or not HasAction then return nil end
+  for slot = 1, 120 do
+    if HasAction(slot) and not GetActionText(slot) and GetActionTexture(slot) == tex then
+      return IsUsableAction(slot) and true or false
+    end
+  end
+  return nil
+end
+-- off cooldown (the global cooldown counts as ready)
+local function SpellReady(i)
+  local start, dur = GetSpellCooldown(i, BOOKTYPE_SPELL or "spell")
+  return not start or start == 0 or (dur or 0) <= 1.5
+end
+function EV.WatchUsable()
+  local db = B.db.sct
+  if not db.enabled or not (db.events.reactive and db.events.reactive.on) or not EV.known then return end
+  for name, i in pairs(EV.known) do
+    if not EV.USABLE_SKIP[name] then
+      local u = EV.Usable(name)
+      if u ~= nil then
+        u = u and SpellReady(i)
+        if u and not EV.wasUsable[name] then Reactive(name) end
+        EV.wasUsable[name] = u
+      end
+    end
+  end
+end
+B:Every(0.15, EV.WatchUsable)
 
 -- Cooldowns ready (MSBT): spells with a cooldown of at least cdReadyMin
 -- seconds announce themselves when they are back.
