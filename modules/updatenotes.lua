@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.90", {
+    { "Right-click to attach works with other add-ons", "with the mailbox open, right-clicking an item in your bags adds it to the Send list and opens the Send tab, even when another add-on (like _LazyPig) changes what a bag click does." },
+    { "Read every auction is lighter", "a full read only notes prices, no longer redraws the list after every page and takes a short pause between pages, so the game stays smooth on a busy auction house." },
+    { "Nameplate spell icons can be turned off", "text on nameplates has its own Spell icon setting (Combat Text > Nameplates > Look). The scroll areas' setting never reached it." },
+    { "Quest pins stay inside a round minimap", "pfQuest's pins follow the map's shape (round, diamond, octagon...) instead of spilling over the edge." },
+  } },
   { "1.1.89", {
     { "Demos play your own class", "every demo but AFK casts your class's real spells, DoTs, cooldowns and procs, so your action bars, OctoDoTs, cooldown bars, combat text and meters show what you would really see. The Demo Mode page lists the spells it uses." },
     { "Party frames always join in", "if your settings hide the party frames (hidden in raids, raid frames for groups, placed off screen), the demo shows them anyway and says once in chat why they were hidden." },
@@ -157,8 +163,5 @@ pfUI.octoNotes = {
     { "Clean minimap looks", "Clean square, Square in your class colour or accent colour, Clean round and Round in class colour come first - a crisp solid border of 1-6 px in black, class, accent or your own colour. The spell-art looks follow." },
     { "Side bar, tidied", "every button is the same neat box, zoom is a plain + / -, mail sits in a box of its own, and the strip behind them is off by default. The bar is its own setting now, so it goes with any look." },
     { "Tidier Minimap page", "plain two-column rows in sections (Display, Border, Buttons, Spell art) with dropdowns instead of tile grids." },
-  } },
-  { "1.1.50", {
-    { "Minimap side bar", "tracking, mail, the battleground queue, zoom in / out and the addon buttons arrow in one tidy strip along any side of the map, all one size, no gaps. Try the look \"Clean, buttons at the side\", or set it up under Minimap > Buttons and text > Side bar." },
   } },
 }

@@ -120,6 +120,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.90
+
+- ✉️ **Right-click to attach works with other add-ons:** with the mailbox open, right-clicking an item in your bags adds it to the Send list and opens the Send tab, even when another add-on (like _LazyPig) changes what a bag click does.
+- 🏦 **Read every auction is lighter:** a full read only notes prices, no longer redraws the list after every page and takes a short pause between pages, so the game stays smooth on a busy auction house.
+- 🔢 **Nameplate spell icons can be turned off:** text on nameplates has its own Spell icon setting (Combat Text > Nameplates > Look). The scroll areas' setting never reached it.
+- 🗺️ **Quest pins stay inside a round minimap:** pfQuest's pins follow the map's shape (round, diamond, octagon...) instead of spilling over the edge.
+
 ## 📜 New in 1.1.89
 
 - 🎬 **Demos play your own class:** every demo but AFK casts your class's real spells, DoTs, cooldowns and procs, so your action bars, OctoDoTs, cooldown bars, combat text and meters show what you would really see. The Demo Mode page lists the spells it uses.
