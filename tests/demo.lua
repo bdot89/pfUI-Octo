@@ -186,6 +186,17 @@ if DM.EVENTS then
   ok(p and p.stopNow and p.aggroIn > 0 and p.aggroIn <= 5 and TH.SoonText({ aggroIn = p.aggroIn, stopNow = true }),
     "DoTs pull aggro: the countdown runs on your threat (" .. tostring(p and p.aggroIn) .. " s)")
   DM.thEvent = nil
+  -- (20 Nov 2026, user: the preview had DoT lines the real meter never showed) the demo's DoT classes tick on the boss
+  do
+    local dotter
+    for _, u in ipairs(DM.list or {}) do
+      if not u.dead and (u.class == "WARLOCK" or u.class == "PRIEST") and u ~= DM.tank then dotter = u.name end
+    end
+    Run(2)
+    TH.all = nil
+    local pd = dotter and TH.PredictFor and TH.PredictFor(dotter)
+    ok(dotter == nil or (pd and pd.pending > 0), "the demo's " .. tostring(dotter) .. " has DoTs on the way (" .. tostring(pd and pd.pending) .. ")")
+  end
   DM.Event("death")
   local dead = 0
   for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end

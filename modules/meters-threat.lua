@@ -496,6 +496,11 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- what is on its way: the threat still to come, and its moments { { in seconds, threat }, ... } in order
   function TH.OnTheWay(now)
     now = now or GetTime()
+    -- (the demo's pretend DoTs: the same lines as a real fight would show)
+    if TH.demoPending then
+      local t, s = TH.demoPending(UnitName("player"), now)
+      if t then return t, s end
+    end
     local k = TH.K(UnitName("player") or "")
     local total, steps = 0, {}
     for _, d in ipairs(TH.MyDots(now)) do
@@ -525,6 +530,10 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- another player's DoTs on your target: the threat still to come and its moments (as TH.OnTheWay)
   function TH.OthersOnTheWay(name, now)
     now = now or GetTime()
+    if TH.demoPending then
+      local t, s = TH.demoPending(name, now)
+      if t then return t, s end
+    end
     local k = TH.K(name)
     local total, steps = 0, {}
     for spl, t in pairs(TH.others[name] or {}) do

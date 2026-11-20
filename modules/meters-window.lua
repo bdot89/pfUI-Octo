@@ -170,16 +170,16 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if C.meters.threatpull ~= "0" then
         table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = mine, max = at,
                              extra = Num(at), text = "+" .. Num(at - mine), gap = at - mine, at = at,
-                             label = pred and "|cffff6040DoTs pull in 4 s|r" or nil,
+                             label = pred and ("|cffb8b8b8" .. T["Pull in"] .. "|r  4 s  |cffb8b8b8" .. T["DoTs"] .. "|r") or nil,
                              ghost = pred and at * .99 or nil, stopNow = pred })
         if pred and C.meters.tdotrow ~= "0" then
           table.insert(rows, { name = "DoTs", pullrow = "dots", value = at, max = at, gap = -1, at = at, stopNow = true,
-                               label = "|cffc9a6ff" .. T["DoTs"] .. "|r +" .. Num(at * .32), text = "4 s" })
+                               label = "|cffb8b8b8" .. T["DoTs"] .. "|r  +" .. Num(at * .32), text = "4 s" })
         end
       end
       if pred and C.meters.tnextpull ~= "0" then
         table.insert(rows, { name = "Gul'dan", pullrow = "next", value = 1, max = 1, gap = -1, at = 1, text = "6 s",
-                             label = "|cffffc060" .. T["Next"] .. "|r |cffc9a6ffGul'dan|r" })
+                             label = "|cffb8b8b8" .. T["Next"] .. "|r  Gul'dan  |cffb8b8b8" .. T["DoTs"] .. "|r" })
       end
       local players = { { "Garrosh", "WARRIOR", 100, true } }
       for _, p in ipairs(SAMPLE) do
@@ -193,7 +193,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         local soon = pred and (p[1] == "Valeera" and 4 or (p[1] == "Gul'dan" and 6)) or nil
         local pct = p[4] and T["Aggro"] or (floor(p[3]) .. "%")
         table.insert(rows, { name = p[1], class = p[2], value = p[3], max = 100, rank = n, tank = p[4],
-                             extra = Num(p[3] / 100 * at), text = soon and ("|cffff6040" .. soon .. "s|r " .. pct) or pct,
+                             extra = Num(p[3] / 100 * at), text = pct, cd = soon and (soon .. "s") or nil,
                              ghost = soon and math.min(100, p[3] + 25) or nil, stopNow = soon and true or nil })
       end
       return rows
@@ -453,14 +453,15 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
           local now = math.max(0, a - b)
           table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = now, max = math.max(1, a),
                                extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a,
-                               label = soon and ("|cffff6040" .. string.upper(string.sub(soon, 1, 1)) .. string.sub(soon, 2) .. "|r") or nil,
+                               label = soon and ("|cffb8b8b8" .. T["Pull in"] .. "|r  " .. math.max(0, math.ceil(pred.aggroIn)) .. " s"
+                                 .. (pred.stopNow and ("  |cffb8b8b8" .. T["DoTs"] .. "|r") or "")) or nil,
                                ghost = pred and pred.pending > 0 and (now + pred.pending) or nil, stopNow = pred and pred.stopNow })
           -- (20 Nov 2026, user: "add an extra row to the actual meter showing this info live to dot players") your DoTs
           if pred and pred.pending > 0 and C.meters.tdotrow ~= "0" then
             local with = now + pred.pending
             local left = a - with
             table.insert(rows, { name = "DoTs", pullrow = "dots", value = math.min(with, a), max = math.max(1, a),
-                                 label = "|cffc9a6ff" .. T["DoTs"] .. "|r +" .. Num(pred.pending),
+                                 label = "|cffb8b8b8" .. T["DoTs"] .. "|r  +" .. Num(pred.pending),
                                  text = (left >= 0) and ("+" .. Num(left)) or (pred.stopNow and Soon(pred) and (math.ceil(pred.aggroIn) .. " s") or "pulls"),
                                  gap = left, at = a, stopNow = pred.stopNow })
           end
@@ -475,7 +476,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         local who, p = TH.NextToPull()
         if who and who ~= me then
           table.insert(rows, { name = who, pullrow = "next", value = 1, max = 1, gap = -1, at = 1,
-                               label = "|cffffc060" .. T["Next"] .. "|r " .. (p.stopNow and ("|cffc9a6ff" .. who .. "|r") or who),
+                               label = "|cffb8b8b8" .. T["Next"] .. "|r  " .. who .. (p.stopNow and ("  |cffb8b8b8" .. T["DoTs"] .. "|r") or ""),
                                text = math.max(0, math.ceil(p.aggroIn)) .. " s" })
         end
       end
@@ -499,7 +500,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         local pct = floor(PullPct(e, e.perc)) .. "%"
         if e.tank then pct = T["Aggro"] end
         table.insert(rows, { name = e.name, value = v, max = top, class = w and w.class, rank = n,
-                             text = soon and ("|cffff6040" .. math.ceil(soon) .. "s|r " .. pct) or pct,
+                             text = pct, cd = soon and (math.ceil(soon) .. "s") or nil,
                              extra = Num(e.threat), tank = e.tank, ghost = ghost, stopNow = p and p.stopNow })
       end
       return rows
@@ -1105,36 +1106,59 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   -- the pull line's state colour: green with room (or holding aggro), gold within 10%, red past it
   -- (20 Nov 2026, user: "the red bars all merge in") each info line its own colour: your DoTs purple, the next to pull
   -- amber, the mob grey-green; the pull line green / gold / red by how close you are
-  M.INFOFILL = { dots = { .36, .22, .58 }, next = { .58, .36, .06 }, mob = { .2, .3, .22 } }
-  M.INFOTEXT = { dots = { .82, .66, 1 }, next = { 1, .76, .3 }, mob = { .85, .9, .85 } }
-  function M.PullColor(row)
-    local it = M.INFOTEXT[row.pullrow or ""]
-    if it then return it[1], it[2], it[3] end
+  -- (20 Nov 2026, user: "the colours are abit shit on the threat meter the top can we not have options for this ... our
+  -- look for the bars just with numbers that are CLEAR ... clear neat tidy") The top lines share one calm ground and one
+  -- quiet fill (C.meters.tinfobg / tinfofill); what kind of line it is shows as a mark at its left edge and the colour
+  -- of its number: the pull line green / gold / red by how close you are (tcolsafe / tcolnear / tcolover), your DoTs
+  -- tcoldots, the next to pull tcolnext. Every one is an option (Meters > Threat window > Top lines).
+  local function Cfg(key, fallback) return Col(C.meters[key], fallback) end
+  function M.InfoColor(row)
+    local k = row.pullrow or ""
+    if k == "dots" then return Cfg("tcoldots", "0.72,0.56,1,1") end
+    if k == "next" then return Cfg("tcolnext", "1,0.72,0.28,1") end
+    if k == "mob" then return .85, .87, .9 end
     local gap = row.gap or 0
-    if gap < 0 then return 1, .3, .25 end
-    if row.pullrow == "lead" or gap > (row.at or 0) * .1 then return .3, .9, .4 end
-    return 1, .8, .2
+    if gap < 0 then return Cfg("tcolover", "1,0.29,0.23,1") end
+    if k == "lead" or gap > (row.at or 0) * .1 then return Cfg("tcolsafe", "0.35,1,0.35,1") end
+    return Cfg("tcolnear", "1,0.82,0.23,1")
   end
+  M.PullColor = M.InfoColor
   local function ThreatColumns(b, s, row, vsize, font, outline, rightpad)
     if not b.mid then
       b.mid = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
       b.mid:SetJustifyH("RIGHT")
       b.pct = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
       b.pct:SetJustifyH("RIGHT")
+      -- (20 Nov 2026) a player's own seconds before they pull: a column of its own, so threat and % stay lined up
+      b.cd = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      b.cd:SetJustifyH("RIGHT")
     end
-    for _, fs in ipairs({ b.mid, b.pct }) do
-      fs:SetFont(font, vsize, outline)
+    -- the numbers a size up from the names: they are what you read
+    local nsize = vsize + 1
+    for _, fs in ipairs({ b.mid, b.pct, b.cd }) do
+      fs:SetFont(font, nsize, outline ~= "" and outline or "OUTLINE")
       if s.shadow == "1" then fs:SetShadowOffset(1, -1) fs:SetShadowColor(0, 0, 0, 1) else fs:SetShadowOffset(0, 0) end
-      fs:SetHeight(vsize + 4)
+      fs:SetHeight(nsize + 4)
     end
-    -- (20 Nov 2026) "4s 92%": room for the seconds when a countdown shows
-    b.pct:SetWidth(floor(vsize * ((row.text and string.find(row.text, "|c", 1, true)) and 4.8 or 3.4)))
-    b.mid:SetWidth(floor(vsize * 3.6))
+    b.pct:SetWidth(floor(nsize * 3.4))
+    b.mid:SetWidth(floor(nsize * 3.6))
+    b.cd:SetWidth(floor(nsize * 2.2))
     b.pct:ClearAllPoints()
     b.pct:SetPoint("RIGHT", b, "RIGHT", -4 - (rightpad or 0), 0)
     b.mid:ClearAllPoints()
     b.mid:SetPoint("RIGHT", b.pct, "LEFT", -4, 0)
-    b.left:SetPoint("RIGHT", b.mid, "LEFT", -4, 0)
+    b.cd:ClearAllPoints()
+    b.cd:SetPoint("RIGHT", b.mid, "LEFT", -2, 0)
+    if row.cd and not row.pullrow then
+      b.cd:SetText(row.cd)
+      b.cd:SetTextColor(Cfg("tcolover", "1,0.35,0.3,1"))
+      b.cd:Show()
+      b.left:SetPoint("RIGHT", b.cd, "LEFT", -2, 0)
+    else
+      b.cd:SetText("")
+      b.cd:Hide()
+      b.left:SetPoint("RIGHT", b.mid, "LEFT", -4, 0)
+    end
     b.right:SetText("")
     local color = row.class and RAID_CLASS_COLORS[row.class]
     if s.valuecolor == "class" and color then b.mid:SetTextColor(color.r, color.g, color.b)
@@ -1145,7 +1169,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       -- (15 Nov 2026, user: "you cant see the threat you pull aggro at") the name and the number share
       -- the left side, the gap gets the room of both right columns, so nothing is cut off
       b.left:SetPoint("RIGHT", b.pct, "LEFT", -4, 0)
-      b.pct:SetWidth(floor(vsize * 5))
+      b.pct:SetWidth(floor(nsize * 5))
       -- (17 Nov 2026, user: "cleaner ... easier to see") a short grey label, the number in white, the
       -- room left in its state colour (the bar under it fills in the same colour, M.PullColor)
       -- (20 Nov 2026: the countdown in row.name never showed - this line wrote its own words over it) a line with its
@@ -1159,11 +1183,11 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       end
       row = { pullrow = row.pullrow, gap = row.gap, at = row.at, text = row.text ~= "" and row.text or ("+" .. (row.extra or "")), extra = "" }
       b.left:SetTextColor(1, 1, 1)
-      b.pct:SetTextColor(M.PullColor(row))
-      b.pct:SetWidth(floor(vsize * 5))
+      b.pct:SetTextColor(M.InfoColor(row))
+      b.pct:SetWidth(floor(nsize * 5))
       -- (20 Nov 2026, user: "its all off the meter cant read it") the words get smaller (to 8 px) until they fit
       local lf, ls, lo = b.left:GetFont()
-      local room = math.max(b:GetWidth() or 0, ((b.win and b.win:GetWidth()) or 0) - 4) - floor(vsize * 5) - 14
+      local room = math.max(b:GetWidth() or 0, ((b.win and b.win:GetWidth()) or 0) - 4) - floor(nsize * 5) - 14
       ls = tonumber(ls)
       if lf and ls and room > 30 then
         while ls > 8 and (b.left:GetStringWidth() or 0) > room do
@@ -1529,8 +1553,16 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     -- built (meters-test.lua) its real rows, so every bar opens a breakdown)
     local testing = M.Testing()
     local rows
-    if win.preview or (testing and not M.testSeg) then
+    -- (20 Nov 2026, user: "why is this showing the top bars in my preview but not on my meter this should never
+    -- happen") with threat numbers coming in (a fight, the demo) the threat preview shows the meter's own lines;
+    -- the made-up sample only when there are none
+    local TH = M.threat
+    if win.preview and win.mode == "threat" and TH and TH.list then
+      rows = M.Rows("threat", win.segment)
+      win.previewLive = true
+    elseif win.preview or (testing and not M.testSeg) then
       rows = M.SampleRows(win.mode)
+      win.previewLive = nil
     else
       rows = M.Rows(win.mode, win.segment)
     end
@@ -1586,7 +1618,22 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         b.bar:SetValue(row.max and row.max > 0 and row.value / row.max or 0)
         b.bg:SetTexture(bgr, bgg, bgb, bga)
         -- (info lines on a darker ground than the players)
-        if row.pullrow and win.mode == "threat" then b.bg:SetTexture(0, 0, 0, .45) end
+        local info = row.pullrow and win.mode == "threat"
+        if info then b.bg:SetTexture(Col(C.meters.tinfobg, "0.07,0.08,0.1,0.92")) end
+        -- the kind of top line: a mark down its left edge in its colour
+        if info then
+          if not b.mark then
+            b.mark = b.bar:CreateTexture(nil, "OVERLAY")
+            b.mark:SetTexture("Interface\\Buttons\\WHITE8X8")
+            b.mark:SetWidth(3)
+            b.mark:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
+            b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+          end
+          b.mark:SetVertexColor(M.InfoColor(row))
+          b.mark:Show()
+        elseif b.mark then
+          b.mark:Hide()
+        end
         local color = row.class and RAID_CLASS_COLORS[row.class]
         local r, g, bb = tr, tg, tb
         if color and s.colorby ~= "fixed" then r, g, bb = color.r, color.g, color.b end
@@ -1594,13 +1641,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
           -- you: green -> yellow -> red towards the pull point; the tank: dark red
           local share = row.name == me and M.threat and M.threat.Mine()
           if row.pullrow then
-            -- a dim fill in the line's state colour, so the white words stay easy to read
-            local fill = M.INFOFILL[row.pullrow]
-            if fill then r, g, bb = fill[1], fill[2], fill[3]
-            else
-              local pr, pg, pb = M.PullColor(row)
-              r, g, bb = pr * .45, pg * .45, pb * .45
-            end
+            -- one quiet fill for every top line, so the white words and the coloured numbers stay easy to read
+            r, g, bb = Col(C.meters.tinfofill, "0.24,0.27,0.32,1")
           elseif row.tank then r, g, bb = .6, .15, .15
           elseif share then r, g, bb = min(1, share * 2), min(1, 2 - share * 2), .1 end
         end
@@ -1677,7 +1719,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if win.mode == "threat" then
           ThreatColumns(b, s, row, vsize, font, outline, iconright and iconw or 0)
         else
-          if b.mid then b.mid:Hide() b.pct:Hide() end
+          if b.mid then b.mid:Hide() b.pct:Hide() if b.cd then b.cd:Hide() end end
+          if b.mark then b.mark:Hide() end
           b.right:SetText(RightText(s, row))
         end
         b:Show()

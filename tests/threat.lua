@@ -199,8 +199,8 @@ do
     end
     ok(nextRow and string.find(nextRow.label or "", "Lock") and nextRow.text == "9 s", "the threat window's Next to pull line (" .. tostring(nextRow and nextRow.text) .. ")")
     ok(tankRow and tankRow.rank == 1 and tankRow.value == 100, "the tank first, the only one at 100")
-    ok(lockRow and lockRow.value < 100 and math.floor(lockRow.value) == 77 and string.find(lockRow.text or "", "9s", 1, true) and lockRow.ghost,
-      "Lock: 77% of their pull point, their seconds and what is still coming (" .. tostring(lockRow and lockRow.text) .. ")")
+    ok(lockRow and lockRow.value < 100 and math.floor(lockRow.value) == 77 and lockRow.text == "77%" and lockRow.cd == "9s" and lockRow.ghost,
+      "Lock: 77% of their pull point, their seconds in a column of their own, what is still coming (" .. tostring(lockRow and lockRow.cd) .. ")")
     _G.GetTime = svGT
     -- (20 Nov 2026, user: "Molten Guar..." - the target's name must always show in full)
     do
@@ -238,6 +238,32 @@ do
       "the Threat window page's preview is shown, on threat")
     -- (20 Nov 2026, user: the info lines ran "off the meter") their words fit beside the number; each kind its own colour
     local pw = pfUI.metersOcto and pfUI.metersOcto.threatPw
+    -- (20 Nov 2026, user: "why is this showing the top bars in my preview but not on my meter this should never
+    -- happen") with numbers coming in, the preview and the real window show the very same lines
+    local live = pfUI.meters.ThreatWindow and pfUI.meters.ThreatWindow()
+    if pw and live then
+      local svGT = rawget(_G, "GetTime")
+      _G.GetTime = function() return 103 end
+      TH.all = nil
+      live:SetWidth(200) live:Show()
+      pfUI.meters.SetMode(live, "threat")
+      live.Refresh(live)
+      pw:SetWidth(200)
+      pw.Refresh(pw)
+      local function Lines(w)
+        local out = {}
+        for _, b in ipairs(w.bars or {}) do
+          if b:IsShown() and b.row then table.insert(out, (b.row.pullrow or "player") .. ":" .. (b.row.name or "") .. ":" .. (b.pct.text or "")) end
+        end
+        return table.concat(out, " | ")
+      end
+      local a, c = Lines(live), Lines(pw)
+      ok(a ~= "" and a == c and pw.previewLive, "the preview shows exactly the meter's lines (" .. c .. ")")
+      _G.GetTime = svGT
+    end
+    -- the made-up sample (no numbers coming in): its lines fit, each kind its own mark
+    local keepList = TH.list
+    TH.list = nil
     if pw then
       pw:SetWidth(200)
       pw.Refresh(pw)
@@ -255,15 +281,17 @@ do
           kinds = kinds + 1
           local room = 200 - 4 - (b.pct:GetWidth() or 0) - 10
           if (b.left:GetStringWidth() or 0) > room then table.insert(over, b.row.pullrow) end
-          local r, g, bl = b.bar:GetStatusBarColor()
+          -- (the mock keeps no texture colours: the rule the mark is painted by)
+          local r, g, bl = pfUI.meters.InfoColor(b.row)
           cols[string.format("%.2f,%.2f,%.2f", r or 0, g or 0, bl or 0)] = true
         end
       end
       local ncol = 0
       for _ in pairs(cols) do ncol = ncol + 1 end
       ok(kinds >= 3 and table.getn(over) == 0, "the preview's info lines fit (" .. table.concat(over, ", ") .. ")")
-      ok(ncol >= 3, "each info line its own colour (" .. ncol .. " colours)")
+      ok(ncol >= 3, "each info line its own mark colour (" .. ncol .. " colours)")
     end
+    TH.list = keepList
     O:Select("o:mtwindows")
     shown = {}
     for _, grp in ipairs(O.groups or {}) do

@@ -1283,20 +1283,41 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Chk(p, "Solo with a pet too", "Out of a group with your pet tanking (Voidwalker, hunter pet): you and your pet's "
       .. "threat on your target, ESTIMATED from your hits (the server sends threat to groups only). In a group the "
       .. "server's exact numbers are used as before.", G, "threatsolo")
-    Chk(p, "Pull aggro line", "A line at the top of the threat window: the threat the mob turns on you at and how much "
-      .. "room you have left (green, gold when close, red past it). As the tank: how far ahead of the next player you are.",
-      G, "threatpull")
     Chk(p, "% of the pull point", "Each player's % is of where THEY pull aggro (110% of the tank in melee range, 130% at "
       .. "range): 100% = the boss turns to them. Nobody but the one the boss is on ever shows 100%. Off: % of the tank's threat.",
       G, "tpullpct")
-    Chk(p, "Your DoTs line", "A line under the pull line while your DoTs still add threat: how much, and when it pulls you.", G, "tdotrow")
-    Chk(p, "Next to pull line", "Whoever pulls aggro next within the countdown's seconds - their DoTs or their pace - for "
-      .. "everyone to see (a raid leader too). Each player's line shows their own seconds as well.", G, "tnextpull")
     Sld(p, "Update speed", "How often the server is asked (seconds). Lower = faster numbers, a little more traffic. "
       .. "Each answer is on screen the moment it arrives.", .1, 1, .05, G, "threatrate",
       function(v) return string.format("%.2f s", v) end, function() end)
     Sld(p, "Window redraw", "How often all meter windows redraw (seconds). Lower = smoother, a little more work.",
       .05, .5, .05, G, "refresh", function(v) return string.format("%.2f s", v) end, function() end)
+
+    -- (20 Nov 2026, user: "the colours are abit shit on the threat meter the top can we not have options for this")
+    W.Card(p, "Top lines", { icon = "Interface\\Icons\\INV_Misc_Note_01",
+      tip = "The lines above the players: where you pull aggro, what your DoTs still add, and who pulls next. They share one "
+        .. "quiet ground and fill; the mark at a line's left edge and its number say which kind it is." })
+    Chk(p, "Pull line", "Where the boss turns to you and how much room is left (its number green with room, gold when "
+      .. "close, red past it). With what is on its way: \"Pull in 4 s\". As the tank: your lead on the next player.", G, "threatpull")
+    Chk(p, "Your DoTs line", "While your DoTs still add threat: how much, and how much room it leaves - or when it pulls you.", G, "tdotrow")
+    Chk(p, "Next to pull line", "Whoever pulls aggro next within the countdown's seconds - their DoTs or their pace - for "
+      .. "everyone to see (a raid leader too). Each player's line shows their own seconds as well.", G, "tnextpull")
+    Color(p, "Ground", "Behind the top lines.", G, "tinfobg", function() end)
+    Color(p, "Fill", "How far along a line is (your threat towards the pull point).", G, "tinfofill", function() end)
+    Color(p, "Room left", "The pull line's number and mark while you have room.", G, "tcolsafe", function() end)
+    Color(p, "Getting close", "Within 10% of the pull point.", G, "tcolnear", function() end)
+    Color(p, "Past it / countdown", "Past the pull point, and every player's seconds before they pull.", G, "tcolover", function() end)
+    Color(p, "Your DoTs", "The DoTs line's mark and number.", G, "tcoldots", function() end)
+    Color(p, "Next to pull", "The next-to-pull line's mark and number.", G, "tcolnext", function() end)
+    W.Buttons(p, {
+      { "Back to our colours", function()
+        local mc = C.meters
+        mc.tinfobg, mc.tinfofill = "0.07,0.08,0.1,0.92", "0.24,0.27,0.32,1"
+        mc.tcoldots, mc.tcolnext = "0.72,0.56,1,1", "1,0.72,0.28,1"
+        mc.tcolsafe, mc.tcolnear, mc.tcolover = "0.35,1,0.35,1", "1,0.82,0.23,1", "1,0.29,0.23,1"
+        if M.RefreshThreat then M.RefreshThreat() end
+        O:Refresh()
+      end, 170, "Every top-line colour (and the label's safe / close / past colours) back to pfUI Octo's own.", role = "save" },
+    })
 
     W.Card(p, "What is on the way", { icon = "Interface\\Icons\\Spell_Shadow_AbominationExplosion",
       tip = "Like incoming heals on a health bar: the threat your DoTs will still add with the ticks they have left, and the "

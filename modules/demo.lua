@@ -473,7 +473,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if DM.lhGet and pfUI.libhealth then pfUI.libhealth.GetUnitHealth = DM.lhGet end
     DM.lhGet = nil
     local TH = pfUI.meters and pfUI.meters.threat
-    if TH then TH.demoPredict = nil end
+    if TH then TH.demoPredict, TH.demoPending = nil, nil end
+    DM.dotk = nil
     DM.thEvent, DM.forceWipe, DM.aggroMe = nil, nil, nil
     if TH and DM.thAsk then
       TH.Ask = DM.thAsk
@@ -547,6 +548,31 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         end
       elseif TH.demoPredict then
         TH.demoPredict = nil
+      end
+      -- (20 Nov 2026, user: the preview showed DoT lines the real meter never did) the pretend raid's DoT classes and
+      -- you (when your class has DoTs) have DoTs ticking on the boss: the threat window's DoTs / Next lines and each
+      -- player's countdown come from them, as in a real fight
+      DM.dotk = DM.dotk or {}
+      TH.demoPending = function(name, now)
+        if not DM.on or not DM.fight then return end
+        local k = DM.dotk[name]
+        if k == nil then
+          local cls
+          if name == me then cls = DM.kit and DM.kit.dots and table.getn(DM.kit.dots) > 0 and "dots"
+          else
+            for _, u in ipairs(DM.list or {}) do if u.name == name then cls = u.class end end
+          end
+          k = (cls == "dots" or cls == "WARLOCK" or cls == "PRIEST" or cls == "DRUID" or cls == "HUNTER") and Rand(.04, .1) or false
+          DM.dotk[name] = k
+        end
+        if not k then return 0, {} end
+        local tankT = holderU and DM.tt[holderU.name] or 0
+        if tankT <= 0 then return 0, {} end
+        local each = tankT * k / 4
+        local first = 3 - math.mod(DM.t or 0, 3)
+        local steps = {}
+        for i = 1, 4 do table.insert(steps, { first + (i - 1) * 3, each }) end
+        return each * 4, steps
       end
       for name, v in pairs(DM.tt) do
         local dead = false
@@ -676,7 +702,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.SetPhase(ph)
     local was = DM.phase
     DM.phase, DM.pt = ph, 0
-    if ph == "trash" or ph == "boss" then DM.tt, DM.lastFight = {}, ph end
+    if ph == "trash" or ph == "boss" then DM.tt, DM.lastFight, DM.dotk = {}, ph, {} end
     if ph == "dummy" then
       DM.rank = math.mod(DM.rank or 0, table.getn(DM.DUMMIES)) + 1
       DM.boss = NewMob(DM.DUMMIES[DM.rank])
