@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.91", {
+    { "Threat on the way, for warlocks and every DoT class", "the threat label shows where your DoTs and the spell you are casting will take you (\"72% > 88%\"), like incoming heals on a health bar." },
+    { "\"DoTs pull in 4 s\"", "a countdown before you pull aggro. \"DoTs pull\" means the DoTs already ticking will do it even if you stop now, so move to the tank. \"Aggro in\" means your current pace gets you there." },
+    { "A popup before you pull", "\"DOTS PULL AGGRO IN 3 s\" with the threat sound, and the threat window's pull line shows the countdown too. Settings on Meters > Threat > What is on the way." },
+  } },
   { "1.1.90", {
     { "Right-click to attach works with other add-ons", "with the mailbox open, right-clicking an item in your bags adds it to the Send list and opens the Send tab, even when another add-on (like _LazyPig) changes what a bag click does." },
     { "Read every auction is lighter", "a full read only notes prices, no longer redraws the list after every page and takes a short pause between pages, so the game stays smooth on a busy auction house." },
@@ -157,11 +162,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.52", {
     { "Minimap preview fixed", "the zone name, clock, mail, tracking and the other buttons are back in the Map page's preview, so you can move them there again. The box stays smaller." },
-  } },
-  { "1.1.51", {
-    { "Previews fold away", "every preview box has a clear \"Hide preview\" / \"Show preview\" button at the top right, so you can see the settings under it. The Minimap page's preview is now just the map, in a smaller box." },
-    { "Clean minimap looks", "Clean square, Square in your class colour or accent colour, Clean round and Round in class colour come first - a crisp solid border of 1-6 px in black, class, accent or your own colour. The spell-art looks follow." },
-    { "Side bar, tidied", "every button is the same neat box, zoom is a plain + / -, mail sits in a box of its own, and the strip behind them is off by default. The bar is its own setting now, so it goes with any look." },
-    { "Tidier Minimap page", "plain two-column rows in sections (Display, Border, Buttons, Spell art) with dropdowns instead of tile grids." },
   } },
 }

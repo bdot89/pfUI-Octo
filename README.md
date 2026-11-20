@@ -120,6 +120,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.91
+
+- 🔮 **Threat on the way, for warlocks and every DoT class:** the threat label shows where your DoTs and the spell you are casting will take you ("72% > 88%"), like incoming heals on a health bar.
+- ⏱️ **"DoTs pull in 4 s":** a countdown before you pull aggro. "DoTs pull" means the DoTs already ticking will do it even if you stop now, so move to the tank. "Aggro in" means your current pace gets you there.
+- 📢 **A popup before you pull:** "DOTS PULL AGGRO IN 3 s" with the threat sound, and the threat window's pull line shows the countdown too. Settings on Meters > Threat > What is on the way.
+
 ## 📜 New in 1.1.90
 
 - ✉️ **Right-click to attach works with other add-ons:** with the mailbox open, right-clicking an item in your bags adds it to the Send list and opens the Send tab, even when another add-on (like _LazyPig) changes what a bag click does.
