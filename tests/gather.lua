@@ -271,6 +271,36 @@ do
     pfUI_cache.gathernodes["9:9"].nodes[4] = nil
     local good, err = pcall(GF.PaintMarks)
     ok(good and getglobal("pfMapMarksButton"), "the Marks button and its list draw " .. tostring(err or ""))
+    -- (20 Nov 2026, Lo5t1ncyb3r) with ModernMapMarkers the button sat on its "Filter markers"; with Magnify it
+    -- went away when zoomed in: it goes under the LAST map menu shown, and lives on the map frame
+    do
+      local mb = GF.marksButton
+      local function Menu(shown, bottom) return { IsShown = function() return shown end, GetBottom = function() return bottom end } end
+      local keep = {}
+      for _, n in ipairs(GF.MAPMENUS) do keep[n] = rawget(_G, n) end
+      rawset(_G, "pfQuestMapDropdown", Menu(true, 500))
+      rawset(_G, "pfQuestMapLevelDropdown", Menu(true, 470))
+      rawset(_G, "ModernMapMarkersFilter_Blizz", Menu(true, 440))
+      rawset(_G, "ModernMapMarkersFind_Blizz", Menu(true, 410))
+      mb.placed = nil
+      GF.PlaceMarks()
+      ok(mb.under == rawget(_G, "ModernMapMarkersFind_Blizz"), "with ModernMapMarkers: under its Find Marker, not on its Filter")
+      rawset(_G, "ModernMapMarkersFilter_Blizz", nil)
+      rawset(_G, "ModernMapMarkersFind_Blizz", nil)
+      GF.PlaceMarks()
+      ok(mb.under == rawget(_G, "pfQuestMapLevelDropdown"), "without it: under pfQuest's Level Range, as before")
+      for _, n in ipairs(GF.MAPMENUS) do rawset(_G, n, keep[n]) end
+      mb.placed = nil
+      GF.PlaceMarks()
+      local wmf = rawget(_G, "WorldMapFrame")
+      ok(not wmf or mb:GetParent() == wmf, "it lives on the map frame, not the zoomed map canvas")
+      -- pfQuest's own quest menu too (pfquest\quest.lua, patched by tools\Sync-pfQuest.ps1)
+      local h = io.open("pfquest/quest.lua", "rb")
+      local src = h and h:read("*a") or ""
+      if h then h:close() end
+      ok(string.find(src, 'CreateFrame("Frame", "pfQuestMapDropdown", WorldMapFrame', 1, true)
+        and string.find(src, "_G.WorldMapScrollFrame or WorldMapButton", 1, true), "pfQuest's quest menu is on the map frame too")
+    end
     _G.pfDatabase, _G.pfDB, _G.pfQuest_track = dbWas, dataWas, trackWas
   end
   pfUI_config.gather.mappins = "0"

@@ -862,10 +862,18 @@ function pfQuest:AddWorldMapIntegration()
   end
 
   -- Quest Display Selection
-  pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", WorldMapButton, "UIDropDownMenuTemplate")
+  -- (pfUI Octo, 20 Nov 2026, Lo5t1ncyb3r: with Magnify the map's buttons disappear when zoomed in) on the map
+  -- frame, not the zoomed map canvas, at the top right of what is in view (Magnify's WorldMapScrollFrame)
+  pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", WorldMapFrame, "UIDropDownMenuTemplate")
+  pfQuest.mapButton:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 5)
   pfQuest.mapButton:ClearAllPoints()
-  pfQuest.mapButton:SetPoint("TOPRIGHT", 0, -10)
+  pfQuest.mapButton.OctoPlace = function()
+    pfQuest.mapButton:ClearAllPoints()
+    pfQuest.mapButton:SetPoint("TOPRIGHT", _G.WorldMapScrollFrame or WorldMapButton, "TOPRIGHT", 0, -10)
+  end
+  pfQuest.mapButton.OctoPlace()
   pfQuest.mapButton:SetScript("OnShow", function()
+    pfQuest.mapButton.OctoPlace()
     pfQuest.mapButton.current = tonumber(pfQuest_config["trackingmethod"])
     -- Version 8.0.23 briefly exposed a sixth filter while it was being
     -- evaluated.  It was removed before release, but that value can remain

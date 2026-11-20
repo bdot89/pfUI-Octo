@@ -114,7 +114,24 @@ $patches = @{
     $t = & $started $t
     Must $t 'local tocs = { "", "-master", "-tbc", "-wotlk", "-turtle" }' ("-- pfUI Octo: built into pfUI`r`npfQuestConfig.path = `"Interface\\AddOns\\pfUI\\pfquest`"`r`npfQuestConfig.version = tostring(pfQuestOctoMeta(`"pfQuest`", `"Version`") or `"0`")`r`nlocal tocs = {}")
   }
-  "quest.lua" = $started
+  # (20 Nov 2026, Lo5t1ncyb3r: with Magnify the map's buttons disappear when zoomed in) Magnify scales and scrolls
+  # WorldMapButton with the map, so the quest menu goes on the map frame, at the top right of what is in view
+  "quest.lua" = { param($t)
+    $t = & $started $t
+    # (one line at a time: pfQuest's files end lines with LF, these strings with nothing)
+    $t = Must $t 'pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", WorldMapButton, "UIDropDownMenuTemplate")' ('-- (pfUI Octo, 20 Nov 2026, Lo5t1ncyb3r: with Magnify the map''s buttons disappear when zoomed in) on the map' + "`n" +
+      '  -- frame, not the zoomed map canvas, at the top right of what is in view (Magnify''s WorldMapScrollFrame)' + "`n" +
+      '  pfQuest.mapButton = CreateFrame("Frame", "pfQuestMapDropdown", WorldMapFrame, "UIDropDownMenuTemplate")' + "`n" +
+      '  pfQuest.mapButton:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 5)')
+    $t = Must $t '  pfQuest.mapButton:SetPoint("TOPRIGHT", 0, -10)' ('  pfQuest.mapButton.OctoPlace = function()' + "`n" +
+      '    pfQuest.mapButton:ClearAllPoints()' + "`n" +
+      '    pfQuest.mapButton:SetPoint("TOPRIGHT", _G.WorldMapScrollFrame or WorldMapButton, "TOPRIGHT", 0, -10)' + "`n" +
+      '  end' + "`n" +
+      '  pfQuest.mapButton.OctoPlace()')
+    $t = Must $t 'pfQuest.mapButton:SetScript("OnShow", function()' ('pfQuest.mapButton:SetScript("OnShow", function()' + "`n" +
+      '    pfQuest.mapButton.OctoPlace()')
+    return $t
+  }
   # (12 Nov 2026, Wolfahrt: "pfquest\map.lua:50: attempt to index global 'pfMap'" twice a second) at load
   # map.lua looks through the world map's models for the player arrow; another add-on's model there with
   # no usable model name made strlower error, the file stopped before pfMap was made and the control-key

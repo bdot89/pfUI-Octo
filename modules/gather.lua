@@ -1137,18 +1137,33 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   end)
   restore:Hide()
   if WorldMapButton then
-    local btn = CreateFrame("Button", "pfMapMarksButton", WorldMapButton)
+    -- (20 Nov 2026, Lo5t1ncyb3r: with Magnify it "will dissapear if i zoom in map") on the map frame, not on
+    -- WorldMapButton: Magnify scales and scrolls that with the zoomed map
+    local btn = CreateFrame("Button", "pfMapMarksButton", rawget(_G, "WorldMapFrame") or WorldMapButton)
     GF.marksButton = btn
     btn:SetWidth(200)
     btn:SetHeight(20)
-    -- (15 Nov 2026, user: "put it in the top right make it clear what this is") under pfQuest's two menus there
+    -- (15 Nov 2026, user: "put it in the top right make it clear what this is") under the menus there
+    -- (20 Nov 2026, Lo5t1ncyb3r with ModernMapMarkers: ours sat on its "Filter markers") under the LAST one shown
+    -- of the stack: pfQuest's quest menu, its Level Range, then ModernMapMarkers' Filter and Find Marker
+    GF.MAPMENUS = { "pfQuestMapDropdown", "pfQuestMapLevelDropdown", "ModernMapMarkersFilter_Blizz", "ModernMapMarkersFind_Blizz" }
+    function GF.MenuUnder()
+      local under
+      for _, name in ipairs(GF.MAPMENUS) do
+        local m = rawget(_G, name)
+        if m and m.IsShown and m:IsShown() and m.GetBottom and m:GetBottom() then under = m end
+      end
+      return under
+    end
     function GF.PlaceMarks()
-      local under = rawget(_G, "pfQuestMapLevelDropdown") or rawget(_G, "pfQuestMapDropdown")
+      local under = GF.MenuUnder()
+      if btn.placed and under == btn.under then return end
+      btn.placed, btn.under = true, under
       btn:ClearAllPoints()
-      if under and under.IsShown and under:IsShown() and under.GetBottom and under:GetBottom() then
+      if under then
         btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, 0)
       else
-        btn:SetPoint("TOPRIGHT", WorldMapButton, "TOPRIGHT", -12, -12)
+        btn:SetPoint("TOPRIGHT", rawget(_G, "WorldMapScrollFrame") or WorldMapButton, "TOPRIGHT", -12, -12)
       end
     end
     GF.PlaceMarks()
