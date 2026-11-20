@@ -236,6 +236,34 @@ do
     ok(shown["o:thwindow"] and shown["o:mtthreat"] and not shown["o:mtwindows"], "Threat half: its two tabs, not the meter ones")
     ok(pfUI.metersOcto and pfUI.metersOcto.threatPw and pfUI.metersOcto.threatPw:IsShown() and pfUI.metersOcto.threatPw.mode == "threat",
       "the Threat window page's preview is shown, on threat")
+    -- (20 Nov 2026, user: the info lines ran "off the meter") their words fit beside the number; each kind its own colour
+    local pw = pfUI.metersOcto and pfUI.metersOcto.threatPw
+    if pw then
+      pw:SetWidth(200)
+      pw.Refresh(pw)
+      -- (the mock measures 6 px a character, colour codes too, at any size: these bars measure like the client)
+      local function Measure(self)
+        local t = string.gsub(string.gsub(self.text or "", "|c%x%x%x%x%x%x%x%x", ""), "|r", "")
+        local _, sz = self:GetFont()
+        return string.len(t) * (tonumber(sz) or 12) * .55
+      end
+      for _, b in ipairs(pw.bars or {}) do b.left.GetStringWidth = Measure end
+      pw.Refresh(pw)
+      local over, kinds, cols = {}, 0, {}
+      for _, b in ipairs(pw.bars or {}) do
+        if b:IsShown() and b.row and b.row.pullrow then
+          kinds = kinds + 1
+          local room = 200 - 4 - (b.pct:GetWidth() or 0) - 10
+          if (b.left:GetStringWidth() or 0) > room then table.insert(over, b.row.pullrow) end
+          local r, g, bl = b.bar:GetStatusBarColor()
+          cols[string.format("%.2f,%.2f,%.2f", r or 0, g or 0, bl or 0)] = true
+        end
+      end
+      local ncol = 0
+      for _ in pairs(cols) do ncol = ncol + 1 end
+      ok(kinds >= 3 and table.getn(over) == 0, "the preview's info lines fit (" .. table.concat(over, ", ") .. ")")
+      ok(ncol >= 3, "each info line its own colour (" .. ncol .. " colours)")
+    end
     O:Select("o:mtwindows")
     shown = {}
     for _, grp in ipairs(O.groups or {}) do
