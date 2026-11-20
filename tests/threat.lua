@@ -15,12 +15,28 @@ ok(TH.dirty, "a hit marks the numbers as changed")
 TH.Rebuild()
 local rogue
 for _, e in ipairs(TH.list) do if e.name == "Rogue" then rogue = e end end
-ok(rogue and rogue.threat == 1100 and math.abs(rogue.perc - 110) < .01, "the rogue's threat moved at once: 1100 = 110% of the tank's")
+-- (20 Nov 2026, user: raid threat "jumpy, people going above the tank instantly") the guess moves the rogue at once,
+-- but never past the tank: 1100 would be 110% - it stops at 99% until the server itself says more
+ok(rogue and rogue.threat == 990 and math.abs(rogue.perc - 99) < .01, "the rogue's threat moved at once, but a guess stops at 99% of the tank's")
 TH.GroupRecord({ kind = "dmg", src = "Stranger", tgt = "Onyxia", amt = 500 })
 TH.GroupRecord({ kind = "dmg", src = "Rogue", tgt = "Someone else", amt = 500 })
 TH.Rebuild()
 for _, e in ipairs(TH.list) do if e.name == "Rogue" then rogue = e end end
-ok(rogue.threat == 1100, "a player not on the list or a hit on another mob changes nothing")
+ok(rogue.threat == 990, "a player not on the list or a hit on another mob changes nothing")
+-- the server says 105%: the guess may go on from there, never below it
+do
+  local l2 = TH.Parse("TWTv4=Tank:1:1000:100:1;Rogue:0:1050:105:1;")
+  TH.list = l2
+  TH.Snapshot(l2)
+  TH.GroupRecord({ kind = "dmg", src = "Rogue", tgt = "Onyxia", amt = 400 })
+  TH.Rebuild()
+  for _, e in ipairs(TH.list) do if e.name == "Rogue" then rogue = e end end
+  ok(math.abs(rogue.perc - 105) < .01, "above the tank only as far as the server's own answer said (105%)")
+  TH.list = list
+  TH.Snapshot(list)
+  TH.GroupRecord({ kind = "dmg", src = "Rogue", tgt = "Onyxia", amt = 500 })
+  TH.Rebuild()
+end
 -- the next answer replaces the guess and teaches the multiplier
 local nextList = TH.Parse("TWTv4=Tank:1:1000:100:1;Rogue:0:1250:125:1;")
 TH.Snapshot(nextList)

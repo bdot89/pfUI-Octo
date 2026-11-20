@@ -39,6 +39,27 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
       { "Skip to the next part", function() DM.Next() end, 170, "Trash, boss, kill, rest." },
     })
 
+    -- (20 Nov 2026, user: "a button we can press during the test that triggers events") DM.EVENTS, also on the demo
+    -- bar's Events menu
+    W.Card(p, "Make it happen", { icon = I .. "Ability_Warrior_Challange",
+      tip = "While a demo runs (not AFK or the target dummy): press one to see how your setup shows it. One that needs a "
+        .. "fight starts the boss first." })
+    W.Live(p, function()
+      if not DM.on then return "|cff888888Start a demo above, then press any of these - or use Events on the demo bar.|r" end
+      if DM.kind == "afk" or DM.kind == "dummy" then return "|cffffaa33These need a group: the Raid, Dungeon, PvP or Showcase demo.|r" end
+      return "|cff40d977Ready:|r press one - it happens at once on your frames, meters, threat and combat text."
+    end)
+    local row, last = {}, nil
+    for _, e in ipairs(DM.EVENTS or {}) do
+      if last and e.group ~= last and table.getn(row) > 0 then W.Buttons(p, row) row = {} end
+      last = e.group
+      local key = e.key
+      table.insert(row, { e.label, function() DM.Event(key) end, 150, e.tip,
+        role = (e.group == "Deaths" and (key == "res" or key == "bres")) and "go" or (e.group == "Deaths" and "danger" or "open") })
+      if table.getn(row) == 4 then W.Buttons(p, row) row = {} end
+    end
+    if table.getn(row) > 0 then W.Buttons(p, row) end
+
     W.Card(p, "What joins in", { icon = I .. "INV_Misc_Gear_01" })
     Chk(p, "Boss on your target frame", "Your target frame, target of target and the raid's targets show the boss (its crest or "
       .. "dragons, its cast bar).", "target")

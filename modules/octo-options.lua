@@ -68,6 +68,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- octototems-options.lua + bulwark-options.lua (Lobo's Rockbiter bulwark, 18 Nov)
     { "OctoTotems", { "OctoTotems" } },
     { "Meters", { "Meters" } },
+    -- (20 Nov 2026, user: "a dedicated threat options window ... this needs to be alot better") meters-options.lua
+    { "OctoThreat", { "OctoThreat" } },
     -- (8 Nov 2026, user: "our meters, swing timers, anything we have added
     -- should be on this bar also for easy access not ... inside a tab")
     -- (16 Nov 2026, user: "Rename Gear to ItemRack ... gear is to simple")
@@ -101,12 +103,12 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
     { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
-    { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
+    { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "OctoThreat", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Demo Mode", "Add-ons", "About" } },
   }
   -- pfUI Octo's own big features: bright, with an accent mark; the rest softer
   O.FEATURED = { ["Settings"] = true, ["Auctions"] = true, ["OctoLazy"] = true, ["Unit Frames"] = true, ["Nameplates"] = true,
-    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
+    ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["OctoThreat"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["Demo Mode"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   O.TOPENTRY = { ["Quality of Life"] = true }
@@ -135,6 +137,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["OctoLazy"] = "Rolls by your rules, invites, summons, battlegrounds, NPCs and bags - done for you.",
     ["Combat Text"] = "Numbers over heads and around your character.",
     ["Meters"] = "Damage, healing, threat and every cast, Details!-deep.",
+    ["OctoThreat"] = "Your threat window, when you pull aggro (DoTs too), the label and the warnings.",
     ["Swing Timer"] = "Your melee and ranged swings as bars.",
     ["OctoRinse"] = "One key cures your group's debuffs, with boss lists of what to skip, hide or cure first.",
     ["OctoTotems"] = "Shaman totems: bars, timers, one-key sets, alerts, smart heals and your earthen bulwark.",

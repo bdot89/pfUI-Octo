@@ -245,7 +245,10 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
         local old, d = TH.baseBy[e.name], TH.dmg[e.name]
         if old and d and d >= 100 then
           local k = (e.threat - old) / d
-          if k > .3 and k < 6 then TH.k[e.name] = (TH.k[e.name] or 1) * .5 + k * .5 end
+          if k > .3 and k < 6 then
+            k = (TH.k[e.name] or 1) * .5 + k * .5
+            TH.k[e.name] = math.max(TH.KMIN or .5, math.min(TH.KMAX or 2.6, k))
+          end
         end
       end
     end
@@ -267,17 +270,36 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     TH.dirty = true
   end
   -- the list as it is now: the server's numbers plus what has been done since
+  -- (20 Nov 2026, user: in raids "people going above the tank instantly when they are not pulling threat") Between
+  -- two answers each hit moves its player by a guess: K per point of damage (learnt, kept within KMIN..KMAX), and
+  -- the tank's own threat-only work (Sunder, taunts) is not in the guess at all - so a damage dealer's line could
+  -- pass the tank's until the next answer pulled it back. Now a guess never takes anyone past the tank: above
+  -- 99% of it only the server's own numbers can put them.
+  TH.KMIN, TH.KMAX = .5, 2.6
+  local function GuessK(name)
+    local k = TH.K(name)
+    if k < TH.KMIN then return TH.KMIN elseif k > TH.KMAX then return TH.KMAX end
+    return k
+  end
   function TH.Rebuild()
     local out, tankT, top = {}, 0, 0
     for _, e in ipairs(TH.base) do
-      local t = e.threat + TH.K(e.name) * (TH.dmg[e.name] or 0)
-      table.insert(out, { name = e.name, tank = e.tank, threat = t, melee = e.melee, perc = e.perc })
+      local t = e.threat + GuessK(e.name) * (TH.dmg[e.name] or 0)
+      table.insert(out, { name = e.name, tank = e.tank, threat = t, melee = e.melee, perc = e.perc, sperc = e.perc, sthreat = e.threat })
       if t > top then top = t end
       if e.tank then tankT = t end
     end
     if tankT <= 0 then tankT = top end
     for _, c in ipairs(out) do
-      if c.tank then c.perc = 100 elseif tankT > 0 then c.perc = c.threat / tankT * 100 end
+      if c.tank then c.perc = 100
+      elseif tankT > 0 then
+        c.perc = c.threat / tankT * 100
+        local cap = math.max(99, c.sperc or 0)
+        if c.perc > cap then
+          c.perc = cap
+          c.threat = math.max(c.sthreat or 0, tankT * cap / 100)
+        end
+      end
     end
     table.sort(out, function(a, b) return a.threat > b.threat end)
     TH.list = out
@@ -496,6 +518,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- until you pass the pull point; stopNow = true when what is already on its way does it even if you stop now
   function TH.Predict(now)
     if not TH.PredictOn() or not TH.list then return end
+    -- (the demo's "DoTs pull aggro" event answers for itself)
+    if TH.demoPredict then return TH.demoPredict(now) end
     now = now or GetTime()
     local me = UnitName("player")
     local mine, tank

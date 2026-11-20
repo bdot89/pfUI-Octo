@@ -1157,30 +1157,67 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("mtthreat", card) else O:Open("mtthreat") end
   end
 
-  local function BuildThreat(p)
+  -- (20 Nov 2026, user: "a dedicated threat options window with one of the meters hard locked to threat so we can
+  -- work on it better ... this needs to be alot better") OctoThreat, its own section: page 1 = your threat window
+  -- (a live preview, locked to threat) and the meter's settings; page 2 = the label and the warnings.
+  local function ThreatHeading(p)
+    W.Heading(p, "OctoThreat", { on = O.KeySwitch(function() return C.meters end, "threat", "Ask the server for threat on or off (takes a reload).", function() pfUI.gui.settingChanged = true end), about = "Your threat on the mob you target, from the server (the same answers TWThreat shows): "
+      .. "only in a party or raid, on a mob in combat. Your threat window lists everyone; the line at its top says where "
+      .. "you pull aggro and - with what your DoTs and casts still add - when. A label by your target's nameplate turns "
+      .. "yellow near your cap and red past it, and a popup and a sound warn you." })
+  end
+  local function ThreatWindowPreview(p)
+    W.Pin(p, "Your threat window", "As your threat window shows it: the pull line on top (red with \"DoTs pull in 4 s\" when "
+      .. "the threat already on its way pulls you), your line with its lighter part = what is still coming, the tank in dark red. "
+      .. "Click it for its look.", function(pp)
+      local box = (W.ZoomBox or W.Box)(pp, 210)
+      local tw = M.ThreatWindow and M.ThreatWindow(false)
+      local id = tw and tw.id or 1
+      local pw = M.CreateWindow(id, { parent = box, cfg = id })
+      pw.mode = "threat"
+      MO.threatPw = pw
+      local spot = CreateFrame("Button", nil, pw)
+      spot:SetAllPoints(pw)
+      spot:SetFrameLevel(pw:GetFrameLevel())
+      spot:SetScript("OnClick", function() MO.cur = id O:Open("mtwindows") end)
+      local t = 0
+      pw:SetScript("OnUpdate", function()
+        if GetTime() < t then return end
+        t = GetTime() + .5
+        this.mode = "threat"
+        if this.Refresh then pcall(this.Refresh, this) end
+      end)
+    end)
+  end
+  local function BuildThreatWindow(p)
     local TH = M.threat
-    W.Heading(p, "Threat", { on = O.KeySwitch(function() return C.meters end, "threat", "Ask the server for threat on or off (takes a reload).", function() pfUI.gui.settingChanged = true end), about = "Your threat on the mob you target, from the server (the same answers TWThreat shows): "
-      .. "only in a party or raid, on a mob in combat. A label by your target's nameplate turns yellow near your cap and red "
-      .. "past it, a popup and a sound can warn you, and a meter window can show everyone's threat." })
+    ThreatHeading(p)
     if not TH then
       W.Card(p, "Threat")
       Chk(p, "Threat meter", "After a reload.", G, "threat", Reload)
       return
     end
-    ThreatPreview(p)
-    W.Live(p, function() return "Status: " .. TH.StatusLine() end)
+    ThreatWindowPreview(p)
+    W.Live(p, function()
+      local tw = M.ThreatWindow and M.ThreatWindow(false)
+      local line = "Status: " .. TH.StatusLine()
+      if tw then return line .. "   |cff40d977Your threat window: window " .. tw.id .. ", locked to threat.|r" end
+      return line .. "   |cff888888No threat window yet - open one below.|r"
+    end)
     W.Buttons(p, {
-      { "Sample on my target (8 s)", function() if TH.sampleUntil and GetTime() < TH.sampleUntil then TH.sampleUntil = 0 else TH.Sample(8) end end,
-        nil, "Your threat label shows a made-up reading on your target for 8 seconds. Click again to stop.",
-        on = function() return TH.sampleUntil and GetTime() < TH.sampleUntil end },
-      { "Test the popup", function() TH.Alert(C.meters.threatpopup or "THREAT", 1, .25, .2) TH.Sound() end, nil, nil,
-        on = function() return pfThreatAlert and pfThreatAlert:IsShown() end },
-      { "Open a threat window", function()
-        local w = M.AddWindow()
-        if w then M.SetMode(w, "threat") end
-      end, nil, nil, on = function()
-        for _, w in ipairs(M.windows or {}) do if w.mode == "threat" and w:IsShown() then return true end end
-      end },
+      { "Open my threat window", function() M.ThreatWindow() O:Refresh() end, 170,
+        "Opens your threat window (a meter window locked to threat - its display menu cannot switch it away). "
+        .. "An existing window showing threat becomes it.", role = "go",
+        on = function() local w = M.ThreatWindow and M.ThreatWindow(false) return w and w:IsShown() end },
+      { "Unlock it", function() M.UnlockThreatWindow() O:Refresh() end, 100,
+        "The window stays, but its display menu can switch it to damage, healing... again.", role = "danger" },
+      { "Its look  >", function()
+        local w = M.ThreatWindow and M.ThreatWindow(false)
+        if w then MO.cur = w.id end
+        O:Open("mtwindows")
+      end, 100, "Bars, fonts, colours and size of the window: Meters > Windows, on its tab.", role = "open" },
+      { "Try it in a demo", function() if pfUI.demo and pfUI.demo.Start then pfUI.demo.Start("raid") end end, 130,
+        "A pretend raid fight: the threat window fills, and the demo bar's Events menu has Overthreat and DoTs pull.", role = "go" },
     })
 
     W.Card(p, "Threat meter", { tip = "Asking the server for threat. Off: no label, no popups, no threat window." })
@@ -1197,6 +1234,36 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     Sld(p, "Window redraw", "How often all meter windows redraw (seconds). Lower = smoother, a little more work.",
       .05, .5, .05, G, "refresh", function(v) return string.format("%.2f s", v) end, function() end)
 
+    W.Card(p, "What is on the way", { icon = "Interface\\Icons\\Spell_Shadow_AbominationExplosion",
+      tip = "Like incoming heals on a health bar: the threat your DoTs will still add with the ticks they have left, and the "
+        .. "spell you are casting. Warlocks and other DoT classes see when they will pull aggro - even if they stop now - "
+        .. "and can stop or move to the tank in time. Learnt from your own ticks and hits in the fight (a DoT counts once it "
+        .. "has ticked once)." })
+    Chk(p, "Show threat on the way", "Your line and the pull line in the threat window get a lighter part (red when it pulls "
+      .. "you), the pull line says \"DoTs pull in 4 s\" or \"aggro in 4 s\", and the label shows \"72% > 88%\".",
+      G, "tpredict", function() end)
+    Sld(p, "Show \"aggro in\" from", "Seconds before you pull that the countdown shows on the label and the threat window.",
+      2, 20, 1, G, "tpredsec", function(v) return v .. " s" end, function() end)
+    Chk(p, "Popup before I pull", "\"AGGRO IN 3 s\" / \"DOTS PULL AGGRO IN 3 s\" in the middle of the screen, with the sound "
+      .. "on the Label & warnings page.", G, "tpredpopup", function() end)
+    Sld(p, "Popup at", "Seconds before you pull.", 1, 8, 1, G, "tpredwarn", function(v) return v .. " s" end, function() end)
+  end
+
+  local function BuildThreat(p)
+    local TH = M.threat
+    ThreatHeading(p)
+    if not TH then return end
+    ThreatPreview(p)
+    W.Buttons(p, {
+      { "Sample on my target (8 s)", function() if TH.sampleUntil and GetTime() < TH.sampleUntil then TH.sampleUntil = 0 else TH.Sample(8) end end,
+        nil, "Your threat label shows a made-up reading on your target for 8 seconds. Click again to stop.",
+        on = function() return TH.sampleUntil and GetTime() < TH.sampleUntil end },
+      { "Test the popup", function() TH.Alert(C.meters.threatpopup or "THREAT", 1, .25, .2) TH.Sound() end, nil, nil,
+        on = function() return pfThreatAlert and pfThreatAlert:IsShown() end },
+      { "Test \"DoTs pull\"", function() TH.Alert("DOTS PULL AGGRO IN 3 s", 1, .6, .1) TH.Sound() end, nil,
+        "The popup a few seconds before what is already on its way pulls you." },
+    })
+
     W.Card(p, "Your cap", { tip = "How much threat you allow yourself before the label turns red and the popup shouts." })
     Sld(p, "Stay under", "Your threat as a share of the reference below.", 10, 150, 5, G, "threatwarn", Pct2, function() end)
     Drop(p, "...of", "The pull point: where the mob turns to you (110% of the tank's threat in melee, 130% at range). "
@@ -1211,19 +1278,6 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       { "Edge 100%", function() C.meters.threatwarn, C.meters.threatref = "100", "1" O:Refresh() end,
         on = function() return C.meters.threatwarn == "100" and C.meters.threatref == "1" end },
     })
-
-    W.Card(p, "What is on the way", { icon = "Interface\\Icons\\Spell_Shadow_AbominationExplosion",
-      tip = "Like incoming heals on a health bar: the threat your DoTs will still add with the ticks they have left, and the "
-        .. "spell you are casting. Warlocks and other DoT classes see when they will pull aggro - even if they stop now - "
-        .. "and can stop or move to the tank in time. Learnt from your own ticks and hits in the fight." })
-    Chk(p, "Show threat on the way", "The label shows \"72% > 88%\" (and a lighter part on the bar look), and \"aggro in 4 s\" "
-      .. "when you are heading for the pull point. \"DoTs pull in 4 s\": the DoTs already on it do it even if you stop now.",
-      G, "tpredict", function() end)
-    Sld(p, "Show \"aggro in\" from", "Seconds before you pull that the countdown shows on the label and the threat window.",
-      2, 20, 1, G, "tpredsec", function(v) return v .. " s" end, function() end)
-    Chk(p, "Popup before I pull", "\"AGGRO IN 3 s\" / \"DOTS PULL AGGRO IN 3 s\" in the middle of the screen, with the sound below.",
-      G, "tpredpopup", function() end)
-    Sld(p, "Popup at", "Seconds before you pull.", 1, 8, 1, G, "tpredwarn", function(v) return v .. " s" end, function() end)
 
     W.Card(p, "Label", { tip = "The label by your target's nameplate (or in a box you place)." })
     Chk(p, "Show the label", nil, G, "tlabel", function() end)
@@ -1263,5 +1317,6 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
   O.replaced[T["Meters"]] = true
   O:AddPage("Meters", "mtwindows", "Windows", BuildWindows)
   O:AddPage("Meters", "mtdata", "Data", BuildData)
-  O:AddPage("Meters", "mtthreat", "Threat", BuildThreat)
+  O:AddPage("OctoThreat", "thwindow", "Threat window", BuildThreatWindow)
+  O:AddPage("OctoThreat", "mtthreat", "Label & warnings", BuildThreat)
 end)

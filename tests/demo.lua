@@ -161,8 +161,49 @@ if lh and lh.GetUnitHealth then
   local cur, max = lh:GetUnitHealth("target")
   ok(cur == math.floor(DM.boss.hp) and max == DM.boss.max, "the boss's health number on the target frame (was 0)")
 end
+-- (20 Nov 2026, user: buttons to trigger events during the test) every event runs; the threat ones and deaths / res
+if DM.EVENTS then
+  local function Run(n) for _ = 1, n do Mock.now = Mock.now + .5 DM.Step(.5) DM.Threat(.5) end end
+  local failed = {}
+  for _, e in ipairs(DM.EVENTS) do
+    if e.key ~= "wipe" and e.key ~= "kill" and not DM.Event(e.key) then table.insert(failed, e.key) end
+  end
+  ok(table.getn(failed) == 0, "every demo event runs (" .. table.concat(failed, ", ") .. ")")
+  DM.thEvent = nil
+  DM.SetPhase("rest") DM.SetPhase("boss")
+  DM.Event("over")
+  Run(6)
+  local holder
+  for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
+  ok(holder == me, "Overthreat: the boss turns to you (" .. tostring(holder) .. ")")
+  Run(14)
+  holder = nil
+  for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
+  ok(holder and holder ~= me, "then the tank taunts it back")
+  DM.Event("dots")
+  Run(2)
+  local p = TH.Predict and TH.Predict()
+  ok(p and p.stopNow and p.aggroIn > 0 and p.aggroIn <= 5 and TH.SoonText({ aggroIn = p.aggroIn, stopNow = true }),
+    "DoTs pull aggro: the countdown runs on your threat (" .. tostring(p and p.aggroIn) .. " s)")
+  DM.thEvent = nil
+  DM.Event("death")
+  local dead = 0
+  for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end
+  ok(dead >= 1, "Someone dies")
+  DM.Event("res")
+  dead = 0
+  for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end
+  ok(dead == 0, "Res everyone brings them all up")
+  DM.Event("wipe")
+  Run(30)
+  ok(DM.phase ~= "boss" and DM.wiped ~= false, "Wipe: the raid goes down and the fight ends (" .. tostring(DM.phase) .. ")")
+  ok(DM.forceWipe == nil, "the wipe is over once the fight is")
+  ok(DM.Event("kill") and true, "Kill the boss")
+end
 DM.Stop(true)
 ok(TH == nil or TH.list == nil, "threat list cleared at stop")
+ok(TH == nil or TH.demoPredict == nil, "the demo's own countdown gone at stop")
+ok(DM.Event("over") == false, "no events without a demo running")
 _G.SendAddonMessage, _G.GetNumRaidMembers, _G.GetNumPartyMembers = keepSend, keepRaid, keepParty
 
 -- the target dummy: every rank in turn, the raid left alone

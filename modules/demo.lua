@@ -473,6 +473,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if DM.lhGet and pfUI.libhealth then pfUI.libhealth.GetUnitHealth = DM.lhGet end
     DM.lhGet = nil
     local TH = pfUI.meters and pfUI.meters.threat
+    if TH then TH.demoPredict = nil end
+    DM.thEvent, DM.forceWipe, DM.aggroMe = nil, nil, nil
     if TH and DM.thAsk then
       TH.Ask = DM.thAsk
       TH.list, TH.base = nil, nil
@@ -509,12 +511,50 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       -- you: climbing towards the tank now and then
       local push = math.mod(math.floor(DM.pt / 20), 2) == 1 and 1500 or 600
       DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(push * .7, push)
+      -- (20 Nov 2026) the Overthreat / DoTs pull events (DM.EVENTS): you against the tank's threat, then aggro
+      local ev = DM.thEvent
+      local holderU = DM.tank and not DM.tank.dead and DM.tank or DM.offtank
+      local tankNow = holderU and DM.tt[holderU.name] or 0
+      DM.aggroMe = nil
+      if ev and tankNow > 0 then
+        ev.t = ev.t + dt
+        local TH0 = TH
+        if ev.kind == "dots" and ev.t < 5 then
+          -- just past the tank, under the pull point; DoTs on their way do the rest in 5 s
+          DM.tt[me] = tankNow * 1.03
+          TH0.demoPredict = function()
+            local left = math.max(0, 5 - ev.t)
+            return { pending = tankNow * .12, room = tankNow * .07, aggroIn = left, stopNow = true }
+          end
+        else
+          TH0.demoPredict = nil
+          if ev.kind == "over" and ev.t < 2 then
+            DM.tt[me] = tankNow * (.95 + .2 * ev.t / 2)
+          else
+            -- the boss turns to you for a while, then the tank taunts it back
+            if not ev.turned then
+              ev.turned, ev.at = true, ev.t
+              Warn((DM.boss and DM.boss.name or "The boss") .. " turns to " .. me .. "!")
+            end
+            DM.tt[me] = tankNow * 1.16
+            DM.aggroMe = true
+            if ev.t - ev.at > 6 then
+              DM.tt[me] = tankNow * .7
+              DM.thEvent, DM.aggroMe = nil, nil
+              DM.Chat("SYSTEM", (holderU and holderU.name or "The tank") .. " taunts " .. (DM.boss and DM.boss.name or "the boss") .. " back.")
+            end
+          end
+        end
+      elseif TH.demoPredict then
+        TH.demoPredict = nil
+      end
       for name, v in pairs(DM.tt) do
         local dead = false
         for _, u in ipairs(DM.list) do if u.name == name and u.dead then dead = true end end
         if not dead then table.insert(list, { name = name, tank = false, threat = math.floor(v), perc = 0, melee = true }) end
       end
       local holder = DM.tank and not DM.tank.dead and DM.tank.name or (DM.offtank and DM.offtank.name)
+      if DM.aggroMe then holder = me end
       local tankT = 0
       for _, e in ipairs(list) do if e.name == holder then e.tank = true tankT = e.threat end end
       for _, e in ipairs(list) do
@@ -697,6 +737,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       DM.Joins(true)
     elseif ph == "ended" then
       DM.fight = false
+      DM.forceWipe, DM.thEvent = nil, nil
       local b = DM.boss
       if b then b.cast = nil end
       if DM.wiped then
@@ -814,7 +855,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         local tk = DM.tank
         if tk and tk.dead then tk = DM.offtank end
         if DM.kind == "pvp" then tk = Pick(Alive()) end
-        if tk then Hurt(tk, Rand(m.def.melee[1], m.def.melee[2])) end
+        if tk then Hurt(tk, Rand(m.def.melee[1], m.def.melee[2]) * ((m.enrageUntil and DM.t < m.enrageUntil) and 2 or 1)) end
       end
     end
     Swing(b)
@@ -868,7 +909,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     while DM.healAcc >= .5 do
       DM.healAcc = DM.healAcc - .5
       for _, h in ipairs(alive) do
-        if h.role == "heal" and (h.pw or 0) > 200 and not (DM.willWipe and DM.pt > 40) then
+        if h.role == "heal" and (h.pw or 0) > 200 and not (DM.willWipe and DM.pt > 40) and not DM.forceWipe then
           local low, worst = nil, 1
           for _, u in ipairs(alive) do
             local f = u.hp / u.max
@@ -901,7 +942,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       end
     end
     -- a wipe: the raid goes down over a few seconds
-    if DM.willWipe and DM.phase == "boss" and DM.pt > 40 then
+    if DM.forceWipe or (DM.willWipe and DM.phase == "boss" and DM.pt > 40) then
       for _ = 1, 3 do
         local u = Pick(alive)
         if u then Hurt(u, u.max * .6) end
@@ -1598,10 +1639,169 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.PaintBar()
   end
 
+  -- ---------------------------------------------------------------- events on demand
+  -- (20 Nov 2026, user: "a button we can press during the test that triggers events. E.g Overthreat, wipe, party getting
+  -- ressed, etc etc the most we can have to fully test our setup") Each runs on the demo that is on; one that needs a
+  -- fight starts the boss first. The demo bar's Events menu and the Demo mode page's buttons list the same DM.EVENTS.
+  local function Fight()
+    if DM.fight and DM.boss and (DM.phase == "boss" or DM.phase == "trash") then return true end
+    if DM.kind == "afk" or DM.kind == "dummy" then return false end
+    DM.SetPhase(DM.kind == "pvp" and "trash" or "boss")
+    return true
+  end
+  local function Me() return _G.UnitName("player") or "You" end
+  local function Dead()
+    local out = {}
+    for _, u in ipairs(DM.list or {}) do if u.dead then table.insert(out, u) end end
+    return out
+  end
+  local function Healer()
+    for _, u in ipairs(Alive()) do if u.role == "heal" then return u end end
+    return Alive()[1]
+  end
+  local function Res(u, by, how)
+    u.dead, u.hp, u.debuffs, u.cast, u.deadT = nil, u.max * .35, {}, nil, nil
+    DM.Chat("SYSTEM", (by and by.name or "Someone") .. " " .. (how or "resurrects") .. " " .. u.name .. ".")
+    DM.dirty, DM.adirty = true, true
+  end
+  DM.CURES = {
+    { I .. "Spell_Shadow_CurseOfSargeras", "Curse", 18 }, { I .. "Spell_Nature_CorrosiveBreath", "Poison", 14 },
+    { I .. "Spell_Shadow_CreepingPlague", "Disease", 16 }, { I .. "Spell_Frost_FrostNova", "Magic", 12 },
+    { I .. "Spell_Shadow_Possession", "Magic", 12 },
+  }
+  DM.EVENTS = {
+    { key = "over", label = "Overthreat", icon = I .. "Ability_Warrior_Challange", group = "Threat",
+      tip = "You climb past the pull point and the boss turns to you: your threat window, label, popup and sound.",
+      fn = function()
+        if not Fight() then return end
+        DM.thEvent = { kind = "over", t = 0 }
+      end },
+    { key = "dots", label = "DoTs pull aggro", icon = I .. "Spell_Shadow_AbominationExplosion", group = "Threat",
+      tip = "Just under the pull point with DoTs still ticking: \"DoTs pull in 5 s\" counts down, the popup comes, then you pull.",
+      fn = function()
+        if not Fight() then return end
+        DM.thEvent = { kind = "dots", t = 0 }
+      end },
+    { key = "tank", label = "Tank dies", icon = I .. "INV_Shield_05", group = "Threat",
+      tip = "The main tank dies: the off-tank takes the boss, the threat list changes holder.",
+      fn = function()
+        if not Fight() then return end
+        local tk = DM.tank
+        if tk and not tk.dead then Hurt(tk, tk.max * 3) DM.Chat("SYSTEM", tk.name .. " dies.") Warn(tk.name .. " is down - off-tank, taunt!") end
+      end },
+    { key = "aoe", label = "Raid-wide damage", icon = I .. "Spell_Fire_SelfDestruct", group = "Fight",
+      tip = "A big hit on everyone: low health bars, heal prediction, your incoming damage text.",
+      fn = function()
+        if not Fight() then return end
+        local b = DM.boss
+        Use(b, { what = "raid", name = "Shadow Flame", dmg = { 2200, 3400 } })
+        Warn((b and b.name or "The boss") .. " casts Shadow Flame!")
+      end },
+    { key = "cast", label = "Boss casts a big spell", icon = I .. "Spell_Shadow_ShadowBolt", group = "Fight",
+      tip = "A 4 second cast on the boss's cast bar (target frame, nameplate) that hits the raid when it ends.",
+      fn = function()
+        if not Fight() then return end
+        local b, now = DM.boss, GetTime()
+        b.cast = { name = "Shadow Bolt Volley", icon = I .. "Spell_Shadow_ShadowBolt", start = now, finish = now + 4 / DM.speed,
+          a = { what = "raid", name = "Shadow Bolt Volley", dmg = { 900, 1500 }, kick = true } }
+        DM.Touch(false)
+      end },
+    { key = "debuffs", label = "Debuffs to cure", icon = I .. "Spell_Holy_DispelMagic", group = "Fight",
+      tip = "Curses, poisons, diseases and magic on ten raiders: raid frame debuff colours, OctoRinse, dispel markers.",
+      fn = function()
+        if not Fight() then return end
+        local alive = Alive()
+        for _ = 1, math.min(10, table.getn(alive)) do AddDebuff(Pick(alive), Pick(DM.CURES)) end
+        DM.adirty = true
+      end },
+    { key = "enrage", label = "Boss enrages", icon = I .. "Spell_Shadow_UnholyFrenzy", group = "Fight",
+      tip = "A raid warning and an emote: the boss hits the tank twice as hard for 15 seconds.",
+      fn = function()
+        if not Fight() then return end
+        local b = DM.boss
+        b.enrageUntil = DM.t + 15
+        DM.Chat("MONSTER_EMOTE", b.name .. " becomes enraged!")
+        Warn(b.name .. " is ENRAGED!")
+      end },
+    { key = "oom", label = "Healers run out of mana", icon = I .. "INV_Potion_76", group = "Fight",
+      tip = "Every healer's mana drops near zero: mana bars, low-mana warnings; healing stops until they drink.",
+      fn = function()
+        for _, u in ipairs(Alive()) do if u.role == "heal" then u.pw = (u.pmax or 1000) * .03 end end
+        DM.dirty = true
+      end },
+    { key = "death", label = "Someone dies", icon = I .. "Ability_Rogue_FeignDeath", group = "Deaths",
+      tip = "A random raider dies: grey frame, the meters' deaths, a res to come.",
+      fn = function()
+        if not Fight() then return end
+        local alive = {}
+        for _, u in ipairs(Alive()) do if u ~= DM.tank and u.role ~= "heal" then table.insert(alive, u) end end
+        local u = Pick(table.getn(alive) > 0 and alive or Alive())
+        if u then Hurt(u, u.max * 3) DM.Chat("SYSTEM", u.name .. " dies.") end
+      end },
+    { key = "bres", label = "Battle res", icon = I .. "Spell_Nature_Reincarnation", group = "Deaths",
+      tip = "One dead raider is brought back mid-fight (Rebirth).",
+      fn = function()
+        local d = Dead()
+        if table.getn(d) == 0 then DM.Chat("SYSTEM", "Nobody is dead - press Someone dies first.") return end
+        Res(Pick(d), Healer(), "casts Rebirth on")
+      end },
+    { key = "res", label = "Res everyone", icon = I .. "Spell_Holy_Resurrection", group = "Deaths",
+      tip = "Every dead raider is resurrected, one after another in chat.",
+      fn = function()
+        local d, h = Dead(), Healer()
+        if table.getn(d) == 0 then DM.Chat("SYSTEM", "Nobody is dead - press Wipe or Someone dies first.") return end
+        for _, u in ipairs(d) do Res(u, h) end
+      end },
+    { key = "wipe", label = "Wipe", icon = I .. "Spell_Shadow_DeathScream", group = "Deaths",
+      tip = "The raid goes down over a few seconds; after it, the same boss again (Res everyone to bring them up at once).",
+      fn = function()
+        if not Fight() then return end
+        DM.forceWipe = true
+        Warn("Wipe incoming!")
+      end },
+    { key = "kill", label = "Kill the boss", icon = I .. "INV_Misc_Head_Dragon_01", group = "Deaths",
+      tip = "The boss dies at once: kill message, meters' fight ends, the rest after it.",
+      fn = function()
+        if not Fight() then return end
+        DM.boss.hp = 1
+      end },
+  }
+  function DM.Event(key)
+    if not DM.on then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: start a demo first, then trigger events.")
+      return false
+    end
+    if DM.kind == "afk" then return false end
+    for _, e in ipairs(DM.EVENTS) do
+      if e.key == key then
+        local good, err = pcall(e.fn)
+        if not good then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo event failed: " .. tostring(err)) return false end
+        DM.dirty, DM.adirty = true, true
+        if DM.Touch then pcall(DM.Touch, false) end
+        DM.PaintBar()
+        return true
+      end
+    end
+    return false
+  end
+  -- the Events menu (the demo bar's button)
+  function DM.EventMenu(anchor)
+    local W = pfUI.octoui and pfUI.octoui.W
+    if not W or not W.Menu then return end
+    local opts, last = {}, nil
+    for _, e in ipairs(DM.EVENTS) do
+      if e.group ~= last then table.insert(opts, { label = e.group, group = true }) last = e.group end
+      table.insert(opts, { key = e.key, label = e.label, icon = e.icon, tip = e.tip })
+    end
+    if DM.menu then DM.menu:Hide() end
+    DM.menu = W.Menu(anchor, opts, 190, function(k) DM.Event(k) end)
+    if DM.menu then DM.menu:Show() end
+  end
+
   -- ---------------------------------------------------------------- the bar at the top of the screen
   local bar = CreateFrame("Frame", "pfDemoBar", UIParent)
   DM.bar = bar
-  bar:SetWidth(620)
+  bar:SetWidth(690)
   bar:SetHeight(34)
   bar:SetPoint("TOP", UIParent, "TOP", 0, -6)
   bar:SetFrameStrata("DIALOG")
@@ -1641,6 +1841,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   bar.next = Btn("Next", 48, function() DM.Next() end, "Skips to the next part: the next pull, mob, enemy, rank or showcase step.")
   bar.speedb = Btn("1x", 40, function() DM.CycleSpeed() end, "Demo speed: 0.5x, 1x, 2x, 4x.")
   bar.pause = Btn("Pause", 56, function() DM.paused = not DM.paused DM.PaintBar() end, "Holds the fight where it is.")
+  bar.events = Btn("Events", 60, function() DM.EventMenu(this) end,
+    "Make something happen now: overthreat, DoTs pulling, a wipe, a res, a tank death, debuffs to cure, a big cast...")
   local x = -6
   for _, b in ipairs(bar.buttons) do
     b:SetPoint("RIGHT", bar, "RIGHT", x, 0)

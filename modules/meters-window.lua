@@ -163,16 +163,20 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     -- (12 Nov 2026) threat as the real window shows it: the pull line, then threat and % of the tank's
     if modekey == "threat" then
       local tank = 21400 * 2.2
+      local pred = C.meters.tpredict ~= "0"
       if C.meters.threatpull ~= "0" then
-        table.insert(rows, { name = T["You pull aggro at"], pullrow = "pull", value = 8600 * 3.4, max = tank * 1.1,
-                             extra = Num(tank * 1.1), text = "+" .. Num(tank * 1.1 - 8600 * 3.4), gap = tank * 1.1 - 8600 * 3.4, at = tank * 1.1 })
+        table.insert(rows, { name = pred and "|cffff6040DoTs pull in 4 s|r" or T["You pull aggro at"], pullrow = "pull", value = 8600 * 3.4, max = tank * 1.1,
+                             extra = Num(tank * 1.1), text = "+" .. Num(tank * 1.1 - 8600 * 3.4), gap = tank * 1.1 - 8600 * 3.4, at = tank * 1.1,
+                             ghost = pred and tank * 1.1 * .98 or nil, stopNow = pred, soon = pred and "DoTs pull in 4 s" or nil })
       end
       table.insert(rows, { name = "Garrosh", class = "WARRIOR", value = 100, max = 100, extra = Num(tank), text = "100%", tank = true })
       for _, p in ipairs(SAMPLE) do
         if p[1] ~= "Garrosh" and p[1] ~= "Anduin" and p[1] ~= "Uther" then
           local th = p[3] * .62
+          -- (the preview's "you" is the second line: Valeera - its threat on the way)
           table.insert(rows, { name = p[1], class = p[2], value = th / tank * 100, max = 100, extra = Num(th),
-                               text = floor(th / tank * 100) .. "%" })
+                               text = floor(th / tank * 100) .. "%", ghost = (pred and p[1] == "Valeera") and (th / tank * 100 + 30) or nil,
+                               stopNow = pred and p[1] == "Valeera" })
         end
       end
       table.sort(rows, function(x, y)
@@ -412,13 +416,19 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       -- (12 Nov 2026) the pull line first: where you take aggro and how far off it is (tank: your lead)
       local kind, a, b
       if TH.Pull then kind, a, b = TH.Pull() end
+      -- (20 Nov 2026, Shemp / user: "where is the dots pull aggro shown?") what is on its way, on your rows too
+      local pred = TH.Predict and TH.Predict() or nil
+      local me = UnitName("player")
+      local tankT
+      for _, e in ipairs(TH.list) do if e.tank then tankT = e.threat end end
       if kind and C.meters.threatpull ~= "0" then
         if kind == "pull" then
           -- (17 Nov 2026) the bar fills with your threat towards the pull point
-          -- (20 Nov 2026, Shemp) when you will pull at this pace / with what your DoTs still do
-          local soon = TH.Predict and TH.SoonText and TH.SoonText(TH.Predict() or {})
-          table.insert(rows, { name = soon and (T["You pull aggro at"] .. " - " .. soon) or T["You pull aggro at"], pullrow = kind, value = math.max(0, a - b), max = math.max(1, a),
-                               extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a })
+          local soon = pred and TH.SoonText and TH.SoonText(pred)
+          local now = math.max(0, a - b)
+          table.insert(rows, { name = soon and ("|cffff6040" .. soon .. "|r") or T["You pull aggro at"], pullrow = kind, value = now, max = math.max(1, a),
+                               extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a,
+                               ghost = pred and pred.pending > 0 and (now + pred.pending) or nil, soon = soon, stopNow = pred and pred.stopNow })
         else
           table.insert(rows, { name = T["Your lead on"] .. " " .. b.name, pullrow = kind, value = top, max = top,
                                extra = Num(math.abs(a)), text = "", gap = a })
@@ -426,8 +436,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       end
       for _, e in ipairs(M.SteadyOrder(TH.list, top)) do
         local w = M.Who(e.name)
+        local ghost
+        if e.name == me and pred and pred.pending > 0 and tankT and tankT > 0 then ghost = Shown(e) + pred.pending / tankT * 100 end
         table.insert(rows, { name = e.name, value = Shown(e), max = top, class = w and w.class,
-                             text = floor(e.perc) .. "%", extra = Num(e.threat), tank = e.tank })
+                             text = floor(e.perc) .. "%", extra = Num(e.threat), tank = e.tank, ghost = ghost })
       end
       return rows
     end
@@ -942,6 +954,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     b.bg = b:CreateTexture(nil, "BACKGROUND")
     b.bg:SetAllPoints()
     b.bg:SetTexture(1, 1, 1, .05)
+    -- (20 Nov 2026) threat on its way: a lighter part past the fill, as incoming heals on a health bar
+    b.ghost = b:CreateTexture(nil, "BORDER")
+    b.ghost:SetTexture("Interface\\Buttons\\WHITE8X8")
+    b.ghost:Hide()
     -- the class icon at the left of the bar
     b.icon = b.bar:CreateTexture(nil, "OVERLAY")
     b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
@@ -1157,6 +1173,11 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return out
   end
   function M.SetMode(win, key)
+    -- (20 Nov 2026, user: "one of the meters hard locked to threat") a threat window stays on threat
+    if key ~= "threat" and S(win).threatlock == "1" then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r This is your threat window - it stays on threat (Meters > Threat to unlock it).")
+      return
+    end
     win.mode = key
     S(win).mode = key
     win.offset = 0
@@ -1464,6 +1485,19 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
           r, g, bb = sr, sg, sb
         end
         b.bar:SetStatusBarColor(r, g, bb, balpha)
+        if row.ghost and row.max and row.max > 0 and row.ghost > row.value then
+          local w = math.max(1, (win:GetWidth() or 100) - 4)
+          local f1 = math.min(1, row.value / row.max)
+          local f2 = math.min(1, row.ghost / row.max)
+          b.ghost:ClearAllPoints()
+          b.ghost:SetPoint("TOPLEFT", b, "TOPLEFT", w * f1, 0)
+          b.ghost:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", w * f1, 0)
+          b.ghost:SetWidth(math.max(1, w * (f2 - f1)))
+          if row.stopNow then b.ghost:SetVertexColor(1, .25, .15, .55) else b.ghost:SetVertexColor(r, g, bb, .4) end
+          b.ghost:Show()
+        else
+          b.ghost:Hide()
+        end
         b.hov:SetVertexColor(Col(s.hovercolor, "1,1,1,0.12"))
         if mine and s.selfmark == "border" then
           b.rim:SetBackdropBorderColor(Col(s.selfcolor, "1,0.82,0.2,1"))
@@ -2222,6 +2256,26 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     return win
   end
 
+  -- (20 Nov 2026) your threat window: the one locked to threat, else one already on threat (it becomes the locked
+  -- one), else a new window. make = false: only find it.
+  function M.ThreatWindow(make)
+    for _, w in ipairs(M.windows or {}) do if S(w).threatlock == "1" then return w end end
+    if make == false then return end
+    local win
+    for _, w in ipairs(M.windows or {}) do if w.mode == "threat" then win = w break end end
+    if not win then win = M.AddWindow() end
+    if not win then return end
+    S(win).threatlock = "0"
+    M.SetMode(win, "threat")
+    S(win).threatlock = "1"
+    win:Show()
+    return win
+  end
+  function M.UnlockThreatWindow()
+    local w = M.ThreatWindow(false)
+    if w then S(w).threatlock = "0" end
+  end
+
   -- remove window id: the ones after it move up a place (settings and spot)
   function M.RemoveWindow(id)
     local n = table.getn(M.windows)
@@ -2232,6 +2286,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if C.position then C.position["pfMeter" .. i] = C.position["pfMeter" .. (i + 1)] end
     end
     if C.position then C.position["pfMeter" .. n] = nil end
+    -- (the last window's settings stay for a later new window: never as a locked threat window)
+    if C.meters["win" .. n] then C.meters["win" .. n].threatlock = "0" end
     local last = M.windows[n]
     if last.id == 2 and not last.free then M.SetDocked(last, false) end
     RemoveMovable(last)
