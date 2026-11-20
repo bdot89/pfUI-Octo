@@ -300,3 +300,79 @@ end
 DM.speed = 1
 ok(rawget(env, "UnitName") == before.UnitName and UIParent:IsShown(), "after every demo: all put back, the interface shown")
 Mock.now = now
+
+-- (20 Nov 2026, user: "the demo uses spells that are to your class also the procs ... a direct test to you")
+do
+  local keep = {}
+  for _, k in ipairs({ "UnitClass", "GetSpellName", "GetSpellTexture", "GetActionTexture", "UnitBuff" }) do keep[k] = rawget(_G, k) end
+  local book, slots = {}, {}
+  _G.GetSpellName = function(i) return book[i] and book[i][1], "Rank 1" end
+  _G.GetSpellTexture = function(i) return book[i] and ("Interface\\Icons\\" .. book[i][2]) end
+  _G.GetActionTexture = function(s) return slots[s] and ("Interface\\Icons\\" .. slots[s]) end
+  _G.UnitBuff = function(u, i) return nil end
+  local fired = {}
+  local EV = pfUI.sct and pfUI.sct.CT and pfUI.sct.CT.EV
+  local keepFire = EV and EV.Fire
+  if EV then EV.Fire = function(self, kind, data) table.insert(fired, { kind, data and data.spell }) end end
+  local function Saw(kind, spell)
+    for _, f in ipairs(fired) do if f[1] == kind and (not spell or f[2] == spell) then return true end end
+  end
+
+  -- a warlock: Shadow Bolt and the DoTs, on the dummy
+  _G.UnitClass = function() return "Warlock", "WARLOCK" end
+  book = { { "Shadow Bolt", "Spell_Shadow_ShadowBolt" }, { "Corruption", "Spell_Shadow_AbominationExplosion" },
+    { "Curse of Agony", "Spell_Shadow_CurseOfSargeras" } }
+  ok(DM.Start("dummy") and DM.kit and DM.kit.class == "WARLOCK", "the demo reads your class")
+  ok(DM.kit.hits[1].name == "Shadow Bolt" and table.getn(DM.kit.hits) == 1 and DM.kit.dots[1].name == "Corruption",
+    "your kit: the spells you know (Shadow Bolt; Corruption, Curse of Agony)")
+  for _ = 1, 30 do Mock.now = Mock.now + .5 DM.Step(.5) end
+  ok(Saw("outSpell", "Shadow Bolt") and Saw("outDot", "Corruption"), "your Shadow Bolt and Corruption ticks in your combat text")
+  local onBoss = {}
+  for i = 1, 16 do local tex = env.UnitDebuff("target", i) if tex then onBoss[tex] = true end end
+  ok(onBoss["Interface\\Icons\\Spell_Shadow_AbominationExplosion"] and onBoss["Interface\\Icons\\Spell_Shadow_CurseOfSargeras"],
+    "your DoTs on the pretend target (its frame shows them)")
+  local D = pfUI.dots
+  local saved = D and DM.savedDFake
+  ok(D and D.FAKE and D.FAKE[1][5][1] and D.FAKE[1][5][1][1] == "Corruption", "OctoDoTs' sample mobs carry your DoTs")
+  DM.Stop(true)
+  ok(not D or D.FAKE == saved, "OctoDoTs' own samples back after Stop")
+
+  -- a warrior: Mortal Strike's cooldown and the global cooldown on your bars, Overpower lighting up, a proc on you
+  _G.UnitClass = function() return "Warrior", "WARRIOR" end
+  book = { { "Mortal Strike", "Ability_Warrior_SavageBlow" }, { "Overpower", "Ability_MeleeDamage" }, { "Heroic Strike", "Ability_Rogue_Ambush" },
+    { "Rend", "Ability_Gouge" } }
+  slots = { [1] = "Ability_Warrior_SavageBlow", [2] = "Ability_MeleeDamage", [3] = "Ability_Rogue_Ambush" }
+  fired = {}
+  ok(DM.Start("dummy") and DM.kit.class == "WARRIOR" and DM.kit.melee, "a warrior's kit")
+  local R = pfUI.meters and pfUI.meters.test and pfUI.meters.test.ROSTER
+  local wrow
+  for _, row in ipairs(R or {}) do if row[2] == "WARRIOR" then wrow = row end end
+  local hasMS = false
+  for _, s in ipairs(wrow and wrow[3] or {}) do if s[1] == "Mortal Strike" then hasMS = true end end
+  ok(not R or (wrow[1] == _G.UnitName("player") and hasMS), "the meters' test fight has you in it, with your Mortal Strike")
+  local sawCD, sawGCD, sawReact, sawProc = false, false, false, false
+  for _ = 1, 80 do
+    Mock.now = Mock.now + .25
+    DM.Step(.25)
+    local s, d = env.GetActionCooldown(1)
+    if s and d and d > 5 then sawCD = true end
+    local s3, d3 = env.GetActionCooldown(3)
+    if s3 and d3 and d3 > 1 and d3 < 2 then sawGCD = true end
+    if env.IsUsableAction(2) == 1 then sawReact = true end
+    for i = 1, 3 do if env.UnitBuff("player", i) then sawProc = true end end
+  end
+  ok(sawCD, "Mortal Strike's 6 s cooldown on its action button")
+  ok(sawGCD, "the global cooldown on your other buttons")
+  ok(sawReact and Saw("reactive", "Overpower"), "Overpower usable (the reactive glow) and its combat text alert")
+  ok(sawProc and Saw("buffGain"), "a proc of yours as a buff on you (Enrage / Flurry)")
+  ok(Saw("outMelee") and Saw("outSpell", "Mortal Strike"), "your swings and Mortal Strike in your combat text")
+  local s, d = env.GetSpellCooldown(1, "spell")
+  ok(s ~= nil, "GetSpellCooldown answers for your spellbook (CoolDownManager reads it)")
+  DM.Stop(true)
+  ok(rawget(env, "GetActionCooldown") == nil or rawget(env, "GetActionCooldown") == keep.GetActionCooldown, "GetActionCooldown put back")
+  ok(rawget(env, "UnitBuff") == before.UnitBuff, "UnitBuff put back")
+  ok(not wrow or wrow[1] == "Garrosh", "the meters' own test fight back after Stop")
+  if EV then EV.Fire = keepFire end
+  for k, v in pairs(keep) do _G[k] = v end
+  Mock.now = now
+end

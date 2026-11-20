@@ -422,6 +422,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       end)
     end
     for _, name in ipairs(DM.TWO) do Put(name, Two(name)) end
+    -- (20 Nov 2026) you: your cooldowns, reactive abilities and procs
+    if DM.kit then DM.YouInstall(Put) end
     if roster == "party" then
       for name, fn in pairs(DM.PARTYROSTER) do Put(name, fn) end
     elseif roster == "raid" then
@@ -589,8 +591,16 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       Hurt(u, Rand(a.dmg[1], a.dmg[2]) * (u.role == "tank" and .8 or 1))
       if a.debuff then AddDebuff(u, a.debuff) end
     end
+    -- (20 Nov 2026) what hits the whole group hits you too: in your combat text
+    if a.what == "raid" and a.dmg[2] > 0 then DM.CT("inSpell", { amount = math.floor(Rand(a.dmg[1], a.dmg[2])), spell = a.name, school = 2 }) end
   end
   DM.Use = Use
+  -- a message through your combat text (its own event, so your colours, areas and filters decide)
+  function DM.CT(kind, data)
+    local CT = S().ctext == "1" and pfUI.sct and pfUI.sct.CT
+    local EV = CT and CT.EV
+    if EV and EV.Fire then pcall(EV.Fire, EV, kind, data) end
+  end
 
   -- chat lines of the demo: in the chat frame's own colours (nothing is sent, nothing is logged)
   function DM.Chat(kind, text)
@@ -764,6 +774,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         if b.hp < b.max * .05 then b.hp = b.max end
         DM.dirty = true
       end
+      DM.YouStep(dt)
       if DM.pt >= DM.RANKTIME then DM.SetPhase("dummy") end
       return
     end
@@ -841,6 +852,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         if a.say then Warn(a.say) end
       end
     end
+    -- you: your rotation, cooldowns, procs
+    DM.YouStep(dt)
     -- the group: healers heal the lowest, damage dealers drain the mob, mana goes down
     local alive = Alive()
     local dps = 0
@@ -863,6 +876,11 @@ pfUI:RegisterModule("demo", "vanilla", function ()
           if low and worst < .95 then
             low.hp = math.min(low.max, low.hp + Rand(900, 1800))
             h.pw = h.pw - Rand(120, 260)
+          end
+          -- (now and then a heal lands on you, by that healer's own spell)
+          if math.random() < .05 then
+            DM.CT("inHeal", { amount = math.floor(Rand(600, 2200)), spell = DM.HEALSPELL[h.class] or "Heal", healer = h.name,
+              heal = true, crit = math.random(1, 6) == 1 })
           end
         end
       end
@@ -905,6 +923,384 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if table.getn(Alive()) == 0 and DM.kind ~= "pvp" then
       DM.wiped = true
       DM.SetPhase("ended")
+    end
+  end
+
+  -- ---------------------------------------------------------------- you, your class
+  -- (20 Nov 2026, user: "make sure the demo uses spells that are to your class also the procs etc you have set up
+  -- everything should work as a direct test to you") A kit per class: hits { name, icon, school, cooldown },
+  -- dots / debuffs { name, icon, seconds, stacks }, heals, procs { name, icon, seconds }, reactive (spell names).
+  -- Icons from your own spellbook when you know the spell; spells you know first. In every fight you "cast": your
+  -- spells and crits in combat text, your DoTs / debuffs on the pretend boss (target frame, OctoDoTs), the cooldown and
+  -- the global cooldown on your action bars and CoolDownManager (GetSpellCooldown / GetActionCooldown answered in
+  -- pfUI's environment), your procs as buffs on you (UnitBuff("player") - the action bar proc glows) and reactive
+  -- abilities usable (IsUsableAction - the reactive glows), with your own glow list (C.bars.glow_names) among them.
+  DM.KITS = {
+    WARRIOR = { melee = true, power = "Rage",
+      hits = { { "Mortal Strike", "Ability_Warrior_SavageBlow", 0, 6 }, { "Bloodthirst", "Spell_Nature_BloodLust", 0, 6 },
+        { "Whirlwind", "Ability_Whirlwind", 0, 10 }, { "Shield Slam", "INV_Shield_05", 0, 6 }, { "Overpower", "Ability_MeleeDamage", 0, 5 },
+        { "Revenge", "Ability_Warrior_Revenge", 0, 5 }, { "Execute", "INV_Sword_48", 0 }, { "Heroic Strike", "Ability_Rogue_Ambush", 0 },
+        { "Cleave", "Ability_Warrior_Cleave", 0 } },
+      dots = { { "Rend", "Ability_Gouge", 21 }, { "Deep Wounds", "Ability_BackStab", 12 } },
+      debuffs = { { "Sunder Armor", "Ability_Warrior_Sunder", 30, 5 }, { "Demoralizing Shout", "Ability_Warrior_WarCry", 30 },
+        { "Thunder Clap", "Spell_Nature_ThunderClap", 26 } },
+      procs = { { "Enrage", "Spell_Shadow_UnholyFrenzy", 12 }, { "Flurry", "Ability_GhoulFrenzy", 15 } },
+      reactive = { "Overpower", "Revenge", "Execute" } },
+    ROGUE = { melee = true, power = "Energy",
+      hits = { { "Sinister Strike", "Spell_Shadow_RitualOfSacrifice", 0 }, { "Backstab", "Ability_BackStab", 0 },
+        { "Eviscerate", "Ability_Rogue_Eviscerate", 0 }, { "Hemorrhage", "Spell_Shadow_LifeDrain", 0 }, { "Riposte", "Ability_Warrior_Challange", 0, 6 } },
+      dots = { { "Rupture", "Ability_Rogue_Rupture", 16 }, { "Garrote", "Ability_Rogue_Garrote", 18 } },
+      debuffs = { { "Expose Armor", "Ability_Warrior_Riposte", 30 }, { "Wound Poison", "INV_Misc_Herb_16", 15, 5 } },
+      procs = { { "Slice and Dice", "Ability_Rogue_SliceDice", 21 }, { "Adrenaline Rush", "Spell_Shadow_ShadowWordDominate", 15 } },
+      reactive = { "Riposte" } },
+    MAGE = { power = "Mana",
+      hits = { { "Fireball", "Spell_Fire_FlameBolt", 2 }, { "Frostbolt", "Spell_Frost_FrostBolt02", 4 }, { "Arcane Missiles", "Spell_Nature_StarFall", 6 },
+        { "Fire Blast", "Spell_Fire_Fireball", 2, 8 }, { "Scorch", "Spell_Fire_SoulBurn", 2 }, { "Cone of Cold", "Spell_Frost_Glacier", 4, 10 } },
+      dots = { { "Ignite", "Spell_Fire_Incinerate", 4 } },
+      debuffs = { { "Fire Vulnerability", "Spell_Fire_SoulBurn", 30, 5 }, { "Winter's Chill", "Spell_Frost_ChillingBlast", 15, 5 } },
+      procs = { { "Clearcasting", "Spell_Shadow_ManaBurn", 15 } }, reactive = {} },
+    WARLOCK = { power = "Mana",
+      hits = { { "Shadow Bolt", "Spell_Shadow_ShadowBolt", 5 }, { "Searing Pain", "Spell_Fire_SoulBurn", 2 }, { "Conflagrate", "Spell_Fire_Fireball", 2, 10 },
+        { "Soul Fire", "Spell_Fire_Fireball02", 2 } },
+      dots = { { "Corruption", "Spell_Shadow_AbominationExplosion", 18 }, { "Curse of Agony", "Spell_Shadow_CurseOfSargeras", 24 },
+        { "Immolate", "Spell_Fire_Immolation", 15 }, { "Siphon Life", "Spell_Shadow_Requiem", 30 } },
+      debuffs = { { "Curse of the Elements", "Spell_Shadow_ChillTouch", 300 }, { "Shadow Vulnerability", "Spell_Shadow_BlackPlague", 12, 5 } },
+      procs = { { "Shadow Trance", "Spell_Shadow_Twilight", 10 } }, reactive = {} },
+    PRIEST = { power = "Mana",
+      hits = { { "Mind Blast", "Spell_Shadow_UnholyFrenzy", 5, 8 }, { "Mind Flay", "Spell_Shadow_SiphonMana", 5 }, { "Smite", "Spell_Holy_HolySmite", 1 },
+        { "Holy Fire", "Spell_Holy_SearingLight", 1 } },
+      dots = { { "Shadow Word: Pain", "Spell_Shadow_ShadowWordPain", 18 }, { "Devouring Plague", "Spell_Shadow_BlackPlague", 24 },
+        { "Vampiric Embrace", "Spell_Shadow_UnsummonBuilding", 60 } },
+      debuffs = { { "Shadow Weaving", "Spell_Shadow_BlackPlague", 15, 5 } },
+      heals = { { "Flash Heal", "Spell_Holy_FlashHeal" }, { "Greater Heal", "Spell_Holy_GreaterHeal" }, { "Renew", "Spell_Holy_Renew" },
+        { "Prayer of Healing", "Spell_Holy_PrayerOfHealing02" } },
+      procs = { { "Inner Focus", "Spell_Frost_WindWalkOn", 15 }, { "Spirit Tap", "Spell_Shadow_Requiem", 15 } }, reactive = {} },
+    DRUID = { power = "Mana",
+      hits = { { "Wrath", "Spell_Nature_AbolishMagic", 3 }, { "Starfire", "Spell_Arcane_StarFire", 6 }, { "Shred", "Spell_Shadow_VampiricAura", 0 },
+        { "Claw", "Ability_Druid_Rake", 0 }, { "Ferocious Bite", "Ability_Druid_FerociousBite", 0 }, { "Maul", "Ability_Druid_Maul", 0 } },
+      dots = { { "Moonfire", "Spell_Nature_StarFall", 12 }, { "Insect Swarm", "Spell_Nature_InsectSwarm", 12 }, { "Rake", "Ability_Druid_Disembowel", 9 },
+        { "Rip", "Ability_GhoulFrenzy", 12 } },
+      debuffs = { { "Faerie Fire", "Spell_Nature_FaerieFire", 40 } },
+      heals = { { "Healing Touch", "Spell_Nature_HealingTouch" }, { "Regrowth", "Spell_Nature_ResistNature" }, { "Rejuvenation", "Spell_Nature_Rejuvenation" } },
+      procs = { { "Clearcasting", "Spell_Shadow_ManaBurn", 15 } }, reactive = {} },
+    HUNTER = { power = "Mana",
+      hits = { { "Aimed Shot", "INV_Spear_07", 0, 6 }, { "Multi-Shot", "Ability_UpgradeMoonGlaive", 0, 10 }, { "Arcane Shot", "Ability_ImpalingBolt", 6, 6 },
+        { "Auto Shot", "Ability_Whirlwind", 0 }, { "Raptor Strike", "Ability_MeleeDamage", 0, 6 }, { "Mongoose Bite", "Ability_Hunter_SwiftStrike", 0, 5 } },
+      dots = { { "Serpent Sting", "Ability_Hunter_Quickshot", 15 } },
+      debuffs = { { "Hunter's Mark", "Ability_Hunter_SniperShot", 120 } },
+      procs = { { "Quick Shots", "Ability_Warrior_InnerRage", 12 }, { "Rapid Fire", "Ability_Hunter_RunningShot", 15 } },
+      reactive = { "Mongoose Bite", "Counterattack" } },
+    PALADIN = { melee = true, power = "Mana",
+      hits = { { "Judgement", "Spell_Holy_RighteousFury", 1, 10 }, { "Seal of Command", "Ability_Warrior_InnerRage", 1 },
+        { "Holy Shock", "Spell_Holy_SearingLight", 1, 30 }, { "Exorcism", "Spell_Holy_Excorcism_02", 1, 15 }, { "Hammer of Wrath", "Ability_ThunderClap", 1, 6 } },
+      dots = { { "Consecration", "Spell_Holy_InnerFire", 8 } },
+      debuffs = { { "Judgement of the Crusader", "Spell_Holy_HolySmite", 10 }, { "Judgement of Wisdom", "Spell_Holy_RighteousnessAura", 10 } },
+      heals = { { "Holy Light", "Spell_Holy_HolyBolt" }, { "Flash of Light", "Spell_Holy_FlashHeal" } },
+      procs = { { "Vengeance", "Ability_Racial_Avatar", 8 } }, reactive = { "Hammer of Wrath" } },
+    SHAMAN = { power = "Mana",
+      hits = { { "Lightning Bolt", "Spell_Nature_Lightning", 3 }, { "Chain Lightning", "Spell_Nature_ChainLightning", 3, 6 },
+        { "Earth Shock", "Spell_Nature_EarthShock", 3, 6 }, { "Frost Shock", "Spell_Frost_FrostShock", 4, 6 }, { "Stormstrike", "Spell_Holy_SealOfMight", 0, 20 } },
+      dots = { { "Flame Shock", "Spell_Fire_FlameShock", 12 } },
+      debuffs = { { "Stormstrike", "Spell_Holy_SealOfMight", 12 } },
+      heals = { { "Healing Wave", "Spell_Nature_MagicImmunity" }, { "Lesser Healing Wave", "Spell_Nature_HealingWaveLesser" },
+        { "Chain Heal", "Spell_Nature_HealingWaveGreater" } },
+      procs = { { "Clearcasting", "Spell_Shadow_ManaBurn", 15 }, { "Flurry", "Ability_GhoulFrenzy", 15 } }, reactive = {} },
+  }
+  DM.GCD = 1.5
+  DM.HEALSPELL = { PRIEST = "Flash Heal", DRUID = "Healing Touch", PALADIN = "Holy Light", SHAMAN = "Healing Wave" }
+  local ICONS = "Interface\\Icons\\"
+  local function Base(tex)
+    if type(tex) ~= "string" then return nil end
+    local _, _, b = string.find(tex, "([^\\]+)$")
+    return b and string.lower(b)
+  end
+
+  -- your kit: the class's lists with your spellbook's icons, the spells you know first
+  function DM.MakeKit()
+    local _, class = _G.UnitClass("player")
+    local src = DM.KITS[class or ""] or DM.KITS.WARRIOR
+    local book = {}
+    if _G.GetSpellName then
+      for i = 1, 300 do
+        local name = _G.GetSpellName(i, "spell")
+        if not name then break end
+        local tex = _G.GetSpellTexture and _G.GetSpellTexture(i, "spell")
+        book[name] = { index = i, tex = tex }
+      end
+    end
+    local kit = { class = class, melee = src.melee, power = src.power, byTex = {}, known = 0 }
+    local function List(from, kind)
+      local mine, other = {}, {}
+      for _, e in ipairs(from or {}) do
+        local b = book[e[1]]
+        local x = { name = e[1], icon = (b and b.tex) or (ICONS .. e[2]), school = (kind == "hits" and e[3]) or nil,
+          cd = (kind == "hits" and e[4]) or nil, dur = (kind ~= "hits" and e[3]) or nil, stacks = (kind ~= "hits" and e[4]) or nil, known = b and true }
+        if b then table.insert(mine, x) kit.known = kit.known + 1 else table.insert(other, x) end
+        kit.byTex[Base(x.icon) or ""] = x.name
+      end
+      -- spells you know; the class's own when you know none of them (a low level character)
+      if table.getn(mine) > 0 then return mine end
+      return other
+    end
+    kit.hits, kit.dots, kit.debuffs = List(src.hits, "hits"), List(src.dots, "dots"), List(src.debuffs, "debuffs")
+    kit.heals, kit.procs = List(src.heals, "heals"), List(src.procs, "procs")
+    kit.reactive = {}
+    for _, n in ipairs(src.reactive or {}) do kit.reactive[string.lower(n)] = true end
+    -- your own proc glow list (Action Bars > Buttons: glow names)
+    for n in string.gfind((C.bars and C.bars.glow_names) or "", "[^,]+") do
+      n = string.gsub(string.gsub(n, "^%s+", ""), "%s+$", "")
+      if n ~= "" then kit.reactive[string.lower(n)] = true end
+    end
+    DM.kit = kit
+    DM.cds, DM.procs, DM.react, DM.gcd = {}, {}, {}, nil
+    DM.nextCast, DM.nextProc, DM.nextReact, DM.nextSwing, DM.nextTick = .5, 6, 10, 1, 3
+    return kit
+  end
+
+  -- what the game's cooldown / usable / buff calls answer for you while a demo runs
+  local function SpellCD(name)
+    local now = GetTime()
+    local c = name and DM.cds[name]
+    if c and now < c.start + c.dur then return c.start, c.dur, 1 end
+    local g = DM.gcd
+    if g and now < g + DM.GCD / DM.speed then return g, DM.GCD / DM.speed, 1 end
+  end
+  DM.SpellCD = SpellCD
+  local function ActionName(slot)
+    local tex = _G.GetActionTexture and _G.GetActionTexture(slot)
+    return tex and DM.kit and DM.kit.byTex[Base(tex) or ""]
+  end
+  DM.ActionName = ActionName
+  function DM.YouInstall(Put)
+    local env = pfUI.env
+    Put("GetSpellCooldown", function(i, book)
+      if DM.kit and book == "spell" and _G.GetSpellName then
+        local s, d, e = SpellCD((_G.GetSpellName(i, book)))
+        if s then return s, d, e end
+      end
+      return DM.orig.GetSpellCooldown(i, book)
+    end)
+    Put("GetActionCooldown", function(slot)
+      local name = DM.kit and ActionName(slot)
+      if name then
+        local s, d, e = SpellCD(name)
+        if s then return s, d, e end
+      end
+      return DM.orig.GetActionCooldown(slot)
+    end)
+    Put("IsUsableAction", function(slot)
+      local name = DM.kit and ActionName(slot)
+      local r = name and DM.react[string.lower(name)]
+      if r and GetTime() < r then return 1, nil end
+      return DM.orig.IsUsableAction(slot)
+    end)
+    -- your procs after your real buffs (UnitBuff is wrapped for pretend units already: this one also knows "player")
+    local inner = rawget(env, "UnitBuff")
+    rawset(env, "UnitBuff", function(u, i)
+      if type(u) == "string" and string.lower(u) == "player" and DM.kit then
+        local tex, cnt = DM.orig.UnitBuff(u, i)
+        if tex then return tex, cnt end
+        local n = 0
+        while DM.orig.UnitBuff(u, n + 1) do n = n + 1 if n > 40 then break end end
+        local k, now = 0, GetTime()
+        for _, p in ipairs(DM.kit.procs) do
+          local e = DM.procs[p.name]
+          if e and now < e then
+            k = k + 1
+            if n + k == i then return p.icon, 1 end
+          end
+        end
+        return nil
+      end
+      return inner(u, i)
+    end)
+  end
+
+  -- pfUI's action bars redraw cooldowns / usable / auras only when the game says so: the pretend casts say it to them
+  -- (their own event handler, the way the game would; event / arg1 put back after)
+  function DM.Poke(ev)
+    local bars = pfUI.bars
+    local fn = bars and bars.GetScript and bars:GetScript("OnEvent")
+    if not fn then return end
+    local e, t, a = _G.event, _G.this, _G.arg1
+    _G.event, _G.this, _G.arg1 = ev, bars, nil
+    pcall(fn)
+    _G.event, _G.this, _G.arg1 = e, t, a
+  end
+
+  -- one step of you: the global cooldown, your next spell, your DoT ticks and swings, procs and reactive windows
+  function DM.YouStep(dt)
+    local kit, b = DM.kit, DM.boss
+    if not kit or not b or not DM.fight then return end
+    local CT = S().ctext == "1" and pfUI.sct and pfUI.sct.CT
+    local EV = CT and CT.EV
+    local function Fire(kind, data) if EV and EV.Fire then pcall(EV.Fire, EV, kind, data) end end
+    local now = GetTime()
+    -- your melee swings (warriors, rogues, paladins)
+    if kit.melee then
+      DM.nextSwing = DM.nextSwing - dt
+      if DM.nextSwing <= 0 then
+        DM.nextSwing = 2.4
+        local roll = math.random(1, 10)
+        if roll == 1 then Fire("outMiss", { kind = "Dodge", plateKind = "miss" })
+        else Fire("outMelee", { amount = math.random(250, 700), crit = roll <= 3 }) end
+      end
+    end
+    -- your DoTs tick
+    DM.nextTick = DM.nextTick - dt
+    if DM.nextTick <= 0 then
+      DM.nextTick = 3
+      for _, e in ipairs(b.debuffs) do
+        if e.mine and e.dot then Fire("outDot", { amount = math.random(90, 340), spell = e.name, school = 5 }) end
+      end
+    end
+    -- the next spell, once the global cooldown is over
+    DM.nextCast = DM.nextCast - dt
+    if DM.nextCast <= 0 then
+      DM.nextCast = DM.GCD
+      DM.gcd = now
+      DM.pokeCD = true
+      local pick, dot
+      -- a DoT or debuff that is missing or nearly gone first, then a hit off cooldown, then the first hit (the filler)
+      for _, list in ipairs({ kit.dots, kit.debuffs }) do
+        for _, d in ipairs(list) do
+          if not pick then
+            local on
+            for _, e in ipairs(b.debuffs) do if e.name == d.name then on = e end end
+            if not on or on.left < 3 then pick, dot = d, list == kit.dots end
+          end
+        end
+      end
+      if not pick then
+        for _, h in ipairs(kit.hits) do
+          if not pick and h.cd and not (DM.cds[h.name] and now < DM.cds[h.name].start + DM.cds[h.name].dur) then pick = h end
+        end
+      end
+      -- (healers heal a hurt raider half the time)
+      local hurt
+      if kit.heals[1] and DM.list and math.random() < .5 then
+        for _, u in ipairs(DM.list) do if not u.dead and u.hp < u.max * .8 then hurt = u end end
+      end
+      if hurt then
+        local h = Pick(kit.heals)
+        local amt = math.random(800, 2400)
+        hurt.hp = math.min(hurt.max, hurt.hp + amt)
+        Fire("outHeal", { amount = amt, spell = h.name, crit = math.random(1, 6) == 1, name = hurt.name })
+        DM.dirty = true
+        return
+      end
+      pick = pick or kit.hits[1]
+      if not pick then return end
+      if pick.dur then
+        -- on the boss: your DoT / debuff (refreshed, stacked)
+        local on
+        for _, e in ipairs(b.debuffs) do if e.name == pick.name then on = e end end
+        if on then on.left, on.count = pick.dur, math.min(pick.stacks or 1, (on.count or 1) + 1)
+        elseif table.getn(b.debuffs) < 16 then
+          table.insert(b.debuffs, { name = pick.name, tex = pick.icon, type = "", left = pick.dur, count = 1, mine = true, dot = dot })
+        end
+        DM.adirty = true
+        if dot then Fire("outDot", { amount = math.random(90, 340), spell = pick.name, school = 5 }) end
+      else
+        local crit = math.random(1, 5) == 1
+        Fire("outSpell", { amount = math.floor(math.random(700, 2400) * (crit and 1.5 or 1)), crit = crit, spell = pick.name, school = pick.school or 0 })
+        if pick.cd then DM.cds[pick.name] = { start = now, dur = pick.cd / DM.speed } end
+      end
+    end
+    -- your debuffs on the boss run down
+    for i = table.getn(b.debuffs), 1, -1 do
+      local e = b.debuffs[i]
+      if e.mine then
+        e.left = e.left - dt
+        if e.left <= 0 then table.remove(b.debuffs, i) DM.adirty = true end
+      end
+    end
+    -- a proc now and then (as a buff on you), a reactive window
+    DM.nextProc = DM.nextProc - dt
+    if DM.nextProc <= 0 and kit.procs[1] then
+      DM.nextProc = Rand(14, 24)
+      local p = Pick(kit.procs)
+      DM.procs[p.name] = now + (p.dur or 10) / DM.speed
+      Fire("buffGain", { spell = p.name, icon = p.icon })
+      DM.Poke("PLAYER_AURAS_CHANGED")
+    end
+    DM.nextReact = DM.nextReact - dt
+    if DM.nextReact <= 0 then
+      DM.nextReact = Rand(10, 16)
+      for name in pairs(kit.reactive) do
+        DM.react[name] = now + 5 / DM.speed
+      end
+      for _, h in ipairs(kit.hits) do
+        if kit.reactive[string.lower(h.name)] then Fire("reactive", { spell = h.name, icon = h.icon }) break end
+      end
+      DM.reactOn = true
+      DM.Poke("ACTIONBAR_UPDATE_USABLE")
+    end
+    -- the bars' redraws: a cast (cooldowns), a reactive window closing (usable)
+    if DM.pokeCD then DM.pokeCD = nil DM.Poke("ACTIONBAR_UPDATE_COOLDOWN") end
+    if DM.reactOn then
+      local any = false
+      for _, t in pairs(DM.react) do if now < t then any = true end end
+      if not any then DM.reactOn = nil DM.Poke("ACTIONBAR_UPDATE_USABLE") end
+    end
+  end
+
+  -- the meters' test fight with you in it: your class's row gets your name and your kit's spells (put back at Stop;
+  -- the fight is made again the next time either way)
+  function DM.YourMeters(on)
+    local M = pfUI.meters
+    local TM = M and M.test
+    local R = TM and TM.ROSTER
+    if not R then return end
+    if on and DM.kit then
+      for _, row in ipairs(R) do
+        if row[2] == DM.kit.class and not DM.meterRow then
+          DM.meterRow = { row, row[1], row[3] }
+          local spells = {}
+          if DM.kit.melee then table.insert(spells, { (T and T["Melee"]) or "Melee", 300, 600, 1 }) end
+          for _, h in ipairs(DM.kit.hits) do table.insert(spells, { h.name, 600, 1500, h.cd or 3 }) end
+          for _, d in ipairs(DM.kit.dots) do table.insert(spells, { d.name, 100, 300, 3, dot = true }) end
+          for _, h in ipairs(DM.kit.heals) do table.insert(spells, { h.name, 800, 2000, 4, heal = true }) end
+          row[1], row[3] = _G.UnitName("player") or row[1], spells
+        end
+      end
+      M.testSeg = nil
+    elseif DM.meterRow then
+      local m = DM.meterRow
+      m[1][1], m[1][3] = m[2], m[3]
+      DM.meterRow = nil
+      M.testSeg = nil
+    end
+  end
+
+  -- OctoDoTs' sample mobs and the DoT target bar with your class's DoTs (put back at Stop)
+  function DM.YourDots(on)
+    local D, TB = pfUI.dots, pfUI.dotsTarget
+    local kit = DM.kit
+    if on and kit then
+      local function Short(icon) local _, _, b = string.find(icon or "", "([^\\]+)$") return b or "INV_Misc_QuestionMark" end
+      local mine = {}
+      for _, d in ipairs(kit.dots) do table.insert(mine, { d.name, Short(d.icon), "mine", d.dur }) end
+      for _, d in ipairs(kit.debuffs) do table.insert(mine, { d.name, Short(d.icon), "mine", d.dur, d.stacks }) end
+      if D and D.FAKE then
+        DM.savedDFake = DM.savedDFake or D.FAKE
+        local boss = (DM.boss and DM.boss.name) or "Training Dummy"
+        D.FAKE = {
+          { boss, 8, 1, .82, mine, 3650, 5560 },
+          { "Scarlet Defender", 7, 0, .55, { mine[1] }, 2900, 3800 },
+          { "Scarlet Sorcerer", 5, 0, .3, { mine[2] or mine[1] }, 1200, 1200, true },
+        }
+      end
+      if TB and TB.FAKE then
+        DM.savedTBFake = DM.savedTBFake or TB.FAKE
+        local t = {}
+        for i, d in ipairs(mine) do if i <= 5 then table.insert(t, { d[1], d[2], d[4] or 12, i * 2 }) end end
+        if t[1] then TB.FAKE = t end
+      end
+    else
+      if D and DM.savedDFake then D.FAKE = DM.savedDFake end
+      if TB and DM.savedTBFake then TB.FAKE = DM.savedTBFake end
+      DM.savedDFake, DM.savedTBFake = nil, nil
     end
   end
 
@@ -1073,11 +1469,13 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       if on and not M.testOn then DM.metersMine = true pcall(M.TestMode, true)
       elseif not on and DM.metersMine then DM.metersMine = nil pcall(M.TestMode, false) end
     end
-    -- (the combat text test's own clock, set straight: its TestMode prints a chat line on every call)
+    -- (20 Nov 2026) combat text: no longer combat text's own test round (other classes' spells) - your own spells
+    -- from DM.YouStep / DM.CT go through it. The combat text switches on for the demo if it was off.
     local CT = pfUI.sct and pfUI.sct.CT
-    if S().ctext == "1" and CT and CT.Testing then
-      if on then DM.ctMine = true CT.testUntil = GetTime() + 3600
-      elseif DM.ctMine then DM.ctMine = nil CT.testUntil = nil end
+    local B = pfUI.sct and pfUI.sct.B
+    if S().ctext == "1" and CT and B and B.db and B.db.sct then
+      if on and not B.db.sct.enabled then DM.ctOn = true B.db.sct.enabled = true
+      elseif not on and DM.ctOn then DM.ctOn = nil B.db.sct.enabled = false end
     end
   end
 
@@ -1108,13 +1506,16 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     DM.pulls, DM.bossIndex, DM.dbossIndex, DM.packIndex, DM.packsDone = 0, 0, 0, 0, 0
     DM.trashDone, DM.rank, DM.retry, DM.wiped, DM.pack = nil, 0, nil, nil, nil
     DM.showIndex, DM.showT, DM.caption, DM.bgAt = 0, 0, nil, 8
+    -- (20 Nov 2026) your class: your spells, cooldowns and procs in every demo but AFK
+    if kind == "afk" then DM.kit = nil else DM.MakeKit() end
     DM.Install(roster)
     if kind == "dummy" then DM.SetPhase("dummy")
     elseif kind == "afk" then DM.SetPhase("afk")
     else DM.SetPhase("trash") end
     DM.Regroup()
-    if kind ~= "afk" then DM.Joins(true) end
+    if kind ~= "afk" then DM.YourMeters(true) DM.Joins(true) end
     if kind == "showcase" then DM.ShowNext() end
+    DM.YourDots(DM.kit and true)
     DM.Cycle()
     DM.ensureAt, DM.reported = GetTime() + 1.5, nil
     DM.bar:Show()
@@ -1124,11 +1525,19 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.Stop(quiet)
     if not DM.on then return end
     DM.Joins(false)
+    DM.YourMeters(false)
     DM.Cycle(.01)
+    DM.YourDots(false)
     DM.OwnAfk(false)
     local wasKind = DM.kind
     DM.on, DM.boss, DM.fight, DM.pack, DM.caption = false, nil, false, nil, nil
     DM.Uninstall()
+    if DM.kit then
+      DM.kit = nil
+      DM.Poke("ACTIONBAR_UPDATE_COOLDOWN")
+      DM.Poke("ACTIONBAR_UPDATE_USABLE")
+      DM.Poke("PLAYER_AURAS_CHANGED")
+    end
     DM.Regroup()
     if wasKind == "afk" then
       if DM.afkNote then DM.afkNote:Hide() end

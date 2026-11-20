@@ -1523,3 +1523,14 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   afkcam (user's is off): DM.OwnAfk (pfDemoAfk on WorldFrame: gradients, clock, chat, camera turn, UIParent hidden; click /
   key ends it). Wipe slider label "Wipe every ... bosses" (its number box showed "sses"). tests\demo.lua runs every demo
   for 2 minutes at 4x and checks it keeps cycling.
+  Phase 5 (20 Nov 2026, NOT seen in game; user: "the demo uses spells that are to your class also the procs ... a direct
+  test to you"). DM.KITS[class] (hits with school / cooldown, dots, debuffs, heals, procs, reactive) -> DM.MakeKit (your
+  spellbook's icons, the spells you know first, C.bars.glow_names joins reactive). DM.YouStep in every fight: GCD 1.5 s,
+  missing DoT / debuff first, then a hit off cooldown, then the filler; healers heal a hurt raider half the time; melee
+  swings; DoT ticks; a proc every 14-24 s, a reactive window every 10-16 s. Out: combat text via CT.EV:Fire (outSpell /
+  outDot / outMelee / outHeal / buffGain / reactive; inSpell from raid-wide boss hits, inHeal from pretend healers) - the
+  combat text's own test round is no longer used; your DoTs on DM.boss.debuffs (mine = true); env GetSpellCooldown /
+  GetActionCooldown (by the action's texture -> kit.byTex), IsUsableAction (reactive), UnitBuff("player") (procs after
+  your real buffs); DM.Poke fires the bars' own OnEvent (ACTIONBAR_UPDATE_COOLDOWN / _USABLE / PLAYER_AURAS_CHANGED) since
+  the bars redraw only on events. DM.YourDots swaps D.FAKE / TB.FAKE for your DoTs, DM.YourMeters puts your name + kit into
+  your class's row of the meters' test fight (M.test.ROSTER; M.testSeg rebuilt) - both put back at Stop.

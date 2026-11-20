@@ -48,6 +48,19 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
     -- (the number box only has room for a number: the user's screenshot read "sses")
     O.PfSld(p, "Wipe every ... bosses", "0 = never, 1 = every boss, 3 = every third. The raid goes down on that pull and "
       .. "tries the same boss again.", 0, 6, 1, G, "wipes")
+    -- (20 Nov 2026) you: the class kit the running demo casts
+    W.Live(p, function()
+      local k = DM.kit
+      if not k then return "|cff888888Every demo but AFK casts your own class's spells, DoTs, cooldowns and procs.|r" end
+      local function Names(list, n)
+        local out = {}
+        for i, e in ipairs(list or {}) do if i <= n then table.insert(out, e.name) end end
+        return table.concat(out, ", ")
+      end
+      return "You (" .. (k.class or "?") .. "): |cffffffff" .. Names(k.hits, 4) .. "|r"
+        .. (k.dots[1] and ("  DoTs: |cffffffff" .. Names(k.dots, 3) .. "|r") or "")
+        .. (k.procs[1] and ("  Procs: |cffffffff" .. Names(k.procs, 2) .. "|r") or "")
+    end)
     -- what cannot join in because it is switched off
     W.Live(p, function()
       local off = {}
