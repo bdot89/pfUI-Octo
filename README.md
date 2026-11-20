@@ -120,6 +120,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.96
+
+- 🎬 **The demo uses your whole action bar:** every spell, item and macro on your bars gets used in turn with its own cooldown sweep, every slot shows the global cooldown, and your trinkets go on cooldown too.
+- ✨ **Resses like a real raid:** after a wipe nobody stands up at once. Ressers get up first, each res has its cast bar and the res icon shows on the one being ressed, and the next pull waits until everyone is up.
+- 🎯 **The boss turns for real:** after an overthreat (yours or a raider's), target of target shows whoever has aggro, and the boss hits them until the tank taunts it back.
+- 📈 **A live threat meter all demo long:** a threat cycle runs on its own (a DoT player's countdown, your overthreat, a melee pull), and the meter keeps the last fight between pulls.
+- 📏 **Meter windows never stay stuck small:** a window saved while fitted to its lines grows back to show everyone.
+
 ## 📜 New in 1.1.95
 
 - 🌊 **Smooth bars in every meter:** with ClassicAPI the bars glide to their new size in the game client itself. It's smoother and costs the add-on nothing. A bar that changes player jumps at once.

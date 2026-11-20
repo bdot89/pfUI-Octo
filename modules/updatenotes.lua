@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.96", {
+    { "The demo uses your whole action bar", "every spell, item and macro on your bars gets used in turn with its own cooldown sweep, every slot shows the global cooldown, and your trinkets go on cooldown too." },
+    { "Resses like a real raid", "after a wipe nobody stands up at once. Ressers get up first, each res has its cast bar and the res icon shows on the one being ressed, and the next pull waits until everyone is up." },
+    { "The boss turns for real", "after an overthreat (yours or a raider's), target of target shows whoever has aggro, and the boss hits them until the tank taunts it back." },
+    { "A live threat meter all demo long", "a threat cycle runs on its own (a DoT player's countdown, your overthreat, a melee pull), and the meter keeps the last fight between pulls." },
+    { "Meter windows never stay stuck small", "a window saved while fitted to its lines grows back to show everyone." },
+  } },
   { "1.1.95", {
     { "Smooth bars in every meter", "with ClassicAPI the bars glide to their new size in the game client itself. It's smoother and costs the add-on nothing. A bar that changes player jumps at once." },
     { "Neat columns everywhere", "per second, total and % in columns of their own that line up down every window, with small headings. A narrow window drops columns before it squashes names." },
@@ -171,8 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.57", {
     { "No freeze on instant gear swaps", "swapping a whole set changes every slot at once, and each change used to refresh the set buttons, heal prediction and durability right away - many times in one moment. Each now refreshes once, a fraction of a second after the swap." },
-  } },
-  { "1.1.56", {
-    { "Quest tracker error fixed for real", "no more \"tracker.lua:282: attempt to index a nil value\". The real cause was the game's quest watch frame going missing (another add-on), and the tracker now copes without it." },
   } },
 }
