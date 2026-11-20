@@ -2424,9 +2424,10 @@ do
       ws.mode = "window"
       WHm.OnEvent("CHAT_MSG_WHISPER", "hello there", "Jaina")
       local wf = WHm.windows.Jaina
-      ok(wf and wf:IsShown() and wf.unread == 1, "a whisper opens a window, one unread")
+      local hub = WHm.hub
+      ok(wf and wf:IsShown() and wf.unread == 1 and WHm.active == "Jaina", "a whisper opens the window on its tab, one unread")
       -- (19 Nov 2026: in the real client a new frame is shown at once, so the window was never placed = never drawn)
-      ok(wf and wf:GetPoint() ~= nil, "the new window has a place on the screen")
+      ok(hub and hub:IsShown() and hub:GetPoint() ~= nil, "the window has a place on the screen")
       WHm.OnEvent("CHAT_MSG_WHISPER_INFORM", "hi!", "Jaina")
       local kept = pfUI_cache.whispers
       local n = 0
@@ -2434,11 +2435,30 @@ do
       ok(n == 2, "both lines kept for next time (" .. n .. ")")
       WHm.Seen(wf)
       ok(wf.unread == 0, "looking at it clears the count")
-      WHm.Fold(wf, true)
-      ok(wf.folded and not wf.msg:IsShown(), "it folds")
-      WHm.Fold(wf, false)
+      -- (20 Nov 2026, user: master looting "opens 10 windows at once when people bid with a whisper") one window,
+      -- a tab each; a new whisper never takes the tab you are on
+      local frames = 0
+      local rawCF = _G.CreateFrame
+      _G.CreateFrame = function(kind, name, parent, tmpl)
+        if kind == "Frame" and parent == UIParent then frames = frames + 1 end
+        return rawCF(kind, name, parent, tmpl)
+      end
+      for i = 1, 10 do WHm.OnEvent("CHAT_MSG_WHISPER", "bid " .. (i * 10), "Bidder" .. i) end
+      _G.CreateFrame = rawCF
+      ok(frames == 0 and WHm.windows.Bidder10 and WHm.windows.Bidder10:IsShown(), "ten bidders: ten tabs, no new window (" .. frames .. ")")
+      ok(WHm.active == "Jaina" and WHm.windows.Bidder3.unread == 1, "the tab you are on stays picked, the new ones count")
+      ok(WHm.windows.Jaina.msg:IsShown() and not WHm.windows.Bidder3.msg:IsShown(), "only the picked conversation shows")
+      ok(WHm.Next(1) == "Bidder1" and WHm.active == "Bidder1" and WHm.windows.Bidder1.unread == 0, "Tab jumps to the next unread one")
+      WHm.Close("Bidder1")
+      ok(WHm.active and WHm.active ~= "Bidder1" and hub:IsShown(), "closing a tab picks another, the window stays")
+      for i = 2, 10 do WHm.Close("Bidder" .. i) end
+      WHm.Select("Jaina")
+      WHm.Fold(nil, true)
+      ok(hub.folded and not hub.page:IsShown() and not hub.list:IsShown(), "it folds")
+      WHm.Fold(nil, false)
+      ok(hub.page:IsShown() and wf.msg:IsShown(), "and unfolds")
       WHm.Close("Jaina")
-      ok(not wf:IsShown(), "and closes")
+      ok(not wf:IsShown() and not hub:IsShown(), "and closes with its last tab")
       -- in combat: waits until the fight ends
       ws.combat = "wait"
       local combatWas = UnitAffectingCombat
@@ -2470,7 +2490,7 @@ do
         for _, list in pairs(pfUI_cache.whispers) do list.Thrall2 = { { t = 1, dir = "in", msg = "kept line" } } end
         local tw = WHm.Open("Thrall2", true)
         _G.CreateFrame = rawCreate
-        ok(tw and made >= 2 and not bad and tw.msg.fontSet and tw.edit.fontSet, "a window with kept lines has its font before the first line")
+        ok(tw and made >= 1 and not bad and tw.msg.fontSet, "a tab with kept lines has its font before the first line (the answer box is shared)")
         WHm.Close("Thrall2")
       end
       -- the test window talks only to itself

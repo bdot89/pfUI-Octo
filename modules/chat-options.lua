@@ -667,12 +667,13 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   -- chat-whispers.lua: windows of their own
   local function WS() return C.chat.whisper end
   local function BuildWhispers(p)
-    W.Heading(p, "Whispers", { on = O.ModuleSwitch("chat-whispers", "Whisper windows"), about = "Each person who whispers you gets a small window of their own - class, level, "
-      .. "guild, the conversation and a box to answer in - or a tab in the left chat." })
+    W.Heading(p, "Whispers", { on = O.ModuleSwitch("chat-whispers", "Whisper window"), about = "One whisper window: a tab per person down the left, "
+      .. "their conversation and a box to answer in, one bar on top for invite, target, who, fold and close - or a tab in the left chat. "
+      .. "A new whisper never takes the tab you are on: its tab lights up and counts. Tab in the answer box jumps to the next unread one." })
     Preview(p)
     local WHm = pfUI.whispers
     W.Card(p, "Whisper windows", { tip = "How whispers show up." })
-    Drop(p, "Whispers go", nil, { { key = "window", label = "In a window per person" }, { key = "tab", label = "In a Whispers tab" },
+    Drop(p, "Whispers go", nil, { { key = "window", label = "In the whisper window" }, { key = "tab", label = "In a Whispers tab" },
       { key = "off", label = "In the chat only" } }, WS, "mode", function()
       -- the tab follows the choice
       for _, t in ipairs(CH.TOGGLES) do
@@ -700,19 +701,30 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
       end)
     W.Buttons(p, {
       { "Open a test window", function() if WHm then WHm.Test() end end, 150,
-        "A made-up conversation with Thrall: try the window, type in it - nothing is sent.",
+        "Made-up conversations with Thrall and two bidders: try the tabs, type in it - nothing is sent.",
         on = function() return WHm and WHm.windows[WHm.TEST] and WHm.windows[WHm.TEST]:IsShown() end },
-      { "Close all", function() if WHm then WHm.CloseAll() end end, 100, "Every whisper window (conversations are kept)." },
+      { "Close all", function() if WHm then WHm.CloseAll() end end, 100, "Every tab and the window (conversations are kept)." },
     })
-    W.Card(p, "Window look", { tip = "Drag a window's title to move it (new ones open from there), its corner to size it." })
-    local function Re() if WHm then for _, f in pairs(WHm.windows) do WHm.Paint(f) end end end
-    Sld(p, "Width", nil, 200, 700, 10, WS, "width", Px, Re)
-    Sld(p, "Height", nil, 110, 600, 10, WS, "height", Px, Re)
+    W.Card(p, "Window look", { tip = "Drag the bar to move the window, its corner to size it." })
+    local function Re()
+      if not WHm then return end
+      local H = WHm.hub
+      if H then
+        H:SetWidth(tonumber(WS().hubwidth) or 440)
+        if not H.folded then H:SetHeight(tonumber(WS().hubheight) or 230) end
+        H.list:SetWidth(tonumber(WS().tabwidth) or 120)
+      end
+      WHm.PaintAll()
+      WHm.Layout()
+    end
+    Sld(p, "Width", nil, 280, 900, 10, WS, "hubwidth", Px, Re)
+    Sld(p, "Height", nil, 130, 700, 10, WS, "hubheight", Px, Re)
+    Sld(p, "Name tabs width", "The list of people down the left.", 70, 220, 5, WS, "tabwidth", Px, Re)
     Sld(p, "Text size", nil, 8, 20, 1, WS, "fontsize", Px, Re)
-    Sld(p, "Lines kept per person", "Shown again when their window opens.", 0, 200, 10, WS, "history")
+    Sld(p, "Lines kept per person", "Shown again when their tab opens.", 0, 200, 10, WS, "history")
     W.Live(p, function()
       return "|cffffd100/whispers|r reopens everyone you talked to   |cffffd100/whispers close|r closes them   "
-        .. "|cffffd100/whispers test|r a test window"
+        .. "|cffffd100/whispers test|r a test window   right-click a tab closes it   shift-click the bar's x closes all"
     end)
   end
 
