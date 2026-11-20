@@ -633,6 +633,11 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- the same for anyone on the list (not the tank): yours = TH.Predict; others from their DoT ticks and pace
   function TH.PredictFor(name, now)
     if not TH.PredictOn() or not TH.list or not name then return end
+    -- (the demo's threat cycle answers for the player it is pulling)
+    if TH.demoPredictFor then
+      local dp = TH.demoPredictFor(name, now)
+      if dp then return dp end
+    end
     if name == UnitName("player") then return TH.Predict(now) end
     now = now or GetTime()
     local e, tank

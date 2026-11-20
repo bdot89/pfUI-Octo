@@ -186,6 +186,57 @@ if DM.EVENTS then
   ok(p and p.stopNow and p.aggroIn > 0 and p.aggroIn <= 5 and TH.SoonText({ aggroIn = p.aggroIn, stopNow = true }),
     "DoTs pull aggro: the countdown runs on your threat (" .. tostring(p and p.aggroIn) .. " s)")
   DM.thEvent = nil
+  -- (20 Nov 2026, user: the demo's threat window showed only its pull line) a real threat window draws the whole raid
+  do
+    local tw = pfUI.meters.ThreatWindow and pfUI.meters.ThreatWindow()
+    if tw then
+      Run(2)
+      local good, err = pcall(tw.Refresh, tw)
+      local players = 0
+      for _, b in ipairs(tw.bars or {}) do if b:IsShown() and b.row and not b.row.pullrow then players = players + 1 end end
+      ok(good and players >= 5, "the demo's threat window: the raid on it (" .. players .. " players, " .. tostring(err) .. ")")
+      -- a size saved while it was fitted (layout mode used to read the fitted height): it still shows the raid
+      local s = pfUI_config.meters["win" .. tw.id]
+      local keepH = s.height
+      s.height = "40"
+      tw.Refresh(tw)
+      players = 0
+      for _, b in ipairs(tw.bars or {}) do if b:IsShown() and b.row and not b.row.pullrow then players = players + 1 end end
+      ok(players >= 5, "a tiny saved size does not shrink it to its pull line (" .. players .. " players)")
+      s.height = keepH
+    end
+  end
+  -- (20 Nov 2026, user: "constantly showing a live threat meter running a cycle that matches the mode and event we are
+  -- in") the cycle runs by itself: a DoT player's DoTs pull them (DoTs line, countdown), the boss turns to them, the tank
+  -- taunts it back; between pulls the last list stays
+  do
+    DM.thEvent, DM.autoNext, DM.autoStep, DM.forceWipe = nil, 0, 0, nil
+    DM.SetPhase("rest") DM.SetPhase("boss")
+    Run(19)
+    local ev = DM.thEvent
+    ok(ev and ev.auto and ev.kind == "dotsOther" and ev.who, "the cycle starts on its own: " .. tostring(ev and ev.who) .. "'s DoTs")
+    local who = ev and ev.who
+    Run(5)
+    TH.all = nil
+    local rows = pfUI.meters.Rows("threat", "current")
+    local dotLine
+    for _, r in ipairs(rows) do if r.pullrow == "dots" then dotLine = r end end
+    ok(dotLine and who and dotLine.name == who and string.find(dotLine.label or "", "in %d+ s"),
+      "the DoTs line names " .. tostring(who) .. " with a countdown (" .. tostring(dotLine and dotLine.label) .. ")")
+    Run(4)
+    local holder
+    for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
+    ok(who and holder == who, "then the boss turns to them (" .. tostring(holder) .. ")")
+    Run(14)
+    holder = nil
+    for _, e in ipairs(TH.list or {}) do if e.tank then holder = e.name end end
+    ok(holder and holder ~= who, "and the tank taunts it back (" .. tostring(holder) .. ")")
+    DM.thEvent = nil
+    DM.SetPhase("ended")
+    DM.Threat(.5)
+    ok(TH.list and table.getn(TH.list) > 5, "between pulls the meter keeps the last fight")
+    DM.SetPhase("rest") DM.SetPhase("boss")
+  end
   -- (20 Nov 2026, user: the preview had DoT lines the real meter never showed) the demo's DoT classes tick on the boss
   do
     local dotter

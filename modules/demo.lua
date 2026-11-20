@@ -473,9 +473,9 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if DM.lhGet and pfUI.libhealth then pfUI.libhealth.GetUnitHealth = DM.lhGet end
     DM.lhGet = nil
     local TH = pfUI.meters and pfUI.meters.threat
-    if TH then TH.demoPredict, TH.demoPending = nil, nil end
+    if TH then TH.demoPredict, TH.demoPending, TH.demoPredictFor = nil, nil, nil end
     DM.dotk = nil
-    DM.thEvent, DM.forceWipe, DM.aggroMe = nil, nil, nil
+    DM.thEvent, DM.forceWipe, DM.aggroMe, DM.aggroWho, DM.autoNext, DM.autoStep = nil, nil, nil, nil, nil, nil
     if TH and DM.thAsk then
       TH.Ask = DM.thAsk
       TH.list, TH.base = nil, nil
@@ -492,32 +492,100 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local M = pfUI.meters
     local TH = M and M.threat
     if not TH then return end
-    if not DM.fight or not DM.boss or DM.kind == "pvp" or DM.kind == "afk" then
+    if DM.kind == "pvp" or DM.kind == "afk" then
       if TH.list then TH.list = nil if M.Changed then pcall(M.Changed) end end
       return
     end
+    -- (20 Nov 2026, user: "it should be constantly showing a live threat meter running a cycle that matches the mode
+    -- and event we are in") between pulls (kill, wipe, rest) the last fight's list stays on the meter
+    if not DM.fight or not DM.boss then
+      if TH.list then
+        TH.at = GetTime()
+        if M.RefreshThreat then pcall(M.RefreshThreat) end
+      end
+      return
+    end
     DM.tt = DM.tt or {}
+    DM.trate = DM.trate or {}
+    DM.dotk = DM.dotk or {}
     local me = _G.UnitName("player") or "You"
     local list = {}
     if DM.kind == "dummy" then
       DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(500, 900)
       list = { { name = me, tank = true, threat = math.floor(DM.tt[me]), perc = 100, melee = true } }
     else
+      -- every raider's steady pace for this fight (a little noise each step, no jumps)
       for _, u in ipairs(DM.list) do
         if not u.dead then
-          local k = (u.role == "tank" and (u == DM.tank and 1300 or 700)) or (u.role == "heal" and Rand(80, 220)) or Rand(250, 700)
-          DM.tt[u.name] = (DM.tt[u.name] or 0) + dt * k
+          local k = DM.trate[u.name]
+          if not k then
+            k = (u.role == "tank" and (u == DM.tank and 1300 or 650)) or (u.role == "heal" and Rand(90, 200)) or Rand(300, 760)
+            DM.trate[u.name] = k
+          end
+          DM.tt[u.name] = (DM.tt[u.name] or 0) + dt * k * Rand(.9, 1.1)
         end
       end
       -- you: climbing towards the tank now and then
-      local push = math.mod(math.floor(DM.pt / 20), 2) == 1 and 1500 or 600
-      DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(push * .7, push)
-      -- (20 Nov 2026) the Overthreat / DoTs pull events (DM.EVENTS): you against the tank's threat, then aggro
-      local ev = DM.thEvent
+      local push = math.mod(math.floor(DM.pt / 20), 2) == 1 and 1300 or 600
+      DM.tt[me] = (DM.tt[me] or 0) + dt * Rand(push * .85, push)
       local holderU = DM.tank and not DM.tank.dead and DM.tank or DM.offtank
       local tankNow = holderU and DM.tt[holderU.name] or 0
-      DM.aggroMe = nil
-      if ev and tankNow > 0 then
+      -- (20 Nov 2026) the threat cycle on its own, every 25 s of a fight while no event of yours runs: a DoT player's
+      -- DoTs pull them ("DoTs <name> in 4 s", then the boss turns to them), then you overthreat, then a melee player pulls
+      -- at their pace (the Next line) - each time the tank taunts it back
+      if not DM.thEvent and tankNow > 0 and DM.pt > 8 and DM.t >= (DM.autoNext or 0) then
+        DM.autoNext = DM.t + 25
+        DM.autoStep = math.mod((DM.autoStep or 0), 3) + 1
+        local pickDot, pickMelee
+        for _, u in ipairs(DM.list) do
+          if not u.dead and u ~= DM.tank and u ~= DM.offtank and u.name ~= me then
+            if not pickDot and (u.class == "WARLOCK" or u.class == "PRIEST") then pickDot = u.name end
+            if not pickMelee and (u.class == "ROGUE" or u.class == "WARRIOR") and u.role == "dps" then pickMelee = u.name end
+          end
+        end
+        if DM.autoStep == 1 and pickDot then DM.thEvent = { kind = "dotsOther", t = 0, who = pickDot, auto = true }
+        elseif DM.autoStep == 2 then DM.thEvent = { kind = "over", t = 0, auto = true }
+        elseif pickMelee then DM.thEvent = { kind = "pace", t = 0, who = pickMelee, auto = true } end
+      end
+      -- (20 Nov 2026) the Overthreat / DoTs pull events (DM.EVENTS): you against the tank's threat, then aggro
+      local ev = DM.thEvent
+      DM.aggroMe, DM.aggroWho = nil, nil
+      if ev and ev.who and tankNow > 0 then
+        -- another player: their DoTs (or their pace) carry them past their pull point, the boss turns to them
+        ev.t = ev.t + dt
+        local caster = ev.kind == "dotsOther"
+        local at = tankNow * (caster and 1.3 or 1.1)
+        -- their countdown on the meter (the DoTs line or the Next line, and their own seconds)
+        TH.demoPredictFor = function(name)
+          if name ~= ev.who or ev.turned or not DM.thEvent then return end
+          local cur = DM.tt[ev.who] or 0
+          return { pending = caster and at * .17 or 0, room = at - cur, aggroIn = math.max(0, 6 - ev.t), stopNow = caster or nil }
+        end
+        if ev.t < 6 then
+          if caster then
+            DM.dotk[ev.who] = .22
+            DM.tt[ev.who] = at * (.9 + .09 * ev.t / 6)
+          else
+            DM.dotk[ev.who] = false
+            DM.trate[ev.who] = (DM.trate[holderU.name] or 1300) * 1.6
+            DM.tt[ev.who] = math.max(DM.tt[ev.who] or 0, at * (.9 + .09 * ev.t / 6))
+          end
+        else
+          if not ev.turned then
+            ev.turned, ev.at = true, ev.t
+            Warn((DM.boss and DM.boss.name or "The boss") .. " turns to " .. ev.who .. "!")
+          end
+          DM.tt[ev.who] = at * 1.02
+          DM.aggroWho = ev.who
+          if ev.t - ev.at > 5 then
+            DM.tt[ev.who] = tankNow * .6
+            DM.trate[ev.who], DM.dotk[ev.who] = nil, nil
+            DM.thEvent, DM.aggroWho = nil, nil
+            DM.Chat("SYSTEM", (holderU and holderU.name or "The tank") .. " taunts " .. (DM.boss and DM.boss.name or "the boss") .. " back from " .. ev.who .. ".")
+          end
+        end
+      elseif ev and tankNow > 0 then
+        TH.demoPredictFor = nil
         ev.t = ev.t + dt
         local TH0 = TH
         if ev.kind == "dots" and ev.t < 5 then
@@ -546,8 +614,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
             end
           end
         end
-      elseif TH.demoPredict then
-        TH.demoPredict = nil
+      else
+        TH.demoPredict, TH.demoPredictFor = nil, nil
       end
       -- (20 Nov 2026, user: the preview showed DoT lines the real meter never did) the pretend raid's DoT classes and
       -- you (when your class has DoTs) have DoTs ticking on the boss: the threat window's DoTs / Next lines and each
@@ -574,13 +642,22 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         for i = 1, 4 do table.insert(steps, { first + (i - 1) * 3, each }) end
         return each * 4, steps
       end
+      -- (casters at range: they pull at 130% of the tank, melee at 110%)
+      local RANGED = { MAGE = true, WARLOCK = true, PRIEST = true, HUNTER = true, DRUID = true, SHAMAN = true }
       for name, v in pairs(DM.tt) do
-        local dead = false
-        for _, u in ipairs(DM.list) do if u.name == name and u.dead then dead = true end end
-        if not dead then table.insert(list, { name = name, tank = false, threat = math.floor(v), perc = 0, melee = true }) end
+        local dead, melee = false, true
+        for _, u in ipairs(DM.list) do
+          if u.name == name then
+            if u.dead then dead = true end
+            if RANGED[u.class or ""] and u.role ~= "tank" then melee = false end
+          end
+        end
+        if name == me then melee = not (DM.kit and not DM.kit.melee) end
+        if not dead then table.insert(list, { name = name, tank = false, threat = math.floor(v), perc = 0, melee = melee }) end
       end
       local holder = DM.tank and not DM.tank.dead and DM.tank.name or (DM.offtank and DM.offtank.name)
       if DM.aggroMe then holder = me end
+      if DM.aggroWho then holder = DM.aggroWho end
       local tankT = 0
       for _, e in ipairs(list) do if e.name == holder then e.tank = true tankT = e.threat end end
       for _, e in ipairs(list) do
@@ -702,7 +779,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.SetPhase(ph)
     local was = DM.phase
     DM.phase, DM.pt = ph, 0
-    if ph == "trash" or ph == "boss" then DM.tt, DM.lastFight, DM.dotk = {}, ph, {} end
+    if ph == "trash" or ph == "boss" then DM.tt, DM.lastFight, DM.dotk, DM.trate = {}, ph, {}, {} end
     if ph == "dummy" then
       DM.rank = math.mod(DM.rank or 0, table.getn(DM.DUMMIES)) + 1
       DM.boss = NewMob(DM.DUMMIES[DM.rank])

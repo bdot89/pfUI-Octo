@@ -1694,10 +1694,19 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     -- (every window, 20 Nov 2026: "this should be in all meters")
     local fit = C.meters.tfit ~= "0" and not win.sizing and not win.psize
     local fullH = win:GetHeight()
+    -- (20 Nov 2026, user: the demo's threat window showed only its pull line) the most a window grows to is its size
+    -- setting, a preview's box, or - with neither - the height it had before it was ever fitted (win.baseH). Never the
+    -- height it was just fitted to: one short list shrank it, and it stayed that small.
+    if not win.fitH or not win.baseH then win.baseH = math.max(win.baseH or 0, fullH or 0) end
     if fit then
-      -- (the most it grows to: the size setting; a preview's own box size - never the height it was just fitted to)
-      if win.preview then fullH = win.previewH or tonumber(s.height) or fullH
-      else fullH = tonumber(s.height) or fullH end
+      if win.preview then fullH = win.previewH or tonumber(s.height) or win.baseH or fullH
+      else fullH = tonumber(s.height) or win.baseH or fullH end
+      -- (a size saved while fitted - layout mode read the fitted height - must not keep it that small: room for at
+      -- least 10 lines on a threat window (its top lines + the raid), 6 on the others; fitting takes away the rest)
+      local bh = (tonumber(s.barheight) or 16) + (tonumber(s.spacing) or 1)
+      local floorH = (s.title ~= "0" and ((tonumber(s.titleheight) or 18) + 2) or 2) + (win.mode == "threat" and 10 or 6) * bh + 6
+        + (s.status == "1" and 14 or 0)
+      if fullH < floorH then fullH = floorH end
     end
     local room = fullH - top - 2 - statush
     -- (20 Nov 2026) the threat window's info lines sit apart from the players: a small gap under them

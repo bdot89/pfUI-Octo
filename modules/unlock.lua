@@ -1243,6 +1243,10 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     elseif meter then
       -- (each window's own settings since the meters' phase 1: C.meters.winN)
       local mc = C.meters["win" .. meter] or C.meters
+      -- (20 Nov 2026) a meter window fitted to its lines is shorter than its size: match the other's saved size
+      local _, _, fromMeter = string.find(from:GetName() or "", "^pfMeter(%d)$")
+      local fmc = fromMeter and C.meters["win" .. fromMeter]
+      if fmc and tonumber(fmc.height) then h = tonumber(fmc.height) end
       mc.width, mc.height = tostring(w), tostring(h)
       to:SetWidth(w)
       to:SetHeight(h)
@@ -1332,7 +1336,8 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     elseif meter then
       local mc = C.meters["win" .. meter] or C.meters
       if w then mc.width = tostring(floor(w / s + .5)) f:SetWidth(tonumber(mc.width)) end
-      if h then mc.height = tostring(floor(h / s + .5)) f:SetHeight(tonumber(mc.height)) end
+      -- (20 Nov 2026) the height it shows while fitted to its lines is not its size: unchanged, the size stays
+      if h and not (f.fitH and math.abs(h / s - f.fitH) < 1) then mc.height = tostring(floor(h / s + .5)) f:SetHeight(tonumber(mc.height)) end
       if f.arrowDocked and pfUI.panel and pfUI.panel.ArrowLayout then
         -- (docked in the panel arrow's window: its width is its share of it; never save the docked place)
         pfUI.panel.ArrowLayout()
