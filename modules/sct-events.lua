@@ -1320,7 +1320,12 @@ B:On("PLAYER_ENTERING_WORLD", function()
     end
   end
   CT:FixHealerNames()
-  local cv = { "NP_EnableSpellHealEvents", "NP_EnableSpellEnergizeEvents" }
+  -- (20 Nov 2026, Lobo: "i stopped getting the announcement text when overpower / revenge can be used") the
+  -- AUTO_ATTACK_* events - your swings and the ones at you, so dodges and parries: Overpower, Revenge, Riposte,
+  -- Counterattack, Mongoose Bite - are off in nampower until something switches them on. OctoBG and NampowerSettings
+  -- did it for us; without them melee text and those alerts never came.
+  local cv = { "NP_EnableSpellHealEvents", "NP_EnableSpellEnergizeEvents", "NP_EnableAutoAttackEvents" }
+  CT.NP_CVARS = cv
   for i = 1, table.getn(cv) do
     local ok, v = pcall(GetCVar, cv[i])
     if ok and v ~= nil and v ~= "1" then pcall(SetCVar, cv[i], "1") end

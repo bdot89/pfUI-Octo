@@ -6,6 +6,18 @@ local ok = octo_ok
 local B = pfUI.sctB
 local CT = B.SCT
 
+-- (20 Nov 2026, Lobo: no Overpower / Revenge text) nampower's auto attack events are switched on by combat text itself
+do
+  local cv, set = {}, {}
+  local g, s = _G.GetCVar, _G.SetCVar
+  _G.GetCVar = function(k) if string.find(k, "^NP_") then return cv[k] or "0" end return g(k) end
+  _G.SetCVar = function(k, v) if string.find(k, "^NP_") then cv[k] = v set[k] = true return end return s(k, v) end
+  B:Fire("PLAYER_ENTERING_WORLD")
+  _G.GetCVar, _G.SetCVar = g, s
+  ok(set.NP_EnableAutoAttackEvents and cv.NP_EnableAutoAttackEvents == "1",
+    "combat text switches nampower's auto attack events on (dodges and parries: Overpower, Revenge, Riposte)")
+end
+
 -- start from the default settings (earlier tests changed some)
 local function Wipe(t) for k in pairs(t) do t[k] = nil end end
 local function Fill(dst, src)
