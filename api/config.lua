@@ -213,6 +213,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("meters",     nil,           "tdotrow",          "1")    -- threat window: your DoTs line
   pfUI:UpdateConfig("meters",     nil,           "tnextpull",        "1")    -- threat window: the next to pull line
   pfUI:UpdateConfig("meters",     nil,           "ttps",             "0")    -- threat window: a TPS column
+  pfUI:UpdateConfig("meters",     nil,           "ttank",            "auto") -- I am a tank: auto | always | never
   pfUI:UpdateConfig("meters",     nil,           "theads",           "1")    -- threat window: column headings
   pfUI:UpdateConfig("meters",     nil,           "tfit",             "1")    -- every window: height fits its lines
   pfUI:UpdateConfig("meters",     nil,           "mcols",            "1")    -- every window: neat right-aligned columns

@@ -413,3 +413,89 @@ do
   TH.others, TH.hist, TH.k, TH.list, TH.all = {}, {}, {}, nil, nil
   _G.UnitName = sv
 end
+
+-- (20 Nov 2026, Javelin: "auras and aggro% are overlapping") the label above a plate goes on top of its auras
+do
+  local A = pfUI.plates and pfUI.plates.Auras
+  local plate = CreateFrame("Frame", nil, UIParent)
+  plate.name = plate:CreateFontString(nil, "OVERLAY")
+  local pc = pfUI_config.plates
+  local keepAuras = pc.auras
+  pc.auras = "1"
+  local i1, i2 = CreateFrame("Frame", nil, plate), CreateFrame("Frame", nil, plate)
+  i1:Show() i2:Show()
+  plate.octo = { arow = CreateFrame("Frame", nil, plate), aicons = { i1, i2 }, bicons = {}, ah = 16, arowgap = 2 }
+  local mc = pfUI_config.meters
+  local keepWhere, keepTy = mc.twhere, mc.ty
+  mc.twhere, mc.ty = "above", "2"
+  local l = TH.label
+  TH.Place(l, plate)
+  local pt = l.points and l.points[1]
+  local top = A and A.TopOffset(plate) or 0
+  ok(A and top >= 18 and pt and pt[5] and pt[5] >= top + 2, "the label sits above the aura row (label at " .. tostring(pt and pt[5]) .. ", auras up to " .. top .. ")")
+  i1:Hide() i2:Hide()
+  TH.Place(l, plate)
+  pt = l.points and l.points[1]
+  ok(pt and pt[5] == 2, "no auras up: the label at its own height")
+  mc.twhere, mc.ty, pc.auras = keepWhere, keepTy, keepAuras
+end
+
+-- (20 Nov 2026, Lobo: told to hold off on threat while tanking, out of Defensive Stance - "warriors stance dance")
+do
+  local mc = pfUI_config.meters
+  local keep = { tt = mc.ttank, n = rawget(_G, "GetNumShapeshiftForms"), f = rawget(_G, "GetShapeshiftFormInfo"),
+    c = rawget(_G, "UnitAffectingCombat"), u = rawget(_G, "UnitName"), a = TH.Alert }
+  local alerts = 0
+  TH.Alert = function() alerts = alerts + 1 end
+  _G.UnitName = function(u) if u == "target" then return "Onyxia" end return "Lobo" end
+  local form = "Defensive Stance"
+  _G.GetNumShapeshiftForms = function() return 1 end
+  _G.GetShapeshiftFormInfo = function() return "x", form, true end
+  local inFight = true
+  _G.UnitAffectingCombat = function() return inFight end
+  TH.tankFight, TH.tankAt, TH.warned, TH.predWarned = nil, nil, nil, nil
+  mc.ttank, mc.threatflash = "auto", "1"
+  -- Lobo is off the boss for a moment, at 105% of the tank's threat
+  local list = TH.Parse("TWTv4=Tank:1:10000:100:1;Lobo:0:10500:105:1;")
+  local j = TH.Judge(list)
+  ok(j.tankMe and j.state == 1, "Defensive Stance: a tank, a calm label")
+  TH.Popups(j)
+  ok(alerts == 0, "no hold-off popup for a tank")
+  -- stance dance: Battle Stance for an Overpower, same fight
+  form = "Battle Stance"
+  TH.tankAt = nil
+  j = TH.Judge(list)
+  TH.Popups(j)
+  ok(j.tankMe and alerts == 0, "Battle Stance in the same fight: still a tank, still no popup")
+  -- the fight ends: decided again
+  inFight = false
+  _G.event = "PLAYER_REGEN_ENABLED"
+  Mock.Fire("PLAYER_REGEN_ENABLED")
+  TH.tankAt = nil
+  j = TH.Judge(list)
+  ok(not j.tankMe, "after the fight, in Battle Stance: not a tank any more")
+  mc.ttank = "always"
+  ok(TH.IAmTank(), "Always: a tank whatever the stance")
+  mc.ttank = "never"
+  form = "Defensive Stance"
+  TH.tankAt, TH.tankFight = nil, nil
+  ok(not TH.IAmTank(), "Never: warned like a damage dealer")
+  -- a damage dealer past the cap still gets the popup
+  mc.ttank = "auto"
+  form = "Battle Stance"
+  TH.tankAt, TH.tankFight, TH.warned = nil, nil, nil
+  mc.threatwarn, mc.threatref = "90", "pull"
+  j = TH.Judge(TH.Parse("TWTv4=Tank:1:10000:100:1;Lobo:0:10500:105:1;"))
+  TH.Popups(j)
+  ok(not j.tankMe and alerts >= 1, "a damage dealer past the cap is still warned")
+  -- a damage dealer who pulled the boss for a moment is not a tank for the rest of the fight
+  inFight = true
+  TH.Judge(TH.Parse("TWTv4=Tank:0:10000:95:1;Lobo:1:10500:100:1;"))
+  TH.tankAt = nil
+  j = TH.Judge(TH.Parse("TWTv4=Tank:1:12000:100:1;Lobo:0:10500:87:1;"))
+  ok(not j.tankMe, "pulled aggro once, lost it again: still warned like a damage dealer")
+  inFight = false
+  mc.ttank = keep.tt
+  _G.GetNumShapeshiftForms, _G.GetShapeshiftFormInfo, _G.UnitAffectingCombat, _G.UnitName, TH.Alert = keep.n, keep.f, keep.c, keep.u, keep.a
+  TH.tankFight, TH.tankAt, TH.warned = nil, nil, nil
+end

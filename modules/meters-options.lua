@@ -1369,6 +1369,20 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         "The popup a few seconds before what is already on its way pulls you." },
     })
 
+    -- (20 Nov 2026, Lobo: tanks told to hold off while stance dancing; "Is there a way to configure threat meter and the
+    -- threat announcements behavior") first on the warnings page
+    W.Card(p, "I am a tank", { icon = "Interface\\Icons\\Ability_Warrior_DefensiveStance",
+      tip = "A tank is never told to hold off on threat and gets no popups or sounds; damage dealers keep every warning." })
+    Drop(p, "Never warn me as a tank", "Auto: you count as a tank while you hold aggro, in Defensive Stance, (Dire) Bear Form, "
+      .. "with Righteous Fury or Rockbiter Weapon, or marked tank on the raid frames - and once seen in a fight you stay one "
+      .. "until it ends, so stance dancing never sets the warnings off. Always: never warn me. Never: warn me like a damage dealer.",
+      List({ { "auto", "Auto" }, { "always", "Always - I tank" }, { "never", "Never - warn me" } }), G, "ttank", function() end)
+    W.Live(p, function()
+      local is, why = TH.IAmTank()
+      if is then return "|cff40d977Now: a tank|r (" .. tostring(why or "") .. ") - no threat warnings for you." end
+      return "|cffffaa33Now: not a tank|r - you are warned near your cap and before you pull."
+    end)
+
     W.Card(p, "Your cap", { tip = "How much threat you allow yourself before the label turns red and the popup shouts." })
     Sld(p, "Stay under", "Your threat as a share of the reference below.", 10, 150, 5, G, "threatwarn", Pct2, function() end)
     Drop(p, "...of", "The pull point: where the mob turns to you (110% of the tank's threat in melee, 130% at range). "

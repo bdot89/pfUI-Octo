@@ -733,7 +733,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       TH.base, TH.baseBy, TH.dmg, TH.shown = nil, nil, {}, {}
       TH.samples, TH.predWarned, TH.others, TH.hist, TH.all = {}, nil, {}, {}, nil
       -- (a fight over: the solo tallies start again)
-      if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
+      -- (and "a tank in this fight" is forgotten: the next fight decides again)
+      if event == "PLAYER_REGEN_ENABLED" then TH.est, TH.tankFight, TH.tankAt = {}, nil, nil end
       -- a new target: ask at once
       if event == "PLAYER_TARGET_CHANGED" then
         TH.askAt = 0
@@ -785,6 +786,62 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
               { "2", "the top two" }, { "3", "the top three" } }
 
   -- what the label shows: { aggro, share (% of the reference), nextP, nextName, state 1 / 2 / 3 }
+  -- (20 Nov 2026, Lobo: "I keep being told by my ui on my shammy or warrior to hold off on threat while being a tank. It
+  -- doesnt happen if im prot stance ... with wat tactics warriors stance dance") Are you a tank? C.meters.ttank:
+  -- "always" / "never", or "auto" = you hold aggro, or Defensive Stance / (Dire) Bear Form / Righteous Fury / Rockbiter on
+  -- your weapon, or marked tank on the raid frames. Seen once in a fight, you stay a tank until it ends, so stance dancing
+  -- (Battle Stance for Overpower, Berserker for a Berserker Rage) never wakes the warnings. A tank gets no popups or
+  -- sounds and a calm label; damage dealers keep every warning.
+  TH.TANKFORMS = { ["Defensive Stance"] = true, ["Bear Form"] = true, ["Dire Bear Form"] = true }
+  TH.TANKBUFFS = { ["Spell_Holy_SealOfFury"] = "Righteous Fury" }
+  local scanTip
+  local function Rockbiter()
+    local _, cls = UnitClass("player")
+    if cls ~= "SHAMAN" or not _G.GetWeaponEnchantInfo or not _G.GetWeaponEnchantInfo() then return false end
+    if not scanTip then
+      scanTip = CreateFrame("GameTooltip", "pfThreatScanTip", nil, "GameTooltipTemplate")
+      scanTip:SetOwner(WorldFrame, "ANCHOR_NONE")
+    end
+    scanTip:ClearLines()
+    if not pcall(scanTip.SetInventoryItem, scanTip, "player", 16) then return false end
+    for i = 1, 20 do
+      local l = _G["pfThreatScanTipTextLeft" .. i]
+      local t = l and l:GetText()
+      if t and string.find(t, "Rockbiter", 1, true) then return true end
+    end
+    return false
+  end
+  function TH.TankWhy()
+    for i = 1, (_G.GetNumShapeshiftForms and _G.GetNumShapeshiftForms() or 0) do
+      local _, name, active = _G.GetShapeshiftFormInfo(i)
+      if active and name and TH.TANKFORMS[name] then return name end
+    end
+    for i = 1, 32 do
+      local tex = UnitBuff("player", i)
+      if not tex then break end
+      local _, _, file = string.find(tex, "([^\\]+)$")
+      if file and TH.TANKBUFFS[file] then return TH.TANKBUFFS[file] end
+    end
+    if Rockbiter() then return "Rockbiter Weapon" end
+    local raid = pfUI.uf and pfUI.uf.raid
+    local me = UnitName("player")
+    if me and raid and raid.tankrole and raid.tankrole[me] then return "marked tank" end
+  end
+  function TH.IAmTank(mine)
+    local mode = C.meters.ttank or "auto"
+    if mode == "always" then return true, "set to always" end
+    if mode == "never" then return false end
+    -- (holding aggro counts only while you hold it: a damage dealer who pulls the boss for a moment keeps the warnings)
+    if mine and mine.tank then return true, "holding aggro" end
+    if TH.tankFight then return true, TH.tankFight end
+    local now = GetTime()
+    if not TH.tankAt or now >= TH.tankAt then
+      TH.tankAt = now + 1
+      TH.tankWhy = TH.TankWhy()
+    end
+    if TH.tankWhy and UnitAffectingCombat("player") then TH.tankFight = TH.tankWhy end
+    return TH.tankWhy and true or false, TH.tankWhy
+  end
   function TH.Judge(list)
     local me = UnitName("player")
     local mine
@@ -794,6 +851,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     end
     table.sort(others, function(a, b) return a.threat > b.threat end)
     local j = { aggro = mine and mine.tank }
+    j.tankMe = TH.IAmTank(mine)
     if j.aggro then
       local n = others[1]
       j.nextP, j.nextName = n and n.perc, n and n.name
@@ -826,6 +884,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
         end
       end
     end
+    -- a tank not holding aggro just now (stance dancing, an off-tank): a calm label, no "aggro in"
+    if j.tankMe then j.state, j.aggroIn, j.stopNow = 1, nil, nil end
     return j
   end
   -- seconds to show "aggro in" from (C.meters.tpredsec)
@@ -963,9 +1023,23 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       return true
     end
     if not plate then return false end
-    local p = POINTS[C.meters.twhere] or POINTS.above
-    l:SetPoint(p[1], plate, p[2], tonumber(C.meters.tx) or 0, tonumber(C.meters.ty) or 0)
+    local where = C.meters.twhere or "above"
+    local p = POINTS[where] or POINTS.above
+    local x, y = tonumber(C.meters.tx) or 0, tonumber(C.meters.ty) or 0
+    -- (20 Nov 2026, Javelin: "auras and aggro% are overlapping") above the plate, the label goes on top of its auras
+    if where == "above" then y = y + TH.AuraLift(plate, l) end
+    l:SetPoint(p[1], plate, p[2], x, y)
     return true
+  end
+  -- how far up the label must go to clear the plate's auras (the label's own units; 0 = no auras up)
+  function TH.AuraLift(plate, l)
+    local A = pfUI.plates and pfUI.plates.Auras
+    if not A or not A.TopOffset then return 0 end
+    local good, up = pcall(A.TopOffset, plate)
+    if not good or not up or up <= 0 then return 0 end
+    local ps = plate.GetEffectiveScale and plate:GetEffectiveScale() or 1
+    local ls = l.GetEffectiveScale and l:GetEffectiveScale() or 1
+    return up * ps / math.max(.01, ls) + 2
   end
 
   function TH.Draw()
@@ -1036,6 +1110,11 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- or the mob turning to you
   function TH.Popups(j)
     if C.meters.threatflash ~= "1" then return end
+    -- (20 Nov 2026, Lobo) a tank is never told to hold off, nor shouted AGGRO! at for doing the job
+    if j.tankMe then
+      TH.hadAggro, TH.warned, TH.predWarned = j.aggro, nil, nil
+      return
+    end
     if j.aggro then
       if C.meters.threataggro == "1" and not TH.hadAggro then
         TH.Alert(T["AGGRO!"], 1, .45, .2)

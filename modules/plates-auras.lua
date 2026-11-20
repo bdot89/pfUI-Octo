@@ -360,6 +360,29 @@ pfUI:RegisterModule("plates-auras", "vanilla:tbc", function ()
     if S.auras ~= "1" then A.Off(o) end
   end
 
+  -- (20 Nov 2026, Javelin: "auras and aggro% are overlapping" - the threat label sat on the aura row) how far above the
+  -- plate's top the shown auras reach (plate units, 0 = none): the threat label goes on top of them (meters-threat.lua)
+  function A.TopOffset(plate)
+    local o = plate and plate.octo
+    if not o or not o.arow or S.auras ~= "1" then return 0 end
+    local n, m = 0, 0
+    for _, f in ipairs(o.aicons or {}) do if f:IsShown() then n = n + 1 end end
+    for _, f in ipairs(o.bicons or {}) do if f:IsShown() then m = m + 1 end end
+    if n == 0 and m == 0 then return 0 end
+    local per = tonumber(S.auraperrow) or 6
+    local ah, rowgap = o.ah or tonumber(S.auraheight) or 16, o.arowgap or tonumber(S.auragaprow) or 2
+    local rows = math.ceil(n / math.max(1, per))
+    local top = (tonumber(S.auraoffset) or 2) + rows * (ah + rowgap) - (rows > 0 and rowgap or 0)
+    if m > 0 then
+      top = 2 + rows * (ah + rowgap) + (o.bgap or 3) + (tonumber(S.specialoffy) or 0) + (o.bs or tonumber(S.specialsize) or 28)
+    end
+    -- the rows stand on the name: the name's top over the plate's own top
+    local nameUp = 0
+    local nt, pt = plate.name and plate.name.GetTop and plate.name:GetTop(), plate.GetTop and plate:GetTop()
+    if nt and pt and nt > pt then nameUp = nt - pt end
+    return math.max(0, top + nameUp)
+  end
+
   function A.Off(o)
     if not o.arow then return end
     for _, f in ipairs(o.aicons) do f:Hide() end
