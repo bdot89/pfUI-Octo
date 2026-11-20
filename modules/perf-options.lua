@@ -183,4 +183,129 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
   end
 
   O:AddPage("Settings", "stperf", "Performance", Build)
+
+  -- ---------------------------------------------------------------- nampower's own settings (20 Nov 2026)
+  -- (user: "can we not bring the settings into our pfui ?") nampower.dll keeps its settings as NP_* CVars (saved by the
+  -- game in Config.wtf, for every character - not part of pfUI profiles or layouts). Names, defaults and meanings from
+  -- brues-code/nampower README (checked against the DLL's strings 20 Nov). Left out: the deprecated event toggles
+  -- (pfUI registers the events it wants), the demon autocast data, NP_NameplateDistance (Nameplates page) and the
+  -- per-token unit events (pet / party / raid / mouseover: pfUI's frames may count on them).
+  local NP = {}
+  pfUI.nampowerOptions = NP
+  -- { cvar, label, tip, default, min, max, step, unit } ; min = nil = on / off
+  NP.CARDS = {
+    { "Spell queue", "Interface\\Icons\\Spell_Holy_BorrowedTime", "Press your next spell a little early and it goes off the moment the last one ends - no gap from your ping.", {
+      { "QueueCastTimeSpells", "Queue spells with a cast time", "Frostbolt, Heal ... pressed during the last part of a cast go off right after it.", "1" },
+      { "QueueInstantSpells", "Queue instant spells", "Instants on the global cooldown, pressed just before it ends.", "1" },
+      { "QueueChannelingSpells", "Queue during channels", "Spells pressed near the end of a channel wait for it (and channels can be queued).", "1" },
+      { "QueueTargetingSpells", "Queue ground spells", "Blizzard, Flamestrike, Rain of Fire ... queued too (cast at your cursor).", "1" },
+      { "QueueOnSwingSpells", "Queue on-swing spells", "Heroic Strike, Cleave, Maul, Raptor Strike. Off by default since nampower 1.17.2.", "0" },
+      { "QueueSpellsOnCooldown", "Queue spells coming off cooldown", "A spell with only a moment of cooldown left waits for it instead of 'Spell is not ready yet'.", "1" },
+      { "SpellQueueWindowMs", "Queue window", "How long before a cast ends the next one can be queued. Bigger = easier, but a misclick is harder to take back.", "500", 0, 1000, 10, "ms" },
+      { "CooldownQueueWindowMs", "Cooldown window", "How much cooldown may be left for a spell to be queued.", "250", 0, 1000, 10, "ms" },
+      { "TargetingQueueWindowMs", "Ground spell window", "The queue window for ground spells.", "500", 0, 1000, 10, "ms" },
+      { "OnSwingBufferCooldownMs", "On-swing wait", "After an on-swing spell, how long before the next on-swing spell can be queued.", "500", 0, 1000, 10, "ms" },
+    } },
+    { "Channels", "Interface\\Icons\\Spell_Nature_Lightning", "Drain Life, Arcane Missiles, Blizzard, Mind Flay, Tranquility ...", {
+      { "ChannelQueueWindowMs", "Channel queue window", "How long before a channel ends the next spell can be queued.", "1500", 0, 3000, 50, "ms" },
+      { "ChannelLatencyReductionPercentage", "End channels early by", "This much of your ping is taken off the end of a channel, so the next spell starts sooner without losing the last tick.", "75", 0, 100, 5, "%" },
+      { "InterruptChannelsOutsideQueueWindow", "A new spell stops the channel", "Outside the queue window, casting stops your channel at once (the game's own way). Off = it waits.", "0" },
+      { "DoubleCastToEndChannelEarly", "Press twice to end it on the next tick", "Press the same spell twice within 350 ms during a channel: it ends after its next tick.", "0" },
+    } },
+    { "Ground spells", "Interface\\Icons\\Spell_Arcane_Blink", "Spells you aim on the ground with the green circle.", {
+      { "QuickcastTargetingSpells", "Quick cast every ground spell", "They land on your cursor at once, no circle to click.", "0" },
+      { "QuickcastOnDoubleCast", "Quick cast by pressing twice", "Press a ground spell twice to cast it at the cursor (the game would cancel the circle instead).", "0" },
+    } },
+    { "Safety", "Interface\\Icons\\Spell_Holy_SealOfSacrifice", "Stops a few costly accidents.", {
+      { "PreventRightClickTargetChange", "Right-click doesn't change target in combat", "Turning the camera with the right mouse button no longer picks someone else in a fight.", "0" },
+      { "PreventRightClickPvPAttack", "Right-click doesn't attack PvP-flagged players", "No accidental PvP flag from a right-click.", "0" },
+      { "PreventMountingWhenBuffCapped", "No mounting with 32 buffs", "With a full buff bar the mount aura can't land and you could not get off again: this blocks the mount instead.", "1" },
+      { "SpamProtectionEnabled", "Spam protection", "While the server answers your cast, more presses of it are ignored (spamming confuses the queue).", "1" },
+      { "RetryServerRejectedSpells", "Retry spells the server turned down", "'Not ready yet' / 'another action in progress' from the server: tried again by itself.", "1" },
+    } },
+    { "Chat bubbles", "Interface\\Icons\\INV_Misc_Note_01", "Speech bubbles over heads.", {
+      { "ChatBubbleDistance", "Bubble distance", "How far away chat bubbles are still drawn.", "60", 10, 150, 5, "yd" },
+      { "ChatBubblesWhisper", "Bubbles for whispers", nil, "0" },
+      { "ChatBubblesRaid", "Bubbles for raid leader and warnings", nil, "0" },
+      { "ChatBubblesBattleground", "Bubbles for battleground chat", nil, "0" },
+    } },
+    { "Extras", "Interface\\Icons\\INV_Misc_Book_09", nil, {
+      { "EnableEnhancedTooltips", "More on tooltips", "Proc chance, internal cooldowns and item cooldowns on spell and item tooltips.", "1" },
+      { "EnableLocalSetRaidTarget", "Raid marks when alone", "Marks work for you even out of a group (only you see them).", "1" },
+      { "PreserveGreaterDemonAutocast", "Warlocks: keep Felguard / Doomguard autocast", "Their autocast choices come back when you resummon or swap them.", "1" },
+    } },
+    { "Fine tuning (advanced)", "Interface\\Icons\\INV_Misc_PocketWatch_01", "Leave these alone unless you know why: nampower's defaults suit most connections.", {
+      { "MinBufferTimeMs", "Smallest buffer", "Added to each cast so the server never gets it too early. nampower adjusts it, never below this.", "55", 0, 200, 5, "ms" },
+      { "NonGcdBufferTimeMs", "Buffer after off-GCD spells", "Wait after each spell that isn't on the global cooldown.", "100", 0, 300, 5, "ms" },
+      { "MaxBufferIncreaseMs", "Biggest buffer step", "How much the buffer may grow each time the server turns a cast down.", "30", 0, 100, 5, "ms" },
+      { "OptimizeBufferUsingPacketTimings", "Tune the buffer from your ping", "Uses your latency and the server's timings to set the buffer.", "0" },
+      { "ReplaceMatchingNonGcdCategory", "Newer off-GCD spell replaces the queued one", "Two off-GCD spells of the same kind: the last one pressed goes.", "0" },
+    }, true },
+    { "Unit events (advanced)", "Interface\\Icons\\Spell_ChargePositive", "nampower can send health / mana / aura events for every unit around you by GUID. In crowds that is a lot of events.", {
+      { "EnableUnitEventsGuid", "Unit events by GUID", "Health, mana and aura events for every unit near you, named by GUID (like SuperWoW). Add-ons that track any unit by GUID (DoT trackers, auto markers) want this.", "1" },
+      { "EnableUnitEventsGuidFiltering", "Filter the busiest GUID events", "Keeps the GUID events but drops the ones that fire hundreds of times a second in raids (they have their own _GUID events). Keep it on.", "1" },
+    }, true },
+  }
+  local function Get(cv)
+    local ok, v = pcall(GetCVar, "NP_" .. cv)
+    if ok then return v end
+  end
+  local function Set(cv, v) pcall(SetCVar, "NP_" .. cv, tostring(v)) end
+  NP.Get, NP.Set = Get, Set
+  function NP.Loaded() return Get("SpellQueueWindowMs") ~= nil end
+  -- every setting back to nampower's own default
+  function NP.Defaults()
+    for _, c in ipairs(NP.CARDS) do for _, s in ipairs(c[4]) do if Get(s[1]) ~= nil then Set(s[1], s[4]) end end end
+  end
+  -- how many differ from the defaults
+  function NP.Changed()
+    local n = 0
+    for _, c in ipairs(NP.CARDS) do
+      for _, s in ipairs(c[4]) do
+        local v = Get(s[1])
+        if v ~= nil and tonumber(v) ~= tonumber(s[4]) then n = n + 1 end
+      end
+    end
+    return n
+  end
+
+  local function BuildNP(p)
+    W.Heading(p, "nampower", { about = "The settings of nampower.dll: spell queueing (your next spell goes off with no gap "
+      .. "from your ping), channels, ground spells, safety and chat bubbles. Saved by the game for all your characters." })
+    if not NP.Loaded() then
+      W.Note(p, "|cffffcc00nampower isn't loaded.|r Get it with the Octo DLL Installer (Linux: install-linux.sh) and start the "
+        .. "game through VanillaFixes.exe (OctoLauncher's Play with vanillaFixes on). Then come back here.")
+      return
+    end
+    W.Live(p, function()
+      local v = ""
+      if type(_G.GetNampowerVersion) == "function" then
+        local ok, a, b, c = pcall(_G.GetNampowerVersion)
+        if ok and a then v = " " .. a .. "." .. (b or 0) .. "." .. (c or 0) end
+      end
+      local n = NP.Changed()
+      return "nampower" .. v .. " is loaded.  " .. (n == 0 and "|cff999999All on nampower's defaults.|r" or ("|cffffd24d" .. n .. " changed from its defaults.|r"))
+    end, 2)
+    W.Buttons(p, { { "Back to nampower's defaults", function() NP.Defaults() if O.Rebuild then O:Rebuild("stnampower") end end, 200,
+      "Every setting on this page back to what nampower ships with.", role = "danger" } })
+    for _, card in ipairs(NP.CARDS) do
+      W.Card(p, card[1], { icon = card[2], tip = card[3], folded = card[5] })
+      for _, s in ipairs(card[4]) do
+        local cv, def = s[1], s[4]
+        if Get(cv) ~= nil then
+          local tip = (s[3] and (s[3] .. " ") or "") .. "nampower's default: " .. (s[5] and (def .. " " .. s[8]) or (def == "1" and "on" or "off")) .. ". (NP_" .. cv .. ")"
+          if s[5] then
+            local u = s[8]
+            W.Slider(p, s[2], tip, s[5], s[6], s[7], function() return tonumber(Get(cv)) or tonumber(def) end,
+              function(v) Set(cv, math.floor(v + .5)) end, function(v) return (v or 0) .. " " .. u end)
+          else
+            W.Check(p, s[2], tip, function() return Get(cv) == "1" end, function(v) Set(cv, v and "1" or "0") end)
+          end
+        end
+      end
+    end
+    W.Note(p, "Nameplate distance is on the Nameplates page. The settings above are the game's own (Config.wtf): profiles "
+      .. "and UI layouts don't change them.")
+  end
+  O:AddPage("Settings", "stnampower", "nampower", BuildNP)
 end)

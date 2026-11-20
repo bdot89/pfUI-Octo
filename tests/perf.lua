@@ -436,5 +436,40 @@ if PF.SetDisplay then
   _G.RestartGx, _G.GetRefreshRates, _G.SetMaxAnimFramerate = keepRG, keepRR, keepAnim
 end
 
+-- (20 Nov 2026) nampower's settings page
+local NP = pfUI.nampowerOptions
+ok(NP and O and O.BUILD and O.BUILD.stnampower, "Settings > nampower registered")
+if NP then
+  local cv = {}
+  _G.GetCVar = function(n) if cv[n] == nil then error("no such cvar") end return cv[n] end
+  _G.SetCVar = function(n, v) if cv[n] == nil then error("no such cvar") end cv[n] = tostring(v) end
+  ok(not NP.Loaded(), "no NP_ CVars: nampower not loaded")
+  local okb, err = pcall(function() O:Page("stnampower") O:Rebuild("stnampower") end)
+  ok(okb, "nampower page builds without nampower: " .. tostring(err))
+  -- every setting on the page is one the DLL has, at its default
+  local n = 0
+  for _, c in ipairs(NP.CARDS) do for _, s in ipairs(c[4]) do cv["NP_" .. s[1]] = s[4] n = n + 1 end end
+  ok(n >= 30 and NP.Loaded() and NP.Changed() == 0, "nampower loaded, " .. n .. " settings at their defaults")
+  okb, err = pcall(function() O:Rebuild("stnampower") end)
+  ok(okb, "nampower page builds with nampower: " .. tostring(err))
+  NP.Set("SpellQueueWindowMs", 300)
+  NP.Set("QueueOnSwingSpells", "1")
+  ok(cv.NP_SpellQueueWindowMs == "300" and NP.Changed() == 2, "two changed (queue window 300 ms, on-swing queue on)")
+  NP.Defaults()
+  ok(cv.NP_SpellQueueWindowMs == "500" and cv.NP_QueueOnSwingSpells == "0" and NP.Changed() == 0, "back to nampower's defaults")
+  -- the names are real: every one is in the DLL's strings (checked 20 Nov 2026 against nampower.dll)
+  local real = { QueueCastTimeSpells = 1, QueueInstantSpells = 1, QueueChannelingSpells = 1, QueueTargetingSpells = 1, QueueOnSwingSpells = 1,
+    QueueSpellsOnCooldown = 1, SpellQueueWindowMs = 1, CooldownQueueWindowMs = 1, TargetingQueueWindowMs = 1, OnSwingBufferCooldownMs = 1,
+    ChannelQueueWindowMs = 1, ChannelLatencyReductionPercentage = 1, InterruptChannelsOutsideQueueWindow = 1, DoubleCastToEndChannelEarly = 1,
+    QuickcastTargetingSpells = 1, QuickcastOnDoubleCast = 1, PreventRightClickTargetChange = 1, PreventRightClickPvPAttack = 1,
+    PreventMountingWhenBuffCapped = 1, SpamProtectionEnabled = 1, RetryServerRejectedSpells = 1, ChatBubbleDistance = 1, ChatBubblesWhisper = 1,
+    ChatBubblesRaid = 1, ChatBubblesBattleground = 1, EnableEnhancedTooltips = 1, EnableLocalSetRaidTarget = 1, PreserveGreaterDemonAutocast = 1,
+    MinBufferTimeMs = 1, NonGcdBufferTimeMs = 1, MaxBufferIncreaseMs = 1, OptimizeBufferUsingPacketTimings = 1, ReplaceMatchingNonGcdCategory = 1,
+    EnableUnitEventsGuid = 1, EnableUnitEventsGuidFiltering = 1 }
+  local bad = {}
+  for _, c in ipairs(NP.CARDS) do for _, s in ipairs(c[4]) do if not real[s[1]] then table.insert(bad, s[1]) end end end
+  ok(table.getn(bad) == 0, "every nampower setting name is one the DLL has (" .. table.concat(bad, ", ") .. ")")
+end
+
 for k, v in pairs(keep) do rawset(_G, k, v) end
 pfUI_cache.perfsaved = nil
