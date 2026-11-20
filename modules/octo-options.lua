@@ -117,7 +117,11 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" } }
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" },
+    -- (20 Nov 2026, user: "add on off switches here like the rest anything that can be turned off should be able to
+    -- be done here") every section with a module of its own; pfQuest is built in and loads before any setting can
+    -- stop it, and Blizzard UI, UI layouts, Settings, Add-ons and About are not things to switch off
+    ["Swing Timer"] = { "swing", "Swing Timer" }, ["Demo Mode"] = { "demo", "Demo mode" }, ["Art & Extras"] = { "art", "Art" } }
   -- one grey line under the big title for each section
   O.SUBTITLE = {
     ["Settings"] = "Scale, profiles, fonts and the look of everything.",
@@ -842,6 +846,16 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "minimap", "Minimap", "mmmap", "Map", "Minimap" },
     { "meters", "Meters", "mtwindows", "Windows", "Meters" },
     { "gear", "ItemRack", "gearsets", "Gear sets", "ItemRack" },
+    -- (20 Nov 2026) every section with a power dot keeps a page while off, or the dot went with it
+    { "demo", "Demo Mode", "demo", "Demo mode", "Demo mode" },
+    { "art", "Art", "art", "Art", "Art" },
+    { "octototems", "OctoTotems", "totembars", "Bars", "OctoTotems" },
+    { "rinse", "OctoRinse", "rinsegeneral", "General", "OctoRinse" },
+    { "dots", "OctoDoTs", "dotgeneral", "General", "OctoDoTs" },
+    { "consumes", "OctoConsumes", "consumes", "Tracker", "OctoConsumes" },
+    { "cdm", "CoolDownManager", "cdmbars", "Bars", "CoolDownManager" },
+    { "octolazy", "OctoLazy", "lzrolls", "Loot rolls", "OctoLazy" },
+    { "auction", "Auctions", "auction", "Auction house", "The auction house" },
   }
   function O:AddStandIns()
     for _, s in ipairs(O.STANDIN) do

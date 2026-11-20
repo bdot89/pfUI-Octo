@@ -2418,6 +2418,29 @@ do
       pl.tags, pl.hide, pl.throttle, pl.words, pl.mention, pl.levels, pl.sound_guild, pl.autoinvite =
         keep[1], keep[2], keep[3], keep[4], keep[5], keep[6], keep[7], keep[8]
     end
+    -- (20 Nov 2026, user: "add on off switches here like the rest anything that can be turned off") a power dot on
+    -- every section with a module, and a stand-in page for each so the dot is still there once it is off
+    do
+      local missing = {}
+      for _, name in ipairs({ "Swing Timer", "Demo Mode", "Art & Extras" }) do
+        if not O.POWERMOD[name] or O:PowerOn({ name = name }) == nil then table.insert(missing, name) end
+      end
+      for name, m in pairs(O.POWERMOD) do
+        local has
+        for _, s in ipairs(O.STANDIN) do if s[1] == m[1] then has = true end end
+        if not has then table.insert(missing, name .. " (no stand-in)") end
+      end
+      ok(table.getn(missing) == 0, "every switchable section has a power dot that survives being off (" .. table.concat(missing, ", ") .. ")")
+      -- switched off, Demo mode's section gets its stand-in page (its switch on top)
+      local CD = pfUI_config
+      CD.disabled = CD.disabled or {}
+      local keepDis, keepBuild = CD.disabled.demo, O.BUILD.demo
+      CD.disabled.demo, O.BUILD.demo = "1", nil
+      O:AddStandIns()
+      local stand = O.BUILD.demo
+      CD.disabled.demo, O.BUILD.demo = keepDis, keepBuild
+      ok(stand and stand ~= keepBuild, "Demo mode off: a stand-in page keeps its switch")
+    end
     -- chat phase 3: whisper windows
     local WHm = pfUI.whispers
     ok(WHm and O:Select("o:chwhispers") == nil and O.pages.chwhispers, "whisper windows loaded, Whispers page built")
