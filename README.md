@@ -120,6 +120,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.93
+
+- 🎯 **OctoThreat, its own section:** your threat window with a live preview, locked to threat so its menu can't switch it away, plus every threat setting on two pages (Threat window / Label & warnings).
+- ⏱️ **"DoTs pull in 4 s" in the threat window:** the pull line turns red with the countdown, and your line shows the threat still on its way as a lighter part.
+- 📉 **Steadier raid threat:** between the server's answers nobody jumps above the tank on a guess. Only the server's own numbers can put someone past the tank.
+- 🎬 **Demo events:** an Events menu on the demo bar and buttons on the Demo mode page: Overthreat, DoTs pull aggro, Tank dies, Raid-wide damage, Big cast, Debuffs to cure, Enrage, Healers out of mana, Someone dies, Battle res, Res everyone, Wipe, Kill the boss.
+- 💬 **Whispers in one window:** a tab per person instead of a window each.
+
 ## 📜 New in 1.1.92
 
 - 🎬 **Demo mode never gets stuck:** if a demo can't start, everything is put back at once and chat says why. Stop always finishes, so you can start again without a reload. Before, a demo that failed to start could leave Stop doing nothing until you reloaded.

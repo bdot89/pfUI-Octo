@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.93", {
+    { "OctoThreat, its own section", "your threat window with a live preview, locked to threat so its menu can't switch it away, plus every threat setting on two pages (Threat window / Label & warnings)." },
+    { "\"DoTs pull in 4 s\" in the threat window", "the pull line turns red with the countdown, and your line shows the threat still on its way as a lighter part." },
+    { "Steadier raid threat", "between the server's answers nobody jumps above the tank on a guess. Only the server's own numbers can put someone past the tank." },
+    { "Demo events", "an Events menu on the demo bar and buttons on the Demo mode page: Overthreat, DoTs pull aggro, Tank dies, Raid-wide damage, Big cast, Debuffs to cure, Enrage, Healers out of mana, Someone dies, Battle res, Res everyone, Wipe, Kill the boss." },
+    { "Whispers in one window", "a tab per person instead of a window each." },
+  } },
   { "1.1.92", {
     { "Demo mode never gets stuck", "if a demo can't start, everything is put back at once and chat says why. Stop always finishes, so you can start again without a reload. Before, a demo that failed to start could leave Stop doing nothing until you reloaded." },
   } },
@@ -159,8 +166,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.54", {
     { "Quest tracker error fixed", "no more \"tracker.lua:281: attempt to index global 'pfQuestCompat'\" spam. pfQuest's files now keep their own copy of what they need, so another add-on clearing it can't break them." },
-  } },
-  { "1.1.53", {
-    { "Gear sets swap at once", "every piece of a set goes on in the same click, as ItemRack does, so you can put on one set, do something and put on another straight away. Armour still waits for combat to end." },
   } },
 }
