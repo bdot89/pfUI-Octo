@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.5
+
+- 🧩 **No more "IndexActionSlot" error flood:** if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good.
+
 ## 📜 New in 1.2.4
 
 - ⏱️ **st_timer for your macros:** the swing timer fills `st_timer` and `st_timerOff` (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them.

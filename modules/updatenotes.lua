@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.5", {
+    { "No more \"IndexActionSlot\" error flood", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good." },
+  } },
   { "1.2.4", {
     { "st_timer for your macros", "the swing timer fills st_timer and st_timerOff (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them." },
     { "Resistances as numbers", "enemy tooltips show \"Fire 75 (20%)\" - the resistance and the share of your spells it takes. QoL > Tooltips > \"Resists shown as\" picks numbers only or % only." },
@@ -181,9 +184,5 @@ pfUI.octoNotes = {
     { "/pfmetercheck", "(or the button on Meters > Data) prints our totals next to ClassicAPI's for the current fight (/pfmetercheck overall for all fights)." },
     { "Target bar, per spell", "right-click a spell's icon (in the preview or the spell grid) for its own glow, when it glows (running out, always, missing), glow colour, time text, number size and place, and animations when it runs out or is put on." },
     { "Target bar box", "it now has its box in layout mode even while switched off, a tidy fixed width (Look > Room for icons), and its tab sits right after General in OctoDoTs." },
-  } },
-  { "1.1.65", {
-    { "OctoDoTs Target bar", "a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on." },
-    { "Pick by icon", "click a spell's icon to always track it (green, greyed while missing) or ignore it (red). Show all of yours or only the tracked ones; size, gap, direction, warning time and opacity. New file: restart the game fully once." },
   } },
 }
