@@ -419,6 +419,13 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   end
 
   -- the rows a window shows: { name, value, class, text, actor }
+  -- ClassicAPI's eased bars (C.meters.smooth): its Enum.StatusBarInterpolation, else nil
+  function M.Eased()
+    if C.meters.smooth == "0" then return end
+    local E = rawget(_G, "Enum")
+    local I = type(E) == "table" and E.StatusBarInterpolation
+    if type(I) == "table" and I.ExponentialEaseOut then return I end
+  end
   -- a player's class (the roster's, or the made-up preview raid's) and their name in its colour
   local function ClassOf(name, TH)
     local w = M.Who and M.Who(name)
@@ -449,7 +456,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         return v
       end
       -- (bars glide: TH.shown holds the value on its way to e.perc)
-      local function Shown(e) return PullPct(e, (TH.shown and TH.shown[e.name]) or e.perc) end
+      -- (with ClassicAPI's eased bars the client glides them: the real value)
+      local eased = M.Eased()
+      local function Shown(e) return PullPct(e, (not eased and TH.shown and TH.shown[e.name]) or e.perc) end
       local top = 100
       local me = UnitName("player")
       local tankE
@@ -1077,7 +1086,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     b.right:SetPoint("RIGHT", -4, 0)
     b.right:SetJustifyH("RIGHT")
     b.left:SetPoint("RIGHT", b.right, "LEFT", -6, 0)
-    b:SetScript("OnEnter", function() if not this.win.preview then Tooltip(this) end end)
+    b:SetScript("OnEnter", function()
+      if this.row and this.row.pullrow == "head" then return end
+      if not this.win.preview then Tooltip(this) end
+    end)
     b:SetScript("OnLeave", function() GameTooltip:Hide() if M.HoverHide then M.HoverHide() end end)
   b:SetScript("OnClick", function()
       if this.win.preview then
@@ -1163,11 +1175,14 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   -- size, right-aligned, so every number lines up down the window. One font size for names and numbers, never taller
   -- than the line. A narrow window drops TPS first, then threat, so a name always keeps NAMEMIN px.
   M.NAMEMIN = 60
-  function M.ThreatCols(win, nsize, rightpad, iconw)
+  -- (20 Nov 2026, user: "this should be in all meters these changes not just threat") every window uses these columns:
+  -- threat = TPS / threat / %, the others = per second / total / % (opts.tps, opts.mid say which it has at all)
+  function M.ThreatCols(win, nsize, rightpad, iconw, opts)
     local bw = ((win and win:GetWidth()) or 200) - 4 - (rightpad or 0)
     local w = { pct = floor(nsize * 3.2), mid = floor(nsize * 3.8), tps = floor(nsize * 3), cd = floor(nsize * 2.2) }
     local need = 4 + (iconw or 0) + floor(nsize * 1.6) + M.NAMEMIN
     local use = { tps = C.meters.ttps == "1", mid = true }
+    if opts then use.tps, use.mid = opts.tps and true or false, opts.mid ~= false end
     local function Room()
       return bw - need - w.pct - 4 - (use.mid and (w.mid + 4) or 0) - (use.tps and (w.tps + 4) or 0)
     end
@@ -1175,7 +1190,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if Room() < 0 then use.mid = false end
     return use, w
   end
-  local function ThreatColumns(b, s, row, vsize, font, outline, rightpad, iconw)
+  local function ThreatColumns(b, s, row, vsize, font, outline, rightpad, iconw, opts)
     if not b.mid then
       b.mid = b.bar:CreateFontString(nil, "OVERLAY", "GameFontWhite")
       b.mid:SetJustifyH("RIGHT")
@@ -1200,7 +1215,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if s.shadow == "1" then fs:SetShadowOffset(1, -1) fs:SetShadowColor(0, 0, 0, 1) else fs:SetShadowOffset(0, 0) end
       fs:SetHeight(nsize + 4)
     end
-    local use, w = M.ThreatCols(b.win, nsize, rightpad, iconw)
+    local use, w = M.ThreatCols(b.win, nsize, rightpad, iconw, opts)
     b.pct:SetWidth(w.pct)
     b.mid:SetWidth(w.mid)
     b.cd:SetWidth(w.cd)
@@ -1231,9 +1246,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     -- the small grey headings over the columns
     if head then
       b.left:SetText("")
-      b.tps:SetText(use.tps and T["TPS"] or "")
-      b.mid:SetText(T["Threat"])
-      b.pct:SetText("%")
+      local hl = opts and opts.heads
+      b.tps:SetText(use.tps and (hl and hl[1] or T["TPS"]) or "")
+      b.mid:SetText(hl and hl[2] or T["Threat"])
+      b.pct:SetText(hl and hl[3] or "%")
       for _, fs in ipairs({ b.tps, b.mid, b.pct }) do fs:SetTextColor(.55, .57, .6) end
       b.pct:Show()
       return
@@ -1660,13 +1676,23 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       table.insert(rows, 1, { name = mobLine, pullrow = "mob", value = f, max = 1, gap = 1, at = 1,
                               label = "|cffe6e6e6" .. mobLine .. "|r", text = floor(f * 100 + .5) .. "%" })
     end
+    -- (20 Nov 2026) every other window's column headings too (threat adds its own in M.Rows)
+    if win.mode ~= "threat" and C.meters.mcols ~= "0" and C.meters.mheads ~= "0" and table.getn(rows) > 0 and not rows[1].pullrow then
+      win.hasPs, win.hasPct = nil, nil
+      for _, r in ipairs(rows) do
+        if r.extra then win.hasPs = true end
+        if r.pct then win.hasPct = true end
+      end
+      table.insert(rows, 1, { name = "", pullrow = "head", value = 0, max = 1 })
+    end
     local height = tonumber(s.barheight) or 16
     local gap = tonumber(s.spacing) or 1
     local top = s.title ~= "0" and ((tonumber(s.titleheight) or 18) + 2) or 2
     local statush = s.status == "1" and 14 or 0
     -- (20 Nov 2026, user: "neat and clear") the threat window fits the lines it shows - no empty space under them;
     -- its size setting (or the grip) is the most it grows to (C.meters.tfit)
-    local fit = win.mode == "threat" and C.meters.tfit ~= "0" and not win.sizing
+    -- (every window, 20 Nov 2026: "this should be in all meters")
+    local fit = C.meters.tfit ~= "0" and not win.sizing and not win.psize
     local fullH = win:GetHeight()
     if fit then
       -- (the most it grows to: the size setting; a preview's own box size - never the height it was just fitted to)
@@ -1718,10 +1744,23 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         b:SetHeight(height)
         b.row = row
         b.bar:SetStatusBarTexture(s.texture)
-        b.bar:SetValue(row.max and row.max > 0 and row.value / row.max or 0)
+        -- (20 Nov 2026, user: "can we add this smooth glide ... this should be in all meters") ClassicAPI eases the fill
+        -- in the client (StatusBar:SetValue(v, Enum.StatusBarInterpolation.ExponentialEaseOut): no Lua each frame,
+        -- the same speed at any frame rate). A bar that now shows someone else jumps (Immediate), never glides from
+        -- the last owner's value. Without ClassicAPI: the plain fill (threat keeps its own glide, TH.Animate).
+        local v = row.max and row.max > 0 and row.value / row.max or 0
+        local owner = (row.pullrow or "") .. ":" .. (row.name or "")
+        local ease = M.Eased()
+        if ease then
+          local how = (b.owner == owner) and ease.ExponentialEaseOut or ease.Immediate
+          if not pcall(b.bar.SetValue, b.bar, v, how) then b.bar:SetValue(v) end
+        else
+          b.bar:SetValue(v)
+        end
+        b.owner = owner
         b.bg:SetTexture(bgr, bgg, bgb, bga)
         -- (info lines on a darker ground than the players)
-        local headRow = row.pullrow == "head" and win.mode == "threat"
+        local headRow = row.pullrow == "head"
         local info = row.pullrow and win.mode == "threat" and not headRow
         if info then b.bg:SetTexture(Col(C.meters.tinfobg, "0.07,0.08,0.1,0.92")) end
         -- (players on a black 35% backing; the heading line on nothing at all)
@@ -1765,8 +1804,15 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
           local f1 = math.min(1, row.value / row.max)
           local f2 = math.min(1, row.ghost / row.max)
           b.ghost:ClearAllPoints()
-          b.ghost:SetPoint("TOPLEFT", b, "TOPLEFT", w * f1, 0)
-          b.ghost:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", w * f1, 0)
+          -- (it starts where the fill ends, so it moves with an easing fill)
+          local fillTex = b.bar.GetStatusBarTexture and b.bar:GetStatusBarTexture()
+          if fillTex and v > 0 then
+            b.ghost:SetPoint("TOPLEFT", fillTex, "TOPRIGHT", 0, 0)
+            b.ghost:SetPoint("BOTTOMLEFT", fillTex, "BOTTOMRIGHT", 0, 0)
+          else
+            b.ghost:SetPoint("TOPLEFT", b, "TOPLEFT", w * f1, 0)
+            b.ghost:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", w * f1, 0)
+          end
           b.ghost:SetWidth(math.max(1, w * (f2 - f1)))
           -- (a light tint, never the bar's own red: it must read apart from the fill)
           if row.stopNow then b.ghost:SetVertexColor(1, .78, .72, .5) else b.ghost:SetVertexColor(1, 1, 1, .3) end
@@ -1825,6 +1871,21 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         b.left:SetText((s.rank ~= "0" and not row.pullrow and (Hex(s.rankcolor, "0.67,0.67,0.67,1") .. rank .. ".|r ") or "") .. row.name)
         if win.mode == "threat" then
           ThreatColumns(b, s, row, vsize, font, outline, iconright and iconw or 0, (not iconright) and iconw or 0)
+        elseif C.meters.mcols ~= "0" then
+          -- (20 Nov 2026, user: "this should be in all meters") the same neat columns: per second, total, %
+          if b.mark then b.mark:Hide() end
+          local showPct = s.showpct ~= "0" and row.pct
+          local opts = { tps = s.showps ~= "0" and row.extra ~= nil, mid = showPct and true or false,
+                         heads = { T["/s"], T["Total"], showPct and "%" or T["Total"] } }
+          if row.pullrow == "head" then
+            opts.tps = s.showps ~= "0" and win.hasPs
+            opts.mid = s.showpct ~= "0" and win.hasPct
+            opts.heads[3] = opts.mid and "%" or T["Total"]
+          end
+          local cr = { name = row.name, class = row.class, pullrow = row.pullrow,
+                       extra = row.text, tps = row.extra,
+                       text = showPct and string.format("%.0f%%", row.pct) or row.text }
+          ThreatColumns(b, s, cr, vsize, font, outline, iconright and iconw or 0, (not iconright) and iconw or 0, opts)
         else
           if b.mid then b.mid:Hide() b.pct:Hide() if b.cd then b.cd:Hide() end if b.tps then b.tps:Hide() end end
           if b.mark then b.mark:Hide() end

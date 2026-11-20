@@ -751,7 +751,8 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       TH.Rebuild()
       TH.Warn()
       if M.RefreshThreat then M.RefreshThreat() end
-    elseif TH.list and TH.Animate() and M.RefreshThreat then
+    -- (ClassicAPI eases the bars itself: no redraw every 30 ms for our own glide then)
+    elseif TH.list and not (M.Eased and M.Eased()) and TH.Animate() and M.RefreshThreat then
       M.RefreshThreat()
     end
     -- buffs that change threat: looked at every 3 s while the numbers are on screen

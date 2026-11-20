@@ -936,6 +936,19 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
   local function BuildData(p)
     MO.SideSwitch(p, "meters")
     W.Heading(p, "Meter data", { about = "What the meters track and keep." })
+    -- (20 Nov 2026, user: "this should be in all meters these changes not just threat")
+    W.Card(p, "Every window", { icon = "Interface\\Icons\\INV_Misc_Spyglass_02",
+      tip = "How every meter window draws - damage, healing, threat and the rest." })
+    Chk(p, "Smooth bars", "With ClassicAPI the bars glide to their new size in the client itself (no extra work for the "
+      .. "add-on, the same speed at any frame rate); a bar that now shows someone else jumps. Without ClassicAPI: plain bars "
+      .. "(threat keeps its own glide).", G, "smooth", function() if M.RestyleAll then M.RestyleAll() end end)
+    Chk(p, "Neat columns", "Per second, total and % in columns of their own, right-aligned, so the numbers line up down the "
+      .. "window; a narrow window drops per second first, then total. Off: one line of numbers on the right.", G, "mcols",
+      function() if M.RestyleAll then M.RestyleAll() end end)
+    Chk(p, "Column headings", "Small grey \"/s  Total  %\" over the numbers (the threat window's own: Meters > Threat window).",
+      G, "mheads", function() if M.RestyleAll then M.RestyleAll() end end)
+    Chk(p, "Fit the lines", "A window is as tall as the lines it shows - no empty space under them. Its size is the most it grows to.",
+      G, "tfit", function() if M.RestyleAll then M.RestyleAll() end end)
     W.Card(p, "Meters")
     Chk(p, "Use the meters", "After a reload.", G, "enable", Reload)
     Chk(p, "Ask to reset in a new instance", nil, G, "resetask", function() end)

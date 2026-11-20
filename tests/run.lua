@@ -808,6 +808,8 @@ if ME then
   rows = ME.Rows("heal", "current")
   ok(rows[1] and rows[1].name == "Healbot", "healing rows")
   local w1 = pfMeter1
+  -- (20 Nov 2026) these tests read the players from line 1: the column headings line is tested in tests\threat.lua
+  pfUI_config.meters.mheads = "0"
   ok(w1 and w1:IsShown(), "meter window 1 shown")
   if w1 then
     w1:SetHeight(160)

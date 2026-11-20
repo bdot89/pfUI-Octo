@@ -268,6 +268,66 @@ do
       _G.GetTime = svGT
       TH.hist = {}
     end
+    -- (20 Nov 2026, user: "can we add this smooth glide") ClassicAPI's eased bars: a bar keeping its player eases,
+    -- a bar taking someone else's place jumps
+    do
+      local svEnum = rawget(_G, "Enum")
+      _G.Enum = { StatusBarInterpolation = { Immediate = 0, ExponentialEaseOut = 1 } }
+      local svGT = rawget(_G, "GetTime")
+      _G.GetTime = function() return 300 end
+      TH.all = nil
+      TH.list = TH.Parse("TWTv4=Tank:1:10000:100:1;Valeera:0:9000:90:1;Leader:0:3000:30:1;")
+      pfUI.meters.SetMode(w, "threat")
+      w.Refresh(w)
+      local seen = {}
+      for _, b in ipairs(w.bars or {}) do
+        local bb = b
+        bb.bar.SetValue = function(self, v, how) seen[bb] = how end
+      end
+      w.Refresh(w)
+      local eased, jumped = 0, 0
+      for _, how in pairs(seen) do if how == 1 then eased = eased + 1 elseif how == 0 then jumped = jumped + 1 end end
+      ok(eased >= 3 and jumped == 0, "the same players again: every bar eases (" .. eased .. ")")
+      -- Leader overtakes Valeera: their two bars change owner
+      TH.list = TH.Parse("TWTv4=Tank:1:10000:100:1;Leader:0:9500:95:1;Valeera:0:3000:30:1;")
+      TH.all = nil
+      pfUI.meters.threatOrder = {}
+      seen = {}
+      w.Refresh(w)
+      jumped = 0
+      for _, how in pairs(seen) do if how == 0 then jumped = jumped + 1 end end
+      ok(jumped >= 2, "a bar that now shows someone else jumps, never glides from them (" .. jumped .. ")")
+      pfUI_config.meters.smooth = "0"
+      ok(pfUI.meters.Eased() == nil, "switched off: plain bars")
+      pfUI_config.meters.smooth = "1"
+      _G.Enum = svEnum
+      ok(pfUI.meters.Eased() == nil, "no ClassicAPI: plain bars, our own glide")
+      _G.GetTime = svGT
+    end
+    -- (20 Nov 2026, user: "this should be in all meters these changes not just threat") a damage window: the same
+    -- columns (per second, total, %), the headings over them, and it fits its lines
+    do
+      local mc2 = pfUI_config.meters
+      local keepHeads = mc2.mheads
+      mc2.mheads, mc2.mcols, mc2.tfit = "1", "1", "1"
+      pfUI.meters.UnlockThreatWindow()
+      pfUI.meters.SetMode(w, "damage")
+      local s = mc2["win" .. w.id]
+      local keepH = s.height
+      s.height = "500"
+      pfUI.meters.testUntil = GetTime() + 30
+      w.Refresh(w)
+      local bh, bp = w.bars[1], w.bars[2]
+      ok(bh and bh.row and bh.row.pullrow == "head" and bh.pct.text == "%" and bh.mid.text ~= "", "damage window: headings over the columns")
+      ok(bp and bp.row and not bp.row.pullrow and string.find(bp.pct.text or "", "%%$") and (bp.mid.text or "") ~= ""
+        and (bp.right.text or "") == "", "damage window: total and % in their own columns (" .. tostring(bp and bp.mid.text) .. " / " .. tostring(bp and bp.pct.text) .. ")")
+      ok(w.fitH and math.abs(w:GetHeight() - w.fitH) < 1 and w:GetHeight() < 500, "damage window fits its lines (" .. tostring(w:GetHeight()) .. ")")
+      pfUI.meters.testUntil = 0
+      s.height = keepH
+      mc2.mheads = keepHeads
+      pfUI.meters.SetMode(w, "threat")
+      s.threatlock = "1"
+    end
     -- locked to threat: the display menu cannot switch it away
     pfUI.meters.SetMode(w, "damage")
     ok(w.mode == "threat", "your threat window stays on threat")
