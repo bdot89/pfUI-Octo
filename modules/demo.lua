@@ -465,7 +465,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       TH.Ask = function() end
     end
   end
-  function DM.Uninstall()
+  -- quiet = at PLAYER_LOGOUT: table writes only, no window refresh (it may ask units)
+  function DM.Uninstall(quiet)
     local env = pfUI.env
     for name, was in pairs(DM.saved or {}) do rawset(env, name, was[1]) end
     DM.saved, DM.orig = nil, nil
@@ -475,7 +476,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if TH and DM.thAsk then
       TH.Ask = DM.thAsk
       TH.list, TH.base = nil, nil
-      if pfUI.meters.Changed then pcall(pfUI.meters.Changed) end
+      if not quiet and pfUI.meters.Changed then pcall(pfUI.meters.Changed) end
     end
     DM.thAsk = nil
   end
@@ -1682,9 +1683,33 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if DM.adirty then DM.Touch(false, true) end
     if DM.dirty or DM.fight then DM.Touch(false) end
   end)
+  -- (20 Nov 2026, crash #132 twice, found by the pfUI continuation session from the .dmp: ACCESS_VIOLATION at
+  -- 0x004648AC reading 0x24 = the object manager lookup from UnitName with the object manager already freed.) On a
+  -- DISCONNECT the client leaves the world, frees the object manager, and only THEN fires PLAYER_LOGOUT: any unit call
+  -- (UnitName, a frame refresh, a plate or bar test) from a PLAYER_LOGOUT handler crashes it. So:
+  --   PLAYER_LEAVING_WORLD (the world still there): the full visual DM.Stop.
+  --   PLAYER_LOGOUT: DM.Logout - plain table writes only, so the saved settings are clean; no unit, frame or CVar call
+  --   (afkcam.lua: resetting CVars on PLAYER_LOGOUT crashes the client too).
+  function DM.Logout()
+    if not DM.on then return end
+    DM.on, DM.fight, DM.boss, DM.pack, DM.kit = false, false, nil, nil, nil
+    -- the one saved setting the demo may have switched for itself: combat text on
+    local B = pfUI.sct and pfUI.sct.B
+    if DM.ctOn and B and B.db and B.db.sct then B.db.sct.enabled = false end
+    DM.ctOn = nil
+    -- pfUI's own functions back (rawset into pfUI's environment, no calls)
+    DM.Uninstall(true)
+    DM.YourDots(false)
+    DM.YourMeters(false)
+    DM.metersMine = nil
+    tick:SetScript("OnUpdate", nil)
+    tick:UnregisterAllEvents()
+  end
   tick:RegisterEvent("PLAYER_REGEN_DISABLED")
+  tick:RegisterEvent("PLAYER_LEAVING_WORLD")
   tick:RegisterEvent("PLAYER_LOGOUT")
   tick:SetScript("OnEvent", function()
+    if event == "PLAYER_LOGOUT" then DM.Logout() return end
     if not DM.on then return end
     if event == "PLAYER_REGEN_DISABLED" then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo stopped: you are in a real fight.")

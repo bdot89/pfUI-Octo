@@ -376,3 +376,39 @@ do
   for k, v in pairs(keep) do _G[k] = v end
   Mock.now = now
 end
+
+-- (20 Nov 2026, crash #132 on a disconnect) PLAYER_LEAVING_WORLD = the full stop; PLAYER_LOGOUT = no unit call at all
+do
+  ok(DM.Start("raid"), "a demo for the leaving-world test")
+  _G.event, _G.this = "PLAYER_LEAVING_WORLD", DM.ticker
+  Mock.Run(DM.ticker, "OnEvent")
+  ok(not DM.on and rawget(env, "UnitName") == before.UnitName, "PLAYER_LEAVING_WORLD stops the demo, everything back")
+
+  -- the last test here: the logout handler unregisters the demo's clock
+  local keepSct = pfUI.sct and pfUI.sct.B and pfUI.sct.B.db and pfUI.sct.B.db.sct and pfUI.sct.B.db.sct.enabled
+  if pfUI.sct and pfUI.sct.B and pfUI.sct.B.db then pfUI.sct.B.db.sct.enabled = false end
+  ok(DM.Start("dungeon") and DM.ctOn, "a demo running (it switched combat text on for itself)")
+  local stubbed, called = {}, {}
+  for k, v in pairs(_G) do
+    if type(k) == "string" and type(v) == "function" and (string.find(k, "^Unit") or k == "SetCVar" or k == "GetCVar"
+      or k == "GetNumRaidMembers" or k == "GetNumPartyMembers" or k == "GetRaidRosterInfo") then
+      stubbed[k] = v
+    end
+  end
+  for k in pairs(stubbed) do
+    local name = k
+    _G[k] = function() table.insert(called, name) error("unit call at logout: " .. name) end
+  end
+  _G.event, _G.this = "PLAYER_LOGOUT", DM.ticker
+  local good, err = pcall(Mock.Run, DM.ticker, "OnEvent")
+  for k, v in pairs(stubbed) do _G[k] = v end
+  ok(good and table.getn(called) == 0, "PLAYER_LOGOUT during a demo calls no unit function or CVar ("
+    .. table.concat(called, ", ") .. ") " .. tostring(err))
+  ok(not DM.on and rawget(env, "UnitName") == before.UnitName and rawget(env, "GetNumRaidMembers") == before.GetNumRaidMembers,
+    "and still puts pfUI's own functions back")
+  ok(pfUI.sct.B.db.sct.enabled == false, "the combat text switch saved as it was before the demo")
+  if pfUI.sct and pfUI.sct.B and pfUI.sct.B.db then pfUI.sct.B.db.sct.enabled = keepSct end
+  -- (at a real logout nothing more runs; here the later tests need the meters' test fight off and the clock back)
+  if pfUI.meters and pfUI.meters.testOn then pfUI.meters.TestMode(false) end
+  DM.Cycle(.01)
+end
