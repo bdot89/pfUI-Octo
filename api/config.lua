@@ -610,7 +610,10 @@ function pfUI:LoadConfig()
     -- (17 Nov 2026) the game's own UI ticker 30 times a second, not every frame
     uitick = "1",
     -- (17 Nov 2026) the small performance HUD (perf-window.lua), off until asked for
-    hud = "0" }) do
+    hud = "0",
+    -- (20 Nov 2026) monitor Hz (hz = the one picked, "" = not set), ClassicAPI animations at it, G-Sync / FreeSync cap;
+    -- Linux (Wine / Proton) mode and its parts
+    hz = "", hzanim = "1", vrr = "0", linux = "0", lxfixlag = "1", lxcursor = "1", lxfx = "1" }) do
     pfUI:UpdateConfig("perf", nil, k, v)
   end
   -- autoloot.lua: automatic area looting with ClassicAPI (4 Nov 2026)

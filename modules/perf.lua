@@ -254,6 +254,232 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     PF.kb = kb
   end
 
+  -- ---------------------------------------------------------------- monitor Hz, Linux, PerfBoost (20 Nov 2026)
+  -- (user: "a setting on the UI that optimizes the UI for linux ... using DLLS everywhere we can", and "a hz option
+  -- where you can set your montitor hz which in turn will optimize the hidden settings and game settings".)
+  -- What this client really has (checked in WoW.exe 20 Nov): gxRefresh, gxVSync, gxTripleBuffer, gxFixLag, gxCursor,
+  -- RestartGx(), GetRefreshRates(). There is NO frame rate cap in 1.12 (no maxFPS CVar), and ClassicAPI's only
+  -- framerate call is SetMaxAnimFramerate (its animations, default 30). A real cap comes from DXVK (dxvk.conf
+  -- d3d9.maxFrameRate, or DXVK_FRAME_RATE on Linux): the page copies that line. Graphics changes go through
+  -- PF.GxChange: set, RestartGx(), and a 15 s "keep it?" box that puts everything back unless kept (a wrong
+  -- refresh rate can leave the screen black - safe-ui rule).
+  local function CVar(name)
+    local ok, v = pcall(GetCVar, name)
+    if ok then return v end
+  end
+  PF.CVar = CVar
+  PF.HZ_FALLBACK = { 60, 75, 100, 120, 144, 165, 170, 180, 240, 280, 360 }
+  -- the refresh rates the game offers for this screen (numbers, low to high)
+  function PF.Rates()
+    local list, seen = {}, {}
+    local function Add(v)
+      local _, _, n = string.find(tostring(v or ""), "(%d+)")
+      n = tonumber(n)
+      if n and n >= 24 and n <= 600 and not seen[n] then seen[n] = true table.insert(list, n) end
+    end
+    if type(_G.GetRefreshRates) == "function" then
+      local r = { pcall(_G.GetRefreshRates) }
+      if r[1] then
+        for i = 2, table.getn(r) do
+          if type(r[i]) == "table" then for _, v in pairs(r[i]) do Add(v) end else Add(r[i]) end
+        end
+      end
+    end
+    PF.ratesFromGame = table.getn(list) > 0
+    if not PF.ratesFromGame then for _, v in ipairs(PF.HZ_FALLBACK) do Add(v) end end
+    Add(PF.CurrentHz())
+    table.sort(list)
+    return list
+  end
+  function PF.CurrentHz() return tonumber(CVar("gxRefresh")) end
+  function PF.Windowed() return CVar("gxWindow") == "1" end
+  -- the frame cap to give DXVK: just under the refresh rate with G-Sync / FreeSync (stays inside its range), else it
+  function PF.CapFor(hz)
+    hz = tonumber(hz) or PF.CurrentHz() or 60
+    if On("vrr") then return math.max(30, hz - 3) end
+    return hz
+  end
+  function PF.CapLines(hz)
+    local n = PF.CapFor(hz)
+    return { steam = "DXVK_FRAME_RATE=" .. n .. " %command%", env = "DXVK_FRAME_RATE=" .. n, conf = "d3d9.maxFrameRate = " .. n }
+  end
+  -- ClassicAPI's animations at the monitor's rate (30 a second otherwise)
+  function PF.ApplyAnim()
+    if type(_G.SetMaxAnimFramerate) ~= "function" then return end
+    local hz = On("hzanim") and math.min(PF.CurrentHz() or 60, 240) or 30
+    pcall(_G.SetMaxAnimFramerate, hz)
+  end
+
+  -- change graphics CVars, restart the graphics, ask to keep them: list = { { cvar, value }, ... }
+  function PF.GxChange(list, what, after)
+    if UnitAffectingCombat and UnitAffectingCombat("player") then Say("not in a fight - try again after it.") return end
+    local old, changed = {}, false
+    for _, c in ipairs(list) do
+      local cur = CVar(c[1])
+      if cur ~= nil and tostring(cur) ~= tostring(c[2]) then
+        table.insert(old, { c[1], cur })
+        pcall(SetCVar, c[1], tostring(c[2]))
+        changed = true
+      end
+    end
+    if not changed then if after then after(false) end return false end
+    if type(_G.RestartGx) == "function" then pcall(_G.RestartGx) end
+    PF.ShowKeep(old, what)
+    PF.ApplyAnim()
+    if after then after(true) end
+    return true
+  end
+  function PF.UndoGx()
+    local k = PF.keepOld
+    PF.keepOld = nil
+    if PF.keepBox then PF.keepBox:Hide() end
+    if not k then return end
+    for _, c in ipairs(k) do pcall(SetCVar, c[1], tostring(c[2])) end
+    if type(_G.RestartGx) == "function" then pcall(_G.RestartGx) end
+    PF.ApplyAnim()
+    Say("graphics put back as they were.")
+  end
+  function PF.KeepGx()
+    PF.keepOld = nil
+    if PF.keepBox then PF.keepBox:Hide() end
+  end
+  PF.KEEPSECS = 15
+  function PF.ShowKeep(old, what)
+    PF.keepOld, PF.keepUntil = old, Now() + PF.KEEPSECS
+    local b = PF.keepBox
+    if not b then
+      b = CreateFrame("Frame", "pfOctoGxKeep", UIParent)
+      PF.keepBox = b
+      b:SetWidth(360) b:SetHeight(96)
+      b:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+      b:SetFrameStrata("FULLSCREEN_DIALOG")
+      if pfUI.api.CreateBackdrop then pfUI.api.CreateBackdrop(b) end
+      b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+      b.text:SetPoint("TOP", b, "TOP", 0, -12)
+      b.text:SetWidth(336)
+      local function Btn(label, x, fn)
+        local bt = CreateFrame("Button", nil, b, "UIPanelButtonTemplate")
+        bt:SetWidth(120) bt:SetHeight(24)
+        bt:SetPoint("BOTTOM", b, "BOTTOM", x, 12)
+        bt:SetText(label)
+        bt:SetScript("OnClick", fn)
+        if pfUI.api.SkinButton then pcall(pfUI.api.SkinButton, bt) end
+        return bt
+      end
+      b.keep = Btn("Keep it", -66, function() PF.KeepGx() end)
+      b.undo = Btn("Put it back", 66, function() PF.UndoGx() end)
+      b:SetScript("OnUpdate", function()
+        local left = math.ceil((PF.keepUntil or 0) - Now())
+        if left <= 0 then PF.UndoGx() return end
+        b.text:SetText((b.what or "Graphics changed") .. "\nKeep it? Going back by itself in |cffffd24d" .. left .. " s|r.")
+      end)
+    end
+    b.what = what
+    b:Show()
+  end
+
+  -- the monitor card's Apply: refresh rate + vsync + triple buffering
+  function PF.SetDisplay(hz, vsync, triple)
+    local list = {}
+    if tonumber(hz) then table.insert(list, { "gxRefresh", math.floor(tonumber(hz)) }) end
+    if vsync ~= nil then table.insert(list, { "gxVSync", vsync and "1" or "0" }) end
+    if triple ~= nil then table.insert(list, { "gxTripleBuffer", triple and "1" or "0" }) end
+    G().hz = tostring(hz or "")
+    return PF.GxChange(list, "Screen: " .. tostring(hz) .. " Hz, vsync " .. (vsync and "on" or "off") .. ".")
+  end
+
+  -- Linux (Wine / Proton / Lutris) - the game cannot tell, so it is the player's switch. What it sets:
+  PF.LINUX = {
+    { key = "lxfixlag", cvar = "gxFixLag", val = "0", label = "No forced wait for the graphics card",
+      tip = "gxFixLag 0. With it on, the game waits for the card to finish every frame (a little less mouse delay). Off = more frames, which matters most through DXVK / Wine." },
+    { key = "lxcursor", cvar = "gxCursor", val = "1", label = "Hardware mouse pointer",
+      tip = "gxCursor 1. The pointer is drawn by your desktop, so it stays smooth even when the game's frame rate drops." },
+  }
+  local function LinuxSaved()
+    pfUI_cache = pfUI_cache or {}
+    pfUI_cache.perflinux = pfUI_cache.perflinux or {}
+    return pfUI_cache.perflinux
+  end
+  function PF.WantLinux(e) return On("linux") and On(e.key) end
+  -- on: each ticked part set (your own value kept to put back), effects lowered in dungeons too, memory ceiling on
+  function PF.ApplyLinux(quiet)
+    local saved = LinuxSaved()
+    local list = {}
+    for _, e in ipairs(PF.LINUX) do
+      local cur = CVar(e.cvar)
+      if cur ~= nil then
+        if PF.WantLinux(e) then
+          if saved[e.cvar] == nil then saved[e.cvar] = cur end
+          table.insert(list, { e.cvar, e.val })
+        elseif saved[e.cvar] ~= nil then
+          table.insert(list, { e.cvar, saved[e.cvar] })
+          saved[e.cvar] = nil
+        end
+      end
+    end
+    local S = G()
+    if On("linux") and On("lxfx") then
+      if saved.raidfxwhere == nil then saved.raidfx, saved.raidfxwhere = S.raidfx, S.raidfxwhere end
+      S.raidfx = "1"
+      if S.raidfxwhere == "off" or S.raidfxwhere == "raid" then S.raidfxwhere = "group" end
+      S.gccap = "1"
+    elseif saved.raidfxwhere ~= nil then
+      S.raidfx, S.raidfxwhere = saved.raidfx or S.raidfx, saved.raidfxwhere
+      saved.raidfx, saved.raidfxwhere = nil, nil
+    end
+    PF.ApplyFX()
+    PF.Steer()
+    PF.ApplyAnim()
+    if quiet then
+      -- (at login: no graphics restart, the CVars stay in Config.wtf anyway)
+      for _, c in ipairs(list) do if tostring(CVar(c[1])) ~= tostring(c[2]) then pcall(SetCVar, c[1], tostring(c[2])) end end
+      return
+    end
+    PF.GxChange(list, On("linux") and "Linux settings on." or "Linux settings off - your own back.")
+  end
+
+  -- the DLLs this client loaded (VanillaFixes is what loads them, so any of them = it runs)
+  function PF.DLLs()
+    local pb = CVar("PB_Enabled") ~= nil
+    return {
+      { "SuperWoW", _G.SUPERWOW_VERSION ~= nil },
+      { "ClassicAPI", _G.C_UnitAuras ~= nil or type(_G.CopyToClipboard) == "function" },
+      { "nampower", type(_G.QueueSpellByName) == "function" or type(_G.GetSpellRecField) == "function" },
+      { "UnitXP_SP3", type(_G.UnitXP) == "function" },
+      { "PerfBoost", pb },
+    }
+  end
+
+  -- PerfBoost (perf_boost.dll): draws far-away players, pets and trash less - the biggest FPS gain in raids.
+  -- Its settings are CVars (PB_*, -1 = no limit, in yards up to 100); PerfBoostSettings (the add-on) sets them at login
+  -- from its own profile when it is on.
+  function PF.HasPB() return CVar("PB_Enabled") ~= nil end
+  PF.PB = {
+    { cvar = "PB_PlayerRenderDist", label = "Players", tip = "How far away other players are still drawn, out of combat." },
+    { cvar = "PB_PlayerRenderDistInCombat", label = "Players in combat", tip = "The same in a fight: the setting that saves the most frames in raids." },
+    { cvar = "PB_PlayerRenderDistInCities", label = "Players in cities", tip = "Cities are full of players: drawing only the near ones helps a lot." },
+    { cvar = "PB_PetRenderDistInCombat", label = "Pets in combat", tip = "Other players' pets in a fight. Your own pet is always drawn." },
+    { cvar = "PB_TrashUnitRenderDistInCombat", label = "Trash in combat", tip = "Small enemies in a fight. Bosses and named ones are always drawn." },
+  }
+  PF.PBLOOKS = {
+    all = { label = "Show everything", vals = { -1, -1, -1, -1, -1 } },
+    balanced = { label = "Balanced", vals = { 80, 60, 40, 40, 60 } },
+    raid = { label = "Most FPS in raids", vals = { 60, 30, 30, 20, 45 } },
+  }
+  function PF.SetPBLook(key)
+    local l = PF.PBLOOKS[key]
+    if not l or not PF.HasPB() then return end
+    pcall(SetCVar, "PB_Enabled", "1")
+    for i, e in ipairs(PF.PB) do pcall(SetCVar, e.cvar, tostring(l.vals[i])) end
+  end
+  function PF.PBLook()
+    for k, l in pairs(PF.PBLOOKS) do
+      local same = true
+      for i, e in ipairs(PF.PB) do if tonumber(CVar(e.cvar)) ~= l.vals[i] then same = false end end
+      if same then return k end
+    end
+  end
+
   -- ---------------------------------------------------------------- events
   local f = CreateFrame("Frame", "pfOctoPerf")
   PF.frame = f
@@ -279,7 +505,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     elseif event == "PLAYER_REGEN_ENABLED" then
       if On("gc") and On("gcafter") and PF.held then cleanAt, PF.why = Now() + 2, "after the fight" Wake() end
     elseif event == "PLAYER_ENTERING_WORLD" then
-      if not PF.since then PF.since = Now() end
+      if not PF.since then
+        PF.since = Now()
+        -- (first world entry) ClassicAPI animations at the monitor's rate; Linux CVars kept as picked
+        PF.ApplyAnim()
+        if On("linux") then PF.ApplyLinux(true) end
+      end
       if On("gcload") then cleanAt, PF.why = Now() + 1, "after a loading screen" end
       fxAt = Now() + 1
       Wake()

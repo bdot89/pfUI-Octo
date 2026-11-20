@@ -1534,3 +1534,20 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   your real buffs); DM.Poke fires the bars' own OnEvent (ACTIONBAR_UPDATE_COOLDOWN / _USABLE / PLAYER_AURAS_CHANGED) since
   the bars redraw only on events. DM.YourDots swaps D.FAKE / TB.FAKE for your DoTs, DM.YourMeters puts your name + kit into
   your class's row of the meters' test fight (M.test.ROSTER; M.testSeg rebuilt) - both put back at Stop.
+- Monitor Hz, Linux mode, PerfBoost (20 Nov 2026, NOT seen in game; user: "optimizes the UI for linux ... using DLLS
+  everywhere" + "a hz option ... optimize the hidden settings"). In perf.lua / perf-options.lua (Settings > Performance,
+  cards Your monitor / Playing on Linux / Fewer far-away players). Facts checked in WoW.exe: gxRefresh, gxVSync,
+  gxTripleBuffer, gxFixLag, gxCursor, gxWindow, RestartGx(), GetRefreshRates() exist; NO maxFPS CVar (1.12 cannot cap
+  frames), ClassicAPI's only framerate call is SetMaxAnimFramerate (its animations, default 30; the "Usage:
+  SetMaxFramerate" string in the DLL is that function's message, no global of that name). So the cap is DXVK's:
+  PF.CapLines -> DXVK_FRAME_RATE / dxvk.conf d3d9.maxFrameRate (copied with libclient.Copy; C.perf.vrr = 3 under).
+  PF.GxChange(list, what): SetCVar each, RestartGx once, PF.ShowKeep = pfOctoGxKeep box, put back after PF.KEEPSECS (15)
+  unless kept (a wrong rate can blank the screen); refused in combat. PF.SetDisplay(hz, vsync, triple); PF.Rates() reads
+  GetRefreshRates (strings / numbers / a table), else PF.HZ_FALLBACK. C.perf.linux (the game cannot tell it runs in
+  Wine): PF.LINUX parts gxFixLag 0 (lxfixlag) / gxCursor 1 (lxcursor), own values in pfUI_cache.perflinux; lxfx = raid
+  graphics in dungeons too + memory ceiling on (raidfx / raidfxwhere kept to put back). At the first world entry
+  PF.ApplyAnim + PF.ApplyLinux(quiet) (no restart). PerfBoost: PB_* CVars (-1 = no limit, yards up to 100; meaning of -1
+  from PerfBoostSettings' ranges, unverified), PF.PBLOOKS all / balanced / raid; PerfBoostSettings re-sets them at
+  login (note on the page). Left out on purpose: M2Faster / M2UseShaders (exist, effect on this client unknown).
+  Tests at the end of tests\perf.lua. Unverified in game: GetRefreshRates' return shape, RestartGx under DXVK, the
+  keep box, gxFixLag's gain through DXVK.

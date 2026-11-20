@@ -347,5 +347,94 @@ if ST and ST.testFrame then
   ST.testUntil = 0
 end
 
+-- (20 Nov 2026) monitor Hz, Linux mode, PerfBoost
+if PF.SetDisplay then
+  local cv = { gxRefresh = "60", gxVSync = "1", gxTripleBuffer = "0", gxWindow = "0", gxFixLag = "1", gxCursor = "0",
+    PB_Enabled = "0", PB_PlayerRenderDist = "-1", PB_PlayerRenderDistInCombat = "-1", PB_PlayerRenderDistInCities = "-1",
+    PB_PetRenderDistInCombat = "-1", PB_TrashUnitRenderDistInCombat = "-1" }
+  local restarts, anim = 0, nil
+  local keepRG, keepRR, keepAnim = rawget(_G, "RestartGx"), rawget(_G, "GetRefreshRates"), rawget(_G, "SetMaxAnimFramerate")
+  _G.GetCVar = function(n) if cv[n] == nil then error("no such cvar") end return cv[n] end
+  _G.SetCVar = function(n, v) if cv[n] == nil then error("no such cvar") end cv[n] = tostring(v) end
+  _G.RestartGx = function() restarts = restarts + 1 end
+  _G.SetMaxAnimFramerate = function(n) anim = n end
+  _G.UnitAffectingCombat = function() return false end
+  -- the game lists rates as strings
+  _G.GetRefreshRates = function() return "60", "120", "144" end
+  local r = PF.Rates()
+  ok(table.getn(r) == 3 and r[3] == 144 and PF.ratesFromGame, "refresh rates read from the game (60, 120, 144)")
+  _G.GetRefreshRates = function() return nil end
+  r = PF.Rates()
+  ok(not PF.ratesFromGame and table.getn(r) >= 10, "no list from the game: the usual rates")
+  -- apply 144 Hz with vsync off: set, one graphics restart, the keep box up
+  ok(PF.SetDisplay(144, false, false) and cv.gxRefresh == "144" and cv.gxVSync == "0" and restarts == 1, "Apply: 144 Hz, vsync off, graphics restarted once")
+  ok(PF.keepBox and PF.keepBox:IsShown() and PF.keepOld, "the keep-it box is up")
+  ok(anim == 144, "ClassicAPI animations follow the Hz (" .. tostring(anim) .. ")")
+  -- not kept: 15 s later it goes back by itself
+  now = now + PF.KEEPSECS + 1
+  _G.this = PF.keepBox
+  PF.keepBox:GetScript("OnUpdate")()
+  ok(cv.gxRefresh == "60" and cv.gxVSync == "1" and restarts == 2 and not PF.keepOld, "not kept in 15 s: 60 Hz and vsync back")
+  -- kept
+  PF.SetDisplay(120, true, false)
+  PF.KeepGx()
+  now = now + 30
+  ok(cv.gxRefresh == "120" and not PF.keepOld, "kept: stays at 120 Hz")
+  ok(PF.SetDisplay(120, true, false) == false, "the same again: nothing done")
+  -- not in a fight
+  _G.UnitAffectingCombat = function() return true end
+  ok(not PF.SetDisplay(60, true, false) and cv.gxRefresh == "120", "in a fight: graphics left alone")
+  _G.UnitAffectingCombat = function() return false end
+  -- the frame cap DXVK gets
+  S.vrr = "0"
+  ok(PF.CapLines(144).steam == "DXVK_FRAME_RATE=144 %command%", "frame cap = the Hz")
+  S.vrr = "1"
+  ok(PF.CapLines(144).conf == "d3d9.maxFrameRate = 141", "G-Sync / FreeSync: 3 under")
+  S.vrr = "0"
+
+  -- Linux on: its CVars set (own values kept), effects in dungeons too; off: all back
+  pfUI_cache.perflinux = nil
+  S.raidfx, S.raidfxwhere, S.linux = "1", "raid", "1"
+  PF.ApplyLinux()
+  ok(cv.gxFixLag == "0" and cv.gxCursor == "1" and S.raidfxwhere == "group" and S.gccap == "1", "Linux on: gxFixLag 0, hardware pointer, dungeons too")
+  PF.KeepGx()
+  S.linux = "0"
+  PF.ApplyLinux()
+  PF.KeepGx()
+  ok(cv.gxFixLag == "1" and cv.gxCursor == "0" and S.raidfxwhere == "raid", "Linux off: your own values back")
+  -- an unticked part is left alone
+  S.linux, S.lxcursor = "1", "0"
+  PF.ApplyLinux()
+  PF.KeepGx()
+  ok(cv.gxFixLag == "0" and cv.gxCursor == "0", "Linux on without the pointer part: pointer left alone")
+  S.linux, S.lxcursor = "0", "1"
+  PF.ApplyLinux()
+  PF.KeepGx()
+
+  -- PerfBoost looks
+  ok(PF.HasPB(), "PerfBoost seen from its CVars")
+  PF.SetPBLook("raid")
+  ok(cv.PB_Enabled == "1" and cv.PB_PlayerRenderDistInCombat == "30" and PF.PBLook() == "raid", "PerfBoost: Most FPS in raids set and recognised")
+  PF.SetPBLook("all")
+  ok(cv.PB_PlayerRenderDist == "-1" and PF.PBLook() == "all", "PerfBoost: Show everything")
+  cv.PB_Enabled = nil
+  ok(not PF.HasPB(), "no PerfBoost CVars: not installed")
+  local dl = PF.DLLs()
+  ok(table.getn(dl) == 5, "the DLL list has 5 entries")
+
+  -- the page builds with and without PerfBoost
+  if O and O.BUILD and O.BUILD.stperf then
+    local okb, err = pcall(function() O:Page("stperf") O:Rebuild("stperf") end)
+    ok(okb, "Performance page builds without PerfBoost: " .. tostring(err))
+    cv.PB_Enabled = "1"
+    okb, err = pcall(function() O:Rebuild("stperf") end)
+    ok(okb, "Performance page builds with PerfBoost: " .. tostring(err))
+  end
+  if PF.keepBox then PF.keepBox:Hide() end
+  PF.keepOld = nil
+  pfUI_cache.perflinux = nil
+  _G.RestartGx, _G.GetRefreshRates, _G.SetMaxAnimFramerate = keepRG, keepRR, keepAnim
+end
+
 for k, v in pairs(keep) do rawset(_G, k, v) end
 pfUI_cache.perfsaved = nil
