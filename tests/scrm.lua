@@ -48,7 +48,7 @@ do
   local xml = read("scrm/scrm.xml") or ""
   local n, bad = 0, {}
   for f in string.gfind(xml, 'Script file="([^"]+)"') do
-    if f ~= "guard.lua" then
+    if f ~= "guard.lua" and f ~= "check.lua" then
       n = n + 1
       local src = read("scrm/" .. string.gsub(f, "\\", "/")) or ""
       if string.sub(src, 1, 33) ~= "if pfUIOctoSCRMSkip then return e" then table.insert(bad, f) end
@@ -64,6 +64,29 @@ do
   ok(string.find(toc, "scrm\\scrm.xml", 1, true) and string.find(toc, "CleveRoidMacros, CleveRoids_LearnedDurations", 1, true),
     "pfUI.toc loads it and keeps its saved variables")
   ok(read("scrm/LICENSE-SuperCleveRoidMacros") ~= nil, "its licence goes with it")
+  -- (20 Nov 2026, STAB: "scrm\Core.lua:5312: attempt to call field 'IndexActionSlot' (a nil value)" over and over)
+  -- check.lua runs last: a copy that did not load fully is switched off and says what is missing, once
+  local last
+  for f in string.gfind(xml, 'Script file="([^"]+)"') do last = f end
+  ok(last == "check.lua", "check.lua is the last file it loads")
+  do
+    local keep = { skip = rawget(_G, "pfUIOctoSCRMSkip"), on = rawget(_G, "pfUIOctoSCRM"), cr = rawget(_G, "CleveRoids"),
+      broken = rawget(_G, "pfUIOctoSCRMBroken") }
+    local unreg = 0
+    rawset(_G, "pfUIOctoSCRMSkip", false)
+    rawset(_G, "pfUIOctoSCRM", true)
+    rawset(_G, "CleveRoids", { Frame = { UnregisterAllEvents = function() unreg = unreg + 1 end } })
+    assert(loadfile("scrm/check.lua"))()
+    ok(string.find(tostring(pfUIOctoSCRMBroken), "IndexActionSlot", 1, true) and unreg == 1 and pfUIOctoSCRMSkip == true,
+      "half loaded: switched off, its events stopped, the missing parts named (" .. tostring(pfUIOctoSCRMBroken) .. ")")
+    local full = {}
+    for _, n in ipairs(pfUIOctoSCRMNEED) do full[n] = function() end end
+    ok(pfUIOctoSCRMCheck(full) == nil, "fully loaded: nothing missing")
+    rawset(_G, "pfUIOctoSCRMSkip", keep.skip)
+    rawset(_G, "pfUIOctoSCRM", keep.on)
+    rawset(_G, "CleveRoids", keep.cr)
+    rawset(_G, "pfUIOctoSCRMBroken", keep.broken)
+  end
 end
 
 -- (Wolfahrt, 20 Nov 2026: "the newest SCRM does not work with this version of PFui") pfUI's bars stop reading

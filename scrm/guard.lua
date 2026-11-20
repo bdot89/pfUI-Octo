@@ -29,3 +29,13 @@ else
 end
 pfUIOctoSCRMSkip = pfUIOctoSCRMWhy ~= nil
 pfUIOctoSCRM = not pfUIOctoSCRMSkip
+-- (20 Nov 2026, STAB: one of its files stopped part way while loading) the first error from these files while
+-- they load is noted for scrm\check.lua, which puts the game's own error handler back afterwards
+if pfUIOctoSCRM and type(geterrorhandler) == "function" and type(seterrorhandler) == "function" then
+  pfUIOctoSCRMHandler = geterrorhandler() or false
+  pfUIOctoSCRMCatch = function(msg)
+    if not pfUIOctoSCRMLoadErr and type(msg) == "string" and string.find(msg, "scrm", 1, true) then pfUIOctoSCRMLoadErr = msg end
+    if pfUIOctoSCRMHandler then return pfUIOctoSCRMHandler(msg) end
+  end
+  seterrorhandler(pfUIOctoSCRMCatch)
+end

@@ -38,4 +38,5 @@
   <Script file="Extensions\Tooltip\Generic.lua"/>
   <Script file="Extensions\CursiveCustomSpells.lua"/>
   <Script file="Extensions\OverflowBuffFrame.lua"/>
+  <Script file="check.lua"/>
 </Ui>

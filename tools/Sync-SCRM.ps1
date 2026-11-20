@@ -29,8 +29,8 @@ $commit = ""
 if (Test-Path (Join-Path $Src ".git")) { $commit = (git -C $Src log -1 --format="%h %ad" --date=short) }
 
 if (Test-Path $dst) {
-  # keep guard.lua (ours), rebuild the rest
-  Get-ChildItem $dst | Where-Object { $_.Name -ne "guard.lua" } | Remove-Item -Recurse -Force
+  # keep guard.lua and check.lua (ours), rebuild the rest
+  Get-ChildItem $dst | Where-Object { $_.Name -ne "guard.lua" -and $_.Name -ne "check.lua" } | Remove-Item -Recurse -Force
 } else {
   New-Item -ItemType Directory -Force $dst | Out-Null
 }
@@ -81,6 +81,8 @@ $xml = New-Object Text.StringBuilder
 [void]$xml.Append("  <!-- pfUI Octo: SuperCleveRoidMacros built in, made by tools\Sync-SCRM.ps1" + $(if ($commit) { " from $commit" } else { "" }) + " -->`r`n")
 [void]$xml.Append("  <Script file=`"guard.lua`"/>`r`n")
 foreach ($l in $load) { [void]$xml.Append("  <Script file=`"$l`"/>`r`n") }
+# (20 Nov 2026) last: check it all loaded, else switch it off and say why (check.lua)
+[void]$xml.Append("  <Script file=`"check.lua`"/>`r`n")
 [void]$xml.Append("</Ui>`r`n")
 [IO.File]::WriteAllText((Join-Path $dst "scrm.xml"), $xml.ToString(), $utf8)
 
