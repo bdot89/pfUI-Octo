@@ -1454,6 +1454,38 @@ if MAP and MAP.ApplyStyle then
     ok(not MAP.PinInside(35, 35, 8) and MAP.PinInside(30, 0, 8), "pins: diamond")
     MS.shape = "corner-tl"
     ok(MAP.PinInside(-55, -55, 8) and not MAP.PinInside(55, 55, 8), "pins: corner-tl keeps only the top-left corner (y down)")
+    -- (Javelin again: "look at the edges") any pfQuest's pins, where they are now: over the ring = see-through
+    if MAP.ClipPins then
+      local function Pin(x, y)
+        local p = { x = x, y = y, a = 1, shown = true }
+        function p:GetCenter() return 500 + self.x, 400 + self.y end
+        function p:IsShown() return self.shown end
+        function p:GetWidth() return 14 end
+        function p:GetEffectiveScale() return 1 end
+        function p:GetAlpha() return self.a end
+        function p:SetAlpha(v) self.a = v end
+        function p:EnableMouse(v) self.mouse = v end
+        return p
+      end
+      local inner, edge, corner = Pin(20, 30), Pin(-68, 0), Pin(60, 60)
+      local keepMap = rawget(_G, "pfMap")
+      local mc, ms, mw = Minimap.GetCenter, Minimap.GetEffectiveScale, Minimap.GetWidth
+      Minimap.GetCenter = function() return 500, 400 end
+      Minimap.GetEffectiveScale = function() return 1 end
+      Minimap.GetWidth = function() return 140 end
+      rawset(_G, "pfMap", { mpins = { inner, edge, corner } })
+      MS.shape = "round"
+      MAP.ClipPins()
+      ok(inner.a == 1 and edge.a == 0 and corner.a == 0 and edge.mouse == false, "pins: on or past the ring go see-through, inside ones stay")
+      edge.x = -40
+      MAP.ClipPins()
+      ok(edge.a == 1 and edge.mouse == true, "pins: back as they were once inside")
+      MS.shape = "square"
+      MAP.ClipPins()
+      ok(corner.a == 1, "pins: a square map hides none")
+      rawset(_G, "pfMap", keepMap)
+      Minimap.GetCenter, Minimap.GetEffectiveScale, Minimap.GetWidth = mc, ms, mw
+    end
     MS.shape = was
   end
 
@@ -6769,6 +6801,7 @@ dofile(DIR .. "/tests/dots.lua")
 dofile(DIR .. "/tests/dots-target.lua")
 dofile(DIR .. "/tests/gearicon.lua")
 dofile(DIR .. "/tests/mapcolors.lua")
+dofile(DIR .. "/tests/challenges.lua")
 dofile(DIR .. "/tests/rinse.lua")
 dofile(DIR .. "/tests/movers.lua")
 dofile(DIR .. "/tests/mapmarks.lua")

@@ -856,6 +856,55 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     return true
   end
 
+  -- (20 Nov 2026, Javelin again, "look at the edges": pins half over the round map's ring) pfQuest's own check only
+  -- runs in our built-in copy; with the separate pfQuest add-on (the launcher's) its square test let pins up to the
+  -- frame's edge. So pfUI looks at every shown minimap pin itself, ten times a second, where it really is now (its
+  -- centre against the map's), with room for the pin's own size and the ring: outside = see-through and no mouse,
+  -- back as it was once inside. Works with any pfQuest; does nothing on a square map.
+  map.pinsOut = {}
+  function map.ClipPins()
+    local pfm = rawget(_G, "pfMap")
+    local out = map.pinsOut
+    local shape = S.shape or "square"
+    local cx, cy = Minimap:GetCenter()
+    if not (pfm and type(pfm.mpins) == "table" and cx) or shape == "square" then
+      for pin, a in pairs(out) do pin:SetAlpha(a) pin:EnableMouse(true) out[pin] = nil end
+      return 0
+    end
+    local ms = Minimap:GetEffectiveScale() or 1
+    local n = 0
+    for _, pin in pairs(pfm.mpins) do
+      if pin:IsShown() then
+        local px, py = pin:GetCenter()
+        if px then
+          local ps = (pin:GetEffectiveScale() or ms) / ms
+          local dx, dy = px * ps - cx, py * ps - cy
+          local pad = (pin:GetWidth() or 14) * ps / 2 + 3
+          if map.PinInside(dx, -dy, pad) then
+            if out[pin] then pin:SetAlpha(out[pin]) pin:EnableMouse(true) out[pin] = nil end
+          else
+            if not out[pin] then out[pin] = pin:GetAlpha() end
+            pin:SetAlpha(0)
+            pin:EnableMouse(false)
+            n = n + 1
+          end
+        end
+      elseif out[pin] then
+        pin:SetAlpha(out[pin])
+        out[pin] = nil
+      end
+    end
+    return n
+  end
+  local clip = CreateFrame("Frame")
+  clip.t = 0
+  clip:SetScript("OnUpdate", function()
+    this.t = this.t + arg1
+    if this.t < .1 then return end
+    this.t = 0
+    map.ClipPins()
+  end)
+
   -- ---------------------------------------------------------------- apply
 
   function map.ApplyStyle()
