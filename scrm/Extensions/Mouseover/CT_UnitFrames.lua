@@ -1,0 +1,41 @@
+if pfUIOctoSCRMSkip then return end -- pfUI Octo: built-in SuperCleveRoidMacros off (see scrm\guard.lua)
+--[[
+	Author: Dennis Werner Garske (DWG) / brian / Mewtiny
+	License: MIT License
+]]
+local _G = _G or getfenv(0)
+local CleveRoids = _G.CleveRoids or {}
+
+local Extension = CleveRoids.RegisterExtension("CT_UnitFrames")
+
+function Extension.SetHook(widget)
+    local hookedOnEnter = widget:GetScript("OnEnter")
+    local hookedOnLeave = widget:GetScript("OnLeave")
+
+    widget:SetScript("OnEnter", function()
+        hookedOnEnter()
+        CleveRoids.SetMouseoverFrom("ctuf", "targettarget")
+    end)
+
+    widget:SetScript("OnLeave", function()
+        hookedOnLeave()
+        CleveRoids.ClearMouseoverFrom("ctuf")
+        CleveRoids.ClearMouseoverFrom("native")
+    end)
+end
+
+function Extension.OnLoad() end
+
+function Extension.OnAddOnLoad()
+    if not CT_AssistFrame then
+        return
+    end
+    CleveRoids.Print("CT_UnitFrames module loaded.")
+
+    Extension.SetHook(CT_AssistFrame)
+    Extension.SetHook(CT_AssistFrameHealthBar)
+    Extension.SetHook(CT_AssistFrameManaBar)
+    Extension.SetHook(CT_AssistFrame_Drag)
+end
+
+EventUtil.ContinueOnAddOnLoaded("CT_UnitFrames", Extension.OnAddOnLoad)

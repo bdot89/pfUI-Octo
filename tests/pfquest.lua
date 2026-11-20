@@ -20,7 +20,9 @@ for i = 1, table.getn(toc) do
   if string.find(l, "^## SavedVariables:") then svAcc = l end
   if string.find(l, "^## SavedVariablesPerCharacter:") then svChar = l end
 end
-ok(listed and listed == table.getn(toc) or (listed and toc[listed + 1] == nil), "the toc loads pfquest\\pfquest.xml last")
+-- (after all of pfUI; the built-in SuperCleveRoidMacros, 20 Nov 2026, may follow it)
+local after = listed and toc[listed + 1]
+ok(listed and (after == nil or after == "" or after == "scrm\\scrm.xml"), "the toc loads pfquest\\pfquest.xml after all of pfUI")
 ok(svAcc and string.find(svAcc, "pfQuest_questcache", 1, true) and string.find(svAcc, "pfQuest_turtlecount", 1, true), "pfQuest's account settings are saved by pfUI")
 local allChar = true
 for _, v in ipairs({ "pfQuest_config", "pfBrowser_fav", "pfQuest_history", "pfQuest_colors", "pfQuest_server", "pfQuest_track" }) do

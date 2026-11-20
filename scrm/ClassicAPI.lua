@@ -1,0 +1,414 @@
+if pfUIOctoSCRMSkip then return end -- pfUI Octo: built-in SuperCleveRoidMacros off (see scrm\guard.lua)
+--[[
+    ClassicAPI.lua - ClassicAPI Integration Layer
+
+    ClassicAPI is a client mod (sibling to Nampower/SuperWoW) that backports the
+    modern C_* API into the 1.12.1 Lua environment. It is a HARD REQUIREMENT of
+    this addon (ClassicAPI v1.15.8+, which scoped GetMouseButtonClicked to the
+    click dispatch; v1.15.0 added frame:RegisterUnitEvent), so the
+    wrappers below call the API directly — no fallbacks. The load-time requirement
+    check (Core.lua) uses IsAvailable() to warn when the DLL is missing and
+    HasMinimumVersion() when it's too old; users who don't want ClassicAPI should
+    run the upstream addon.
+
+    The minimum is not advisory: Utility.lua calls frame:RegisterUnitEvent at file
+    scope, so an older ClassicAPI aborts that chunk and leaves most of the addon
+    undefined. Raise the Core.lua minimum in step with any new API adopted at file
+    scope.
+
+    Detection: the global CLASSIC_API_VERSION is defined once the client has
+    booted, encoded as X*10000 + Y*100 + Z for a vX.Y.Z tag (untagged dev builds
+    report the sentinel 99999999). See ClassicAPI docs/API.md.
+
+    Currently used for:
+    - C_UnitAuras: dispel-type detection (Magic/Curse/Disease/Poison) on any unit,
+      powering the [magic]/[curse]/[disease]/[poison]/[dispellable] conditionals.
+    - GetUnitSpeed / IsFalling: the [moving] conditional.
+]]
+
+local _G = _G or getfenv(0)
+local CleveRoids = _G.CleveRoids
+
+-- Force table creation if not already a table (guards against addon conflicts)
+if type(CleveRoids.ClassicAPI) ~= "table" then
+    CleveRoids.ClassicAPI = {}
+end
+local API = CleveRoids.ClassicAPI
+
+--------------------------------------------------------------------------------
+-- VERSION DETECTION
+--------------------------------------------------------------------------------
+
+-- Returns the encoded version number (X*10000 + Y*100 + Z), or 0 if absent.
+function API.GetVersionNumber()
+    return CLASSIC_API_VERSION or 0
+end
+
+-- Returns the loaded version as major, minor, patch (0, 0, 0 if absent).
+function API.GetVersion()
+    local v = CLASSIC_API_VERSION or 0
+    local major = math.floor(v / 10000)
+    local minor = math.floor(v / 100) - major * 100
+    return major, minor, v - math.floor(v / 100) * 100
+end
+
+-- True if the ClassicAPI client mod is loaded at all.
+function API.IsAvailable()
+    return CLASSIC_API_VERSION ~= nil
+end
+
+-- Check if the loaded ClassicAPI meets a minimum version (major, minor, patch).
+function API.HasMinimumVersion(reqMajor, reqMinor, reqPatch)
+    local v = CLASSIC_API_VERSION
+    if not v then return false end
+    local req = (reqMajor or 0) * 10000 + (reqMinor or 0) * 100 + (reqPatch or 0)
+    return v >= req
+end
+
+--------------------------------------------------------------------------------
+-- C_UnitAuras
+--------------------------------------------------------------------------------
+
+-- Scan one aura range of `unit` (filter = "HELPFUL" or "HARMFUL") for an aura
+-- matching the dispel type. Uses the positional C_UnitAuras.UnitAura (added in
+-- ClassicAPI v1.12.1, below this addon's minimum) -- no table allocated per slot, with
+-- dispelName as the 4th return. The filtered index self-terminates at the end of
+-- the range (nil name); 48 is a backstop over vanilla's 32 helpful / 16 harmful slots.
+local function scanDispel(unit, filter, dispelType, wantAny)
+    local i = 1
+    while i <= 48 do
+        local name, _, _, dispelName = C_UnitAuras.UnitAura(unit, i, filter)
+        if not name then return false end
+        if dispelName and dispelName ~= "" and (wantAny or dispelName == dispelType) then
+            return true
+        end
+        i = i + 1
+    end
+    return false
+end
+
+-- True if `unit` has an aura of the given dispel type.
+--   dispelType: "Magic" | "Curse" | "Disease" | "Poison", or "any"/nil for any
+--               dispellable aura (any non-empty dispelName).
+--   helpful:    true  -> scan buffs   (offensive dispel / strip / purge)
+--               false -> scan debuffs (defensive cleanse, default)
+function API.UnitHasDispelType(unit, dispelType, helpful)
+    if not unit or not UnitExists(unit) then return false end
+    local filter = helpful and "HELPFUL" or "HARMFUL"
+    local wantAny = (dispelType == nil or dispelType == "any")
+    return scanDispel(unit, filter, dispelType, wantAny)
+end
+
+-- First matching aura on `unit` by spellID, or nil. With no filter it walks the
+-- whole aura array (helpful then harmful), so it finds a debuff even when it has
+-- overflowed into an NPC's buff slots -- no 16+32 slot scan, no UnitIsPlayer
+-- gate. filter ("HELPFUL"/"HARMFUL") restricts the search. Returns the modern
+-- AuraData (spellId, name, applications, duration, expirationTime, dispelName, ...).
+function API.GetUnitAuraBySpellID(unit, spellID, filter)
+    if not unit or not spellID then return nil end
+    return C_UnitAuras.GetUnitAuraBySpellID(unit, spellID, filter)
+end
+
+-- First matching aura on `unit` by spell NAME, or nil. Same whole-array search as
+-- GetUnitAuraBySpellID; the name is case-sensitive and locale-resolved, so pass it
+-- in the client's locale (what C_Spell.GetSpellName returns). filter
+-- ("HELPFUL"/"HARMFUL") restricts the search. Prefer the by-ID variant for
+-- portability where a spellID is known.
+function API.GetAuraDataBySpellName(unit, spellName, filter)
+    if not unit or not spellName or spellName == "" then return nil end
+    return C_UnitAuras.GetAuraDataBySpellName(unit, spellName, filter)
+end
+
+--------------------------------------------------------------------------------
+-- GetUnitSpeed
+--------------------------------------------------------------------------------
+
+-- Normal unmounted run speed in yards/second; treated as 100% on the speed
+-- scale used by the [moving] conditional.
+local BASE_RUN_SPEED = 7.0
+
+-- Current speed of `unit` in yards/second (0 when stationary or the token
+-- doesn't resolve).
+function API.GetUnitCurrentSpeed(unit)
+    return GetUnitSpeed(unit or "player") or 0
+end
+
+-- Player's current speed as a percentage of normal run speed (100 = run).
+function API.GetPlayerSpeedPercent()
+    return (API.GetUnitCurrentSpeed("player") / BASE_RUN_SPEED) * 100
+end
+
+-- True if the player is mid-jump or falling. GetUnitSpeed's currentSpeed is
+-- horizontal-only, so this catches vertical movement it would report as 0.
+function API.IsPlayerFalling()
+    return IsFalling()
+end
+
+--------------------------------------------------------------------------------
+-- Action
+--------------------------------------------------------------------------------
+
+-- Action descriptor for a 1-based action-bar slot: actionType, id, subType.
+--   actionType: "spell" (id = spellID) | "macro" (id = macroSlot) |
+--               "item" (id = itemID, or nil for a bag-instance item)
+--   nil for an empty slot.
+function API.GetActionInfo(slot)
+    return GetActionInfo(slot)
+end
+
+--------------------------------------------------------------------------------
+-- Container
+--------------------------------------------------------------------------------
+
+-- Base itemID in (bagID, slot), or nil for an empty/invalid slot. Same value
+-- the "item:(%d+)" parse of GetContainerItemLink yields, but resolved straight
+-- from the CGItem -- no link string built, no Lua pattern match.
+function API.GetContainerItemID(bagID, slot)
+    return C_Container.GetContainerItemID(bagID, slot)
+end
+
+-- Base itemID equipped in `unit`'s 1-based inventory `slot` (1-19), or nil for
+-- an empty slot / NPC unit. Same arg shape as GetInventoryItemLink and the same
+-- value its "item:(%d+)" parse yields, resolved straight from the item instance.
+function API.GetInventoryItemID(unit, slot)
+    return GetInventoryItemID(unit, slot)
+end
+
+--------------------------------------------------------------------------------
+-- Item Set
+--------------------------------------------------------------------------------
+
+-- ItemSet.dbc ID that `itemID` belongs to, or nil if it isn't part of a set
+-- (or isn't cached yet). Reads the item's m_itemSet field directly -- no
+-- Reliquary, no per-set ItemID[] scan.
+function API.GetItemSetIDByID(itemID)
+    return C_Item.GetItemSetIDByID(itemID)
+end
+
+-- Table describing an ItemSet.dbc row, or nil if `setID` doesn't resolve:
+--   { setID, name (localized), requiredSkill, requiredSkillRank,
+--     items = { itemID, ... }, bonuses = { { spellID, threshold }, ... } }
+function API.GetItemSetInfo(setID)
+    return C_Item.GetItemSetInfo(setID)
+end
+
+--------------------------------------------------------------------------------
+-- Equipment Set
+--------------------------------------------------------------------------------
+
+-- True if the saved equipment set named `name` is currently equipped -- every
+-- resolvable item in its target slot (a missing bank-stored piece doesn't
+-- disqualify, matching C_EquipmentSet.GetEquipmentSetInfo's isEquipped). Name is
+-- an exact, case-sensitive match per GetEquipmentSetID. Returns false for an
+-- unknown name or a client without the EquipmentSet API. Powers [equipset]/
+-- [noequipset]; the swap side is the reclaimed /equipset command.
+function API.IsEquipmentSetEquipped(name)
+    if not name or name == "" then return false end
+    local setID = C_EquipmentSet.GetEquipmentSetID(name)
+    if not setID then return false end
+    local _, _, _, isEquipped = C_EquipmentSet.GetEquipmentSetInfo(setID)
+    return isEquipped and true or false
+end
+
+--------------------------------------------------------------------------------
+-- Weapon Enchant
+--------------------------------------------------------------------------------
+
+-- Temporary weapon-enchant state for a slot: "mh" (main), "oh" (off), or
+-- "ranged". Returns hasEnchant, expirationMs, charges, enchantID. The enchantID
+-- comes from ClassicAPI's modern C_Item.GetWeaponEnchantInfo 12-tuple (the
+-- vanilla global omits it), so [mhenchant] can tell WHICH imbue is applied, not
+-- just that one exists. Falls back to the vanilla 6-tuple global (enchantID nil,
+-- no ranged slot) when the C_Item version is unavailable.
+function API.GetWeaponEnchant(slot)
+    local hasM, mExp, mChg, mID, hasO, oExp, oChg, oID, hasR, rExp, rChg, rID =
+        C_Item.GetWeaponEnchantInfo()
+    if slot == "oh" then
+        return hasO, oExp, oChg, oID
+    elseif slot == "ranged" then
+        return hasR, rExp, rChg, rID
+    end
+    return hasM, mExp, mChg, mID
+end
+
+-- Localized name of an item-enchant ID (poison/oil/sharpening stone/permanent),
+-- read straight from SpellItemEnchantment.dbc via ClassicAPI -- or nil for an
+-- unknown id / a client without C_Item.GetEnchantInfo. Lets [mhenchant:Name]
+-- resolve the applied enchant's name without scraping the weapon tooltip.
+function API.GetEnchantName(enchantID)
+    if not enchantID or enchantID == 0 then return nil end
+    local info = C_Item.GetEnchantInfo(enchantID)
+    return info and info.name or nil
+end
+
+--------------------------------------------------------------------------------
+-- Loss Of Control
+--------------------------------------------------------------------------------
+
+-- Locked spell-school mask from an active SCHOOL_INTERRUPT (Counterspell / Kick /
+-- Pummel / Earth Shock lockout) on the player, or 0 when not kicked. Read from
+-- C_LossOfControl, which synthesizes the lockout from the server's own
+-- SMSG_SPELL_COOLDOWN packet -- a state no debuff scan can see. Also returns the
+-- seconds remaining (nil if ClassicAPI didn't observe the applying cast).
+-- Player-only (vanilla LoC is local-only).
+function API.GetSchoolLockout()
+    local n = C_LossOfControl.GetActiveLossOfControlDataCount() or 0
+    for i = 1, n do
+        local d = C_LossOfControl.GetActiveLossOfControlData(i)
+        if d and d.locType == "SCHOOL_INTERRUPT" then
+            return d.lockoutSchool or 0, d.timeRemaining
+        end
+    end
+    return 0, nil
+end
+
+--------------------------------------------------------------------------------
+-- Spell
+--------------------------------------------------------------------------------
+
+-- WoW SpellMechanic enum ID for a spell, read straight from Spell.dbc -- covers
+-- every spell the client knows, not just the spellbook (1=Charm, 5=Fear,
+-- 7=Root, 12=Stun, 17=Polymorph, ...). Returns (mechanicID, enUS name); the ID
+-- is 0 for a known spell with no mechanic, and the whole call is nil for an
+-- invalid spell ID. Replaces hand-maintained spellID -> mechanic tables.
+function API.GetSpellMechanicByID(spellID)
+    return C_Spell.GetSpellMechanicByID(spellID)
+end
+
+-- Per-effect SpellMechanic ids (Spell.dbc EffectMechanic[3]) as {m1, m2, m3},
+-- or nil for an invalid spell / 0 for an effect with no mechanic. Complements
+-- GetSpellMechanicByID, which only reads the spell-level Mechanic field: vanilla
+-- stores some mechanics on an effect instead (e.g. Rake's bleed is effect-level,
+-- so GetSpellMechanicByID returns 0 but this returns {0,15,0}). Nil-guarded so an
+-- older ClassicAPI build without the function degrades gracefully.
+function API.GetSpellEffectMechanics(spellID)
+    return C_Spell.GetSpellEffectMechanics(spellID)
+end
+
+-- Flat spell-damage bonus (spell power) for a magic school, as a number.
+-- school is 1-based: 1=Physical, 2=Holy, 3=Fire, 4=Nature, 5=Frost, 6=Shadow,
+-- 7=Arcane. Reads the same client field nampower's GetSpellPower does -- exact,
+-- with gear/enchants/buffs/talents/set bonuses baked in.
+function API.GetSpellBonusDamage(school)
+    return GetSpellBonusDamage(school)
+end
+
+-- Flat healing bonus (+healing), as a number. Vanilla has no healing-done field,
+-- so ClassicAPI derives it from gear/enchant/buff MOD_HEALING_DONE plus
+-- stat-conversion talents (e.g. Spiritual Guidance) -- exact, not a holy-damage
+-- proxy.
+function API.GetSpellBonusHealing()
+    return GetSpellBonusHealing()
+end
+
+-- Spell haste for `unit` as a percentage: 0 unhasted, positive when casts are
+-- sped up, negative while slowed (Curse of Tongues). 0 for a unit that doesn't
+-- resolve. Vanilla has no haste API at all -- ClassicAPI derives this from the
+-- UNIT_MOD_CAST_SPEED descriptor field the server folds into the cast time, so
+-- it's exact and needs no nampower GetUnitField dependency.
+function API.UnitSpellHaste(unit)
+    return UnitSpellHaste(unit)
+end
+
+--------------------------------------------------------------------------------
+-- Unit Health
+--------------------------------------------------------------------------------
+
+-- Health deficit (max - current) for `unit` in one call.
+function API.UnitHealthMissing(unit)
+    return UnitHealthMissing(unit)
+end
+
+--------------------------------------------------------------------------------
+-- Unit Power
+--------------------------------------------------------------------------------
+
+-- Current power for a specific Enum.PowerType (0=Mana, 1=Rage, 2=Focus,
+-- 3=Energy, 4=Happiness), or the unit's primary power when powerType is omitted.
+-- Display-divided (rage reads 0..100).
+function API.UnitPower(unit, powerType)
+    return UnitPower(unit, powerType)
+end
+
+function API.UnitPowerMax(unit, powerType)
+    return UnitPowerMax(unit, powerType)
+end
+
+-- Power deficit (max - current) for the type / primary power, in one call.
+function API.UnitPowerMissing(unit, powerType)
+    return UnitPowerMissing(unit, powerType)
+end
+
+-- Unit's primary power type as an integer (0=Mana .. 4=Happiness).
+function API.UnitPowerType(unit)
+    return UnitPowerType(unit)
+end
+
+--------------------------------------------------------------------------------
+-- State
+--------------------------------------------------------------------------------
+
+-- True if the player is in Stealth (Rogue) or Prowl (Druid).
+function API.IsStealthed()
+    return IsStealthed()
+end
+
+-- True if the player is currently swimming.
+function API.IsSwimming()
+    return IsSwimming() and true or false
+end
+
+-- True if the player is currently mounted.
+function API.IsMounted()
+    return IsMounted() and true or false
+end
+
+-- True if the player is under a WMO roof (building, cave, instance interior).
+-- Live engine geometry query, not zone-based; nil (-> false) pre-world.
+function API.IsIndoors()
+    return IsIndoors() and true or false
+end
+
+-- True if the player is outdoors (open sky / not inside a WMO interior).
+-- Exact complement of IsIndoors for a resolvable player.
+function API.IsOutdoors()
+    return IsOutdoors() and true or false
+end
+
+-- Player's stand state: 0 = standing, non-zero = sitting/sleeping/kneeling/etc.
+-- (see UnitStandState). Player-only.
+function API.GetPlayerStandState()
+    return UnitStandState("player") or 0
+end
+
+--------------------------------------------------------------------------------
+-- Cursor
+--------------------------------------------------------------------------------
+
+function API.GetCursorInfo()
+    return GetCursorInfo()
+end
+
+-- Tri-state check of whether the cursor holds the item with `itemID`:
+--   true  -> cursor holds exactly that item
+--   false -> cursor holds a DIFFERENT item
+--   nil   -> can't tell (cursor empty / not an item / itemID unknown)
+-- Callers should only act on an explicit `false`, leaving the nil case to the
+-- existing CursorHasItem() behavior.
+function API.CursorHoldsItemID(itemID)
+    if not itemID then return nil end
+    local kind, id = GetCursorInfo()
+    if kind ~= "item" then return nil end
+    if not id then return nil end
+    return id == itemID
+end
+
+--------------------------------------------------------------------------------
+-- NamePlate
+--------------------------------------------------------------------------------
+
+-- 1-based table of GUID strings (0x... format) for every unit with an allocated
+-- nameplate, including default vanilla nameplates. Order isn't stable.
+function API.GetNamePlateGUIDs()
+    return C_NamePlate.GetNamePlateGUIDs()
+end

@@ -927,6 +927,41 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
     end)
   end)
 
+  -- SuperCleveRoidMacros (built in: scrm\, tools\Sync-SCRM.ps1; or a separate copy)
+  -- (20 Nov 2026, Wolfahrt: "the newest SCRM does not work with this version of PFui") it shows a conditional
+  -- macro's spell, icon and cooldown itself and expects pfUI's bars to stop reading the macro's text (other pfUI
+  -- forks do the same); ours went on scanning, so the bars showed the macro's first spell over its choice.
+  pfUI.scrm = pfUI.scrm or {}
+  function pfUI.scrm.Apply()
+    local on = _G.SRCM_LOADED == true or type(rawget(_G, "CleveRoids")) == "table"
+    pfUI.scrm.on = on and true or false
+    if not (on and pfUI.bars) or pfUI.bars.skip_macro then return end
+    pfUI.bars.skip_macro = true
+    -- (a scan made before it loaded is dropped, every button drawn again)
+    for _, button in pairs(pfUI.bars.buttons or {}) do
+      button.spellslot, button.booktype = nil, nil
+      if pfUI.bars.update and button.id then pfUI.bars.update[button.id] = true end
+    end
+  end
+  pfUI.scrm.Apply()
+  function pfUI.scrm.Login()
+    pfUI.scrm.Apply()
+    -- "it will fetch over any you had": a separate copy is switched off for the next login, ONCE, when ours can
+    -- run (ClassicAPI 1.15.8+). Turned on again in the add-on list, it is left alone from then on.
+    local other = _G.pfUIOctoSCRMStandalone
+    pfUI_cache = pfUI_cache or {}
+    if other and _G.pfUIOctoSCRMReady and not pfUI_cache.scrmTakeover and type(DisableAddOn) == "function" then
+      pfUI_cache.scrmTakeover = other
+      pcall(DisableAddOn, other)
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: SuperCleveRoidMacros is now built into pfUI. Your separate copy ("
+        .. other .. ") is switched off from your next login and pfUI's takes over. To keep using yours, tick it again in "
+        .. "the add-on list - pfUI leaves it alone after that.")
+    end
+  end
+  local scrmLogin = CreateFrame("Frame")
+  scrmLogin:RegisterEvent("PLAYER_LOGIN")
+  scrmLogin:SetScript("OnEvent", function() pfUI.scrm.Login() end)
+
   HookAddonOrVariable("AtlasLoot", function()
     if C.thirdparty.atlasloot.enable == "0" then return end
 

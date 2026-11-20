@@ -1,0 +1,43 @@
+if pfUIOctoSCRMSkip then return end -- pfUI Octo: built-in SuperCleveRoidMacros off (see scrm\guard.lua)
+local _G = _G or getfenv(0)
+local CleveRoids = _G.CleveRoids or {}
+
+CleveRoids.Hooks = CleveRoids.Hooks or {}
+
+local Extension = CleveRoids.RegisterExtension("ag_UnitFrames")
+
+function Extension.OnEnter(unit)
+    CleveRoids.SetMouseoverFrom("aguf", unit)
+end
+
+function Extension.OnLeave()
+    CleveRoids.ClearMouseoverFrom("aguf")
+    CleveRoids.ClearMouseoverFrom("native")
+end
+
+-- Because AddOns are loaded in alphabetical order, this callback will never see the aUF loaded message, had to do a workaround...
+function Extension.OnLoad()
+    if not aUF then
+        return
+    end
+    CleveRoids.Hooks.ag_UnitFrames = { OnEnter = aUF.classes.aUFunit.prototype.OnEnter, OnLeave = aUF.classes.aUFunit.prototype.OnLeave}
+    aUF.classes.aUFunit.prototype.OnEnter = CleveRoids.aUFOnEnter
+    aUF.classes.aUFunit.prototype.OnLeave = CleveRoids.aUFOnLeave
+end
+
+-- Taken from ag_UnitClass.lua
+function CleveRoids:aUFOnEnter()
+    Extension.OnEnter(self.unit)
+    self.frame.unit = self.unit
+    self:UpdateHighlight(true)
+    UnitFrame_OnEnter()
+end
+
+function CleveRoids:aUFOnLeave()
+    Extension.OnLeave()
+    self:UpdateHighlight()
+    UnitFrame_OnLeave()
+end
+
+
+EventUtil.ContinueOnAddOnLoaded("ag_UnitFrames", Extension.OnLoad)

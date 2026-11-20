@@ -1,0 +1,55 @@
+if pfUIOctoSCRMSkip then return end -- pfUI Octo: built-in SuperCleveRoidMacros off (see scrm\guard.lua)
+--[[
+	Author: Dennis Werner Garske (DWG) / brian / Mewtiny
+	License: MIT License
+]]
+local _G = _G or getfenv(0)
+local CleveRoids = _G.CleveRoids or {}
+
+local CreateFrames = nil
+
+local Extension = CleveRoids.RegisterExtension("NotGrid")
+
+function Extension.OnEnter()
+    CleveRoids.SetMouseoverFrom("ngrid", this.unit)
+end
+
+function Extension.OnLeave()
+    CleveRoids.ClearMouseoverFrom("ngrid")
+    CleveRoids.ClearMouseoverFrom("native")
+end
+
+function CleveRoids:NotGrid_CreateFrames()
+    CreateFrames(NotGrid); -- call the original
+
+    -- NotGrid stores all of it's frames in the NotGrid.UnitFrames table.
+    for k, frame in pairs(NotGrid.UnitFrames) do
+        local enter = frame:GetScript("OnEnter")
+        local leave = frame:GetScript("OnLeave")
+
+        frame:SetScript("OnEnter", function()
+            enter()
+            Extension.OnEnter()
+        end)
+
+        frame:SetScript("OnLeave", function()
+            leave()
+            Extension.OnLeave()
+        end)
+    end
+end
+
+function Extension.OnLoad() end
+
+function Extension.OnAddOnLoad()
+    -- NotGrid loads before CleveRoids, so if NotGrid is enabled, then it's global will exist.
+    if not NotGrid then
+        return
+    end
+    -- Hooking manually as we need a post hook.
+    CreateFrames = NotGrid.CreateFrames
+    NotGrid.CreateFrames = CleveRoids.NotGrid_CreateFrames
+
+end
+
+EventUtil.ContinueOnAddOnLoaded("NotGrid", Extension.OnAddOnLoad)
