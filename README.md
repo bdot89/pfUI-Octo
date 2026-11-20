@@ -120,6 +120,15 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.94
+
+- 🎯 **Threat is back inside Meters:** a big "Damage, healing & more | Threat" switch at the top of every Meters page, and a working preview of your threat window.
+- 📏 **% of the pull point:** each player's % is of where THEY pull aggro (110% of the tank in melee, 130% at range). The one the boss is on is first, on "Aggro". Nobody else ever reaches 100% until the boss turns to them.
+- 🔮 **Everyone's DoT countdown:** every player's line shows their own seconds before they pull, and a "Next" line names who pulls next, so a raid leader sees it too. Your own "DoTs +22.5k" line shows what your DoTs still add.
+- 🎨 **Clear and readable:** info lines in their own colours (DoTs purple, next amber), words that shrink to fit, and the target's full name, never cut.
+- 💬 **Whispers:** a green +N on the bar for new messages, and unfolding goes to the oldest new one first.
+- 🔌 **Power dots everywhere:** every section with an on/off dot keeps it while its module is off, so you can always switch it back on.
+
 ## 📜 New in 1.1.93
 
 - 🎯 **OctoThreat, its own section:** your threat window with a live preview, locked to threat so its menu can't switch it away, plus every threat setting on two pages (Threat window / Label & warnings).

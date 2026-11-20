@@ -2,6 +2,14 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.94", {
+    { "Threat is back inside Meters", "a big \"Damage, healing & more | Threat\" switch at the top of every Meters page, and a working preview of your threat window." },
+    { "% of the pull point", "each player's % is of where THEY pull aggro (110% of the tank in melee, 130% at range). The one the boss is on is first, on \"Aggro\". Nobody else ever reaches 100% until the boss turns to them." },
+    { "Everyone's DoT countdown", "every player's line shows their own seconds before they pull, and a \"Next\" line names who pulls next, so a raid leader sees it too. Your own \"DoTs +22.5k\" line shows what your DoTs still add." },
+    { "Clear and readable", "info lines in their own colours (DoTs purple, next amber), words that shrink to fit, and the target's full name, never cut." },
+    { "Whispers", "a green +N on the bar for new messages, and unfolding goes to the oldest new one first." },
+    { "Power dots everywhere", "every section with an on/off dot keeps it while its module is off, so you can always switch it back on." },
+  } },
   { "1.1.93", {
     { "OctoThreat, its own section", "your threat window with a live preview, locked to threat so its menu can't switch it away, plus every threat setting on two pages (Threat window / Label & warnings)." },
     { "\"DoTs pull in 4 s\" in the threat window", "the pull line turns red with the countdown, and your line shows the threat still on its way as a lighter part." },
@@ -163,8 +171,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.55", {
     { "World map drawn right again", "OctoWoW's own zones (Thalassian Highlands and others) no longer show in wrong patches with ClassicAPI installed. The map reveal uses pieces that match the real map pictures." },
-  } },
-  { "1.1.54", {
-    { "Quest tracker error fixed", "no more \"tracker.lua:281: attempt to index global 'pfQuestCompat'\" spam. pfQuest's files now keep their own copy of what they need, so another add-on clearing it can't break them." },
   } },
 }
