@@ -256,6 +256,8 @@ if DM.EVENTS then
   local dead = 0
   for _, u in ipairs(DM.list) do if u.dead then dead = dead + 1 end end
   ok(dead >= 1, "Someone dies")
+  -- (resses still running from the fight before would be stopped by the click: none to start with)
+  DM.ResStop()
   DM.Event("res")
   ok(DM.resq ~= nil, "Res everyone: the resses start")
   local g0 = 0
@@ -300,6 +302,41 @@ if DM.EVENTS then
     ok(deadNow == 0 and DM.resq == nil, "in the end everyone is up")
   end
   ok(DM.Event("kill") and true, "Kill the boss")
+  -- (20 Nov 2026, user: "it should show you this mode is selected also have it able to be unselected so it goes back to
+  -- normal mode") a lasting event shows as on, and a second click turns it off
+  do
+    DM.SetPhase("rest") DM.SetPhase("boss")
+    DM.Event("wipe")
+    ok(DM.EventActive("wipe") and string.find(pfDemoBar.title.text or "", "WIPE ON", 1, true), "Wipe on: shown on the demo bar")
+    Run(2)
+    DM.Event("wipe")
+    ok(not DM.EventActive("wipe") and DM.forceWipe == nil, "a second click stops the wipe")
+    local anyDead
+    for _, u in ipairs(DM.list) do if u.dead then anyDead = true end end
+    ok(not anyDead or DM.resq ~= nil, "the fallen get ressed (back to the normal fight)")
+    DM.ResStop()
+    -- (everyone up again for the next checks)
+    for _, u in ipairs(DM.list) do u.dead, u.hp = nil, u.max end
+    DM.Event("enrage")
+    ok(DM.EventActive("enrage"), "Enrage on")
+    DM.Event("enrage")
+    ok(not DM.EventActive("enrage"), "Enrage off")
+    -- (the "every event runs" check above left it on)
+    DM.oomOn = nil
+    DM.Event("oom")
+    Run(2)
+    local healer
+    for _, u in ipairs(DM.list) do if u.role == "heal" and not u.dead then healer = u end end
+    ok(DM.EventActive("oom") and healer and healer.pw <= (healer.pmax or 1000) * .031, "Healers out of mana stays on")
+    DM.Event("oom")
+    ok(not DM.EventActive("oom") and healer.pw > (healer.pmax or 1000) * .5, "off: their mana is back")
+    DM.Event("over")
+    ok(DM.EventActive("over"), "Overthreat on")
+    DM.Event("over")
+    ok(not DM.EventActive("over") and DM.thEvent == nil and not DM.aggroMe, "off: the tank has the boss again")
+    DM.Event("death")
+    ok(DM.EventActive("death"), "a one-click event lights up for a moment")
+  end
   -- (20 Nov 2026, user: "all spells on action bars should rotate as they were being used ... trinkets anything")
   do
     local keepHas = rawget(_G, "HasAction")

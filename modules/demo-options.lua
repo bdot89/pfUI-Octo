@@ -54,8 +54,12 @@ pfUI:RegisterModule("demo-options", "vanilla", function ()
       if last and e.group ~= last and table.getn(row) > 0 then W.Buttons(p, row) row = {} end
       last = e.group
       local key = e.key
-      table.insert(row, { e.label, function() DM.Event(key) end, 150, e.tip,
-        role = (e.group == "Deaths" and (key == "res" or key == "bres")) and "go" or (e.group == "Deaths" and "danger" or "open") })
+      -- (20 Nov 2026, user: "it should show you this mode is selected also have it able to be unselected") lit while on;
+      -- a lasting one turns off with a second click
+      table.insert(row, { e.label, function() DM.Event(key) end, 150,
+        e.tip .. (DM.LASTING and DM.LASTING[key] and "\n\nLit while it is on - click again to stop it and go back to the normal fight." or ""),
+        role = (e.group == "Deaths" and (key == "res" or key == "bres")) and "go" or (e.group == "Deaths" and "danger" or "open"),
+        on = function() return DM.EventActive and DM.EventActive(key) end })
       if table.getn(row) == 4 then W.Buttons(p, row) row = {} end
     end
     if table.getn(row) > 0 then W.Buttons(p, row) end

@@ -506,6 +506,7 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     if TH then TH.samples, TH.hist, TH.others, TH.all = {}, {}, {}, nil end
     DM.dotk = nil
     DM.thEvent, DM.forceWipe, DM.aggroMe, DM.aggroWho, DM.autoNext, DM.autoStep = nil, nil, nil, nil, nil, nil
+    DM.oomOn, DM.lastEvent = nil, nil
     if TH and DM.thAsk then
       TH.Ask = DM.thAsk
       TH.list, TH.base = nil, nil
@@ -900,6 +901,8 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         else
           u.hp, u.debuffs, u.cast = u.max, {}, nil
           if u.ptype ~= 1 then u.pw = u.pmax else u.pw = 0 end
+          -- (the Healers out of mana mode stays until it is clicked off)
+          if DM.oomOn and u.role == "heal" then u.pw = (u.pmax or 1000) * .03 end
         end
       end
       if anyDead and DM.kind ~= "pvp" then DM.StartRes() end
@@ -1054,6 +1057,10 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       if u.ptype == 1 then u.pw = math.min(100, (u.pw or 0) + dt * 6)
       elseif u.ptype == 3 then u.pw = math.max(0, math.min(100, (u.pw or 0) + dt * 10 - (math.random() < .3 and 20 or 0)))
       elseif u.role ~= "heal" then u.pw = math.max(0, (u.pw or 0) - dt * 25) end
+    end
+    -- (the Healers out of mana mode: their mana stays near empty until it is clicked off)
+    if DM.oomOn then
+      for _, u in ipairs(alive) do if u.role == "heal" then u.pw = math.min(u.pw or 0, (u.pmax or 1000) * .03) end end
     end
     DM.healAcc = (DM.healAcc or 0) + dt
     while DM.healAcc >= .5 do
@@ -2025,17 +2032,18 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         DM.adirty = true
       end },
     { key = "enrage", label = "Boss enrages", icon = I .. "Spell_Shadow_UnholyFrenzy", group = "Fight",
-      tip = "A raid warning and an emote: the boss hits the tank twice as hard for 15 seconds.",
+      tip = "A raid warning and an emote: the boss hits the tank twice as hard until you click it off.",
       fn = function()
         if not Fight() then return end
         local b = DM.boss
-        b.enrageUntil = DM.t + 15
+        b.enrageUntil = DM.t + 100000
         DM.Chat("MONSTER_EMOTE", b.name .. " becomes enraged!")
         Warn(b.name .. " is ENRAGED!")
       end },
     { key = "oom", label = "Healers run out of mana", icon = I .. "INV_Potion_76", group = "Fight",
-      tip = "Every healer's mana drops near zero: mana bars, low-mana warnings; healing stops until they drink.",
+      tip = "Every healer's mana stays near zero until you click it off: mana bars, low-mana warnings; healing stops.",
       fn = function()
+        DM.oomOn = true
         for _, u in ipairs(Alive()) do if u.role == "heal" then u.pw = (u.pmax or 1000) * .03 end end
         DM.dirty = true
       end },
@@ -2083,12 +2091,64 @@ pfUI:RegisterModule("demo", "vanilla", function ()
         DM.boss.hp = 1
       end },
   }
+  -- (20 Nov 2026, user: "if you choose a wipe or anything it should show you this mode is selected also have it able to be
+  -- unselected so it goes back to normal mode") which events are on now; a second click turns a lasting one off
+  local function ResStop()
+    if not DM.resq then return end
+    local lp = pfUI.api and pfUI.api.libpredict
+    for r in pairs(DM.resq.busy or {}) do r.cast = nil if lp and lp.RessStop then pcall(lp.RessStop, lp, r.name) end end
+    DM.resq = nil
+  end
+  DM.ResStop = ResStop
+  function DM.EventActive(key)
+    if not DM.on then return false end
+    local ev = DM.thEvent
+    if key == "over" then return ev and not ev.auto and ev.kind == "over" and true or false end
+    if key == "dots" then return ev and not ev.auto and ev.kind == "dots" and true or false end
+    if key == "wipe" then return DM.forceWipe and true or false end
+    if key == "enrage" then return DM.boss and DM.boss.enrageUntil and DM.t < DM.boss.enrageUntil and true or false end
+    if key == "oom" then return DM.oomOn and true or false end
+    if key == "res" then return DM.resq and true or false end
+    -- the one-click events light up for a moment
+    local le = DM.lastEvent
+    return le and le.key == key and GetTime() - le.at < 2 and true or false
+  end
+  -- back to normal: what the event changed, undone
+  function DM.EventStop(key)
+    if key == "over" or key == "dots" then
+      DM.thEvent, DM.aggroMe, DM.aggroWho = nil, nil, nil
+      local TH = pfUI.meters and pfUI.meters.threat
+      if TH then TH.demoPredict, TH.demoPredictFor = nil, nil end
+      local holder = DM.tank and not DM.tank.dead and DM.tank or DM.offtank
+      DM.Chat("SYSTEM", (holder and holder.name or "The tank") .. " taunts " .. (DM.boss and DM.boss.name or "the boss") .. " back.")
+    elseif key == "wipe" then
+      DM.forceWipe = nil
+      -- the raid stops going down; the fallen are ressed one at a time
+      for _, u in ipairs(DM.list or {}) do if u.dead then DM.StartRes() break end end
+    elseif key == "enrage" then
+      if DM.boss then DM.boss.enrageUntil = nil end
+      DM.Chat("MONSTER_EMOTE", (DM.boss and DM.boss.name or "The boss") .. " calms down.")
+    elseif key == "oom" then
+      DM.oomOn = nil
+      for _, u in ipairs(DM.list or {}) do if u.role == "heal" and not u.dead then u.pw = (u.pmax or 1000) * .8 end end
+      DM.Chat("SYSTEM", "The healers drink up: their mana is back.")
+    elseif key == "res" then
+      ResStop()
+    end
+    DM.dirty, DM.adirty = true, true
+    if DM.Touch then pcall(DM.Touch, true) end
+    DM.PaintBar()
+    return true
+  end
+  DM.LASTING = { over = true, dots = true, wipe = true, enrage = true, oom = true, res = true }
   function DM.Event(key)
     if not DM.on then
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: start a demo first, then trigger events.")
       return false
     end
     if DM.kind == "afk" then return false end
+    if DM.LASTING[key] and DM.EventActive(key) then return DM.EventStop(key) end
+    DM.lastEvent = { key = key, at = GetTime() }
     for _, e in ipairs(DM.EVENTS) do
       if e.key == key then
         local good, err = pcall(e.fn)
@@ -2108,7 +2168,10 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     local opts, last = {}, nil
     for _, e in ipairs(DM.EVENTS) do
       if e.group ~= last then table.insert(opts, { label = e.group, group = true }) last = e.group end
-      table.insert(opts, { key = e.key, label = e.label, icon = e.icon, tip = e.tip })
+      -- (on now: green with "on - click to stop")
+      local on = DM.LASTING[e.key] and DM.EventActive(e.key)
+      table.insert(opts, { key = e.key, label = on and ("|cff40d977" .. e.label .. "  (on - click to stop)|r") or e.label,
+        icon = e.icon, tip = on and ("On now. Click to stop it: back to the normal fight.") or e.tip })
     end
     if DM.menu then DM.menu:Hide() end
     DM.menu = W.Menu(anchor, opts, 190, function(k) DM.Event(k) end)
@@ -2197,6 +2260,12 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       line = line .. ": |cffffffff" .. b.name .. "|r " .. math.floor(b.hp / b.max * 100 + .5) .. "%"
     end
     if DM.phase ~= "dummy" then line = line .. "  |cff888888" .. Clock(DM.pt) .. "|r" end
+    -- (20 Nov 2026) the modes on now, on the bar: "WIPE ON", ... (the Events menu stops them)
+    local modes = {}
+    for _, e in ipairs(DM.EVENTS or {}) do
+      if DM.LASTING[e.key] and DM.EventActive(e.key) then table.insert(modes, string.upper(e.label)) end
+    end
+    if table.getn(modes) > 0 then line = line .. "  |cffff9a3a" .. table.concat(modes, ", ") .. " ON|r" end
     bar.title:SetText(line)
     bar.pause.text:SetText(DM.paused and "Resume" or "Pause")
     bar.speedb.text:SetText((DM.speed == .5 and "0.5" or tostring(DM.speed)) .. "x")
