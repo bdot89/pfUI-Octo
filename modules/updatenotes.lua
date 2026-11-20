@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.3", {
+    { "Kill Command and other procs in combat text", "the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > \"Reactive skills and procs\"." },
+  } },
   { "1.2.2", {
     { "No more target frame error", "\"TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'\" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing." },
   } },
@@ -182,11 +185,5 @@ pfUI.octoNotes = {
     { "Layout mode bar you can read and move", "a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top." },
     { "Show: All pfUI Game", "with Move anything on, choose whether layout mode shows every box, only pfUI's frames, or only the game's and your picked frames." },
     { "Fixed", "red FadingFrame.lua:22 ... startTime errors in chat after layout mode with Move anything on (the zone name frames' own fade is paused while layout mode is open)." },
-  } },
-  { "1.1.63", {
-    { "Move anything", "a switch in layout mode's top bar gives the game's own frames boxes too - quest tracker, quest timers, battleground score, raid warnings, error text, zone name, item link tooltip, follow text, zone map - with snapping, sizing and hiding. Off by default, so layout mode stays tidy; your places, sizes and opacity stay either way." },
-    { "Pick a frame", "point at any frame of any add-on and press Enter (or /moveany <FrameName>) - it gets a box like ours." },
-    { "Game windows", "Shift + drag the character window, spellbook, quest log, talents, trainers, vendors and more; they open there from then on." },
-    { "Clearer layout mode bar", "grouped controls with headings, tooltips on everything, and the clicks always shown under it. Settings > Move anything has opacity per frame, your picked frames and moved windows. New files: restart the game fully once." },
   } },
 }

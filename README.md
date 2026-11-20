@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.3
+
+- ⚔️ **Kill Command and other procs in combat text:** the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > "Reactive skills and procs".
+
 ## 📜 New in 1.2.2
 
 - 🎯 **No more target frame error:** "TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing.
