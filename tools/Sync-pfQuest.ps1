@@ -125,7 +125,10 @@ $patches = @{
     # (17 Nov 2026, /pfperf: pfQuestMap 5 ms a second) the pin highlight / fade pass walked every map and minimap
     # pin every frame while anything moved; now 30 times a second, with its step for 30 fps so pins move as fast
     $t = Must $t 'if pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster then' "if (pfMap.queue_update or transition or pfMap.highlight ~= hlstate or shiftstate ~= hidecluster) and (pfMap.octoAnimAt or 0) <= GetTime() then`r`n    pfMap.octoAnimAt = GetTime() + 1 / 30"
-    Must $t 'fps = math.max(0.2, GetFramerate() / 30)' 'fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)'
+    $t = Must $t 'fps = math.max(0.2, GetFramerate() / 30)' 'fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)'
+    # (20 Nov 2026, Javelin: pins outside a round minimap) pfQuest takes pfUI's minimap to be square; ask the
+    # map style for its shape (minimap-style.lua PinInside)
+    Must $t '        if pfUI.minimap then' "        if pfUI.minimap and pfUI.minimap.PinInside and Minimap == pfMap.drawlayer then`r`n          -- (pfUI Octo) the map style's own shape: round, diamond... (pins sat outside a round map)`r`n          display = pfUI.minimap.PinInside(xPos, yPos, 8) and true or nil`r`n        elseif pfUI.minimap then"
   }
   # (17 Nov 2026) the route reads your map position every frame: standing still (ClassicAPI's
   # PLAYER_STOPPED_MOVING, pfUI's libclient.moving) it waits for its own 1 s refresh instead

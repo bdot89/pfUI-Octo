@@ -2085,7 +2085,10 @@ function pfMap:UpdateMinimap()
         local display = nil
         local distance = sqrt(xPos * xPos + yPos * yPos)
 
-        if pfUI.minimap then
+        if pfUI.minimap and pfUI.minimap.PinInside and Minimap == pfMap.drawlayer then
+          -- (pfUI Octo) the map style's own shape: round, diamond... (pins sat outside a round map)
+          display = pfUI.minimap.PinInside(xPos, yPos, 8) and true or nil
+        elseif pfUI.minimap then
           display = (abs(xPos) + 8 < pfMap.drawlayer:GetWidth() / 2 and abs(yPos) + 8 < pfMap.drawlayer:GetHeight() / 2)
               and true
             or nil

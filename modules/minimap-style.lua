@@ -827,6 +827,35 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     end
   end
 
+  -- (20 Nov 2026, Javelin: pfQuest's pins showed outside a round map - it took pfUI's map to be square)
+  -- true when a point x right / y down of the map's middle, with room for a pin of `pad` px, lies inside the
+  -- map's shape. The same shapes as tools\MakeMinimapMasks.ps1.
+  function map.PinInside(x, y, pad)
+    local h = (Minimap:GetWidth() or 140) / 2 - (pad or 8)
+    if h <= 0 then return false end
+    local u, v = x / h, -y / h
+    local au, av = math.abs(u), math.abs(v)
+    if au > 1 or av > 1 then return false end
+    local shape = S.shape or "square"
+    if shape == "round" then return u * u + v * v <= 1
+    elseif shape == "squircle" then return au * au * au * au + av * av * av * av <= 1
+    elseif shape == "octagon" then return au + av <= 1.4142
+    elseif shape == "diamond" then return au + av <= 1
+    elseif shape == "rounded" or shape == "rounder" then
+      local r = shape == "rounded" and 0.22 or 0.45
+      local qx, qy = au - (1 - r), av - (1 - r)
+      if qx <= 0 or qy <= 0 then return true end
+      return qx * qx + qy * qy <= r * r
+    elseif shape == "corner-tl" or shape == "corner-tr" or shape == "corner-bl" or shape == "corner-br" then
+      local left, top = u <= 0, v >= 0
+      local sq = (shape == "corner-tl" and left and top) or (shape == "corner-tr" and not left and top)
+        or (shape == "corner-bl" and left and not top) or (shape == "corner-br" and not left and not top)
+      if sq then return true end
+      return u * u + v * v <= 1
+    end
+    return true
+  end
+
   -- ---------------------------------------------------------------- apply
 
   function map.ApplyStyle()

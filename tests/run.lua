@@ -1401,6 +1401,20 @@ if MAP and MAP.ApplyStyle then
   Minimap.SetMaskTexture = function(self, t) mask = t end
   Minimap.GetWidth = function() return 140 end
 
+  -- pfQuest's minimap pins follow the shape (Javelin, 20 Nov 2026: pins outside a round map)
+  do
+    local was = MS.shape
+    MS.shape = "square"
+    ok(MAP.PinInside(55, 55, 8) and not MAP.PinInside(64, 0, 8), "pins: square map keeps its corners, edge pad")
+    MS.shape = "round"
+    ok(not MAP.PinInside(55, 55, 8) and MAP.PinInside(0, -60, 8) and MAP.PinInside(40, 40, 8), "pins: round map drops the corners")
+    MS.shape = "diamond"
+    ok(not MAP.PinInside(35, 35, 8) and MAP.PinInside(30, 0, 8), "pins: diamond")
+    MS.shape = "corner-tl"
+    ok(MAP.PinInside(-55, -55, 8) and not MAP.PinInside(55, 55, 8), "pins: corner-tl keeps only the top-left corner (y down)")
+    MS.shape = was
+  end
+
   MAP.ApplyStyle()
   ok(mask == pfUI.media["img:minimap"], "default: pfUI's square mask")
   ok(MAP.backdrop:IsShown() and not pfMinimapOutline:IsShown(), "default: pfUI's frame, no outline")

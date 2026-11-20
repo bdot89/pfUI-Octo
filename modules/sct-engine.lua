@@ -83,6 +83,7 @@ B.DEFAULTS.sct = {
              hit = "fountain", crit = "pow", critMove = "vertical", miss = "vertical", heal = "vertical",
              targetScale = 1.15, offScale = 0.8, offAlpha = 0.6, offTarget = true, max = 8,
              fallback = "out", autoShow = false, feel = "steady",
+             icon = "LEFT",   -- spell icon side on plates (LEFT | RIGHT | NONE); the areas' own setting never reached plates
              stack = true,     -- straight movements keep a line apart (AnySCT's line tower)
              merge = true,     -- identical hits on one plate add up in the text already there
              clamp = true },   -- texts of plates at the screen edge stay on screen
@@ -882,7 +883,8 @@ function CT:Show(text, r, g, b, where, opts)
     o.hasGlow = nil
   end
   o.fsPoint = (a and (a.align == "LEFT" or a.align == "RIGHT")) and a.align or "CENTER"
-  local iconSide = a and a.icon or "LEFT"
+  -- (20 Nov 2026, Javelin: "No icon here" on every box and plate text still had icons - plate text has no area)
+  local iconSide = (a and a.icon) or (plate and P.icon) or "LEFT"
   if db.icons and opts.icon and iconSide ~= "NONE" then
     o.icon:SetTexture(opts.icon)
     local is = o.size * db.iconScale
