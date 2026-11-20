@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.4
+
+- ⏱️ **st_timer for your macros:** the swing timer fills `st_timer` and `st_timerOff` (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them.
+- 🛡️ **Resistances as numbers:** enemy tooltips show "Fire 75 (20%)" - the resistance and the share of your spells it takes. QoL > Tooltips > "Resists shown as" picks numbers only or % only.
+- 💰 **Line up with the market, like Aux:** on the Sell tab, click an auction under "On the auction house now" and your price goes just under it (the same as your own). A picked item now starts under the cheapest price on the auction house; Auctions > "A picked item's price" keeps your last price instead.
+
 ## 📜 New in 1.2.3
 
 - ⚔️ **Kill Command and other procs in combat text:** the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > "Reactive skills and procs".

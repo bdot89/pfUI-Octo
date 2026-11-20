@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.4", {
+    { "st_timer for your macros", "the swing timer fills st_timer and st_timerOff (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them." },
+    { "Resistances as numbers", "enemy tooltips show \"Fire 75 (20%)\" - the resistance and the share of your spells it takes. QoL > Tooltips > \"Resists shown as\" picks numbers only or % only." },
+    { "Line up with the market, like Aux", "on the Sell tab, click an auction under \"On the auction house now\" and your price goes just under it (the same as your own). A picked item now starts under the cheapest price on the auction house; Auctions > \"A picked item's price\" keeps your last price instead." },
+  } },
   { "1.2.3", {
     { "Kill Command and other procs in combat text", "the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > \"Reactive skills and procs\"." },
   } },
@@ -180,10 +185,5 @@ pfUI.octoNotes = {
   { "1.1.65", {
     { "OctoDoTs Target bar", "a movable row of your own DoTs and bleeds on your target (Rake, Rip, Moonfire, Insect Swarm, Faerie Fire...), each as its spell icon with the time left and a shade that drains as it runs out. First tab in OctoDoTs, off until you switch it on." },
     { "Pick by icon", "click a spell's icon to always track it (green, greyed while missing) or ignore it (red). Show all of yours or only the tracked ones; size, gap, direction, warning time and opacity. New file: restart the game fully once." },
-  } },
-  { "1.1.64", {
-    { "Layout mode bar you can read and move", "a solid panel (nothing shows through it any more) with the clicks in a strip that is part of it. Drag an empty spot to put it anywhere; right-click it to send it back to the top." },
-    { "Show: All pfUI Game", "with Move anything on, choose whether layout mode shows every box, only pfUI's frames, or only the game's and your picked frames." },
-    { "Fixed", "red FadingFrame.lua:22 ... startTime errors in chat after layout mode with Move anything on (the zone name frames' own fade is paused while layout mode is open)." },
   } },
 }
