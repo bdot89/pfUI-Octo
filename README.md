@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.0
+
+- 💧 **OctoRinse sees your talents:** with ClassicAPI the range check is the same one your action bar uses, so talents that lengthen your cures' range count. Without it, each cure's range comes from its spell, or you set it yourself.
+- 🎨 **OctoRinse looks:** pfUI Octo, Bars (rows filled with the debuff school's colour), Bright (strong colour, a border and bigger words), Compact and Icons. Plus a school-colour border, an out-of-range fade setting and a pulsing top row.
+- ✨ **OctoProcs:** big pulsing alerts round your character the moment a proc is up, with the spell icon, a glow, a countdown and stacks, an optional screen-edge glow and a sound. Under CoolDownManager, `/procs`.
+- ⚙️ **Every nampower setting:** Settings > nampower has all of nampower's own options (spell queue, channels, safety, chat bubbles and more), each with its default and a reset.
+
 ## 📜 New in 1.1.99
 
 - 🧩 **SuperCleveRoidMacros built in:** the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over.

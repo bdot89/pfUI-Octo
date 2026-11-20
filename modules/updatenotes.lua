@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.0", {
+    { "OctoRinse sees your talents", "with ClassicAPI the range check is the same one your action bar uses, so talents that lengthen your cures' range count. Without it, each cure's range comes from its spell, or you set it yourself." },
+    { "OctoRinse looks", "pfUI Octo, Bars (rows filled with the debuff school's colour), Bright (strong colour, a border and bigger words), Compact and Icons. Plus a school-colour border, an out-of-range fade setting and a pulsing top row." },
+    { "OctoProcs", "big pulsing alerts round your character the moment a proc is up, with the spell icon, a glow, a countdown and stacks, an optional screen-edge glow and a sound. Under CoolDownManager, /procs." },
+    { "Every nampower setting", "Settings > nampower has all of nampower's own options (spell queue, channels, safety, chat bubbles and more), each with its default and a reset." },
+  } },
   { "1.1.99", {
     { "SuperCleveRoidMacros built in", "the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over." },
     { "Takes over your separate copy", "if you had SuperCleveRoidMacros installed, pfUI switches it off for your next login and says so in chat. Tick it again in the add-on list to keep yours - pfUI leaves it alone after that." },
@@ -180,9 +186,5 @@ pfUI.octoNotes = {
     { "Set names in any capitals", "/gear equip caster finds \"Caster\"; /gear unequip says what it takes off." },
     { "/gear help", "every gear command, also in the ItemRack page's help box with ItemRack's macro calls (EquipSet, UnequipSet, ToggleSet)." },
     { "Shield comes back", "taking off a set with a two-hander puts your off hand back on too." },
-  } },
-  { "1.1.60", {
-    { "Fixes the \"critical error #132\" crashes", "at login and after a /reload (for example after importing a profile): the game was running out of memory. pfUI and pfQuest hold about 290 MB of Lua memory, and Lua let its garbage pile up to twice that before cleaning - more during fights. Now a memory ceiling keeps it in check: out of a fight garbage may grow 64 MB, in a fight by your fight room, and never past 600 MB (Settings > Performance, both adjustable, on by default)." },
-    { "Loading clean-up", "pfQuest's 32 MB of quest data no longer leaves its garbage behind while the game loads. New file: restart the game fully once." },
   } },
 }
