@@ -401,6 +401,19 @@ DM.Stop(true)
 
 -- PvP: enemy players on your target, the dead come back
 ok(DM.Start("pvp") and DM.kind == "pvp", "the PvP demo starts")
+-- (20 Nov 2026, user: "demo.lua:37: bad argument #2 to 'random' (interval is empty)" in a demo) Wipe in PvP: no error
+-- once everyone is down, and the wipe ends
+do
+  DM.SetPhase("trash")
+  DM.Event("wipe")
+  local good, err = true, nil
+  for _ = 1, 40 do
+    Mock.now = Mock.now + .5
+    good, err = pcall(DM.Step, .5)
+    if not good then break end
+  end
+  ok(good and DM.forceWipe == nil, "PvP wipe: no error with everyone down, and it ends (" .. tostring(err) .. ")")
+end
 local mine = _G.UnitFactionGroup("player")
 ok(env.UnitIsPlayer("target") == 1 and env.UnitIsPVP("target") == 1 and env.UnitCanAttack("player", "target") == 1
   and env.UnitFactionGroup("target") ~= mine and select(2, env.UnitClass("target")) == DM.boss.class, "an enemy player of the other faction on your target")

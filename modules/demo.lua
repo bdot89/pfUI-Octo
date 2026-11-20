@@ -34,7 +34,13 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     "Interface\\Icons\\Spell_Holy_MagicalSentry" }
 
   local function Rand(a, b) return a + math.random() * (b - a) end
-  local function Pick(list) return list[math.random(1, table.getn(list))] end
+  -- (20 Nov 2026, user: "demo.lua:37: bad argument #2 to 'random' (interval is empty)" over and over in a demo - the
+  -- wipe kept picking from the living after the last one died) an empty list gives nothing
+  local function Pick(list)
+    local n = list and table.getn(list) or 0
+    if n < 1 then return nil end
+    return list[math.random(1, n)]
+  end
 
   function DM.MakeRaid()
     local faction = _G.UnitFactionGroup and _G.UnitFactionGroup("player")
@@ -1090,6 +1096,15 @@ pfUI:RegisterModule("demo", "vanilla", function ()
       for _ = 1, 3 do
         local u = Pick(alive)
         if u then Hurt(u, u.max * .6) end
+      end
+      -- (everyone down: the wipe is over - in PvP too, where a dead group does not end the fight by itself)
+      if DM.forceWipe and table.getn(Alive()) == 0 then
+        DM.forceWipe = nil
+        if DM.kind == "pvp" then
+          DM.wiped = true
+          DM.SetPhase("ended")
+          return
+        end
       end
     end
     b.hp = b.hp - dt * b.max / DM.KillTime() * Rand(.8, 1.2) * (dps + 1) / ((DM.dpsFull or dps) + 1)
