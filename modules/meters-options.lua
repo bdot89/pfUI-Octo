@@ -1212,6 +1212,19 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         on = function() return C.meters.threatwarn == "100" and C.meters.threatref == "1" end },
     })
 
+    W.Card(p, "What is on the way", { icon = "Interface\\Icons\\Spell_Shadow_AbominationExplosion",
+      tip = "Like incoming heals on a health bar: the threat your DoTs will still add with the ticks they have left, and the "
+        .. "spell you are casting. Warlocks and other DoT classes see when they will pull aggro - even if they stop now - "
+        .. "and can stop or move to the tank in time. Learnt from your own ticks and hits in the fight." })
+    Chk(p, "Show threat on the way", "The label shows \"72% > 88%\" (and a lighter part on the bar look), and \"aggro in 4 s\" "
+      .. "when you are heading for the pull point. \"DoTs pull in 4 s\": the DoTs already on it do it even if you stop now.",
+      G, "tpredict", function() end)
+    Sld(p, "Show \"aggro in\" from", "Seconds before you pull that the countdown shows on the label and the threat window.",
+      2, 20, 1, G, "tpredsec", function(v) return v .. " s" end, function() end)
+    Chk(p, "Popup before I pull", "\"AGGRO IN 3 s\" / \"DOTS PULL AGGRO IN 3 s\" in the middle of the screen, with the sound below.",
+      G, "tpredpopup", function() end)
+    Sld(p, "Popup at", "Seconds before you pull.", 1, 8, 1, G, "tpredwarn", function(v) return v .. " s" end, function() end)
+
     W.Card(p, "Label", { tip = "The label by your target's nameplate (or in a box you place)." })
     Chk(p, "Show the label", nil, G, "tlabel", function() end)
     Drop(p, "Show it as", nil, List(TH.LOOKS), G, "tlook", function() end)

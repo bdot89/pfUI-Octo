@@ -205,6 +205,10 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("meters",     nil,           "tnext",            "1")
   pfUI:UpdateConfig("meters",     nil,           "tnextname",        "1")
   pfUI:UpdateConfig("meters",     nil,           "tnear",            "80")
+  pfUI:UpdateConfig("meters",     nil,           "tpredict",         "1")    -- threat on the way + "aggro in x s"
+  pfUI:UpdateConfig("meters",     nil,           "tpredsec",         "8")    -- show "aggro in" from this many seconds
+  pfUI:UpdateConfig("meters",     nil,           "tpredpopup",       "1")
+  pfUI:UpdateConfig("meters",     nil,           "tpredwarn",        "3")    -- popup this many seconds before
   pfUI:UpdateConfig("meters",     nil,           "tcolsafe",         "0.35,1,0.35,1")
   pfUI:UpdateConfig("meters",     nil,           "tcolnear",         "1,0.82,0.23,1")
   pfUI:UpdateConfig("meters",     nil,           "tcolover",         "1,0.29,0.23,1")

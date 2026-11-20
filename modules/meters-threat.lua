@@ -154,6 +154,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       record(r)
       pcall(TH.EstRecord, r)
       pcall(TH.GroupRecord, r)
+      if TH.LearnHit then pcall(TH.LearnHit, r) end
     end
   end
   -- the target's numbers as the server's list would give them
@@ -380,6 +381,161 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     end
   end
 
+  -- ---------------------------------------------------------------- what is on the way
+  -- (20 Nov 2026, Shemp on Discord: warlocks "hitting the brakes on a container ship" - after a taunt their DoTs
+  -- put them straight back on top; "at least they could see that overaggroing will happen in x sec and they could
+  -- start moving to the tank"). Like incoming heals on a health bar: the threat your DoTs will still add (their
+  -- ticks left x what each tick did last), plus the spell you are casting now, and when you will pass the pull
+  -- point - with what is already on its way even if you stop now, or at the rate you are going.
+  TH.ticks, TH.hits, TH.samples = {}, {}, {}
+  -- threat a point of damage of some spells carries above the rest (Searing Pain: double)
+  TH.SPELLK = { ["Searing Pain"] = 2 }
+  function TH.PredictOn() return C.meters.tpredict ~= "0" end
+  -- every record the meters read: your own ticks and hits teach what the next ones will do
+  function TH.LearnHit(r, now)
+    if not r or M.testOn or r.kind ~= "dmg" or not r.spl then return end
+    local amt = tonumber(r.amt)
+    if not amt or amt <= 0 or r.src ~= UnitName("player") then return end
+    now = now or GetTime()
+    if r.dot then
+      local t = TH.ticks[r.spl] or {}
+      TH.ticks[r.spl] = t
+      -- the time between two ticks of the same DoT (two mobs ticking together say nothing)
+      if t.at then
+        local gap = now - t.at
+        if gap > .8 and gap < 6 then t.gap = t.gap and (t.gap * .5 + gap * .5) or gap end
+      end
+      t.at, t.amt = now, t.amt and (t.amt * .5 + amt * .5) or amt
+    else
+      local h = TH.hits[r.spl]
+      TH.hits[r.spl] = h and (h * .6 + amt * .4) or amt
+      if TH.cast and TH.cast.name == r.spl then TH.cast = nil end   -- the cast landed: it is in the threat now
+    end
+  end
+  -- your DoTs on the target and their time left: OctoDoTs' reader (ClassicAPI / SuperWoW), else pfUI's timers
+  local dotU = { auras = {}, na = 0 }
+  function TH.MyDots(now)
+    local out = {}
+    if not UnitExists("target") then return out end
+    local D = pfUI.dots
+    if D and D.Read and D.Guid then
+      dotU.guid = D.Guid("target") or "target"
+      dotU.plain = not ((D.Classic and D.Classic()) or (D.SuperWoW and D.SuperWoW() and string.find(dotU.guid or "", "^0x")))
+      if dotU.plain then dotU.guid = "target" end
+      if pcall(D.Read, dotU, now) then
+        for i = 1, dotU.na do
+          local a = dotU.auras[i]
+          if a and a.kind == "mine" and a.name and a.ends and a.ends > now then table.insert(out, { name = a.name, left = a.ends - now }) end
+        end
+        return out
+      end
+    end
+    local ld = pfUI.api and pfUI.api.libdebuff
+    if ld and ld.UnitDebuff then
+      for i = 1, 16 do
+        local name, _, tex, _, _, _, left, caster = ld:UnitDebuff("target", i)
+        if not tex then break end
+        if name and caster == "player" and left and left > 0 then table.insert(out, { name = name, left = left }) end
+      end
+    end
+    return out
+  end
+  -- what is on its way: the threat still to come, and its moments { { in seconds, threat }, ... } in order
+  function TH.OnTheWay(now)
+    now = now or GetTime()
+    local k = TH.K(UnitName("player") or "")
+    local total, steps = 0, {}
+    for _, d in ipairs(TH.MyDots(now)) do
+      local t = TH.ticks[d.name]
+      if t and t.amt then
+        local gap = t.gap or 3
+        local n = math.ceil(d.left / gap - .01)
+        local each = t.amt * k * (TH.SPELLK[d.name] or 1)
+        for i = 1, n do
+          local at = d.left - (n - i) * gap
+          if at > 0 then
+            table.insert(steps, { at, each })
+            total = total + each
+          end
+        end
+      end
+    end
+    local c = TH.cast
+    if c and c.ends and now < c.ends + 1.5 and TH.hits[c.name] then
+      local each = TH.hits[c.name] * k * (TH.SPELLK[c.name] or 1)
+      table.insert(steps, { math.max(0, c.ends - now), each })
+      total = total + each
+    end
+    table.sort(steps, function(a, b) return a[1] < b[1] end)
+    return total, steps
+  end
+  -- your threat and the tank's, a few seconds of them: how fast each is going
+  function TH.TakeSample(now)
+    if not TH.list then return end
+    local me = UnitName("player")
+    local mine, tank
+    for _, e in ipairs(TH.list) do
+      if e.name == me then mine = e end
+      if e.tank then tank = e end
+    end
+    if not mine or not tank or mine.tank then return end
+    local s = TH.samples
+    local last = s[table.getn(s)]
+    if last and now - last[1] < .1 then return end
+    table.insert(s, { now, mine.threat, tank.threat })
+    while s[1] and now - s[1][1] > 6 do table.remove(s, 1) end
+  end
+  function TH.Rates()
+    local s = TH.samples
+    local a, b = s[1], s[table.getn(s)]
+    if not a or not b or b[1] - a[1] < 1.5 then return end
+    local dt = b[1] - a[1]
+    return math.max(0, (b[2] - a[2]) / dt), math.max(0, (b[3] - a[3]) / dt)
+  end
+  -- { pending, aggroIn, stopNow, room } for you (not the tank): pending = threat still coming; aggroIn = seconds
+  -- until you pass the pull point; stopNow = true when what is already on its way does it even if you stop now
+  function TH.Predict(now)
+    if not TH.PredictOn() or not TH.list then return end
+    now = now or GetTime()
+    local me = UnitName("player")
+    local mine, tank
+    for _, e in ipairs(TH.list) do
+      if e.name == me then mine = e end
+      if e.tank then tank = e end
+    end
+    if not mine or not tank or mine.tank then return end
+    local mult = mine.melee and 1.1 or 1.3
+    local room = tank.threat * mult - mine.threat
+    local pending, steps = TH.OnTheWay(now)
+    local myRate, tankRate = TH.Rates()
+    local p = { pending = pending, room = room }
+    if room <= 0 then p.aggroIn = 0 return p end
+    -- what is on its way, against the tank still going at its pace
+    local got, tr = 0, (tankRate or 0) * mult
+    for _, st in ipairs(steps) do
+      got = got + st[2]
+      if got >= room + tr * st[1] then
+        p.aggroIn, p.stopNow = st[1], true
+        return p
+      end
+    end
+    -- at the rate you are going
+    if myRate and myRate > tr then p.aggroIn = room / (myRate - tr) end
+    return p
+  end
+  -- the spell you are casting (its hit lands a moment after the cast ends)
+  local castf = CreateFrame("Frame")
+  castf:RegisterEvent("SPELLCAST_START")
+  castf:RegisterEvent("SPELLCAST_FAILED")
+  castf:RegisterEvent("SPELLCAST_INTERRUPTED")
+  castf:SetScript("OnEvent", function()
+    if event == "SPELLCAST_START" then
+      TH.cast = { name = arg1, ends = GetTime() + (tonumber(arg2) or 0) / 1000 }
+    else
+      TH.cast = nil
+    end
+  end)
+
   local f = CreateFrame("Frame", "pfMetersThreat", UIParent)
   f:RegisterEvent("CHAT_MSG_ADDON")
   f:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -415,6 +571,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     else
       TH.list, TH.warned, TH.estimated = nil, nil, nil
       TH.base, TH.baseBy, TH.dmg, TH.shown = nil, nil, {}, {}
+      TH.samples, TH.predWarned = {}, nil
       -- (a fight over: the solo tallies start again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est = {} end
       -- a new target: ask at once
@@ -495,7 +652,27 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     local f = j.share / limit
     local near = (tonumber(C.meters.tnear) or 80) / 100
     j.state = (f >= 1) and 3 or ((f >= near) and 2 or 1)
+    -- (20 Nov 2026) what is on its way, and when you pass the pull point
+    local p = mine and TH.Predict()
+    if p then
+      j.aggroIn, j.stopNow = p.aggroIn, p.stopNow
+      if p.pending > 0 then
+        if ref == "pull" then
+          local at = p.room + mine.threat
+          j.pendShare = at > 0 and ((mine.threat + p.pending) / at * 100) or nil
+        elseif j.share > 0 then
+          j.pendShare = j.share * (mine.threat + p.pending) / math.max(1, mine.threat)
+        end
+      end
+    end
     return j
+  end
+  -- seconds to show "aggro in" from (C.meters.tpredsec)
+  function TH.SoonSec() return tonumber(C.meters.tpredsec) or 8 end
+  function TH.SoonText(j)
+    if not j.aggroIn or j.aggroIn > TH.SoonSec() then return end
+    local s = j.aggroIn < 1 and "now" or ("in " .. math.ceil(j.aggroIn) .. " s")
+    return (j.stopNow and "DoTs pull " or "aggro ") .. s
   end
 
   local function Col(s) local r, g, b = GetStringColor(s or "1,1,1,1") return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1 end
@@ -517,8 +694,15 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       return s
     end
     local pct = floor((j.share or 0) + .5) .. "%"
-    if look == "words" then return c .. T["Threat"] .. " " .. pct .. "|r" end
-    return c .. pct .. "|r"
+    -- what is on its way ("72% > 88%") and when you pull ("aggro in 4 s")
+    local extra = ""
+    if j.pendShare and j.pendShare - (j.share or 0) >= 1 and look ~= "number" then
+      extra = " |cffb0b0b0> " .. floor(j.pendShare + .5) .. "%|r"
+    end
+    local soon = TH.SoonText(j)
+    if soon then extra = extra .. "  " .. Hex(C.meters.tcolover) .. soon .. "|r" end
+    if look == "words" then return c .. T["Threat"] .. " " .. pct .. "|r" .. extra end
+    return c .. pct .. "|r" .. extra
   end
 
   -- ---------------------------------------------------------------- the label
@@ -536,6 +720,10 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     l.barBg:SetVertexColor(0, 0, 0, .6)
     l.bar = l:CreateTexture(nil, "ARTWORK")
     l.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
+    -- the threat still on its way, lighter, past the bar (as incoming heals)
+    l.ghost = l:CreateTexture(nil, "BORDER")
+    l.ghost:SetTexture("Interface\\Buttons\\WHITE8X8")
+    l.ghost:Hide()
     l:Hide()
     return l
   end
@@ -559,10 +747,23 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       l.bar:SetVertexColor(r, g, b, 1)
       l.barBg:Show()
       l.bar:Show()
+      local lim = math.max(1, tonumber(C.meters.threatwarn) or 90)
+      local gf = j.pendShare and math.min(1, j.pendShare / lim) or 0
+      if gf > f + .01 then
+        l.ghost:ClearAllPoints()
+        l.ghost:SetPoint("LEFT", l.barBg, "LEFT", BAR_W * f, 0)
+        l.ghost:SetWidth(math.max(1, BAR_W * (gf - f)))
+        l.ghost:SetHeight(BAR_H)
+        l.ghost:SetVertexColor(r, g, b, .4)
+        l.ghost:Show()
+      else
+        l.ghost:Hide()
+      end
       l.text:SetPoint("LEFT", l.barBg, "RIGHT", 4, 0)
     else
       l.barBg:Hide()
       l.bar:Hide()
+      l.ghost:Hide()
       l.text:SetPoint("CENTER", l, "CENTER", 0, 0)
     end
     l.text:SetText(TH.Text(j))
@@ -630,7 +831,9 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     local limit = math.max(1, tonumber(C.meters.threatwarn) or 90)
     local near = (tonumber(C.meters.tnear) or 80) / 100
     local f = share / limit
-    return { share = share, state = (f >= 1) and 3 or ((f >= near) and 2 or 1) }
+    local j = { share = share, state = (f >= 1) and 3 or ((f >= near) and 2 or 1) }
+    if TH.PredictOn() then j.pendShare, j.aggroIn, j.stopNow = share + 16, 4, true end
+    return j
   end
 
   function TH.Sample(seconds)
@@ -681,6 +884,18 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       return
     end
     TH.hadAggro = nil
+    -- (20 Nov 2026) a few seconds before you pull: time to stop or move to the tank
+    local warnS = tonumber(C.meters.tpredwarn) or 3
+    if C.meters.tpredpopup ~= "0" and j.aggroIn and j.aggroIn > 0 and j.aggroIn <= warnS then
+      if not TH.predWarned then
+        TH.predWarned = true
+        local s = math.ceil(j.aggroIn) .. " s"
+        TH.Alert(j.stopNow and ("DOTS PULL AGGRO IN " .. s) or ("AGGRO IN " .. s), 1, .6, .1)
+        TH.Sound()
+      end
+    elseif TH.predWarned and (not j.aggroIn or j.aggroIn > warnS + 2) then
+      TH.predWarned = nil
+    end
     local limit = tonumber(C.meters.threatwarn) or 90
     if j.state == 3 and not TH.warned then
       TH.warned = true
@@ -693,6 +908,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   -- with each answer from the server
   function TH.Warn()
+    if TH.list then TH.TakeSample(GetTime()) end
     if TH.list and TH.Wanted() then TH.Popups(TH.Judge(TH.list)) end
     TH.Draw()
   end

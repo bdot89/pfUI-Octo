@@ -415,7 +415,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       if kind and C.meters.threatpull ~= "0" then
         if kind == "pull" then
           -- (17 Nov 2026) the bar fills with your threat towards the pull point
-          table.insert(rows, { name = T["You pull aggro at"], pullrow = kind, value = math.max(0, a - b), max = math.max(1, a),
+          -- (20 Nov 2026, Shemp) when you will pull at this pace / with what your DoTs still do
+          local soon = TH.Predict and TH.SoonText and TH.SoonText(TH.Predict() or {})
+          table.insert(rows, { name = soon and (T["You pull aggro at"] .. " - " .. soon) or T["You pull aggro at"], pullrow = kind, value = math.max(0, a - b), max = math.max(1, a),
                                extra = Num(a), text = (b >= 0 and "+" or "-") .. Num(math.abs(b)), gap = b, at = a })
         else
           table.insert(rows, { name = T["Your lead on"] .. " " .. b.name, pullrow = kind, value = top, max = top,

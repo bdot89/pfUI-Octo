@@ -1213,6 +1213,41 @@ if ME then
     ok(math.abs(j.share - 92 / 110 * 100) < .01 and j.state == 2, "of the pull point: near the cap")
     j = TH.Judge(TH.Parse("TWTv4=Tester:1:6000:100:1;Tankguy:0:5500:92:1"))
     ok(j.aggro and j.nextName == "Tankguy" and string.find(TH.Text(j), "next Tankguy 92%%"), "with aggro: the next player and their name")
+    -- (20 Nov 2026, Shemp) threat on the way: DoT ticks left, the cast, "aggro in x s"
+    if TH.Predict then
+      local svDots, svK = TH.MyDots, TH.k.Tester
+      TH.ticks, TH.hits, TH.samples, TH.cast = {}, {}, {}, nil
+      TH.k.Tester = 1
+      mc.tpredict, mc.tpredsec = "1", "8"
+      TH.LearnHit({ kind = "dmg", src = "Tester", spl = "Corruption", amt = 450, dot = true }, 100)
+      TH.LearnHit({ kind = "dmg", src = "Tester", spl = "Corruption", amt = 450, dot = true }, 103)
+      ok(TH.ticks.Corruption.amt == 450 and math.abs(TH.ticks.Corruption.gap - 3) < .01, "a DoT's tick and its gap are learnt")
+      TH.MyDots = function() return { { name = "Corruption", left = 9 } } end
+      TH.list = l2   -- Tester 4600, tank 5000 in melee: pulls at 5500, 900 to go
+      local pend, steps = TH.OnTheWay(GetTime())
+      ok(pend == 1350 and table.getn(steps) == 3 and math.abs(steps[1][1] - 3) < .01, "3 ticks left: 1350 threat on the way (" .. pend .. ")")
+      local p = TH.Predict()
+      ok(p and p.stopNow and math.abs(p.aggroIn - 6) < .01, "the DoTs alone pull at the 2nd tick, in 6 s")
+      j = TH.Judge(l2)
+      ok(j.pendShare and math.abs(j.pendShare - 5950 / 5500 * 100) < .1 and string.find(TH.Text(j), "DoTs pull in 6 s"),
+        "label: threat on the way and the DoT countdown (" .. TH.Text(j) .. ")")
+      -- no DoTs: the pace of the last seconds
+      TH.MyDots = function() return {} end
+      TH.samples = { { 0, 4000, 5000 }, { 2, 4600, 5000 } }
+      p = TH.Predict()
+      ok(p and not p.stopNow and math.abs(p.aggroIn - 3) < .01, "300 threat a second: aggro in 3 s")
+      -- the cast you are casting counts until it lands
+      TH.hits["Shadow Bolt"] = 1000
+      TH.cast = { name = "Shadow Bolt", ends = GetTime() + 1 }
+      p = TH.Predict()
+      ok(p and p.stopNow and math.abs(p.aggroIn - 1) < .05, "a Shadow Bolt on its way pulls as it lands")
+      TH.LearnHit({ kind = "dmg", src = "Tester", spl = "Shadow Bolt", amt = 1000 })
+      ok(TH.cast == nil, "the hit landing clears the cast")
+      mc.tpredict = "0"
+      ok(TH.Predict() == nil and not TH.Judge(l2).pendShare, "switched off: nothing predicted")
+      mc.tpredict = "1"
+      TH.MyDots, TH.k.Tester, TH.samples, TH.ticks, TH.hits = svDots, svK, {}, {}, {}
+    end
     -- the label goes on your target's nameplate
     local Fx = pfUI.plates and pfUI.plates.Fx
     if Fx then
