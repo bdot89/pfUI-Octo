@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.99
+
+- 🧩 **SuperCleveRoidMacros built in:** the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over.
+- 🔁 **Takes over your separate copy:** if you had SuperCleveRoidMacros installed, pfUI switches it off for your next login and says so in chat. Tick it again in the add-on list to keep yours - pfUI leaves it alone after that.
+- 🎯 **Conditional macros show right on the bars:** pfUI's action bars now leave macros to SuperCleveRoidMacros, so a button shows the spell, icon and cooldown it will really cast instead of the macro's first spell.
+
 ## 📜 New in 1.1.98
 
 - 🖥️ **Your monitor's Hz:** pick your refresh rate (only the ones your screen offers), vsync and triple buffering in Settings > Performance. Many games stay at 60 Hz on a faster screen until this is set. Apply restarts the graphics for a second and puts everything back by itself in 15 s unless you keep it.

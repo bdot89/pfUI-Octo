@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.99", {
+    { "SuperCleveRoidMacros built in", "the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over." },
+    { "Takes over your separate copy", "if you had SuperCleveRoidMacros installed, pfUI switches it off for your next login and says so in chat. Tick it again in the add-on list to keep yours - pfUI leaves it alone after that." },
+    { "Conditional macros show right on the bars", "pfUI's action bars now leave macros to SuperCleveRoidMacros, so a button shows the spell, icon and cooldown it will really cast instead of the macro's first spell." },
+  } },
   { "1.1.98", {
     { "Your monitor's Hz", "pick your refresh rate (only the ones your screen offers), vsync and triple buffering in Settings > Performance. Many games stay at 60 Hz on a faster screen until this is set. Apply restarts the graphics for a second and puts everything back by itself in 15 s unless you keep it." },
     { "Frame cap", "1.12 has no frame cap of its own, so the page copies the DXVK line for you: a Steam / Lutris launch option, or one line for dxvk.conf. G-Sync / FreeSync screens get a cap 3 under the Hz." },
@@ -179,11 +184,5 @@ pfUI.octoNotes = {
   { "1.1.60", {
     { "Fixes the \"critical error #132\" crashes", "at login and after a /reload (for example after importing a profile): the game was running out of memory. pfUI and pfQuest hold about 290 MB of Lua memory, and Lua let its garbage pile up to twice that before cleaning - more during fights. Now a memory ceiling keeps it in check: out of a fight garbage may grow 64 MB, in a fight by your fight room, and never past 600 MB (Settings > Performance, both adjustable, on by default)." },
     { "Loading clean-up", "pfQuest's 32 MB of quest data no longer leaves its garbage behind while the game loads. New file: restart the game fully once." },
-  } },
-  { "1.1.59", {
-    { "Smoother gear swaps", "a set swap reads your bags once a frame instead of once for every item it moves." },
-    { "Closed bags stay quiet", "a closed bag window no longer redraws every slot (and reads every item's tooltip) each time your bags change - it catches up the moment you open it." },
-    { "Lighter buff bars", "buff names are remembered until your buffs change, instead of read again every 0.4 seconds." },
-    { "Druid stealth paging", "checked only when your buffs or form change (with ClassicAPI / SuperWoW's stealth check), not every frame." },
   } },
 }
