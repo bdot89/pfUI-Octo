@@ -122,6 +122,16 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.1
+
+- ✨ **OctoProcs looks:** our own art - wings, a crown, a light beam, a ring and a glow - tinted in each proc's colour, with a burst as a proc starts. Pick a look for all or for each proc, plus its place and colour. ProcDoc's options are all there (least / most opacity and size, pulse speed, top and side offsets, mute, timers) and more: art size, countdown size, only in a fight, edge glow width. The hard light columns and solid screen bands are gone.
+- 🛡️ **Tanks are never told to hold off:** Meters > Threat > Label & warnings starts with "I am a tank" (Auto / Always / Never). Auto counts holding aggro, Defensive Stance, Bear Form, Righteous Fury, Rockbiter or a tank mark, and stance dancing in a fight no longer wakes the warnings.
+- 🎯 **Threat label clears the auras:** on a nameplate it sits above the aura row instead of on it.
+- ⚔️ **Overpower / Revenge alerts back:** combat text switches on the nampower events they need itself.
+- 🗺️ **Minimap pins stay inside a round map,** with the built-in or a separate pfQuest.
+- 🗺️ **World map menus:** no more overlap with ModernMapMarkers, and the menus stay on screen when Magnify zooms in.
+- 🎬 **Demo mode:** Wipe, Enrage, Healers out of mana and the other lasting events light up while on and turn off with a second click; no more "interval is empty" error.
+
 ## 📜 New in 1.2.0
 
 - 💧 **OctoRinse sees your talents:** with ClassicAPI the range check is the same one your action bar uses, so talents that lengthen your cures' range count. Without it, each cure's range comes from its spell, or you set it yourself.

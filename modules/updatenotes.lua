@@ -2,6 +2,15 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.1", {
+    { "OctoProcs looks", "our own art - wings, a crown, a light beam, a ring and a glow - tinted in each proc's colour, with a burst as a proc starts. Pick a look for all or for each proc, plus its place and colour. ProcDoc's options are all there (least / most opacity and size, pulse speed, top and side offsets, mute, timers) and more: art size, countdown size, only in a fight, edge glow width. The hard light columns and solid screen bands are gone." },
+    { "Tanks are never told to hold off", "Meters > Threat > Label & warnings starts with \"I am a tank\" (Auto / Always / Never). Auto counts holding aggro, Defensive Stance, Bear Form, Righteous Fury, Rockbiter or a tank mark, and stance dancing in a fight no longer wakes the warnings." },
+    { "Threat label clears the auras", "on a nameplate it sits above the aura row instead of on it." },
+    { "Overpower / Revenge alerts back", "combat text switches on the nampower events they need itself." },
+    { "Minimap pins stay inside a round map,", "with the built-in or a separate pfQuest." },
+    { "World map menus", "no more overlap with ModernMapMarkers, and the menus stay on screen when Magnify zooms in." },
+    { "Demo mode", "Wipe, Enrage, Healers out of mana and the other lasting events light up while on and turn off with a second click; no more \"interval is empty\" error." },
+  } },
   { "1.2.0", {
     { "OctoRinse sees your talents", "with ClassicAPI the range check is the same one your action bar uses, so talents that lengthen your cures' range count. Without it, each cure's range comes from its spell, or you set it yourself." },
     { "OctoRinse looks", "pfUI Octo, Bars (rows filled with the debuff school's colour), Bright (strong colour, a border and bigger words), Compact and Icons. Plus a school-colour border, an out-of-range fade setting and a pulsing top row." },
@@ -180,11 +189,5 @@ pfUI.octoNotes = {
   { "1.1.62", {
     { "Important enemy buffs on nameplates without SuperWoW", "buff names now also come from ClassicAPI or the buff's tooltip, so \"Important ones\" (Berserker Rage, Recklessness, Ice Block, Evasion...) works for everyone." },
     { "Your own important buffs", "Nameplates > Auras > Enemy buffs - add any buff you want treated as important (names separated by #)." },
-  } },
-  { "1.1.61", {
-    { "/gear back", "puts the set you wore before this one back on - handy in a macro." },
-    { "Set names in any capitals", "/gear equip caster finds \"Caster\"; /gear unequip says what it takes off." },
-    { "/gear help", "every gear command, also in the ItemRack page's help box with ItemRack's macro calls (EquipSet, UnequipSet, ToggleSet)." },
-    { "Shield comes back", "taking off a set with a two-hander puts your off hand back on too." },
   } },
 }
