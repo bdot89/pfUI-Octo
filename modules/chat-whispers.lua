@@ -131,7 +131,39 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     H.target:SetPoint("RIGHT", H.whob, "LEFT", -2, 0)
     H.invite = Btn(bar, "+", "Invite to your group", function() if Who_() then InviteByName(Who_()) end end)
     H.invite:SetPoint("RIGHT", H.target, "LEFT", -2, 0)
-    H.title:SetPoint("RIGHT", H.invite, "LEFT", -4, 0)
+    -- the green "+3": new messages waiting; click it to go to the oldest one
+    local badge = CreateFrame("Button", nil, bar)
+    badge:SetHeight(18)
+    badge:SetWidth(1)
+    badge:SetPoint("RIGHT", H.invite, "LEFT", -8, 0)
+    badge:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    badge:SetBackdropColor(.05, .45, .12, 1)
+    badge:SetBackdropBorderColor(.3, 1, .4, 1)
+    badge.text = badge:CreateFontString(nil, "OVERLAY")
+    badge.text:SetFont(pfUI.font_default, 12, "OUTLINE")
+    badge.text:SetPoint("CENTER", badge, "CENTER", 0, 0)
+    badge.text:SetTextColor(.6, 1, .6)
+    badge:SetScript("OnClick", function() WH.GoNew() end)
+    badge:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_TOP")
+      GameTooltip:SetText("New messages", .4, 1, .5)
+      -- oldest first: the order Tab and this button take them in
+      local list = {}
+      for _, n in ipairs(WH.order) do
+        local c = WH.windows[n]
+        if c.open and (c.unread or 0) > 0 then table.insert(list, c) end
+      end
+      table.sort(list, function(a, b) return (a.since or 0) < (b.since or 0) end)
+      for _, c in ipairs(list) do
+        GameTooltip:AddDoubleLine((Hex(Who(c.who)) or "|cffffffff") .. c.who .. "|r  " .. (c.last or ""), "+" .. c.unread, 1, 1, 1, .4, 1, .5)
+      end
+      GameTooltip:AddLine("Click: go to the oldest one (Tab in the box: the next)", .7, .7, .7)
+      GameTooltip:Show()
+    end)
+    badge:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    badge:Hide()
+    H.badge = badge
+    H.title:SetPoint("RIGHT", badge, "LEFT", -4, 0)
 
     -- the tabs down the left (the mouse wheel scrolls them when there are many)
     local list = CreateFrame("Frame", nil, H)
@@ -205,9 +237,14 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     H.grip = grip
 
     -- unread tabs (and the window edge, while you are not typing in it) pulse
+    -- (green, like the "+3" badge, which pulses with them)
     H:SetScript("OnUpdate", function()
-      local r, g, b = Accent()
+      local r, g, b = .3, 1, .4
       local a = .55 + .45 * math.abs(math.sin(GetTime() * 3))
+      if H.badge:IsShown() then
+        H.badge:SetBackdropBorderColor(r, g, b, a)
+        H.badge:SetBackdropColor(.05, .3 + .2 * a, .12, 1)
+      end
       local any
       for _, c in pairs(WH.windows) do
         if c.unread and c.unread > 0 and c.tab:IsShown() then
@@ -250,7 +287,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     tab.count = tab:CreateFontString(nil, "OVERLAY")
     tab.count:SetFont(pfUI.font_default, 10, "OUTLINE")
     tab.count:SetPoint("RIGHT", tab, "RIGHT", -4, 0)
-    tab.count:SetTextColor(1, .82, 0)
+    tab.count:SetTextColor(.4, 1, .5)
     tab.text = tab:CreateFontString(nil, "OVERLAY")
     tab.text:SetFont(pfUI.font_default, 11, "OUTLINE")
     tab.text:SetPoint("LEFT", tab.icon, "RIGHT", 3, 0)
@@ -324,10 +361,11 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       end
     end
     if hidden > 0 then
-      H.list.more:SetText(hidden .. " more" .. (waiting > 0 and ("  |cffffd100" .. waiting .. " new|r") or "") .. "  (scroll)")
+      H.list.more:SetText(hidden .. " more" .. (waiting > 0 and ("  |cff66ff66+" .. waiting .. "|r") or "") .. "  (scroll)")
     else
       H.list.more:SetText("")
     end
+    WH.PaintBadge()
   end
 
   -- a tab's look, and the bar when it is the picked one
@@ -338,7 +376,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local active = WH.active == c.who
     SetIcon(c.tab.icon, class)
     c.tab.text:SetText((hex or "|cffffffff") .. c.who .. "|r")
-    c.tab.count:SetText((c.unread or 0) > 0 and tostring(c.unread) or "")
+    c.tab.count:SetText((c.unread or 0) > 0 and ("+" .. c.unread) or "")
     local r, g, b = Accent()
     if active then
       c.tab:SetBackdropColor(r * .35, g * .35, b * .35, 1)
@@ -361,7 +399,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     H.bar.bg:SetVertexColor(.12, .12, .15, 1)
     if H.edit.SetFont then H.edit:SetFont(font, size, "") end
   end
-  function WH.PaintAll() for _, c in pairs(WH.windows) do WH.Paint(c) end end
+  function WH.PaintAll() for _, c in pairs(WH.windows) do WH.Paint(c) end WH.PaintBadge() end
 
   -- ---------------------------------------------------------------- messages
 
@@ -457,15 +495,26 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local c = WH.windows[name]
     if not (c and c:IsShown()) and UnitAffectingCombat("player") and S().combat == "wait" then
       -- (a tab made earlier keeps its lines: this one goes in it too)
-      if c then Line(c, dir, text, t) if dir == "in" then c.unread = (c.unread or 0) + 1 end end
+      if c then
+        if dir == "in" and (c.unread or 0) == 0 then c.msg:AddMessage("|cff33ff33--------  new  --------|r") end
+        Line(c, dir, text, t)
+        if dir == "in" then WH.Mark(c, text) end
+      end
       WH.queue[name] = true
       return
     end
     local fresh = not c
     c = Ensure(name)
     -- (a new tab showed the kept lines, this one among them)
-    if not fresh then Line(c, dir, text, t) end
     local wasHidden = not H:IsShown()
+    -- (20 Nov 2026, user: "it shows on this bar with green +1 ... when you open it will go to the new message. Or start
+    -- in order of oldest new message to newest") unread unless it is the conversation you are looking at
+    local viewing = WH.active == name and H:IsShown() and not H.folded
+    local unread = dir == "in" and not viewing
+    -- a "new" line where the unread part starts
+    if not fresh and unread and (c.unread or 0) == 0 then c.msg:AddMessage("|cff33ff33--------  new  --------|r") end
+    -- (a new tab showed the kept lines, this one among them)
+    if not fresh then Line(c, dir, text, t) end
     if wasHidden then
       if UnitAffectingCombat("player") and S().combat == "fold" then H.folded = true WH.ApplyFold() end
       ShowHub()
@@ -476,23 +525,54 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     elseif WH.active == name and dir == "out" then
       WH.Seen(c)
     end
-    if dir == "in" and not (WH.active == name and H.edit.focused) then
-      c.unread = (c.unread or 0) + 1
-    end
+    if unread then WH.Mark(c, text) end
     WH.Paint(c)
     WH.Layout()
     return c
   end
 
+  -- one more unread line for someone (the oldest new one is answered first)
+  WH.seq = 0
+  function WH.Mark(c, text)
+    if (c.unread or 0) == 0 then
+      WH.seq = WH.seq + 1
+      c.since = WH.seq
+    end
+    c.unread = (c.unread or 0) + 1
+    c.last = text
+  end
+
   function WH.Seen(c)
     if not c then return end
     c.unread = 0
+    c.since = nil
     WH.Paint(c)
     WH.Layout()
   end
 
-  -- the next tab with something unread (or the next one), dir 1 or -1
+  -- the open tab waiting longest with something new
+  function WH.Oldest(skip)
+    local best
+    for _, n in ipairs(WH.order) do
+      local c = WH.windows[n]
+      if c.open and n ~= skip and (c.unread or 0) > 0 and (not best or (c.since or 0) < (WH.windows[best].since or 0)) then best = n end
+    end
+    return best
+  end
+  function WH.Unread()
+    local total, people = 0, 0
+    for _, c in pairs(WH.windows) do
+      if c.open and (c.unread or 0) > 0 then total = total + c.unread people = people + 1 end
+    end
+    return total, people
+  end
+
+  -- Tab: the oldest new message first (or just the next tab); Shift-Tab: the tab before
   function WH.Next(dir)
+    if dir == 1 then
+      local o = WH.Oldest(WH.active)
+      if o then WH.Select(o) return o end
+    end
     local open = {}
     local at = 1
     for _, n in ipairs(WH.order) do
@@ -503,13 +583,45 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     end
     local n = table.getn(open)
     if n < 2 then return end
-    for step = 1, n - 1 do
-      local i = math.mod(at - 1 + dir * step + n * 2, n) + 1
-      if (WH.windows[open[i]].unread or 0) > 0 then WH.Select(open[i]) return open[i] end
-    end
     local i = math.mod(at - 1 + dir + n * 2, n) + 1
     WH.Select(open[i])
     return open[i]
+  end
+
+  -- the green "+3" on the bar, and while folded the newest line in the title
+  function WH.PaintBadge()
+    if not H then return end
+    local total, people = WH.Unread()
+    local b = H.badge
+    if total == 0 then
+      b:Hide()
+      b:SetWidth(1)
+      if H.folded and WH.active then WH.Paint(WH.windows[WH.active]) end
+      return
+    end
+    b.text:SetText("+" .. total .. (people > 1 and ("  |cffccffcc" .. people .. " people|r") or ""))
+    b:SetWidth(math.floor((b.text:GetStringWidth() or 20) + 14))
+    b:Show()
+    if H.folded then
+      -- the newest of the new lines
+      local newest
+      for _, c in pairs(WH.windows) do
+        if c.open and (c.unread or 0) > 0 and (not newest or (c.since or 0) > (newest.since or 0)) then newest = c end
+      end
+      if newest then
+        SetIcon(H.icon, (Who(newest.who)))
+        H.title:SetText((Hex(Who(newest.who)) or "|cffffffff") .. newest.who .. ":|r |cffffffff" .. (newest.last or "") .. "|r")
+      end
+    end
+  end
+
+  -- open on the oldest new message
+  function WH.GoNew()
+    if not H then return end
+    if H.folded then H.folded = false WH.ApplyFold() end
+    local o = WH.Oldest()
+    if o then WH.Select(o) end
+    H.edit:SetFocus()
   end
 
   function WH.ApplyFold()
@@ -529,8 +641,15 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   function WH.Fold(_, fold)
     if not H then return end
     if fold == nil then fold = not H.folded end
+    local was = H.folded
     H.folded = fold
     WH.ApplyFold()
+    -- unfolding goes to the oldest new message
+    if was and not fold then
+      local o = WH.Oldest()
+      if o then WH.Select(o) end
+    end
+    WH.Layout()
   end
 
   -- close someone's tab (the conversation is kept); the window goes with the last one

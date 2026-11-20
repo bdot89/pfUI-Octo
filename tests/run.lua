@@ -2452,6 +2452,21 @@ do
       ok(WHm.active == "Jaina" and WHm.windows.Bidder3.unread == 1, "the tab you are on stays picked, the new ones count")
       ok(WHm.windows.Jaina.msg:IsShown() and not WHm.windows.Bidder3.msg:IsShown(), "only the picked conversation shows")
       ok(WHm.Next(1) == "Bidder1" and WHm.active == "Bidder1" and WHm.windows.Bidder1.unread == 0, "Tab jumps to the next unread one")
+      -- (20 Nov 2026, user: "it shows on this bar with green + 1 ... when you open it will go to the new message ...
+      -- oldest new message to newest") folded: a green +N on the bar and the newest line; unfolding goes to the oldest
+      WHm.Seen(WHm.windows.Bidder4)
+      WHm.Fold(nil, true)
+      WHm.OnEvent("CHAT_MSG_WHISPER", "bid 99 now", "Bidder4")
+      local bt = hub.badge:IsShown() and hub.badge.text:GetText() or ""
+      ok(string.find(bt, "^%+9") ~= nil, "folded: the bar shows +9 in green (" .. bt .. ")")
+      ok(string.find(hub.title:GetText() or "", "bid 99 now", 1, true) ~= nil, "and the newest line in the title")
+      WHm.Fold(nil, false)
+      ok(WHm.active == "Bidder2", "unfolding goes to the oldest new message (" .. tostring(WHm.active) .. ")")
+      ok(WHm.Next(1) == "Bidder3", "Tab takes the next oldest")
+      local order = {}
+      for _ = 1, 7 do table.insert(order, WHm.Next(1)) end
+      ok(order[7] == "Bidder4", "the one that wrote last comes last (" .. table.concat(order, ",") .. ")")
+      ok(not hub.badge:IsShown(), "all read: the badge goes")
       WHm.Close("Bidder1")
       ok(WHm.active and WHm.active ~= "Bidder1" and hub:IsShown(), "closing a tab picks another, the window stays")
       for i = 2, 10 do WHm.Close("Bidder" .. i) end
