@@ -1490,14 +1490,33 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   DM.LABEL = { raid = "Raid", dummy = "Target dummy", dungeon = "Dungeon", pvp = "PvP", afk = "AFK", showcase = "Showcase" }
   -- which pretend group each demo has
   DM.ROSTERS = { raid = "raid", showcase = "raid", dungeon = "party", pvp = "party" }
+  -- (20 Nov 2026, user: a Start in a fight said no in chat, then Stop did nothing and nothing started again until a
+  -- reload.) A step that errors in the game must never leave the demo half on: Start's setup and every one of Stop's
+  -- steps run in pcall, and Stop always ends with the demo off and every function back.
+  local function Try(fn, a)
+    if not fn then return true end
+    local good, err = pcall(fn, a)
+    if not good then DM.lastError = err end
+    return good
+  end
   function DM.Start(kind)
     kind = kind or "raid"
     if not DM.READY[kind] then kind = "raid" end
     if _G.UnitAffectingCombat and _G.UnitAffectingCombat("player") then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: not while you are in a fight.")
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: not while you are in a fight - start it again once the fight is over.")
       return false
     end
     if DM.on then DM.Stop(true) end
+    DM.lastError = nil
+    local good, err = pcall(DM.Begin, kind)
+    if good then return true end
+    -- half started: everything back, and say why
+    DM.on = true
+    DM.Stop(true)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo could not start: " .. tostring(err))
+    return false
+  end
+  function DM.Begin(kind)
     math.randomseed(math.floor((GetTime() or 0) * 1000))
     local roster = DM.ROSTERS[kind]
     if roster == "raid" then DM.MakeRaid() elseif roster == "party" then DM.MakeParty()
@@ -1524,28 +1543,35 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     return true
   end
   function DM.Stop(quiet)
-    if not DM.on then return end
-    DM.Joins(false)
-    DM.YourMeters(false)
-    DM.Cycle(.01)
-    DM.YourDots(false)
-    DM.OwnAfk(false)
+    if not DM.on then
+      -- (nothing running, but the bar was left up by an older half start: hide it)
+      if DM.bar:IsShown() then DM.bar:Hide() end
+      return
+    end
+    Try(DM.Joins, false)
+    Try(DM.YourMeters, false)
+    Try(DM.Cycle, .01)
+    Try(DM.YourDots, false)
+    Try(DM.OwnAfk, false)
     local wasKind = DM.kind
     DM.on, DM.boss, DM.fight, DM.pack, DM.caption = false, nil, false, nil, nil
-    DM.Uninstall()
+    Try(DM.Uninstall)
     if DM.kit then
       DM.kit = nil
-      DM.Poke("ACTIONBAR_UPDATE_COOLDOWN")
-      DM.Poke("ACTIONBAR_UPDATE_USABLE")
-      DM.Poke("PLAYER_AURAS_CHANGED")
+      Try(DM.Poke, "ACTIONBAR_UPDATE_COOLDOWN")
+      Try(DM.Poke, "ACTIONBAR_UPDATE_USABLE")
+      Try(DM.Poke, "PLAYER_AURAS_CHANGED")
     end
-    DM.Regroup()
+    Try(DM.Regroup)
     if wasKind == "afk" then
       if DM.afkNote then DM.afkNote:Hide() end
       local cam = _G.pfAFKCam
       if cam and cam._spinning and cam.stop then pcall(cam.stop, cam) end
     end
     DM.bar:Hide()
+    if DM.lastError and not quiet then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo: a part did not stop cleanly (" .. tostring(DM.lastError) .. ") - the rest is back.")
+    end
     if not quiet then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r Demo stopped: everything is back as it was.") end
   end
   function DM.Next()

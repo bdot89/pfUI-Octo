@@ -19,6 +19,34 @@ local env = pfUI.env
 local before = { UnitName = rawget(env, "UnitName"), GetNumRaidMembers = rawget(env, "GetNumRaidMembers"),
   UnitHealth = rawget(env, "UnitHealth"), UnitInRaid = rawget(env, "UnitInRaid") }
 local realName = _G.UnitName
+-- (20 Nov 2026, user: Start in a real fight said no in chat, then Stop did nothing and nothing started until a reload)
+do
+  local svC = _G.UnitAffectingCombat
+  _G.UnitAffectingCombat = function(u) return u == "player" and 1 or nil end
+  local started = DM.Start("raid")
+  ok(not started and not DM.on and not pfDemoBar:IsShown(), "in a real fight: the demo does not start")
+  _G.UnitAffectingCombat = svC
+  local again = DM.Start("raid")
+  ok(again and DM.on, "out of the fight it starts at once, no reload")
+  DM.Stop(true)
+  ok(not DM.on, "and stops")
+  -- a step of Stop that errors in the game: the rest still runs, the demo is off, the next Start works
+  DM.Start("raid")
+  local svJ = DM.Joins
+  DM.Joins = function() error("test: Joins broke") end
+  DM.Stop(true)
+  ok(not DM.on and not pfDemoBar:IsShown() and rawget(env, "GetNumRaidMembers") == before.GetNumRaidMembers,
+    "a broken stop step: the demo is still off and pfUI's functions are back")
+  DM.Joins = svJ
+  -- a part of Start that errors: put back at once, said in chat, and the next Start works
+  local svK = DM.MakeKit
+  DM.MakeKit = function() error("test: kit broke") end
+  ok(DM.Start("raid") == false and not DM.on and rawget(env, "GetNumRaidMembers") == before.GetNumRaidMembers,
+    "a broken start: nothing left half on")
+  DM.MakeKit = svK
+  ok(DM.Start("raid") and DM.on, "the next Start works, no reload")
+  DM.Stop(true)
+end
 ok(DM.Start("raid") and DM.on and pfUIDemoCheck == nil, "the raid demo starts")
 ok(env.GetNumRaidMembers() == 40 and env.UnitInRaid("player") == 1, "pfUI sees a raid of 40 with you in it")
 local r5 = DM.units.raid5
