@@ -259,3 +259,50 @@ do
   M.job = nil
   for k, v in pairs(k2) do _G[k] = v end
 end
+
+-- (20 Nov 2026, Wolfahrt: right-click in the bags on the Send tab did nothing) the bag button's own click
+-- attaches the item even when another add-on has replaced UseContainerItem without calling ours
+do
+  local UI = pfUI.mail.ui
+  local names = { "ContainerFrameItemButton_OnClick", "UseContainerItem", "GetContainerItemLink", "GetContainerItemInfo",
+    "CursorHasItem", "IsShiftKeyDown", "IsControlKeyDown", "IsAltKeyDown", "this" }
+  local k3 = {}
+  for _, k in ipairs(names) do k3[k] = rawget(_G, k) end
+  local used, gameClick = 0, 0
+  _G.ContainerFrameItemButton_OnClick = function() gameClick = gameClick + 1 _G.UseContainerItem(2, 5) end
+  -- (an add-on that put its own UseContainerItem in after ours and calls the game's straight away)
+  _G.UseContainerItem = function() used = used + 1 end
+  _G.GetContainerItemLink = function(b, s) if b == 2 and s == 5 then return "|cffffffff|Hitem:2589:0:0:0|h[Linen Cloth]|h|r" end end
+  _G.GetContainerItemInfo = function() return "tex", 5 end
+  _G.CursorHasItem = function() return false end
+  local shift = false
+  _G.IsShiftKeyDown = function() return shift end
+  _G.IsControlKeyDown = function() return false end
+  _G.IsAltKeyDown = function() return false end
+  local oldBound = M.Bound
+  M.Bound = function() return false end
+  UI.HookBagClick()
+  M.open, M.items = true, {}
+  _G.pfMail:Show()
+  _G.this = { GetID = function() return 5 end, GetParent = function() return { GetID = function() return 2 end } end }
+  _G.ContainerFrameItemButton_OnClick("RightButton")
+  ok(table.getn(M.items) == 1 and M.items[1].bag == 2 and M.items[1].slot == 5 and used == 0 and gameClick == 0,
+    "right-click a bag item at the mailbox: it goes on the Send list, not used (" .. table.getn(M.items) .. " items, used " .. used .. ")")
+  ok(UI.tab == "send", "right-click a bag item: the Send tab opens")
+  _G.ContainerFrameItemButton_OnClick("RightButton")
+  ok(table.getn(M.items) == 1, "the same item twice is listed once")
+  shift = true
+  _G.ContainerFrameItemButton_OnClick("RightButton")
+  ok(gameClick == 1, "Shift + right-click is left to the game (splitting a stack)")
+  shift = false
+  _G.ContainerFrameItemButton_OnClick("LeftButton")
+  ok(gameClick == 2 and table.getn(M.items) == 1, "a left click is left to the game")
+  M.open = false
+  _G.ContainerFrameItemButton_OnClick("RightButton")
+  ok(gameClick == 3, "with the mailbox shut a right-click uses the item as ever")
+  M.Bound = oldBound
+  M.open, M.items = nil, {}
+  _G.pfMail:Hide()
+  for _, k in ipairs(names) do _G[k] = k3[k] end
+  UI.clickWrapped = nil
+end

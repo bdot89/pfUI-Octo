@@ -271,9 +271,18 @@ do
   ok(AH.LowestOther("2589") ~= nil and AH.LowestOther("nothing") == nil, "the cheapest other seller of an item")
   -- reading everything: prices noted, nothing listed
   local st
+  -- (20 Nov 2026, Lobo: it "chugs" in Durotar) a breath between pages, and the list is not redrawn per page
+  local changes, oldChange = 0, AH.onChange
+  AH.onChange = function() changes = changes + 1 end
   AH.Search({ silent = true }, nil, function(why, s) st = s end)
-  for i = 1, 4 do AH.ScanTick(now) Answer() if not AH.Searching() then break end end
+  queries = 0
+  AH.ScanTick(now) Answer()
+  AH.ScanTick(now)
+  ok(queries == 1, "reading every auction: the next page waits a moment (" .. queries .. " asked at once)")
+  for i = 1, 8 do now = now + AH.READGAP AH.ScanTick(now) Answer() if not AH.Searching() then break end end
+  AH.onChange = oldChange
   ok(st and st.seen == table.getn(ALL) and table.getn(AH.rows) == 0, "reading every auction lists nothing and reads them all (" .. tostring(st and st.seen) .. ")")
+  ok(changes == 0, "reading every auction does not redraw the list each page (" .. changes .. ")")
   -- deposit from the vendor price
   local sellWas = rawget(_G, "pfSellData")
   _G.pfSellData = { [2589] = "13,55" }

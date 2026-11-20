@@ -693,6 +693,30 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
       return use(bag, slot, onSelf)
     end
   end
+  -- (20 Nov 2026, Wolfahrt: "right clicking on an item while on Send mode should add the item to the send
+  -- list" - it did nothing for him. The UseContainerItem wrap above is lost when another add-on puts its own
+  -- in place afterwards and calls the game's straight away. So the bag button's own click is caught too:
+  -- the game's bags and pfUI's bags both go through ContainerFrameItemButton_OnClick.)
+  function UI.HookBagClick()
+    local click = rawget(_G, "ContainerFrameItemButton_OnClick")
+    if type(click) ~= "function" or UI.clickWrapped == click then return end
+    _G.ContainerFrameItemButton_OnClick = function(button, ignoreModifiers, a3, a4)
+      if button == "RightButton" and M.open and f:IsShown() and S().bagclick ~= "0" and not CursorHasItem()
+        and not IsShiftKeyDown() and not IsControlKeyDown() and not IsAltKeyDown() then
+        local b = _G.this
+        local parent = b and b.GetParent and b:GetParent()
+        local bag = parent and parent.GetID and parent:GetID()
+        local slot = b and b.GetID and b:GetID()
+        if bag and slot and bag >= 0 and GetContainerItemLink(bag, slot) then
+          if UI.tab ~= "send" then UI.Open("send") end
+          if UI.Add(bag, slot) then return end
+        end
+      end
+      return click(button, ignoreModifiers, a3, a4)
+    end
+    UI.clickWrapped = _G.ContainerFrameItemButton_OnClick
+  end
+  UI.HookBagClick()
   -- soulbound, from the bag tooltip
   local scan = CreateFrame("GameTooltip", "pfMailScan", UIParent, "GameTooltipTemplate")
   scan:SetOwner(UIParent, "ANCHOR_NONE")

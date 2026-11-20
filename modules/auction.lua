@@ -62,11 +62,16 @@ pfUI:RegisterModule("auction", "vanilla", function ()
 
   -- ---------------------------------------------------------------- price history
 
+  -- (called for every auction a scan reads: the realm-faction name is made once, not per call)
+  local storeKey, storeAt
   function AH.Store()
     pfUI_cache.auction = pfUI_cache.auction or {}
-    local key = (GetRealmName and GetRealmName() or "?") .. "-" .. (UnitFactionGroup and UnitFactionGroup("player") or "?")
-    pfUI_cache.auction[key] = pfUI_cache.auction[key] or { h = {} }
-    return pfUI_cache.auction[key]
+    local now = GetTime and GetTime() or 0
+    if not storeKey or not storeAt or now - storeAt > 5 or now < storeAt then
+      storeKey, storeAt = (GetRealmName and GetRealmName() or "?") .. "-" .. (UnitFactionGroup and UnitFactionGroup("player") or "?"), now
+    end
+    pfUI_cache.auction[storeKey] = pfUI_cache.auction[storeKey] or { h = {} }
+    return pfUI_cache.auction[storeKey]
   end
   -- "item:1234:0:567:0" in a link -> "1234" or "1234:567" (random suffix)
   function AH.ItemKey(link)
@@ -524,6 +529,7 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     local s = AH.scan
     local batch, total = GetNumAuctionItems("list")
     batch, total = batch or 0, total or 0
+    if s and s.q.silent and s.state ~= "sent" then return end
     if not s or s.state ~= "sent" then
       -- (owners' names arrive a moment after the page: fill them in on the rows of that page)
       for _, row in ipairs(AH.rows) do
@@ -535,13 +541,28 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       if AH.onChange then AH.onChange() end
       return
     end
-    for i = 1, batch do
-      local row = AH.Read("list", i, s.page)
-      if row then
-        if row.unit then AH.Record(row.key, row.unit) end
-        row.q = s.q
-        s.seen = (s.seen or 0) + 1
-        if not s.q.silent and Fits(s.q, row) then table.insert(AH.rows, row) end
+    if s.q.silent then
+      -- (20 Nov 2026, Lobo: "Read everything in Durotar ... chugs a lot of resources". Nothing is listed,
+      -- so no row tables: two client calls an auction and the price noted)
+      for i = 1, batch do
+        local name, _, count, _, _, _, _, _, buyout = GetAuctionItemInfo("list", i)
+        if name then
+          s.seen = (s.seen or 0) + 1
+          if buyout and buyout > 0 then
+            local key = AH.ItemKey(GetAuctionItemLink and GetAuctionItemLink("list", i))
+            if key then AH.Record(key, buyout / ((count and count > 0) and count or 1)) end
+          end
+        end
+      end
+    else
+      for i = 1, batch do
+        local row = AH.Read("list", i, s.page)
+        if row then
+          if row.unit then AH.Record(row.key, row.unit) end
+          row.q = s.q
+          s.seen = (s.seen or 0) + 1
+          if Fits(s.q, row) then table.insert(AH.rows, row) end
+        end
       end
     end
     AH.total = total
@@ -560,15 +581,20 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       end
     else
       s.page, s.state = s.page + 1, "wait"
+      -- (a reading scan takes a breath between pages: with AuctionQueryThrottle the client would ask
+      -- for the next page at once, page after page, and the game stutters for the whole scan)
+      if s.q.silent then s.nextAt = GetTime() + AH.READGAP end
     end
-    if AH.onChange then AH.onChange() end
+    -- (a reading scan lists nothing: the window only needs its status line, the onPage call above)
+    if AH.onChange and not s.q.silent then AH.onChange() end
   end
+  AH.READGAP = .35
   function AH.ScanTick(now)
     local s = AH.scan
     if not s then return end
     if not AH.open then AH.Stop("closed") return end
     if s.state == "wait" then
-      if CanSendAuctionQuery() then Send(s) end
+      if (not s.nextAt or now >= s.nextAt) and CanSendAuctionQuery() then Send(s) end
     elseif now - (s.sentAt or now) > 8 then
       -- (no answer: ask again, three times at most)
       s.tries = s.tries + 1
