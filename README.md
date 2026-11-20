@@ -120,6 +120,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.1.89
+
+- 🎬 **Demos play your own class:** every demo but AFK casts your class's real spells, DoTs, cooldowns and procs, so your action bars, OctoDoTs, cooldown bars, combat text and meters show what you would really see. The Demo Mode page lists the spells it uses.
+- 👥 **Party frames always join in:** if your settings hide the party frames (hidden in raids, raid frames for groups, placed off screen), the demo shows them anyway and says once in chat why they were hidden.
+- 🔁 **Every module plays its own test:** cooldown bars, OctoTotems, consumables and the rest cycle through their samples while a demo runs, and the AFK demo has its own AFK screen.
+- 🛠️ **Crash fix:** a disconnect while a demo was running could crash the game (#132). The demo now cleans up when you leave the world, before the game frees its unit data.
+
 ## 📜 New in 1.1.88
 
 - 🎬 **Every demo is in:** Demo Mode now has its own highlighted row in the sidebar (under More, above Add-ons) and tiles on the Quality of Life page. Six demos, each looping until you press Stop:

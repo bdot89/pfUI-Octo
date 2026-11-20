@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.1.89", {
+    { "Demos play your own class", "every demo but AFK casts your class's real spells, DoTs, cooldowns and procs, so your action bars, OctoDoTs, cooldown bars, combat text and meters show what you would really see. The Demo Mode page lists the spells it uses." },
+    { "Party frames always join in", "if your settings hide the party frames (hidden in raids, raid frames for groups, placed off screen), the demo shows them anyway and says once in chat why they were hidden." },
+    { "Every module plays its own test", "cooldown bars, OctoTotems, consumables and the rest cycle through their samples while a demo runs, and the AFK demo has its own AFK screen." },
+    { "Crash fix", "a disconnect while a demo was running could crash the game (#132). The demo now cleans up when you leave the world, before the game frees its unit data." },
+  } },
   { "1.1.88", {
     { "Every demo is in", "Demo Mode now has its own highlighted row in the sidebar (under More, above Add-ons) and tiles on the Quality of Life page. Six demos, each looping until you press Stop:" },
     { "Nothing a demo does reaches anyone: no raid messages or threat requ...", "Nothing a demo does reaches anyone: no raid messages or threat requests are sent while you are not really in a group." },
@@ -154,9 +160,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.50", {
     { "Minimap side bar", "tracking, mail, the battleground queue, zoom in / out and the addon buttons arrow in one tidy strip along any side of the map, all one size, no gaps. Try the look \"Clean, buttons at the side\", or set it up under Minimap > Buttons and text > Side bar." },
-  } },
-  { "1.1.49", {
-    { "Cleaner mob info", "short Hits / Armor lines with what they mean in grey; a hit turns gold or red when it takes a big bite of your health; no more \"Resists: None\". MobStats' own yellow lines are hidden while ours are on." },
-    { "Profession lines only for you", "skinning, herb and ore lines show only if you have that profession (Shift shows them anyway)." },
   } },
 }
