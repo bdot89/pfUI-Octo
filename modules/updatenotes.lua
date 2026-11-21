@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.8", {
+    { "World map zoom fixed", "the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed." },
+  } },
   { "1.2.7", {
     { "Zoom into the world map (Magnify built in)", "the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work." },
     { "World buff timers", "when a head is handed in (Onyxia, Nefarian, Rend, Hakkar), a bar counts down to the buff landing, with its name, where it lands and the seconds left, plus a popup and a sound. Shared with your guild and group so you see it anywhere. /wb lists the last drops. A new file: restart the game fully once." },
@@ -180,8 +183,5 @@ pfUI.octoNotes = {
     { "Smart heals", "battle heal and best heal keys heal the most hurt member of your group with the smallest rank that covers it. With SuperWoW it does this without changing your target." },
     { "Earthen Bulwark is now part of OctoTotems", "and sticks under the totem bars at the same width (switch that off to place it anywhere)." },
     { "ClassicAPI", "(real totem slots, early deaths, time left, usable/mana), nampower (whole set in one press) and SuperWoW / UnitXP (range from where each totem was dropped), each with a plain fallback. /totems (and /coe while Call of Elements isn't loaded). New files: restart the game fully once." },
-  } },
-  { "1.1.68", {
-    { "Earthen Bulwark bar for tank shamans", "with Elemental Weapons and Rockbiter, a small movable bar shows how full your earthen bulwark is (the server's own integrity %) and about how much it holds (up to 20% of your max health). It turns bright with an 8 s timer line while it is absorbing, and says x3 while you wear a shield. Unit Frames > Earthen Bulwark or /bulwark. New file: restart the game fully once." },
   } },
 }

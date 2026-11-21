@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.8
+
+- 🔍 **World map zoom fixed:** the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed.
+
 ## 📜 New in 1.2.7
 
 - 🔍 **Zoom into the world map (Magnify built in):** the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work.
