@@ -40,7 +40,8 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
     O.PfChk(p, "Undercut in percent", "Off: the number above is copper. On: it is a share of their price.", G, "undercutpct")
     O.PfSld(p, "Starting price", "The starting price as a share of the buyout, when you only fill in a buyout.", 50, 100, 1, G, "bidshare", nil, function(v) return v .. "%" end)
     W.Dropdown(p, "Auctions last", "The length picked when an item has no saved choice.",
-      { { key = "2", label = "2 hours" }, { key = "8", label = "8 hours" }, { key = "24", label = "24 hours" } },
+      -- (21 Nov 2026, Javelin: this server's auctions last 6 / 24 / 72 hours - the same keys, its own hours)
+      { { key = "2", label = "6 hours" }, { key = "8", label = "24 hours" }, { key = "24", label = "72 hours" } },
       function() return G().hours or "24" end, function(v) G().hours = v end)
     O.PfChk(p, "Start with every stack I have", "Off: the number of stacks starts at 1.", G, "allstacks")
     O.PfChk(p, "Look prices up when I pick an item", "Picking an item on the Sell tab searches the auction house for it at once.", G, "autolookup")

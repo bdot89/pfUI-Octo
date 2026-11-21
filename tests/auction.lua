@@ -286,8 +286,18 @@ do
   -- deposit from the vendor price
   local sellWas = rawget(_G, "pfSellData")
   _G.pfSellData = { [2589] = "13,55" }
-  ok(AH.Vendor("2589") == 13 and AH.Vendor("1") == nil and AH.Deposit("2589", 20, 24) == math.floor(13 * 20 * .05 * 12) and AH.Deposit("2589", 20, 2) == 13,
-    "deposit: 5% of the vendor price per 2 hours (" .. tostring(AH.Deposit("2589", 20, 24)) .. ")")
+  -- (21 Nov 2026) the client's own deposit: vendor x stack x (minutes / 120) x (1 + (limit - stack) x 5%) x 2.5%, a stack
+  local keepGII = rawget(_G, "GetItemInfo")
+  _G.GetItemInfo = function(id) if id == 2589 then return "Linen Cloth", "item:2589", 1, 0, "Trade Goods", "Trade Goods", 20 end end
+  ok(AH.Vendor("2589") == 13 and AH.Vendor("1") == nil and AH.Deposit("2589", 20, 24, 20) == 78 and AH.Deposit("2589", 20, 2, 20) == 6,
+    "deposit: a full stack, 72 h and 6 h (" .. tostring(AH.Deposit("2589", 20, 24, 20)) .. ", " .. tostring(AH.Deposit("2589", 20, 2, 20)) .. ")")
+  ok(AH.Deposit("2589", 20, 24, 5) == 4 * math.floor(13 * 5 * 12 * 1.75 * .025),
+    "deposit: four stacks of 5 pay more each, as the game's own window says (" .. tostring(AH.Deposit("2589", 20, 24, 5)) .. ")")
+  _G.GetItemInfo = keepGII
+  -- (21 Nov 2026, Javelin: "it shows length of 2h/8h/24h where it actually is 6h, 24h and 72h")
+  ok(AH.HourText(2) == "6 h" and AH.HourText(8) == "24 h" and AH.HourText(24) == "72 h" and AH.HOURS[24] == 1440,
+    "auction lengths shown as this server's 6 / 24 / 72 h; what is sent stays 120 / 480 / 1440 minutes")
+  ok(AH.LEFT[4] == "over 8 h", "the longest time-left bucket: over 8 h")
   _G.pfSellData = sellWas
   -- the tooltip line
   local left, right = AH.TooltipLine("|Hitem:2589:0:0:0|h[Linen Cloth]|h", 20)

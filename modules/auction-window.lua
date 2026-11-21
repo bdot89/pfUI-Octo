@@ -1438,7 +1438,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   hl:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -183)
   for i, h in ipairs({ 2, 8, 24 }) do
     local hours = h
-    local b = Btn(P.box, hours .. " h", 50, function() UI.hours = hours UI.PaintSell() end)
+    -- (the server's real hours: 6 / 24 / 72 - AH.HourText)
+    local b = Btn(P.box, AH.HourText(hours), 50, function() UI.hours = hours UI.PaintSell() end)
     b:SetPoint("TOPLEFT", P.box, "TOPLEFT", 120 + (i - 1) * 54, -178)
     P.hours[hours] = b
   end
@@ -1623,8 +1624,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         .. (n.buy > 0 and ("   buyout " .. AH.Money(n.buy * n.size)) or "   no buyout")
         .. (n.buy > 0 and ("   |cff9a9aa0all sold = " .. AH.Money(n.buy * n.size * n.stacks, true) .. "|r") or "")
         .. (function()
-          -- (from the vendor price: 5% per 2 hours at a faction auction house; the neutral ones and this server may differ)
-          local dep = AH.Deposit(d.key, n.size * n.stacks, UI.hours)
+          -- (the client's own deposit sum, per stack; the neutral auction houses may take more)
+          local dep = AH.Deposit(d.key, n.size * n.stacks, UI.hours, n.size)
           return dep and dep > 0 and ("   |cff9a9aa0deposit about " .. AH.Money(dep, true) .. "|r") or ""
         end)())
       P.post.text:SetText("Post " .. n.stacks .. " x " .. n.size)

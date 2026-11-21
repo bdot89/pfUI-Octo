@@ -23,8 +23,18 @@ pfUI:RegisterModule("auction", "vanilla", function ()
   local function S() return C.auction end
   local function Num(key, d) return tonumber(S()[key]) or d end
   AH.PAGE = 50
-  AH.LEFT = { "under 30 min", "under 2 h", "under 8 h", "under 24 h" }
+  -- (21 Nov 2026, Javelin: "the auction times are not correct. it shows length of 2h/8h/24h where it actually is 6h,
+  -- 24h and 72h") The client sends 120 / 480 / 1440 minutes (StartAuction) as everywhere, but this server triples them:
+  -- OctoWoW's own auction window (patch-4 Blizzard_AuctionUI.xml) labels those same buttons 6, 24 and 72 hours. The keys
+  -- (2 / 8 / 24, saved settings) and what is sent stay; only what is shown is the server's (AH.HOURLABEL). The time-left
+  -- buckets are the client's own (its AUCTION_TIME_LEFT*_DETAIL): the last one is "more than 8 h", up to 72 here.
+  AH.LEFT = { "under 30 min", "under 2 h", "under 8 h", "over 8 h" }
   AH.HOURS = { [2] = 120, [8] = 480, [24] = 1440 }
+  AH.HOURLABEL = { [2] = 6, [8] = 24, [24] = 72 }
+  function AH.HourText(key)
+    local h = AH.HOURLABEL[tonumber(key) or 24] or key
+    return h .. " h"
+  end
 
   -- ---------------------------------------------------------------- money
 
@@ -491,10 +501,22 @@ pfUI:RegisterModule("auction", "vanilla", function ()
     sell = tonumber(sell)
     if sell and sell > 0 then return sell end
   end
-  function AH.Deposit(key, count, hours)
+  -- (21 Nov 2026) the client's own deposit (its CalculateAuctionDeposit): vendor price x stack x (minutes / 120) x
+  -- (1 + (stack limit - stack size) x 5%) x 2.5%, for each stack posted. `size` = items in a stack (default: all in one).
+  function AH.Deposit(key, count, hours, size)
     local v = AH.Vendor(key)
     if not v then return nil end
-    return math.floor(v * (count or 1) * .05 * ((AH.HOURS[tonumber(hours) or 24] or 1440) / 120))
+    count = count or 1
+    size = math.max(1, math.min(count, size or count))
+    local _, _, id = string.find(key or "", "^(%d+)")
+    local maxStack = size
+    if id and _G.GetItemInfo then
+      local ok, _, _, _, _, _, _, ms = pcall(_G.GetItemInfo, tonumber(id))
+      if ok and tonumber(ms) and tonumber(ms) > 0 then maxStack = tonumber(ms) end
+    end
+    local mins = AH.HOURS[tonumber(hours) or 24] or 1440
+    local per = math.floor(v * size * (mins / 120) * (1 + math.max(0, maxStack - size) * .05) * .025)
+    return per * math.floor(count / size)
   end
   -- the cheapest buyout each among the rows held, others' only
   function AH.LowestOther(key)
