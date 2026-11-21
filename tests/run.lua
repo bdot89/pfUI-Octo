@@ -963,6 +963,25 @@ if ME then
     BD.Draw()
     local rl = BD.ReportLines()
     ok(rl[1] and string.find(rl[1], "Tester") and rl[2] and string.find(rl[2], "^1%. "), "report the tab (" .. tostring(rl[2]) .. ")")
+    -- (21 Nov 2026, Wolfahrt: Lua error reporting a death log) the Summary and Deaths tabs report too, as plain text
+    local keepLogs, keepDeaths = tester.deathlogs, tester.deaths
+    tester.deaths = 1
+    tester.deathlogs = { { t = GetTime(), killer = "Onyxia", log = {
+      { t = GetTime() - 2, kind = "dmg", amount = 1000, crit = true, spell = "Melee", who = "Onyxia", hp = 300, hpmax = 1000 },
+      { t = GetTime() - 1, kind = "heal", amount = 400, spell = "Flash Heal", who = "Healer", hp = 700, hpmax = 1000 } } } }
+    for _, tab in ipairs({ "deaths", "summary" }) do
+      BD.tab = tab
+      BD.Draw()
+      local good, lines = pcall(BD.ReportLines)
+      local clean = good and table.getn(lines) > 1
+      for _, l in ipairs(good and lines or {}) do if type(l) ~= "string" or string.find(l, "|") then clean = false end end
+      ok(clean, "report the " .. tab .. " tab: plain lines, no error (" .. tostring(good and lines[2] or lines) .. ")")
+    end
+    tester.deathlogs, tester.deaths = keepLogs, keepDeaths
+    -- its menu shows over the breakdown window
+    local strata = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
+    ok((strata[pfMeterMenu:GetFrameStrata()] or 0) > (strata[pfMeterBreakdown:GetFrameStrata()] or 9),
+      "the Report menu is above the breakdown (" .. tostring(pfMeterMenu:GetFrameStrata()) .. ")")
     pfMeterBreakdown:Hide()
     -- each mode and its breakdown builds
     for _, m in ipairs(ME.MODES) do

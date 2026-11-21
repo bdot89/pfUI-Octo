@@ -1569,7 +1569,13 @@ pfUI:RegisterModule("meters-breakdown", "vanilla", function ()
   -- ---------------------------------------------------------------- report
 
   -- what the open tab shows, as chat lines (top 10)
-  local function Plain(s) return gsub(gsub(tostring(s or ""), "|c%x%x%x%x%x%x%x%x", ""), "|r", "") end
+  -- (21 Nov 2026, Wolfahrt: Lua error reporting a death log) bracketed: gsub's count came along as a second value
+  -- and table.insert(out, text, count) read the text as a position. Any other | left would make the client refuse
+  -- the chat line, so those go too.
+  local function Plain(s)
+    local t = gsub(gsub(tostring(s or ""), "|c%x%x%x%x%x%x%x%x", ""), "|r", "")
+    return (gsub(t, "|", ""))
+  end
   function B.ReportLines()
     local title = B.actor and B.actor.name or B.foe or B.bspell
     if not title then return {} end

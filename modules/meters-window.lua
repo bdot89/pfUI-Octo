@@ -593,7 +593,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   --   head = true      a grey section title, not clickable
   --   keep = true      the menu stays open after the click (redrawn by func)
   local menu = CreateFrame("Frame", "pfMeterMenu", UIParent)
-  menu:SetFrameStrata("FULLSCREEN_DIALOG")
+  -- (21 Nov 2026, Wolfahrt: the breakdown's Report menu "is in background") the breakdown window is
+  -- FULLSCREEN_DIALOG too and was drawn over it: the menu goes on the top layer
+  menu:SetFrameStrata("TOOLTIP")
   menu:Hide()
   menu:EnableMouse(true)
   CreateBackdrop(menu, nil, true, .95)
