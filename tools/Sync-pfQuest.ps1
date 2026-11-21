@@ -163,6 +163,22 @@ $patches = @{
     $t = Must $t "  if pfQuestCompat.QuestWatchFrame:IsShown() then`n    pfQuestCompat.QuestWatchFrame:Hide()" "  local qwatch = pfQuestCompat.QuestWatchFrame or QuestWatchFrame or WatchFrame`n  if qwatch and qwatch.IsShown and qwatch:IsShown() then`n    qwatch:Hide()"
     Must $t 'this:ScheduleLayout()' 'pfQuestMapTracker.layoutAt = GetTime() + 0.05'
   }
+  # (21 Nov 2026, user: "when i do a /db it should bring up the database window") plain /db opens and closes the
+  # database window; the command list moves to /db help
+  "slashcmd.lua" = { param($t)
+    $new = @(
+      '  -- (pfUI Octo) plain /db opens and closes the database window; the command list is /db help',
+      '  if (input == "" or input == nil) and pfBrowser then',
+      '    if pfBrowser:IsShown() then pfBrowser:Hide() else pfBrowser:Show() end',
+      '    return',
+      '  end',
+      '  if input == "" or input == nil or string.lower(input) == "help" then'
+    ) -join "`r`n"
+    # (pfQuest writes it with brackets, the copy built in had none: either one)
+    $old = '  if (input == "" or input == nil) then'
+    if (-not $t.Contains($old)) { $old = '  if input == "" or input == nil then' }
+    Must $t $old $new
+  }
   # built in, its version comes from pfUI's toc; another player's VERSION message
   # before ours is known must not error (9 Nov 2026: endless chat errors)
   "updatenotify.lua" = { param($t)

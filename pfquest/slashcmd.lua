@@ -14,8 +14,15 @@ SlashCmdList["PFDB"] = function(input, editbox)
   local params = {}
   local meta = { ["addon"] = "PFDB" }
 
-  if input == "" or input == nil then
+  -- (pfUI Octo, 21 Nov 2026, user: "when i do a /db it should bring up the database window") plain /db opens and
+  -- closes the database window; the command list is /db help
+  if (input == "" or input == nil) and pfBrowser then
+    if pfBrowser:IsShown() then pfBrowser:Hide() else pfBrowser:Show() end
+    return
+  end
+  if input == "" or input == nil or string.lower(input) == "help" then
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpf|cffffffffQuest (v" .. pfQuestConfig.version .. "):")
+    DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff |cffcccccc - " .. pfQuest_Loc["Show database interface"] .. " (/db help: this list)")
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff lock |cffcccccc - " .. pfQuest_Loc["Lock map tracker"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff tracker |cffcccccc - " .. pfQuest_Loc["Show map tracker"])
     DEFAULT_CHAT_FRAME:AddMessage("|cff33ffcc/db|cffffffff journal |cffcccccc - " .. pfQuest_Loc["Show quest journal"])

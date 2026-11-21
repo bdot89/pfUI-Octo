@@ -80,6 +80,20 @@ local function has(file, text)
 end
 ok(has("config.lua", 'arg1 == "pfUI"') and has("quest.lua", 'arg1 == "pfUI"'), "pfQuest starts on pfUI's ADDON_LOADED")
 ok(has("config.lua", 'pfQuestConfig.path = "Interface\\\\AddOns\\\\pfUI\\\\pfquest"'), "pfQuest's art is found in pfUI\\pfquest")
+-- (21 Nov 2026, user: "when i do a /db it should bring up the database window") plain /db opens the database window
+ok(has("slashcmd.lua", 'if (input == "" or input == nil) and pfBrowser then') and has("slashcmd.lua", 'string.lower(input) == "help"'),
+  "plain /db opens the database window; the command list is /db help")
+do
+  local SC = rawget(_G, "SlashCmdList") and SlashCmdList["PFDB"]
+  local B = rawget(_G, "pfBrowser")
+  if SC and B and B.Show then
+    B:Hide()
+    pcall(SC, "")
+    ok(B:IsShown(), "/db: the database window opens")
+    pcall(SC, "")
+    ok(not B:IsShown(), "/db again: it closes")
+  end
+end
 -- (11 Nov 2026) lightblade's pfQuest-turtle as the launcher installs it: its pictures, its version
 ok(has("turtle-pfQuest-nameplates.lua", '"Interface\\\\AddOns\\\\pfUI\\\\pfquest\\\\turtle-img\\\\slay"')
   and not has("turtle-pfQuest-nameplates.lua", "AddOns\\\\pfQuest-turtle"), "pfQuest-turtle's pictures are found in pfUI\\pfquest\\turtle-img")
