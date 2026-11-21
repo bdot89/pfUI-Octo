@@ -8,7 +8,8 @@
 -- name counts - a download unpacks as "pfQuest-master" - but not pfQuest's
 -- add-ons (pfQuest-turtle, pfQuest-icons...), which need pfQuest to load.
 local function pfQuestOctoMain(name, enabled, loadable, d1, d2, d3, d4)
-  if not (name and enabled and loadable) then return false end
+  -- (21 Nov 2026) enabled is enough; only an outright "cannot load" (false / 0) leaves it out
+  if not (name and enabled and enabled ~= 0) or loadable == false or loadable == 0 then return false end
   local n = string.lower(name)
   if n == "pfui" or not string.find(n, "^pfquest") then return false end
   local d = { d1, d2, d3, d4 }
@@ -21,7 +22,7 @@ local function pfQuestOctoStandalone()
   if pfDB ~= nil then return true end
   if type(GetAddOnInfo) ~= "function" then return false end
   local ok, name, _, _, enabled, loadable = pcall(GetAddOnInfo, "pfQuest")
-  if ok and name and enabled and loadable then return true end
+  if ok and name and enabled and enabled ~= 0 and loadable ~= false and loadable ~= 0 then return true end
   if type(GetNumAddOns) ~= "function" then return false end
   local count = GetNumAddOns()
   if type(count) ~= "number" then return false end

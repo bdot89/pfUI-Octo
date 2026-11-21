@@ -516,7 +516,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     -- (a new tab showed the kept lines, this one among them)
     if not fresh then Line(c, dir, text, t) end
     if wasHidden then
-      if UnitAffectingCombat("player") and S().combat == "fold" then H.folded = true WH.ApplyFold() end
+      if UnitAffectingCombat("player") and S().combat == "fold" then H.folded = true H.combatFolded = true WH.ApplyFold() end
       ShowHub()
     end
     -- a new whisper never takes the tab you are on: it is picked only when nothing is, or the window was shut
@@ -643,6 +643,8 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if fold == nil then fold = not H.folded end
     local was = H.folded
     H.folded = fold
+    -- (your own fold or unfold: the fight no longer decides)
+    H.combatFolded = nil
     WH.ApplyFold()
     -- unfolding goes to the oldest new message
     if was and not fold then
@@ -741,7 +743,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
         WH.Paint(c)
       end
       WH.queue = {}
-      if H and H.folded and H:IsShown() then WH.Fold(nil, false) end
+      -- (21 Nov 2026, Lobo: "with one minimized waiting for them to come back, and it pops up open again with no new
+      -- replies or me touching it") only a window folded BY the fight opens again when it ends, never one you folded
+      if H and H.folded and H.combatFolded and H:IsShown() then WH.Fold(nil, false) end
+      if H then H.combatFolded = nil end
       WH.Layout()
       return
     end

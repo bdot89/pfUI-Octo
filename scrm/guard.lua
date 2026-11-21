@@ -5,18 +5,44 @@
 --     pfUI, so both would run. pfUI switches that one off for the next login, once (chat-less way back: turn it
 --     on again in the add-on list and it is left alone - modules\thirdparty-vanilla.lua);
 --   - the client has no ClassicAPI 1.15.8 or newer: SuperCleveRoidMacros cannot finish loading without it.
+-- (21 Nov 2026, Lobo: with the separate SuperCleveRoidMacros on, "latest version wont load ... i turned off the
+-- original Supercleveroid and it solved it" - both copies had run, sharing one CleveRoids table.) A copy counts as on
+-- when it is enabled; only a game's outright "cannot load" (loadable false / 0) leaves it out - a missing answer no
+-- longer does. Both the add-on list and the two usual names are asked.
+local function pfUIOctoSCRMOn(name, enabled, loadable)
+  if not name or not enabled or enabled == 0 then return false end
+  if loadable == false or loadable == 0 then return false end
+  local n = string.lower(name)
+  return n ~= "pfui" and string.find(n, "cleveroid", 1, true) and true or false
+end
+pfUIOctoSCRMOn_ = pfUIOctoSCRMOn
 local function pfUIOctoSCRMOther()
-  if type(GetNumAddOns) ~= "function" or type(GetAddOnInfo) ~= "function" then return nil end
+  if type(GetAddOnInfo) ~= "function" then return nil end
+  for _, known in ipairs({ "SuperCleveRoidMacros", "CleveRoidMacros" }) do
+    local ok, name, _, _, enabled, loadable = pcall(GetAddOnInfo, known)
+    if ok and pfUIOctoSCRMOn(name, enabled, loadable) then return name end
+  end
+  if type(GetNumAddOns) ~= "function" then return nil end
   local count = GetNumAddOns()
   if type(count) ~= "number" then return nil end
   for i = 1, count do
     local name, _, _, enabled, loadable = GetAddOnInfo(i)
-    if name and enabled and loadable then
-      local n = string.lower(name)
-      if n ~= "pfui" and string.find(n, "cleveroid", 1, true) then return name end
-    end
+    if pfUIOctoSCRMOn(name, enabled, loadable) then return name end
   end
   return nil
+end
+-- (safety net) a separate copy that loads anyway after ours: it is switched off for the next login and chat asks for
+-- a /reload (the two must never stay mixed); modules\thirdparty-vanilla.lua says it
+if type(CreateFrame) == "function" then
+  local watch = CreateFrame("Frame")
+  watch:RegisterEvent("ADDON_LOADED")
+  watch:SetScript("OnEvent", function()
+    if not pfUIOctoSCRM or type(arg1) ~= "string" then return end
+    local n = string.lower(arg1)
+    if n == "pfui" or not string.find(n, "cleveroid", 1, true) then return end
+    pfUIOctoSCRMClash = arg1
+    if type(DisableAddOn) == "function" then pcall(DisableAddOn, arg1) end
+  end)
 end
 pfUIOctoSCRMStandalone = pfUIOctoSCRMOther()
 pfUIOctoSCRMReady = type(CLASSIC_API_VERSION) == "number" and CLASSIC_API_VERSION >= 11508

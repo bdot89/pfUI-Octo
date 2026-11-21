@@ -957,6 +957,13 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
         .. other .. ") is switched off from your next login and pfUI's takes over. To keep using yours, tick it again in "
         .. "the add-on list - pfUI leaves it alone after that.")
     end
+    -- (21 Nov 2026, Lobo) both copies loaded after all (scrm\guard.lua's safety net switched the separate one off)
+    local clash = _G.pfUIOctoSCRMClash
+    if clash then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: two copies of SuperCleveRoidMacros were loaded - pfUI's and your "
+        .. "separate " .. clash .. ". The separate one is now switched off: type |cffffd100/reload|r to finish. (To use yours "
+        .. "instead, switch pfUI's off: tick " .. clash .. " again and pfUI's stays out of the way.)")
+    end
   end
   local scrmLogin = CreateFrame("Frame")
   scrmLogin:RegisterEvent("PLAYER_LOGIN")

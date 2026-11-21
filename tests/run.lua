@@ -2536,6 +2536,26 @@ do
       ok(hub.page:IsShown() and wf.msg:IsShown(), "and unfolds")
       WHm.Close("Jaina")
       ok(not wf:IsShown() and not hub:IsShown(), "and closes with its last tab")
+      -- (21 Nov 2026, Lobo: folded "and it pops up open again with no new replies or me touching it") a fight's end
+      -- opens only a window the fight folded, never one you folded
+      do
+        WHm.OnEvent("CHAT_MSG_WHISPER", "hi", "Jaina")
+        WHm.Fold(nil, true)
+        WHm.OnEvent("PLAYER_REGEN_ENABLED")
+        ok(hub.folded, "folded by you: still folded after a fight")
+        WHm.Close("Jaina")
+        local combatWas2, keepC = _G.UnitAffectingCombat, ws.combat
+        ws.combat = "fold"
+        hub.folded = false
+        _G.UnitAffectingCombat = function() return true end
+        WHm.OnEvent("CHAT_MSG_WHISPER", "inc", "Jaina")
+        _G.UnitAffectingCombat = combatWas2
+        ok(hub.folded and hub.combatFolded, "a whisper in a fight opens it folded")
+        WHm.OnEvent("PLAYER_REGEN_ENABLED")
+        ok(not hub.folded, "and the fight's end opens it")
+        ws.combat = keepC
+        WHm.Close("Jaina")
+      end
       -- in combat: waits until the fight ends
       ws.combat = "wait"
       local combatWas = UnitAffectingCombat

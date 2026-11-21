@@ -38,6 +38,16 @@ do
   list = {}
   Run()
   ok(pfUIOctoSCRMSkip and not pfUIOctoSCRMReady, "ClassicAPI older than 1.15.8: steps aside")
+  -- (21 Nov 2026, Lobo: both copies ran with the separate one on) enabled is enough to count; only an outright
+  -- "cannot load" leaves it out
+  local On = pfUIOctoSCRMOn_
+  ok(On and On("SuperCleveRoidMacros", 1, nil) and On("SuperCleveRoidMacros", true, true) and not On("SuperCleveRoidMacros", nil, 1)
+    and not On("SuperCleveRoidMacros", 1, false) and not On("pfUI", 1, 1) and not On("Cursive", 1, 1),
+    "a separate copy counts when enabled, even without a 'loadable' answer")
+  rawset(_G, "CLASSIC_API_VERSION", 11508)
+  list = { { "pfUI", 1, 1 }, { "SuperCleveRoidMacros", 1, nil } }
+  Run()
+  ok(pfUIOctoSCRMSkip and pfUIOctoSCRMStandalone == "SuperCleveRoidMacros", "so ours steps aside for it")
   rawset(_G, "CLASSIC_API_VERSION", keep.v)
   _G.GetNumAddOns, _G.GetAddOnInfo = keep.GetNumAddOns, keep.GetAddOnInfo
   Run()
