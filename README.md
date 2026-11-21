@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.10
+
+- ⏸️ **OctoProcs is taken out for now:** it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it.
+
 ## 📜 New in 1.2.9
 
 - ⏳ **Auction lengths are this server's:** the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest "time left" now reads "over 8 h".

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.10", {
+    { "OctoProcs is taken out for now", "it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it." },
+  } },
   { "1.2.9", {
     { "Auction lengths are this server's", "the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest \"time left\" now reads \"over 8 h\"." },
     { "Exact deposit", "the deposit shown when you post is now the same sum the game's own auction window uses, per stack." },
@@ -176,9 +179,5 @@ pfUI.octoNotes = {
   { "1.1.71", {
     { "Profile import no longer goes dead", "The Import button stays clickable, and a line above it says why a string can't go in yet. If the string is cut short (Discord splits long messages), it tells you to copy all of it or send it as a file. A string pasted with Discord's code block around it now imports too." },
     { "Profile strings read and write better", "A setting with a line break in it used to break the whole string, and now it comes through. One odd line is left out instead of refusing everything. Lists (totem sets, consumables lists, roll rules) keep their order when you share them." },
-  } },
-  { "1.1.70", {
-    { "OctoTotems set editor", "the preview on the Bars and Sets pages is now a fixed grid, one row per element with every totem as an icon. Click one to put it in the set, click it again to take it out, and right-click to hide it on your bars. Nothing grows or shrinks when you hover. The chips on top pick which set you edit (green = the one your key throws). Reset set empties it so you can pick a new one, and New set, Make active and Throw it sit right under it." },
-    { "The line under each page's big title no longer runs under the Find box", "It stops before it, a too-long line is cut with \"...\" (hover it for the whole text), and the longest lines (OctoTotems, OctoDoTs, Auctions) were made shorter so they show whole." },
   } },
 }
