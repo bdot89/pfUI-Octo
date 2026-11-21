@@ -2271,7 +2271,7 @@ do
     Win(w, 368, 496, 628, 336)
     local snapped = ME.Snap(w)
     local p = w.points and w.points[1]
-    ok(snapped and p and p[4] == 362 and p[5] == 500, "dropped near another window: borders touch, tops lined up (" ..
+    ok(snapped and p and p[4] == 362 and p[5] == 500 - GetScreenHeight(), "dropped near another window: borders touch, tops lined up (" ..
       tostring(p and p[4]) .. ", " .. tostring(p and p[5]) .. ")")
     -- the user's screenshot: one dropped on top of another, 14 px to the left and its
     -- border over the other's title -> in line and touching (9 Nov 2026)
@@ -2279,7 +2279,7 @@ do
     Win(w, 100, 500, 360, 298)
     snapped = ME.Snap(w)
     p = w.points and w.points[1]
-    ok(snapped and p and p[4] == 114 and p[5] == 504, "stacked: left edges in line, borders touching, no overlap (" ..
+    ok(snapped and p and p[4] == 114 and p[5] == 504 - GetScreenHeight(), "stacked: left edges in line, borders touching, no overlap (" ..
       tostring(p and p[4]) .. ", " .. tostring(p and p[5]) .. ")")
     -- far away: left alone
     Win(w, 700, 900, 960, 700)
@@ -7131,15 +7131,80 @@ do
     M.GroupStart(a)
     a.pos = { 150, 80 } -- dragged 50 right, 20 down
     M.GroupFollow(a, true)
-    local _, _, _, bx, by = b:GetPoint(1)
+    -- (21 Nov 2026) saved by their top-left corner against the screen's top-left
+    local bp, _, _, bx, by = b:GetPoint(1)
     local _, _, _, cx, cy = c:GetPoint(1)
-    ok(bx and math.abs(bx - (350 + 2 * e)) < .01 and math.abs(by - 80) < .01 and cx and math.abs(cy - (200 + 2 * e)) < .01,
+    local SH = GetScreenHeight()
+    ok(bp == "TOPLEFT" and bx and math.abs(bx - (350 + 2 * e)) <= .5 and math.abs(by - (80 + 120 - SH)) <= .5 and cx
+      and math.abs(cy - (200 + 2 * e + 60 - SH)) <= .5,
       "dragging one moves the others with it (" .. tostring(bx) .. ", " .. tostring(by) .. ")")
     pfUI_config.meters.snapgroup = "0"
     M.GroupStart(a)
     ok(a.followers == nil, "switched off: a window moves alone")
     ok(keepG == "0" and pfUI_config.meters.snapgroupreset == "1", "moving together is off after load (" .. tostring(keepG) .. ")")
     M.windows, pfUI_config.meters.snapgroup = keepW, keepG
+  end
+end
+
+-- (21 Nov 2026, Javelin: Damage Done and Threat placed side by side and locked "keep breaking their positions")
+do
+  local M = pfUI.meters
+  if M and M.Pin and M.TopLeft and M.FixOldSnap then
+    local SH = GetScreenHeight()
+    local function Win(name, w, h)
+      local f = CreateFrame("Frame", name, UIParent)
+      f:SetWidth(w) f:SetHeight(h)
+      f.free = true
+      f.GetNumPoints = function() return f.points and table.getn(f.points) or 0 end
+      return f
+    end
+    local function Top(f) local l, t = M.TopLeft(f) return l, t end
+    local a, b = Win("pfTestPinA", 200, 120), Win("pfTestPinB", 180, 200)
+    -- A dropped by a drag (bottom-left on the screen), B snapped beside it (top-left on the screen's bottom-left)
+    a:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 100, 600)
+    M.Pin(a)
+    b:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 300, 720)
+    M.Pin(b)
+    local pa, pb = pfUI_config.position.pfTestPinA, pfUI_config.position.pfTestPinB
+    ok(pa.anchor == "TOPLEFT" and pa.xpos == 100 and pa.ypos == 720 - SH and pb.anchor == "TOPLEFT" and pb.xpos == 300
+      and pb.ypos == 720 - SH, "side-by-side windows are saved by their top-left corners, tops level ("
+      .. tostring(pa.ypos) .. ", " .. tostring(pb.ypos) .. ")")
+    -- locked, then reloaded: the saved spot is put back and saved again unchanged
+    for _, f in ipairs({ a, b }) do
+      pfUI_config.meters["win" .. (f == a and 1 or 2)] = pfUI_config.meters["win" .. (f == a and 1 or 2)] or {}
+      f:ClearAllPoints()
+      pfUI.api.LoadMovable(f)
+      M.Pin(f)
+    end
+    local la, ta = Top(a)
+    local lb, tb = Top(b)
+    ok(pa.xpos == 100 and pa.ypos == 720 - SH and pb.xpos == 300 and pb.ypos == 720 - SH and la == 100 and lb == 300
+      and ta == 720 and tb == 720, "after a reload both are where they were dropped (" .. tostring(ta) .. ", " .. tostring(tb) .. ")")
+    -- the windows fit their lines: growing or shrinking keeps the top where it is
+    a:SetHeight(300) b:SetHeight(40)
+    M.Pin(a) M.Pin(b)
+    la, ta = Top(a) lb, tb = Top(b)
+    ok(ta == 720 and tb == 720 and la == 100 and lb == 300 and pa.ypos == 720 - SH and pb.ypos == 720 - SH,
+      "growing and shrinking keeps the tops level (" .. tostring(ta) .. ", " .. tostring(tb) .. ")")
+    -- moved in layout mode (saved by the screen third's point, here the centre): its top-left is kept
+    a:ClearAllPoints()
+    a:SetPoint("CENTER", UIParent, "CENTER", -760, 30)
+    a:SetHeight(300)
+    local wantL, wantT = 960 - 760 - 100, 540 + 30 + 150
+    M.Pin(a)
+    la, ta = Top(a)
+    ok(pa.anchor == "TOPLEFT" and la == wantL and ta == wantT, "a layout mode drop is saved by its top-left (" .. tostring(la) .. ", " .. tostring(ta) .. ")")
+    -- a window locked onto another frame in layout mode is left as it is
+    pa.attach = "pfTestPinB"
+    local x0 = pa.xpos
+    a:ClearAllPoints() a:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 5, 5)
+    M.Pin(a)
+    ok(pa.xpos == x0 and pa.attach == "pfTestPinB", "a window locked onto another frame keeps that")
+    -- an older snap's save (measured from the bottom) is moved onto the screen
+    local old = { anchor = "TOPLEFT", xpos = 300, ypos = 720 }
+    ok(M.FixOldSnap(b, old) and old.ypos == 720 - SH and not M.FixOldSnap(b, { anchor = "TOPLEFT", xpos = 1, ypos = -5 }),
+      "an older snapped save comes back where it was (" .. tostring(old.ypos) .. ")")
+    pfUI_config.position.pfTestPinA, pfUI_config.position.pfTestPinB = nil, nil
   end
 end
 

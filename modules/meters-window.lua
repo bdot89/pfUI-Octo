@@ -1495,8 +1495,69 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     local k = Scale(win)
     win:ClearAllPoints()
     win:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", L + dx / k, B + H + dy / k)
-    SaveMovable(win)
+    M.Pin(win)
     return true
+  end
+
+  -- (21 Nov 2026, Javelin: windows placed side by side and locked "keep breaking their positions") a window is
+  -- always saved by its TOP-LEFT corner against the screen's top-left. It was saved by whatever point the move left
+  -- (a drag: bottom-left; a snap: TOPLEFT on the screen's BOTTOMLEFT, which LoadMovable reloads on the screen's
+  -- TOPLEFT - above the screen; layout mode: the screen third's point), so a window fitting its lines grew or shrank
+  -- from the wrong edge and side-by-side windows came apart. Worked out from the point itself, not from GetLeft /
+  -- GetTop, so it also works before the client has placed the window.
+  -- how far up the window its point is (BOTTOM* 0, TOP* its height, else half)
+  local function Along(p, size)
+    if string.find(p, "BOTTOM") then return 0 end
+    if string.find(p, "TOP") then return size end
+    return size / 2
+  end
+  -- the window's left and top (its own units, from the screen's bottom-left), or nil when it hangs on another frame
+  function M.TopLeft(win)
+    if not win or not win.GetPoint or (win.GetNumPoints and win:GetNumPoints() > 1) then return end
+    local a, rel, rp, x, y = win:GetPoint(1)
+    if not a then return end
+    if type(rel) ~= "table" and type(rel) ~= "string" then rel, rp, x, y = UIParent, a, rel, rp end -- SetPoint(point, x, y)
+    if type(rel) == "string" then rel = _G[rel] end
+    if rel ~= UIParent then return end
+    local f = 1 / ((win.GetScale and win:GetScale()) or 1)
+    local SW, SH = GetScreenWidth() * f, GetScreenHeight() * f
+    local w, h = win:GetWidth() or 0, win:GetHeight() or 0
+    rp = rp or a
+    local px = (string.find(rp, "LEFT") and 0) or (string.find(rp, "RIGHT") and SW) or SW / 2
+    local py = (string.find(rp, "BOTTOM") and 0) or (string.find(rp, "TOP") and SH) or SH / 2
+    local left = px + (tonumber(x) or 0) - (string.find(a, "LEFT") and 0 or string.find(a, "RIGHT") and w or w / 2)
+    local top = py + (tonumber(y) or 0) + (h - Along(a, h))
+    return left, top, SH
+  end
+  -- put it there by its top-left corner and save that; left / top as M.TopLeft gives them (default: where it is)
+  function M.PinAt(win, left, top)
+    if not win or not win.free then return end
+    local pos = C.position and C.position[win:GetName()]
+    if pos and pos.attach then return end -- locked onto another frame in layout mode: that stays
+    local _, _, SH = M.TopLeft(win)
+    if not SH then
+      local f = 1 / ((win.GetScale and win:GetScale()) or 1)
+      SH = GetScreenHeight() * f
+    end
+    if not (left and top) then return end
+    local x, y = round(left), round(top - SH)
+    win:ClearAllPoints()
+    win:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    SaveMovable(win)
+    return x, y
+  end
+  -- an older snap's save (TOPLEFT measured from the screen's bottom) measured from the top, as LoadMovable reads it
+  function M.FixOldSnap(win, saved)
+    if saved and saved.xpos and not saved.attach and (saved.anchor or "TOPLEFT") == "TOPLEFT" and (tonumber(saved.ypos) or 0) > 0 then
+      local f = 1 / ((tonumber(saved.scale) or (win and win:GetScale()) or 1))
+      saved.ypos = round(saved.ypos - GetScreenHeight() * f)
+      return true
+    end
+  end
+  function M.Pin(win)
+    local left, top = M.TopLeft(win)
+    if left then return M.PinAt(win, left, top) end
+    if win and win.free then SaveMovable(win) end
   end
 
   -- (11 Nov 2026, Wolfahrt: "a way to move 2 windows together") windows snapped flush
@@ -1560,7 +1621,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       local ko = Scale(o)
       o:ClearAllPoints()
       o:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", (l * k + dx) / ko, (b * k + dy) / ko)
-      if save then SaveMovable(o) end
+      if save then M.Pin(o) end
     end
     if save then win.followers = nil end
   end
@@ -2077,6 +2138,10 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if not saved then
       win:SetPoint("CENTER", UIParent, "CENTER", M.HomeX(id), M.HomeY(id))
     end
+    -- (21 Nov 2026) a snapped window was saved as TOPLEFT on the screen's BOTTOMLEFT, and LoadMovable reads that
+    -- as TOPLEFT on the screen's TOPLEFT (above the screen): measured from the bottom, so it moves down by the
+    -- screen's height
+    M.FixOldSnap(win, saved)
     -- (with no saved spot this is the window's default from now on: pfUI
     -- keeps the first spot it saw and layout mode put a reset window back
     -- there - off the screen, 24 Oct 2026)
@@ -2084,6 +2149,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if S(win).lock == "1" then win.grip:Hide() else win.grip:Show() end
     if C.meters.hidden == "1" then win:Hide() else win:Show() end
     Refresh(win)
+    -- (21 Nov 2026) saved by another point (older saves, layout mode): now by its top-left at the height it fits
+    -- (a TOPLEFT one comes out the same)
+    if saved and saved.xpos and not saved.attach then M.Pin(win) end
     Lift(win)
   end
 
@@ -2276,6 +2344,8 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     win:SetResizable(true)
     win:SetMinResize(150, 60)
     win:SetClampedToScreen(true)
+    -- (21 Nov 2026) moved in layout mode: saved by its top-left too (unlock.lua calls OnMove after a drop)
+    win.OnMove = function(self) if M.Pin then M.Pin(self or win) end end
     win:EnableMouse(true)
     win:EnableMouseWheel(true)
     CreateBackdrop(win, nil, nil, .8)
@@ -2310,7 +2380,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         if M.groupMover then M.groupMover:Hide() end
         -- (a group keeps its shape: it is not snapped onto one of its own windows)
         if C.meters.snap ~= "0" and M.Snap and not win.followers then M.Snap(win) end
-        SaveMovable(win)
+        M.Pin(win)
         M.GroupFollow(win, true)
       end
     end
@@ -2487,7 +2557,7 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       win.sizing = nil
       S(win).width = tostring(floor(win:GetWidth()))
       S(win).height = tostring(floor(win:GetHeight()))
-      SaveMovable(win)
+      M.Pin(win)
       Refresh(win)
     end)
     win.grip:SetScript("OnUpdate", function()
