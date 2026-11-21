@@ -170,6 +170,7 @@
   <Include file="..\modules\bulwark-options.lua"/>
   <Include file="..\modules\flight.lua"/>
   <Include file="..\modules\flight-options.lua"/>
+  <Include file="..\modules\worldbuffs.lua"/>
   <Include file="..\modules\demo.lua"/>
   <Include file="..\modules\demo-options.lua"/>
   <Include file="..\modules\auction.lua"/>

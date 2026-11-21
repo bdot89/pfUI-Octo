@@ -46,6 +46,27 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
         { "Demo mode page", "All demos and their settings", "Interface\\Icons\\INV_Misc_Spyglass_03", function() O:Open("demo") end, "open" },
       })
     end
+    -- (21 Nov 2026, Bread: "keeps track of when world buffs are going to go off and what buff it is")
+    if C.worldbuffs then
+      W.Card(p, "World buffs", { icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", tip = "When a head is handed in (Onyxia, Nefarian, "
+        .. "Rend, Hakkar), a bar counts down to the buff landing, with its name and where. Passed on to your guild and group "
+        .. "with pfUI Octo, so you see it anywhere. /wb lists the last drops." })
+      local function WChk(label, desc, key) return Chk(p, label, desc, "worldbuffs", nil, key, function() end) end
+      WChk("World buff warnings", "A bar with the buff, where it lands and the seconds to it. Takes a reload to switch on or off.", "enable")
+      WChk("Popup", "A line in the middle of the screen when a drop starts.", "popup")
+      WChk("Sound", "The raid warning sound when a drop starts.", "sound")
+      WChk("Tell my guild and group", "Pass the drops you hear on to guild and group members with pfUI Octo, and see theirs.", "share")
+      W.Live(p, function()
+        local WBm = pfUI.worldbuffs
+        if not WBm then return "|cff888888Needs a full restart of the game once (new file).|r" end
+        local parts = {}
+        for _, d in ipairs(WBm.DROPS) do
+          local secs, learnt = WBm.Delay(d)
+          table.insert(parts, d.what .. " (" .. d.zone .. ") " .. secs .. " s" .. (learnt and "" or "*"))
+        end
+        return "|cff888888Seconds from the yell to the buff:|r " .. table.concat(parts, ", ") .. "  |cff888888* a guess until it lands on you once|r"
+      end)
+    end
     W.Card(p, "Vendor and loot")
     Chk(p, "Auto sell grey items", "Grey items are sold when you open a vendor.", "global", nil, "autosell")
     Chk(p, "Auto repair", "Everything is repaired when you open a vendor that repairs.", "global", nil, "autorepair")
@@ -59,6 +80,10 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     W.Card(p, "Map and tooltips")
     Chk(p, "Reveal the whole map", "Areas you have not been to show on the world map.", "appearance", "worldmap", "mapreveal")
     Chk(p, "Map exploration points", "Marks the spots that count for exploration.", "appearance", "worldmap", "mapexploration")
+    -- (21 Nov 2026, Lo5t1ncyb3r: Magnify built in)
+    Chk(p, "Zoom into the world map", "Mouse wheel over the map zooms in where the cursor is (up to 4x), drag moves the "
+      .. "view, a new zone starts whole again (Magnify built in). Shift + wheel: map opacity, Ctrl + wheel: window size. "
+      .. "Steps aside when Magnify, Cartographer or MetaMap is loaded. Takes a reload.", "appearance", "worldmap", "zoom")
     Chk(p, "Boats and zeppelins on the map", "Where each boat and zeppelin is right now, worked out from its route. "
       .. "It gets exact once you or a guild / group member with pfUI Octo sees one move (ClassicAPI).", "appearance", "worldmap", "transports", function() end)
     Chk(p, "Never open the battle map", "The game's small zone map (Shift-M) pops up by itself whenever the server "
