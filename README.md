@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.13
+
+- 🧩 **Pick your parts when you install:** the installer has a new "Which parts do you want?" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run `/pfui install` to see it.
+- ✉️ **A tidier Send tab:** the money controls have their own panel, so nothing overlaps. A line under the amount says what will happen ("They pay 5g for each of the 3 mails"), and Clear and a bigger Send button sit in their own column.
+
 ## 📜 New in 1.2.12
 
 - 📣 **Breakdown reports work from every tab:** reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error.

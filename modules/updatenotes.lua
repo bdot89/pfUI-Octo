@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.13", {
+    { "Pick your parts when you install", "the installer has a new \"Which parts do you want?\" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run /pfui install to see it." },
+    { "A tidier Send tab", "the money controls have their own panel, so nothing overlaps. A line under the amount says what will happen (\"They pay 5g for each of the 3 mails\"), and Clear and a bigger Send button sit in their own column." },
+  } },
   { "1.2.12", {
     { "Breakdown reports work from every tab", "reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error." },
     { "The Report menu is on top", "it opens over the breakdown window instead of behind it." },
@@ -175,8 +179,5 @@ pfUI.octoNotes = {
   { "1.1.74", {
     { "OctoTotems error fixed", "the shield / weapon imbue reminder button had no font for its timer, so \"octototems.lua:952: Font not set\" repeated over and over. Every totem button now gets its font when it is made." },
     { "Website download fixed", "the Download ZIP button works again (the newest releases had the zip under another name)." },
-  } },
-  { "1.1.73", {
-    { "Leftovers go up fast", "after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The \"in your bags\" count now stays right after a post too." },
   } },
 }
