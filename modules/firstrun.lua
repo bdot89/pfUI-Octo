@@ -300,6 +300,175 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
     return f
   end, T["Layout"])
 
+  -- (21 Nov 2026, user with another add-on's onboarding: "i like this option ... when first loading the addon up
+  -- after install") which of pfUI Octo's own parts you want, as tiles: click one to turn it on or off. Ideas only, our
+  -- look: icon, name, one line, a tick in the corner, lit in the accent when on. Off = C.disabled[mod] (the same
+  -- switch as the options' power dots) or the part's own setting; the last step's reload applies them.
+  -- { module or setting, title, line, icon }; set = { group, key, on value, off value }
+  pfUI.firstrun.PARTS = {
+    { mod = "meters", "Meters", "Damage, healing and threat windows with full breakdowns.", "Ability_Marksmanship" },
+    { mod = "sct", "Combat Text", "Your damage and heals scrolling round you and on nameplates.", "Spell_Fire_FlameBolt" },
+    { mod = "swing", "Swing Timer", "Your swings and shots as bars, with Slam and twist marks.", "INV_Sword_04" },
+    { mod = "cdm", "CoolDownManager", "Your cooldowns on bars that glow when they are ready.", "INV_Misc_PocketWatch_01" },
+    { mod = "dots", "OctoDoTs", "Every DoT and debuff on every mob, with timers.", "Spell_Shadow_AbominationExplosion" },
+    { mod = "rinse", "OctoRinse", "One button to cure your group, boss by boss.", "Spell_Holy_DispelMagic" },
+    { mod = "octototems", "OctoTotems", "Totem bars, sets, timers and smart heals for shamans.", "Spell_Nature_StoneSkinTotem" },
+    { mod = "consumes", "OctoConsumes", "Tells you which flask, food or oil is missing.", "INV_Potion_62" },
+    { mod = "gear", "ItemRack", "Gear sets, slot buttons, a trinket queue and talent specs.", "INV_Chest_Plate06" },
+    { mod = "octolazy", "OctoLazy", "Rolls by your rules, accepts invites, skips gossip.", "Spell_Holy_SealOfSalvation" },
+    { mod = "auction", "Auction House", "Fast searches, prices, shopping lists and a ledger.", "INV_Misc_Coin_01" },
+    { mod = "mail", "Mailbox", "Collect all that never stalls, many items in one go.", "INV_Letter_15" },
+    { mod = "bagcategories", "Bag Categories", "Your bags sorted into groups: gear, food, herbs...", "INV_Misc_Bag_08" },
+    { mod = "lootfilter", "Loot Filter", "Leaves the loot you never want behind.", "INV_Misc_Coin_02" },
+    { set = { "autoloot", "enable", "1", "0" }, "Auto Loot", "Loots every corpse around you after a fight.", "INV_Misc_Bag_10_Blue" },
+    { set = { "worldbuffs", "enable", "1", "0" }, "World Buffs", "A countdown for Onyxia, Nefarian, Rend and Hakkar buffs.", "INV_Misc_Head_Dragon_01" },
+    { set = { "flight", "enable", "1", "0" }, "Flight Timer", "How long your flight takes, as a bar.", "INV_Feather_01" },
+    { set = { "appearance.worldmap", "transports", "1", "0" }, "Boats & Zeppelins", "Where every boat, zeppelin and the tram is on the map.", "INV_Misc_Map_01" },
+    { set = { "raidtools", "show", "lead", "never" }, "Raid Tools", "Ready check, pull timer and marks when you lead.", "Ability_Warrior_BattleShout" },
+    { mod = "chat-whispers", "Whisper Window", "Your whispers in a window of their own, one tab each.", "INV_Scroll_03" },
+    { mod = "demo", "Demo Mode", "Try every frame in a made-up raid, dungeon or battleground.", "INV_Misc_Key_03" },
+    { mod = "art", "Art", "Crests and dragons on frames and nameplates.", "INV_Misc_Gem_Variety_01" },
+  }
+  -- the settings table of "a.b" (nil when missing)
+  local function Group(path)
+    local t = C
+    for part in string.gfind(path, "[^%.]+") do t = t and t[part] end
+    return t
+  end
+  function pfUI.firstrun.PartOn(p)
+    if p.mod then return not (C.disabled and C.disabled[p.mod] == "1") end
+    local g = Group(p.set[1])
+    return g and g[p.set[2]] ~= p.set[4] and true or false
+  end
+  function pfUI.firstrun.SetPart(p, on)
+    if p.mod then
+      C.disabled = C.disabled or {}
+      C.disabled[p.mod] = on and "0" or "1"
+    else
+      local g = Group(p.set[1])
+      if g then g[p.set[2]] = on and p.set[3] or p.set[4] end
+    end
+  end
+  -- someone who finished the installer before this step existed is not shown it on its own (/pfui install shows it)
+  if pfUI_init and pfUI_init.finalize and pfUI_init.modules == nil then pfUI_init.modules = true end
+
+  pfUI.firstrun:AddStep("modules", function()
+    local f = CreateFirstRunPage(T["Which parts do you want?"])
+    f.text:SetText(T["Click a part to turn it on or off. Everything can be changed later in the options."])
+    f.text:SetHeight(20)
+    -- a bigger page for the tiles
+    f:SetWidth(920)
+    f:SetHeight(560)
+    f.content:ClearAllPoints()
+    f.content:SetPoint("TOPLEFT", f.side, "TOPRIGHT", 10, -56)
+    f.content:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -10, 44)
+    local ar, ag, ab = GetAccentColor()
+    local PARTS = pfUI.firstrun.PARTS
+    f.want = {}
+    for i, p in ipairs(PARTS) do f.want[i] = pfUI.firstrun.PartOn(p) end
+    local COLS, W, H, GAP = 4, 180, 62, 6
+    f.tiles = {}
+    local function Paint(t)
+      local on = f.want[t.i]
+      if on then
+        (t.backdrop or t):SetBackdropBorderColor(ar, ag, ab, 1)
+        t.name:SetTextColor(ar, ag, ab, 1)
+        t.tick:SetVertexColor(ar, ag, ab, 1)
+        t.mark:Show()
+        t.icon:SetDesaturated(nil)
+        t.icon:SetAlpha(1)
+        t.line:SetTextColor(.8, .8, .8, 1)
+      else
+        (t.backdrop or t):SetBackdropBorderColor(.25, .25, .27, 1)
+        t.name:SetTextColor(.55, .55, .55, 1)
+        t.tick:SetVertexColor(.2, .2, .22, 1)
+        t.mark:Hide()
+        if t.icon.SetDesaturated then t.icon:SetDesaturated(1) end
+        t.icon:SetAlpha(.45)
+        t.line:SetTextColor(.45, .45, .45, 1)
+      end
+    end
+    local function Count()
+      local n = 0
+      for i = 1, table.getn(PARTS) do if f.want[i] then n = n + 1 end end
+      f.count:SetText(accent .. n .. "|r " .. T["of"] .. " " .. table.getn(PARTS) .. " " .. T["on"])
+    end
+    for i, p in ipairs(PARTS) do
+      local t = CreateFrame("Button", nil, f.content)
+      t.i = i
+      t:SetWidth(W)
+      t:SetHeight(H)
+      t:SetPoint("TOPLEFT", f.content, "TOPLEFT", math.mod(i - 1, COLS) * (W + GAP), -math.floor((i - 1) / COLS) * (H + GAP))
+      CreateBackdrop(t, nil, true, .85)
+      t.icon = t:CreateTexture(nil, "ARTWORK")
+      t.icon:SetTexture("Interface\\Icons\\" .. p[3])
+      t.icon:SetTexCoord(.08, .92, .08, .92)
+      t.icon:SetWidth(32)
+      t.icon:SetHeight(32)
+      t.icon:SetPoint("TOPLEFT", t, "TOPLEFT", 8, -8)
+      t.name = Font(t, C.global.font_size + 1)
+      t.name:SetPoint("TOPLEFT", t.icon, "TOPRIGHT", 8, 1)
+      t.name:SetPoint("RIGHT", t, "RIGHT", -24, 0)
+      t.name:SetJustifyH("LEFT")
+      t.name:SetText(T[p[1]])
+      t.line = t:CreateFontString(nil, "OVERLAY", "GameFontWhite")
+      t.line:SetFont(pfUI.font_default, C.global.font_size - 1, "")
+      t.line:SetPoint("TOPLEFT", t.name, "BOTTOMLEFT", 0, -3)
+      t.line:SetPoint("RIGHT", t, "RIGHT", -8, 0)
+      t.line:SetHeight(28)
+      t.line:SetJustifyH("LEFT")
+      t.line:SetJustifyV("TOP")
+      t.line:SetText(T[p[2]])
+      -- the tick in the corner: a square, filled in the accent when on
+      t.tick = t:CreateTexture(nil, "OVERLAY")
+      t.tick:SetTexture(1, 1, 1, 1)
+      t.tick:SetWidth(12)
+      t.tick:SetHeight(12)
+      t.tick:SetPoint("TOPRIGHT", t, "TOPRIGHT", -7, -7)
+      t.mark = t:CreateTexture(nil, "OVERLAY")
+      t.mark:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+      t.mark:SetWidth(18)
+      t.mark:SetHeight(18)
+      t.mark:SetPoint("CENTER", t.tick, "CENTER", 1, 0)
+      t.hl = t:CreateTexture(nil, "HIGHLIGHT")
+      t.hl:SetAllPoints()
+      t.hl:SetTexture(1, 1, 1, .05)
+      t:SetScript("OnClick", function()
+        f.want[this.i] = not f.want[this.i]
+        Paint(this)
+        Count()
+      end)
+      Paint(t)
+      f.tiles[i] = t
+    end
+    -- all on / all off and how many are on
+    local function All(on)
+      for i, t in ipairs(f.tiles) do f.want[i] = on Paint(t) end
+      Count()
+    end
+    f.allOn = Button(f, T["All on"], 80, function() All(true) end)
+    f.allOn:ClearAllPoints()
+    f.allOn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -94, -36)
+    f.allOff = Button(f, T["All off"], 80, function() All(false) end)
+    f.allOff:ClearAllPoints()
+    f.allOff:SetPoint("TOPRIGHT", f, "TOPRIGHT", -10, -36)
+    f.count = Font(f, C.global.font_size)
+    f.count:SetPoint("RIGHT", f.allOn, "LEFT", -12, 0)
+    Count()
+    f.NextScript = function()
+      local changed
+      for i, p in ipairs(PARTS) do
+        if pfUI.firstrun.PartOn(p) ~= f.want[i] then
+          pfUI.firstrun.SetPart(p, f.want[i])
+          changed = true
+        end
+      end
+      -- (the last step's Reload UI applies them)
+      if changed then pfUI.firstrun.partsChanged = true end
+    end
+    return f
+  end, T["Parts"])
+
   -- optimized cvars dialog
   pfUI.firstrun:AddStep("cvars", function()
     local f = CreateFirstRunPage(T["Game Settings"])
@@ -365,6 +534,9 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
   pfUI.firstrun:AddStep("finalize", function()
     local f = CreateFirstRunPage(T["Finished"])
     f.text:SetText(T["Your interface is now set up.\n\n|cffffffff/pfui|r opens the options, |cffffffff/moveui|r moves frames, |cffffffff/export|r shares your profile as a text string.\n\nHave a nice trip!"])
+    if pfUI.firstrun.partsChanged then
+      f.text:SetText(f.text:GetText() .. "\n\n" .. accent .. T["Reload now to turn the parts you picked on or off."] .. "|r")
+    end
     f.reload = Button(f, T["Reload UI"], 120, function() pfUI_init["finalize"] = true ReloadUI() end)
     f.reload:SetPoint("TOP", 0, -20)
     return f

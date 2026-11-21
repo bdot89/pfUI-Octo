@@ -602,7 +602,7 @@ end
 
 -- ---------------------------------------------------------------- phase 3: installer
 local FR = pfUI.firstrun
-ok(FR and FR.steps and table.getn(FR.steps) == 8, "installer has 8 steps (" .. (FR and table.getn(FR.steps) or 0) .. ")")
+ok(FR and FR.steps and table.getn(FR.steps) == 9, "installer has 9 steps (" .. (FR and table.getn(FR.steps) or 0) .. ")")
 if FR then
   -- the steps' actions need the real client: count them instead
   local did = {}
@@ -614,7 +614,7 @@ if FR then
   pfUI.chat.SetupChannels = function() did.channels = true end
   _G.pfUI_init = {}
   local shown = {}
-  for i = 1, 8 do
+  for i = 1, 9 do
     FR:NextStep()
     -- the page on screen is the newest shown frame with a .next button
     local page
@@ -625,7 +625,7 @@ if FR then
     table.insert(shown, page.name)
     page.next:GetScript("OnClick")()
   end
-  ok(table.getn(shown) == 8, "Next walks through every step (" .. table.concat(shown, ",") .. ")")
+  ok(table.getn(shown) == 9, "Next walks through every step (" .. table.concat(shown, ",") .. ")")
   ok(pfUI_init.finalize, "all steps marked done")
   ok(did.cvars and did.right and did.positions and did.channels, "ticked steps ran their setup")
   pfUI.SetupCVars = realCVars
@@ -643,6 +643,44 @@ if FR then
   if page then page.skip:GetScript("OnClick")() end
   ok(pfUI_init.chat_channels and pfUI_init.finalize, "Skip marks every step done")
 
+  -- (21 Nov 2026) "Which parts do you want?": tiles turn modules / settings on and off, applied on Next
+  _G.pfUI_init = { init = true, profile = true, layout = true }
+  FR:NextStep()
+  page = nil
+  for _, f in ipairs(Mock.frames) do if f.next and f.prev and f:IsShown() then page = f end end
+  ok(page and page.name == "modules" and page.tiles and table.getn(page.tiles) == table.getn(FR.PARTS), "the parts step shows a tile for each part")
+  if page and page.tiles then
+    local mi, si
+    for i, p in ipairs(FR.PARTS) do
+      if p.mod == "swing" then mi = i end
+      if p.set and p.set[1] == "worldbuffs" then si = i end
+    end
+    local keepDis, keepWB = pfUI_config.disabled.swing, pfUI_config.worldbuffs.enable
+    pfUI_config.disabled.swing, pfUI_config.worldbuffs.enable = "0", "1"
+    page.want[mi], page.want[si] = true, true
+    _G.this = page.tiles[mi] page.tiles[mi]:GetScript("OnClick")()
+    _G.this = page.tiles[si] page.tiles[si]:GetScript("OnClick")()
+    ok(pfUI_config.disabled.swing == "0", "a click alone changes nothing yet")
+    ok(page.count:GetText() and string.find(page.count:GetText(), "of " .. table.getn(FR.PARTS)), "it counts how many are on (" .. tostring(page.count:GetText()) .. ")")
+    page.next:GetScript("OnClick")()
+    ok(pfUI_config.disabled.swing == "1" and pfUI_config.worldbuffs.enable == "0" and FR.partsChanged,
+      "Next turns the unticked parts off (a module and a setting)")
+    ok(pfUI_init.modules, "the parts step is marked done")
+    pfUI_config.disabled.swing, pfUI_config.worldbuffs.enable = keepDis, keepWB
+    FR.partsChanged = nil
+    -- every part's module exists (a module name that is not registered would switch nothing)
+    local missing = {}
+    for _, p in ipairs(FR.PARTS) do
+      if p.mod then
+        local found
+        for _, m in ipairs(pfUI.modules or {}) do if m == p.mod then found = true end end
+        if not found and pfUI.module and pfUI.module[p.mod] then found = true end
+        if not found then table.insert(missing, p.mod) end
+      end
+    end
+    ok(table.getn(missing) == 0, "every part names a real module (" .. table.concat(missing, ", ") .. ")")
+  end
+
   -- healer layout centres the raid frames, DPS resets them
   FR.SetRaidLayout("HEALER")
   ok(pfUI_config.position.pfRaidCluster and pfUI_config.position.pfRaidCluster.anchor == "BOTTOM", "healer layout moves the raid frames to the middle")
@@ -652,7 +690,7 @@ if FR then
   -- /pfui install restarts it
   SlashCmdList.PFUI("install")
   ok(not pfUI_init.init, "/pfui install starts over")
-  _G.pfUI_init = { init = true, profile = true, layout = true, cvars = true, chat_right = true, chat_position = true, chat_channels = true, finalize = true }
+  _G.pfUI_init = { init = true, profile = true, layout = true, modules = true, cvars = true, chat_right = true, chat_position = true, chat_channels = true, finalize = true }
 end
 
 -- ---------------------------------------------------------------- phase 5: meters
