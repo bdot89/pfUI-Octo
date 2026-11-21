@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.9
+
+- ⏳ **Auction lengths are this server's:** the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest "time left" now reads "over 8 h".
+- 💰 **Exact deposit:** the deposit shown when you post is now the same sum the game's own auction window uses, per stack.
+- 📖 **`/db` opens the database window again:** search items, mobs, objects and quests. `/db help` lists the commands.
+
 ## 📜 New in 1.2.8
 
 - 🔍 **World map zoom fixed:** the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed.

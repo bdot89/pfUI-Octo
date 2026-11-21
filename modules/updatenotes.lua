@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.9", {
+    { "Auction lengths are this server's", "the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest \"time left\" now reads \"over 8 h\"." },
+    { "Exact deposit", "the deposit shown when you post is now the same sum the game's own auction window uses, per stack." },
+    { "/db opens the database window again", "search items, mobs, objects and quests. /db help lists the commands." },
+  } },
   { "1.2.8", {
     { "World map zoom fixed", "the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed." },
   } },
@@ -175,13 +180,5 @@ pfUI.octoNotes = {
   { "1.1.70", {
     { "OctoTotems set editor", "the preview on the Bars and Sets pages is now a fixed grid, one row per element with every totem as an icon. Click one to put it in the set, click it again to take it out, and right-click to hide it on your bars. Nothing grows or shrinks when you hover. The chips on top pick which set you edit (green = the one your key throws). Reset set empties it so you can pick a new one, and New set, Make active and Throw it sit right under it." },
     { "The line under each page's big title no longer runs under the Find box", "It stops before it, a too-long line is cut with \"...\" (hover it for the whole text), and the longest lines (OctoTotems, OctoDoTs, Auctions) were made shorter so they show whole." },
-  } },
-  { "1.1.69", {
-    { "OctoTotems, our own Call of Elements", "a new section for shamans. Four totem bars (fire, earth, water, air) side by side or each on its own, opening on hover, always or never, in any direction, with your own order and hidden totems. Each button shows its timer, a timer line, the cooldown in red once the totem is gone, a glow for the one that is down, red when you've walked out of its range, and a gold dot for the set's totems. Durations come from this server's own spell data (the 90 s Windfury Totem too)." },
-    { "Totem sets", "one key throws the next totem that isn't down (or is out of range, or about to run out). With nampower the whole set is queued on one press. Enemy players switch to their class's set, and a set named after a boss is picked when you target it. Ctrl-click a totem to put it in the set; right-click a bar for sets, throw, recall and options." },
-    { "Alerts and reminders", "10 / 5 seconds left, run out, destroyed, out of range, and \"all out of range - recall?\" with a glowing Totemic Recall button. Shield and weapon imbue reminders come with a button that puts them back on. The totem advisor lights Poison Cleansing, Disease Cleansing or Tremor when your group needs it." },
-    { "Smart heals", "battle heal and best heal keys heal the most hurt member of your group with the smallest rank that covers it. With SuperWoW it does this without changing your target." },
-    { "Earthen Bulwark is now part of OctoTotems", "and sticks under the totem bars at the same width (switch that off to place it anywhere)." },
-    { "ClassicAPI", "(real totem slots, early deaths, time left, usable/mana), nampower (whole set in one press) and SuperWoW / UnitXP (range from where each totem was dropped), each with a plain fallback. /totems (and /coe while Call of Elements isn't loaded). New files: restart the game fully once." },
   } },
 }
