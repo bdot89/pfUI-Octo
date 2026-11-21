@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.11", {
+    { "Meter windows stay where you put them", "windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them." },
+  } },
   { "1.2.10", {
     { "OctoProcs is taken out for now", "it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it." },
   } },
@@ -175,9 +178,5 @@ pfUI.octoNotes = {
   { "1.1.72", {
     { "Sell tab, quicker", "a 1 by 1 button lists every item on its own (stack size 1, as many as you have). Full stacks uses the biggest stack the item makes. Sliders under Stack size and Number of stacks let you drag or wheel the numbers, and the stacks slider only goes as far as your bags allow." },
     { "Spam Buyout", "keep clicking Buyout and it buys the picked auction and moves to the next one down. A click while the last buy is still going through now waits its turn instead of being refused, and the pick never jumps back to the one being bought." },
-  } },
-  { "1.1.71", {
-    { "Profile import no longer goes dead", "The Import button stays clickable, and a line above it says why a string can't go in yet. If the string is cut short (Discord splits long messages), it tells you to copy all of it or send it as a file. A string pasted with Discord's code block around it now imports too." },
-    { "Profile strings read and write better", "A setting with a line break in it used to break the whole string, and now it comes through. One odd line is left out instead of refusing everything. Lists (totem sets, consumables lists, roll rules) keep their order when you share them." },
   } },
 }

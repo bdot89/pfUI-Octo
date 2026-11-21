@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.11
+
+- 📌 **Meter windows stay where you put them:** windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them.
+
 ## 📜 New in 1.2.10
 
 - ⏸️ **OctoProcs is taken out for now:** it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it.
