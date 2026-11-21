@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.7", {
+    { "Zoom into the world map (Magnify built in)", "the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work." },
+    { "World buff timers", "when a head is handed in (Onyxia, Nefarian, Rend, Hakkar), a bar counts down to the buff landing, with its name, where it lands and the seconds left, plus a popup and a sound. Shared with your guild and group so you see it anywhere. /wb lists the last drops. A new file: restart the game fully once." },
+  } },
   { "1.2.6", {
     { "Built-in SuperCleveRoidMacros and pfQuest step aside properly", "with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload." },
     { "A folded whisper window stays folded", "it no longer pops open by itself when a fight ends. Only a window that folded itself for the fight opens again." },
@@ -179,8 +183,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.68", {
     { "Earthen Bulwark bar for tank shamans", "with Elemental Weapons and Rockbiter, a small movable bar shows how full your earthen bulwark is (the server's own integrity %) and about how much it holds (up to 20% of your max health). It turns bright with an 8 s timer line while it is absorbing, and says x3 while you wear a shield. Unit Frames > Earthen Bulwark or /bulwark. New file: restart the game fully once." },
-  } },
-  { "1.1.67", {
-    { "OctoDoTs: pick what shows", "at the top of the Target bar page, Show = Both, Bars only (no target bar) or Target bar only (the Cursive-style bars stay away and cost nothing; they still show in layout mode so you can move them)." },
   } },
 }

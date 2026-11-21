@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.7
+
+- 🔍 **Zoom into the world map (Magnify built in):** the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work.
+- 🐉 **World buff timers:** when a head is handed in (Onyxia, Nefarian, Rend, Hakkar), a bar counts down to the buff landing, with its name, where it lands and the seconds left, plus a popup and a sound. Shared with your guild and group so you see it anywhere. `/wb` lists the last drops. A new file: restart the game fully once.
+
 ## 📜 New in 1.2.6
 
 - 🧩 **Built-in SuperCleveRoidMacros and pfQuest step aside properly:** with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload.
