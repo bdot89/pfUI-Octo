@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-whispers", "chat-raid", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "procs", "procs-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
 
@@ -4266,7 +4266,7 @@ do
     -- (16 Nov 2026, user: "make the important ones be top of order dots are high up the combat list")
     -- (20 Nov 2026, user: OctoProcs "its own tab ... under cooldown manager")
     -- (17 Nov 2026, user: OctoRinse "top of the combat list")
-    ok(heads[1] == "UI layouts" and heads[2] == "Settings" and heads[3] == "Auctions" and heads[4] == "OctoLazy" and heads[5] == "Quality of Life" and heads[8] == "CoolDownManager" and heads[9] == "OctoProcs" and heads[10] == "Unit Frames" and heads[16] == "OctoRinse" and heads[17] == "OctoDoTs" and heads[18] == "OctoTotems" and heads[19] == "Meters" and heads[table.getn(heads)] == "About",
+    ok(heads[1] == "UI layouts" and heads[2] == "Settings" and heads[3] == "Auctions" and heads[4] == "OctoLazy" and heads[5] == "Quality of Life" and heads[8] == "CoolDownManager" and heads[9] == "Unit Frames" and heads[15] == "OctoRinse" and heads[16] == "OctoDoTs" and heads[17] == "OctoTotems" and heads[18] == "Meters" and heads[table.getn(heads)] == "About",
       "topic list in order of importance (" .. table.concat(heads, ", ") .. ")")
     local castTopic
     for _, grp in ipairs(O.groups) do
@@ -6857,7 +6857,7 @@ dofile(DIR .. "/tests/octousers.lua")
 dofile(DIR .. "/tests/updatepopup.lua")
 dofile(DIR .. "/tests/mail.lua")
 dofile(DIR .. "/tests/scrm.lua")
-dofile(DIR .. "/tests/procs.lua")
+-- dofile(DIR .. "/tests/procs.lua") -- OctoProcs parked 21 Nov 2026 (init\modules.xml)
 dofile(DIR .. "/tests/challenges.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)

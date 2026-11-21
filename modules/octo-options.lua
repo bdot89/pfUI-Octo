@@ -54,8 +54,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- same day: named CoolDownManager, under Interface
     { "CoolDownManager", { "CoolDownManager" } },
     -- (20 Nov 2026, user: ProcDoc "our own version ... its own tab on the right under cooldown manager highlighted the
-    -- same as" it) procs-options.lua
-    { "OctoProcs", { "OctoProcs" } },
+    -- same as" it) procs-options.lua. Parked 21 Nov 2026 until it is ready (init\modules.xml)
+    -- { "OctoProcs", { "OctoProcs" } },
     { "Unit Frames", { "Unit Frames", "Castbar" } },
     { "Nameplates", { "Nameplates" } },
     { "Action Bars", { "Action Bars", "Actionbar" } },
@@ -104,7 +104,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     -- combat list ... make important ones stand out") most used first in each group; O.FEATURED stand out
     -- (16 Nov 2026, user: "move ui layouts to the top of its section. Move cooldown manager to the top of its section")
     { "General", { "UI layouts", "Settings", "Auctions", "OctoLazy", "Quality of Life", "pfQuest", "Blizzard UI" } },
-    { "Interface", { "CoolDownManager", "OctoProcs", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
+    { "Interface", { "CoolDownManager", "Unit Frames", "Nameplates", "Action Bars", "Chat & Panels", "Minimap & Buffs", "Art & Extras" } },
     { "Combat & Items", { "OctoRinse", "OctoDoTs", "OctoTotems", "Meters", "ItemRack", "OctoConsumes", "Combat Text", "Swing Timer", "Bags & Loot", "Tooltip" } },
     { "More", { "Demo Mode", "Add-ons", "About" } },
   }
@@ -120,7 +120,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   -- the power dot beside a section: its parts pfUI Octo's (green) or the
   -- game's (red), from octo-blizzard's BZ.GROUPS; Gear = its module
-  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoProcs"] = { "procs", "OctoProcs" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" },
+  O.POWERMOD = { ["ItemRack"] = { "gear", "ItemRack" }, ["OctoConsumes"] = { "consumes", "OctoConsumes" }, ["CoolDownManager"] = { "cdm", "CoolDownManager" }, ["OctoDoTs"] = { "dots", "OctoDoTs" }, ["OctoRinse"] = { "rinse", "OctoRinse" }, ["OctoTotems"] = { "octototems", "OctoTotems" }, ["Auctions"] = { "auction", "The auction house" }, ["OctoLazy"] = { "octolazy", "OctoLazy" },
     -- (20 Nov 2026, user: "add on off switches here like the rest anything that can be turned off should be able to
     -- be done here") every section with a module of its own; pfQuest is built in and loads before any setting can
     -- stop it, and Blizzard UI, UI layouts, Settings, Add-ons and About are not things to switch off
@@ -858,7 +858,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "dots", "OctoDoTs", "dotgeneral", "General", "OctoDoTs" },
     { "consumes", "OctoConsumes", "consumes", "Tracker", "OctoConsumes" },
     { "cdm", "CoolDownManager", "cdmbars", "Bars", "CoolDownManager" },
-    { "procs", "OctoProcs", "procs", "Procs", "OctoProcs" },
+    -- { "procs", "OctoProcs", "procs", "Procs", "OctoProcs" }, (parked 21 Nov 2026)
     { "octolazy", "OctoLazy", "lzrolls", "Loot rolls", "OctoLazy" },
     { "auction", "Auctions", "auction", "Auction house", "The auction house" },
   }

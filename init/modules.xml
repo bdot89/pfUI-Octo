@@ -154,8 +154,11 @@
   <Include file="..\modules\consumes-options.lua"/>
   <Include file="..\modules\cdm.lua"/>
   <Include file="..\modules\cdm-options.lua"/>
+  <!-- OctoProcs parked (21 Nov 2026, user: "remove octo procs until its fully ready for release"): the files stay,
+       put these two lines back with the sidebar entry, O.STANDIN entry and tests\procs.lua to bring it back
   <Include file="..\modules\procs.lua"/>
   <Include file="..\modules\procs-options.lua"/>
+  -->
   <Include file="..\modules\dots-data.lua"/>
   <Include file="..\modules\dots.lua"/>
   <Include file="..\modules\dots-target.lua"/>

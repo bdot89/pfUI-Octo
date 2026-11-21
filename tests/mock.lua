@@ -521,10 +521,16 @@ function Mock.Files(dir, toc, skip)
     repeat path, n = string.gsub(path, "[^/%.]+/%.%./", "") until n == 0
     if string.find(path, "%.xml$") then
       local base = string.gsub(path, "[^/]*$", "")
+      -- lines inside <!-- --> are not loaded, as in the game (21 Nov 2026: OctoProcs parked that way)
+      local inComment = false
       for line in io.lines(dir .. "/" .. path) do
+        local open, close = string.find(line, "<!%-%-"), string.find(line, "%-%->")
+        local skipLine = inComment or open
+        if open and not (close and close > open) then inComment = true end
+        if inComment and close and not (open and close > open) then inComment = false skipLine = true end
         local _, _, inc = string.find(line, '<Include%s+file="([^"]+)"')
         if not inc then _, _, inc = string.find(line, '<Script%s+file="([^"]+)"') end
-        if inc then add(base .. inc) end
+        if inc and not skipLine then add(base .. inc) end
       end
     elseif string.find(path, "%.lua$") and not (skip and skip(path)) then
       table.insert(files, path)
