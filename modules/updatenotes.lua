@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.12", {
+    { "Breakdown reports work from every tab", "reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error." },
+    { "The Report menu is on top", "it opens over the breakdown window instead of behind it." },
+  } },
   { "1.2.11", {
     { "Meter windows stay where you put them", "windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them." },
   } },
@@ -174,9 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.73", {
     { "Leftovers go up fast", "after you post full stacks, the Sell tab reads your bags again and puts what's left into the stack size (36 Bronze Bars, one stack of 20 posted, and it's ready to post the 16 left), like aux does. If smaller stacks still fit, it just lowers the number of stacks. The \"in your bags\" count now stays right after a post too." },
-  } },
-  { "1.1.72", {
-    { "Sell tab, quicker", "a 1 by 1 button lists every item on its own (stack size 1, as many as you have). Full stacks uses the biggest stack the item makes. Sliders under Stack size and Number of stacks let you drag or wheel the numbers, and the stacks slider only goes as far as your bags allow." },
-    { "Spam Buyout", "keep clicking Buyout and it buys the picked auction and moves to the next one down. A click while the last buy is still going through now waits its turn instead of being refused, and the pick never jumps back to the one being bought." },
   } },
 }

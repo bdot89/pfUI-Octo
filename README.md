@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.12
+
+- 📣 **Breakdown reports work from every tab:** reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error.
+- 📋 **The Report menu is on top:** it opens over the breakdown window instead of behind it.
+
 ## 📜 New in 1.2.11
 
 - 📌 **Meter windows stay where you put them:** windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them.
