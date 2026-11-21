@@ -306,3 +306,40 @@ do
   for _, k in ipairs(names) do _G[k] = k3[k] end
   UI.clickWrapped = nil
 end
+
+-- (21 Nov 2026, user screenshot: "On the first mail" ran under Clear) the money controls are in their own panel,
+-- Clear / Send in a column of their own, and a line says what the amount will do
+do
+  local UI = pfUI.mail.ui
+  if UI and UI.payBox and UI.payHint then
+    local keepItems, keepMode, keepEach = M.items, UI.mode, pfUI_config.mail.codeach
+    ok(UI.each:GetParent() == UI.payBox and UI.cod:GetParent() == UI.payBox and UI.sendMoney:GetParent() == UI.payBox
+      and UI.go:GetParent() ~= UI.payBox and UI.clear:GetParent() ~= UI.payBox,
+      "C.O.D. and its options sit in the money panel, Clear and Send beside it")
+    local _, _, _, px = UI.payBox:GetPoint(2)
+    ok(px and -px >= UI.go:GetWidth() and UI.go:GetWidth() == UI.clear:GetWidth(), "the panel leaves room for the Clear / Send column")
+    _G.pfMail:Show()
+    UI.Open("send")
+    local function Hint() return UI.payHint:GetText() or "" end
+    UI.mode, M.items = "send", {}
+    UI.ClearCash()
+    UI.Refresh()
+    ok(string.find(Hint(), "Type an amount"), "no money typed: it says to type an amount (" .. Hint() .. ")")
+    UI.coins.g:SetText("5")
+    UI.Refresh()
+    ok(string.find(Hint(), "goes with the mail"), "money typed: it says it goes with the mail (" .. Hint() .. ")")
+    UI.mode = "cod"
+    UI.Refresh()
+    ok(string.find(Hint(), "needs an item") and not UI.each:IsShown(), "C.O.D. with no item says it needs one (" .. Hint() .. ")")
+    M.items = { { tex = "a", count = 1 }, { tex = "b", count = 1 } }
+    pfUI_config.mail.codeach = "0"
+    UI.Refresh()
+    ok(UI.each:IsShown() and string.find(Hint(), "first mail"), "C.O.D. on two mails: first one only, the switch shows (" .. Hint() .. ")")
+    pfUI_config.mail.codeach = "1"
+    UI.Refresh()
+    ok(string.find(Hint(), "each of the 2 mails"), "Charge every mail on: each one (" .. Hint() .. ")")
+    UI.ClearCash()
+    M.items, UI.mode, pfUI_config.mail.codeach = keepItems or {}, keepMode, keepEach
+    _G.pfMail:Hide()
+  end
+end

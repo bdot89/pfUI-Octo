@@ -453,9 +453,20 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   UI.body:SetScript("OnEditFocusLost", function() if this:GetText() == "" then UI.bodyHint:Show() end end)
 
   -- Amount to send: gold, silver, copper, each with its coin
-  local MB = CreateFrame("Frame", nil, SE)
-  MB:SetPoint("BOTTOMLEFT", SE, "BOTTOMLEFT", 0, 34)
-  MB:SetWidth(330)
+  -- (21 Nov 2026, user screenshot: "On the first mail" ran under Clear - the money row, the C.O.D. buttons and
+  -- Clear / Send were all on one line, wider than the window) one panel under the items like theirs: the amount on
+  -- the first line with a joined Send money | C.O.D. switch at its right end, a grey line under it saying what will
+  -- happen (and, for C.O.D. with many items, "Charge every mail"); Clear and Send stacked on the right.
+  UI.PAYW = 110 -- the Clear / Send column
+  local PB = CreateFrame("Frame", nil, SE)
+  UI.payBox = PB
+  PB:SetPoint("TOPLEFT", SE, "TOPLEFT", 0, -402)
+  PB:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", -(UI.PAYW + 8), 0)
+  Flat(PB, 1, .18)
+  PB:SetBackdropColor(.03, .03, .04, 1)
+  local MB = CreateFrame("Frame", nil, PB)
+  MB:SetPoint("TOPLEFT", PB, "TOPLEFT", 10, -7)
+  MB:SetWidth(300)
   MB:SetHeight(22)
   UI.moneyBox = MB
   local amt = Gold(Text(MB, 12))
@@ -470,6 +481,8 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     e:SetNumeric(true)
     e:SetMaxLetters(c[1] == "g" and 6 or 2)
     e:SetJustifyH("RIGHT")
+    -- (the line under it says what this amount will do)
+    e:SetScript("OnTextChanged", function() if UI.Refresh and UI.payHint then UI.Refresh() end end)
     local icon = MB:CreateTexture(nil, "OVERLAY")
     icon:SetTexture("Interface\\MoneyFrame\\UI-MoneyIcons")
     icon:SetTexCoord(c[3], c[3] + .25, 0, 1)
@@ -489,17 +502,24 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
   end
   function UI.ClearCash() for _, e in pairs(UI.coins) do e:SetText("") end end
   -- Send money / C.O.D., the lit one in use (the game's two round buttons)
-  UI.sendMoney = Btn(SE, "Send money", 104, function() UI.mode = "send" UI.Refresh() end,
-    "The money goes with the mail.")
-  UI.sendMoney:SetPoint("LEFT", MB, "RIGHT", 6, 0)
-  UI.cod = Btn(SE, "C.O.D.", 70, function() UI.mode = "cod" UI.Refresh() end,
+  UI.cod = Btn(PB, "C.O.D.", 76, function() UI.mode = "cod" UI.Refresh() end,
     "Cash on delivery: they pay this much to take the items.")
-  UI.cod:SetPoint("LEFT", UI.sendMoney, "RIGHT", 4, 0)
-  UI.each = Btn(SE, "On the first mail", 130, function()
+  UI.cod:SetPoint("TOPRIGHT", PB, "TOPRIGHT", -10, -7)
+  UI.sendMoney = Btn(PB, "Send money", 100, function() UI.mode = "send" UI.Refresh() end,
+    "The money goes with the mail.")
+  UI.sendMoney:SetPoint("RIGHT", UI.cod, "LEFT", 1, 0) -- joined: one switch of two halves
+  -- what will happen, in words
+  UI.payHint = Text(PB, 11)
+  UI.payHint:SetPoint("BOTTOMLEFT", PB, "BOTTOMLEFT", 10, 9)
+  UI.payHint:SetTextColor(.6, .6, .62)
+  UI.each = Btn(PB, "Charge every mail", 140, function()
     S().codeach = S().codeach == "1" and "0" or "1"
     UI.Refresh()
-  end, "With many items: cash on delivery on the first mail only, or on each one.")
-  UI.each:SetPoint("LEFT", UI.cod, "RIGHT", 4, 0)
+  end, "With many items each goes in its own mail. Lit: every one of them is cash on delivery. Off: only the first.")
+  UI.each:SetHeight(18)
+  UI.each:SetPoint("BOTTOMRIGHT", PB, "BOTTOMRIGHT", -10, 6)
+  UI.payHint:SetPoint("RIGHT", UI.each, "LEFT", -10, 0)
+  UI.payHint:SetJustifyH("LEFT")
 
   -- the suggestions under To
   UI.sugg = CreateFrame("Frame", nil, SE)
@@ -739,7 +759,10 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     if cod > 0 and table.getn(M.items) == 0 then UI.Note("Cash on delivery needs at least one item.") return end
     M.Send(UI.to:GetText(), UI.subj:GetText(), UI.body:GetText(), UI.mode == "cod" and 0 or money, cod, M.items, S().codeach == "1")
   end, "Sends it. With items: one mail for each, the text and money on the first.")
-  UI.go:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", 0, 33)
+  UI.go:SetPoint("BOTTOMRIGHT", SE, "BOTTOMRIGHT", 0, 0)
+  UI.go:SetWidth(UI.PAYW)
+  UI.go:SetHeight(32)
+  UI.go.text:SetFont(pfUI.font_default, 14, "")
   UI.clear = Btn(SE, "Clear", 70, function()
     if M.sending then return end
     M.items = {}
@@ -747,7 +770,8 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     UI.ClearCash()
     UI.Refresh()
   end, "Empties the mail: name, subject, letter, money and items.")
-  UI.clear:SetPoint("RIGHT", UI.go, "LEFT", -6, 0)
+  UI.clear:SetPoint("TOPRIGHT", SE, "TOPRIGHT", 0, -402)
+  UI.clear:SetWidth(UI.PAYW)
   M.onSent = function()
     M.items = {}
     UI.subj:SetText("")
@@ -823,8 +847,24 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
       UI.sendMoney.Lit(UI.mode ~= "cod")
       UI.cod.Lit(UI.mode == "cod")
       UI.cod.text:SetText(UI.mode == "cod" and "|cffff8060C.O.D.|r" or "C.O.D.")
-      UI.each.text:SetText(S().codeach == "1" and "On each mail" or "On the first mail")
-      if UI.mode == "cod" and n > 1 then UI.each:Show() else UI.each:Hide() end
+      UI.each.Lit(S().codeach == "1")
+      UI.each.text:SetText(S().codeach == "1" and "|cffff8060Charge every mail|r" or "Charge every mail")
+      local many = UI.mode == "cod" and n > 1
+      if many then UI.each:Show() else UI.each:Hide() end
+      -- what will happen, in words
+      local cash = UI.Cash()
+      local hint
+      if UI.mode == "cod" then
+        if n == 0 then hint = "|cffff8060C.O.D. needs an item:|r they pay to take it."
+        elseif cash == 0 then hint = "Cash on delivery: type what they pay to take the items."
+        elseif many and S().codeach == "1" then hint = "They pay " .. M.Money(cash) .. " for each of the " .. n .. " mails."
+        elseif many then hint = "They pay " .. M.Money(cash) .. " for the first mail; the others are free."
+        else hint = "They pay " .. M.Money(cash) .. " to take the item." end
+      else
+        hint = cash > 0 and (M.Money(cash) .. " goes with the mail" .. (n > 1 and " (on the first one)." or "."))
+          or "Type an amount to send money with the mail."
+      end
+      UI.payHint:SetText(hint)
       local post = (GetSendMailPrice and GetSendMailPrice() or 30)
       UI.price:SetText("|cfffad14dPostage:|r  " .. M.Money(math.max(1, n) * post))
       if M.sending then
