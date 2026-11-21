@@ -87,6 +87,22 @@ if Z then
     Z.Reset()
     Z.SetZoom(2, 501, 334)
     ok(Z.zoom == 2 and math.abs(Z.h - 250.5) < .01 and math.abs(Z.v - 167) < .01, "2x at the middle: the middle stays in the middle (" .. tostring(Z.h) .. ", " .. tostring(Z.v) .. ")")
+    -- (21 Nov 2026, user: zooming "moves where i picked") the picture hangs by its top left at (-h, v): its own units
+    local pt = WorldMapDetailFrame.points and WorldMapDetailFrame.points[1]
+    ok(pt and pt[2] == Z.canvas and math.abs(pt[4] + 250.5) < .01 and math.abs(pt[5] - 167) < .01,
+      "the picture hangs at (-h, v) in the canvas (" .. tostring(pt and pt[4]) .. ", " .. tostring(pt and pt[5]) .. ")")
+    -- the map point under the cursor stays under it, notch after notch
+    local fx, fy = 300, 200
+    local function Under() return Z.h + fx / Z.zoom, Z.v + fy / Z.zoom end
+    local ux, uy = Under()
+    for _ = 1, 3 do Z.SetZoom(Z.zoom * 1.25, fx, fy) end
+    local ux2, uy2 = Under()
+    ok(math.abs(ux - ux2) < .01 and math.abs(uy - uy2) < .01, "three notches in: the point under the cursor has not moved")
+    Z.SetZoom(Z.zoom / 1.25, fx, fy)
+    local ux3, uy3 = Under()
+    ok(math.abs(ux - ux3) < .01 and math.abs(uy - uy3) < .01, "and one out: still under the cursor")
+    Z.Reset()
+    Z.SetZoom(2, 501, 334)
     Z.SetZoom(2 * 1.25, 0, 0)
     ok(math.abs(Z.h - 250.5) < .01, "zooming at the top left corner keeps that corner")
     Z.SetZoom(99, 501, 334)

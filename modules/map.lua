@@ -175,12 +175,16 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     local sw, sh = s:GetWidth() or dw, s:GetHeight() or dh
     return math.max(0, dw - sw / z), math.max(0, dh - sh / z)
   end
+  -- (21 Nov 2026, user: zooming "just scrolls randomly and moves where i picked" - the scroll frame's offsets are not in
+  -- the units the retail client uses.) The scroll frame only clips now; the map picture hangs in a fixed canvas (the
+  -- scroll child) by its top left: a point offset is in the picture's own (zoomed) units, so (-h, v) puts map point
+  -- (h, v) - the view's top left, in map units - exactly at the canvas's top left.
   function Z.Scroll(h, v)
     local mh, mv = Z.Range(Z.zoom)
     h = math.max(0, math.min(mh, h or 0))
     v = math.max(0, math.min(mv, v or 0))
-    Z.scroll:SetHorizontalScroll(h)
-    Z.scroll:SetVerticalScroll(v)
+    WorldMapDetailFrame:ClearAllPoints()
+    WorldMapDetailFrame:SetPoint("TOPLEFT", Z.canvas or Z.scroll, "TOPLEFT", -h, v)
     Z.h, Z.v = h, v
   end
   -- zoom to z, keeping the map point under (fx, fy) - the cursor, in the scroll frame's units from its top left - in place
@@ -194,7 +198,6 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     local cx, cy = (Z.h or 0) + fx / old, (Z.v or 0) + fy / old
     Z.zoom = z
     WorldMapDetailFrame:SetScale(z)
-    if s.UpdateScrollChildRect then s:UpdateScrollChildRect() end
     Z.Scroll(cx - fx / z, cy - fy / z)
   end
   -- the cursor in the scroll frame's units from its top left, or nil when it is not over the map
@@ -218,7 +221,6 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     if not Z.scroll then return end
     Z.zoom = 1
     WorldMapDetailFrame:SetScale(1)
-    if Z.scroll.UpdateScrollChildRect then Z.scroll:UpdateScrollChildRect() end
     Z.Scroll(0, 0)
   end
   function Z.Setup()
@@ -228,10 +230,15 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     s:SetWidth(WorldMapDetailFrame:GetWidth() or 1002)
     s:SetHeight(WorldMapDetailFrame:GetHeight() or 668)
     s:SetPoint("TOPLEFT", WorldMapPositioningGuide, "TOP", -502, -69)
-    WorldMapDetailFrame:SetParent(s)
+    -- the scroll child: a fixed, unscaled canvas the size of the view (never scrolled); the picture hangs in it
+    local canvas = CreateFrame("Frame", nil, s)
+    Z.canvas = canvas
+    canvas:SetWidth(s:GetWidth() or 1002)
+    canvas:SetHeight(s:GetHeight() or 668)
+    s:SetScrollChild(canvas)
+    WorldMapDetailFrame:SetParent(canvas)
     WorldMapDetailFrame:ClearAllPoints()
-    WorldMapDetailFrame:SetPoint("TOPLEFT", s, "TOPLEFT", 0, 0)
-    s:SetScrollChild(WorldMapDetailFrame)
+    WorldMapDetailFrame:SetPoint("TOPLEFT", canvas, "TOPLEFT", 0, 0)
     -- the clickable map rides inside the picture: it zooms with it
     WorldMapButton:SetParent(WorldMapDetailFrame)
     WorldMapButton:SetFrameLevel(WorldMapDetailFrame:GetFrameLevel() + 2)
