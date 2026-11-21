@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.6
+
+- 🧩 **Built-in SuperCleveRoidMacros and pfQuest step aside properly:** with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload.
+- 💬 **A folded whisper window stays folded:** it no longer pops open by itself when a fight ends. Only a window that folded itself for the fight opens again.
+
 ## 📜 New in 1.2.5
 
 - 🧩 **No more "IndexActionSlot" error flood:** if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good.

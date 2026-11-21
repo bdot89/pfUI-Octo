@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.6", {
+    { "Built-in SuperCleveRoidMacros and pfQuest step aside properly", "with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload." },
+    { "A folded whisper window stays folded", "it no longer pops open by itself when a fight ends. Only a window that folded itself for the fight opens again." },
+  } },
   { "1.2.5", {
     { "No more \"IndexActionSlot\" error flood", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good." },
   } },
@@ -178,11 +182,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.67", {
     { "OctoDoTs: pick what shows", "at the top of the Target bar page, Show = Both, Bars only (no target bar) or Target bar only (the Cursive-style bars stay away and cost nothing; they still show in layout mode so you can move them)." },
-  } },
-  { "1.1.66", {
-    { "Meters use ClassicAPI's new damage meter", "with ClassicAPI 1.22 or newer, the current fight and Overall take damage, DPS, healing, HPS, interrupts, dispels, damage taken, deaths and enemy damage taken straight from the DLL - less work for the game in big raids. Earlier fights, the breakdown, uptime, threat and every other display stay ours. ClassicAPI's own meter window stays hidden unless you want it (Meters > Data). New file: restart the game fully once." },
-    { "/pfmetercheck", "(or the button on Meters > Data) prints our totals next to ClassicAPI's for the current fight (/pfmetercheck overall for all fights)." },
-    { "Target bar, per spell", "right-click a spell's icon (in the preview or the spell grid) for its own glow, when it glows (running out, always, missing), glow colour, time text, number size and place, and animations when it runs out or is put on." },
-    { "Target bar box", "it now has its box in layout mode even while switched off, a tidy fixed width (Look > Room for icons), and its tab sits right after General in OctoDoTs." },
   } },
 }
