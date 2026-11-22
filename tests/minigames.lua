@@ -32,17 +32,20 @@ for c, n in pairs(cats) do ok(n > 0, "category " .. c .. " has questions (" .. n
 
 local keep = {}
 for _, k in ipairs({ "GetTime", "UnitOnTaxi", "UnitAffectingCombat", "SendAddonMessage", "IsInGuild", "GetNumRaidMembers",
-  "GetNumPartyMembers", "UnitName", "PlaySound", "MouseIsOver", "GetCursorPosition" }) do keep[k] = rawget(_G, k) end
+  "GetNumPartyMembers", "UnitName", "PlaySound", "MouseIsOver", "GetCursorPosition", "GetRealmName" }) do keep[k] = rawget(_G, k) end
 local now = 1000
 _G.GetTime = function() return now end
 _G.UnitAffectingCombat = function() return nil end
 _G.UnitName = function(u) if u == "player" then return "Me" end end
 _G.PlaySound = function() end
+_G.GetRealmName = function() return "N'zoth" end
 local S = MG.S()
 
 -- the quiz
 MG.Show("quiz")
-ok(MG.win:IsShown() and MG.cur == "quiz" and MG.quiz.cur, "quiz opens with a question")
+ok(MG.win:IsShown() and MG.cur == "quiz" and MG.quiz.view == "lobby", "the quiz opens on the difficulty cards")
+MG.quiz.Practice()
+ok(MG.quiz.view == "practice" and MG.quiz.cur, "practice asks a question")
 local qz = MG.quiz
 local rightAt
 for i = 1, 4 do if qz.order[i] == 1 then rightAt = i end end
@@ -74,6 +77,108 @@ now = now + 11
 MG.pages.quiz:GetScript("OnUpdate")()
 ok(qz.done and qz.streak == 0, "out of time counts as wrong")
 S.quiztimer = "0"
+
+-- realm tags
+ok(MG.RealmTag("N'zoth") == "NZ" and MG.RealmTag("Y'Shaarj") == "YS" and MG.RealmTag("C'Thun") == "CT"
+  and MG.RealmTag("Nostalrius") == "NO" and MG.MyRealm() == "NZ", "realm tags NZ / YS / CT, others two letters")
+-- points: faster is worth more, the difficulty multiplies, a streak adds up to 50%
+do
+  local N, M = qz.DIFF.normal, qz.DIFF.mythic
+  ok(qz.Points(N, 20, 1) == 1000 and qz.Points(N, 0, 1) == 250 and qz.Points(N, 10, 1) > 250 and qz.Points(N, 10, 1) < 1000,
+    "points fall from 1000 to 250 as the clock runs")
+  ok(qz.Points(M, 10, 1) == 2000 and qz.Points(N, 20, 3) == 1200 and qz.Points(N, 20, 20) == 1500, "x2 on Mythic, streak bonus capped at +50%")
+  ok(N.n == 10 and qz.DIFF.heroic.n == 25 and M.n == 40, "10, 25 and 40 questions")
+end
+-- a Normal run, every answer right
+do
+  local quiz = MG.pages.quiz:GetScript("OnUpdate")
+  local sent = {}
+  _G.SendAddonMessage = function(p, m, c) table.insert(sent, { p, m, c }) end
+  _G.IsInGuild = function() return 1 end
+  _G.GetNumRaidMembers = function() return 0 end
+  _G.GetNumPartyMembers = function() return 0 end
+  qz.StartRun("normal")
+  ok(qz.view == "run" and qz.run.state == "count" and table.getn(qz.run.list) == 10, "a Normal run: 10 questions after a countdown")
+  now = now + 3.1
+  quiz()
+  ok(qz.run.state == "ask" and qz.run.pos == 1, "then the first question")
+  local seen, allCats = {}, {}
+  for _ = 1, 10 do
+    local r = qz.run
+    seen[r.list[r.pos]] = true
+    allCats[r.e.c] = true
+    local at
+    for i = 1, 4 do if r.order[i] == 1 then at = i end end
+    now = now + 2
+    qz.RunAnswer(at)
+    now = now + 2
+    quiz()
+  end
+  local n = 0
+  for _ in pairs(seen) do n = n + 1 end
+  local _, me3 = MG.Store()
+  ok(n == 10 and qz.view == "result" and qz.run.right == 10, "ten different questions, all right, then the results")
+  ok(me3.quiz.runs.normal and me3.quiz.runs.normal.score == qz.run.score and qz.run.score > 10000, "the best Normal run is kept (" .. qz.run.score .. ")")
+  local shared
+  for _, m in ipairs(sent) do if string.find(m[2], "^B%^qnormal%^%d+%^10%^NZ$") then shared = true end end
+  ok(shared, "and goes to the guild on the Normal board")
+  local rows = MG.Rows("qnormal")
+  ok(rows[1] and rows[1].you and rows[1].realm == "NZ", "you top the Normal board, tagged NZ")
+  -- a slow, wrong run does not replace it
+  qz.StartRun("normal")
+  now = now + 3.1
+  quiz()
+  now = now + 21
+  quiz()
+  ok(qz.run.marks[1] == "wrong" and qz.run.state == "shown", "out of time on a run: wrong, no points")
+  for _ = 1, 30 do now = now + 25 quiz() end
+  ok(qz.view == "result" and qz.run.score == 0 and me3.quiz.runs.normal.score > 10000, "a run with no points keeps the old best")
+  -- closing the window mid-run ends it
+  qz.StartRun("mythic")
+  ok(table.getn(qz.run.list) == 40, "Mythic: 40 questions")
+  MG.Close()
+  ok(not qz.run and qz.view == "lobby", "closing the window mid-run ends the run")
+  MG.Show("quiz")
+  ok(qz.view == "lobby", "and the tab opens on the cards again")
+end
+-- boards with realms
+do
+  MG.Receive("B^qmythic^52000^38^YS", "Yshplayer")
+  MG.Receive("B^qmythic^41000^35^CT", "Cthplayer")
+  MG.Receive("R^qmythic^Twin^30000^30^YS", "Friend")
+  MG.Receive("R^qmythic^Twin^31000^31^CT", "Friend")
+  MG.Receive("B^qmythic^1^1^yS", "Lowercase")
+  local rows = MG.Rows("qmythic")
+  ok(rows[1] and rows[1].name == "Yshplayer" and rows[1].realm == "YS" and rows[2].realm == "CT", "boards carry the realm (" .. tostring(rows[1] and rows[1].realm) .. ")")
+  ok(MG.Entry("qmythic", "Twin", "YS").v == 30000 and MG.Entry("qmythic", "Twin", "CT").v == 31000, "the same name on two realms is two players")
+  ok(not MG.Entry("qmythic", "Lowercase", "yS") and not MG.Entry("qmythic", "Lowercase"), "a bad realm tag is refused")
+  -- kept before realms were: taken as ours
+  local s3 = MG.Store()
+  s3.board.gridshot = s3.board.gridshot or {}
+  s3.board.gridshot.Oldie = { v = 10, t = 1 }
+  ok(MG.Rows("gridshot")[1] and true, "old entries still show")
+  MG.Keep("gridshot", "Oldie", 20, 50)
+  ok(not s3.board.gridshot.Oldie and s3.board.gridshot["Oldie-NZ"].v == 20, "an old entry moves to its realm key")
+  -- the Scores tab
+  MG.boardSel = "qmythic"
+  MG.Show("board")
+  local t = MG.pages.board.table
+  ok(t.rows[1]:IsShown() and t.rows[1].tag:GetText() == "YS" and t.rows[1].name:GetText() == "Yshplayer", "the Scores tab shows realm tags")
+  for _, b in ipairs(MG.BOARDS) do
+    MG.boardSel = b.key
+    ok(pcall(MG.Board), "board " .. b.key .. " draws")
+  end
+  -- the realm channel line carries the tag and the quiz boards
+  local line = MG.RealmLine()
+  ok(line and string.find(line, "^OA1 @NZ ") and string.find(line, "qnormal:%d+:10"), "the realm line has @NZ and the quiz runs: " .. tostring(line))
+  local before = MG.Entry("qheroic", "Farrealm", "CT")
+  MG.ReadRealm("OA1 @CT qheroic:9000:20 gridshot:500:70", "Farrealm")
+  ok(not before and MG.Entry("qheroic", "Farrealm", "CT").v == 9000, "a realm line is kept under its realm")
+  MG.Show("quiz")
+  local _, me4 = MG.Store()
+  ok(qz.view == "lobby" and tostring(qz.lb.cards[1].best:GetText()) == tostring(me4.quiz.runs.normal.score)
+    and string.find(qz.lb.cards[3].top:GetText() or "", "Yshplayer", 1, true), "the lobby cards show your best and each board's leader")
+end
 
 -- the aim trainer
 local AM = MG.aim
@@ -139,12 +244,12 @@ _G.IsInGuild = function() return 1 end
 _G.GetNumRaidMembers = function() return 0 end
 _G.GetNumPartyMembers = function() return 0 end
 MG.Share("hexakill", 4200, 87)
-ok(sent[1] and sent[1][1] == "pfArc" and sent[1][2] == "B^hexakill^4200^87" and sent[1][3] == "GUILD", "a best goes to the guild as B^mode^score^accuracy")
+ok(sent[1] and sent[1][1] == "pfArc" and sent[1][2] == "B^hexakill^4200^87^NZ" and sent[1][3] == "GUILD", "a best goes to the guild as B^mode^score^accuracy^realm")
 MG.Receive("B^hexakill^5100^90", "Friend")
 MG.Receive("B^hexakill^100^10", "Friend")
 MG.Receive("B^nosuchmode^1^1", "Friend")
 local s = MG.Store()
-ok(s.board.hexakill and s.board.hexakill.Friend and s.board.hexakill.Friend.v == 5100 and not s.board.nosuchmode, "others' bests kept (the higher one)")
+ok(MG.Entry("hexakill", "Friend") and MG.Entry("hexakill", "Friend").v == 5100 and not s.board.nosuchmode, "others' bests kept (the higher one)")
 MG.Show("board")
 ok(MG.cur == "board", "Scores page draws")
 -- across players: a "Q" is answered (a moment later) with our bests and the best others we know
@@ -165,15 +270,15 @@ for _ = 1, 40 do
 end
 local own, relayed = false, false
 for _, m in ipairs(sent) do
-  if m[2] == "B^hexakill^4200^87" then own = true end
-  if m[2] == "R^hexakill^Friend^5100^90" then relayed = true end
+  if m[2] == "B^hexakill^4200^87^NZ" then own = true end
+  if m[2] == "R^hexakill^Friend^5100^90^NZ" then relayed = true end
 end
 ok(own and relayed, "a question is answered with our best and the best others we know (" .. table.getn(sent) .. " sent)")
 -- relayed scores are kept; our own name is never taken from others
 MG.Receive("R^gridshot^Farplayer^3000^80", "Friend")
 MG.Receive("R^gridshot^Me^99999^99", "Friend")
 s = MG.Store()
-ok(s.board.gridshot and s.board.gridshot.Farplayer and s.board.gridshot.Farplayer.v == 3000 and not s.board.gridshot.Me,
+ok(MG.Entry("gridshot", "Farplayer") and MG.Entry("gridshot", "Farplayer").v == 3000 and not MG.Entry("gridshot", "Me"),
   "a relayed best is kept, but nobody can set yours")
 MG.Receive("R^gridshot^Bad|Name^1^1", "Friend")
 ok(not s.board.gridshot["Bad|Name"], "odd names refused")
@@ -240,8 +345,7 @@ do
   ok(joined == 1 and table.getn(said) == 1 and said[1][2] == "CHANNEL" and said[1][3] == 5, "joined, and said once on the channel (joined " .. joined .. ", said " .. table.getn(said) .. ", " .. tostring(said[1] and said[1][2]) .. " " .. tostring(said[1] and said[1][3]) .. ")")
   -- reading someone's line
   local n = MG.ReadRealm("OA1 hexakill:7000:92 quiz:12:0 reflex:2500:80", "Otherrealmer")
-  local s2 = MG.Store()
-  ok(n == 3 and s2.board.hexakill.Otherrealmer.v == 7000 and s2.board.quiz.Otherrealmer.v == 12, "a realm line fills the board")
+  ok(n == 3 and MG.Entry("hexakill", "Otherrealmer").v == 7000 and MG.Entry("quiz", "Otherrealmer").v == 12, "a realm line fills the board")
   ok(not MG.ReadRealm("hello there", "Chatter"), "ordinary chat is ignored")
   -- hidden from the chat
   ok(MG.IsOurChannel("OctoArcade", "5. OctoArcade") and not MG.IsOurChannel("World", "1. World"), "our channel is recognised")
@@ -254,6 +358,28 @@ do
   S.realm = "1"
   for k, v in pairs(keep2) do _G[k] = v end
   if pfUI.env then pfUI.env.SendChatMessage = envSend end
+end
+
+-- the launcher's light never leaves the sign
+do
+  local mq = MG.launcher.marquee
+  local w = mq:GetWidth() or 328
+  local outside
+  for i = 0, 50 do
+    MG.PaintSweep(i / 50)
+    for _, t in ipairs(mq.beams) do
+      if t:IsShown() then
+        local _, _, _, x = t:GetPoint(3)
+        local tw = t:GetWidth() or 0
+        if (x or 0) < -0.01 or (x or 0) + tw > w + 0.01 then outside = (x or 0) .. "+" .. tw end
+      end
+    end
+  end
+  ok(not outside, "the sweep of light stays inside the sign" .. (outside and (" (" .. outside .. ")") or ""))
+  MG.PaintSweep(1.5)
+  local any
+  for _, t in ipairs(mq.beams) do if t:IsShown() then any = true end end
+  ok(not any, "between sweeps there is no light")
 end
 
 pfUI_cache.arcade = nil

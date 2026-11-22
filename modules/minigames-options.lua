@@ -21,9 +21,9 @@ pfUI:RegisterModule("minigames-options", "vanilla", function ()
       .. "/arcade, /quiz or /aim. Your bests go to your guild and group, and theirs show in Scores." })
     if not MG then W.Note(p, "OctoArcade is switched off: click the switch above and reload.") return end
     W.Tiles(p, {
-      { "Quiz", table.getn(MG.DATA.quiz) .. " questions on classic Azeroth", ICON .. "INV_Misc_Book_09", function() MG.Show("quiz") end, "open" },
+      { "Quiz", "Normal, Heroic and Mythic runs - " .. table.getn(MG.DATA.quiz) .. " questions", ICON .. "INV_Misc_Book_09", function() MG.Show("quiz") end, "open" },
       { "Aim Trainer", "Six modes, from Gridshot to Kick", ICON .. "Ability_Marksmanship", function() MG.Show("aim") end, "go" },
-      { "Scores", "Your bests and your friends'", ICON .. "INV_Misc_Note_06", function() MG.Show("board") end, "open" },
+      { "Scores", "Leaderboards with realm tags", ICON .. "INV_Misc_Note_06", function() MG.Show("board") end, "open" },
     })
 
     W.Card(p, "On flights", { icon = ICON .. "Ability_Mount_Gryphon_01" })
@@ -33,16 +33,16 @@ pfUI:RegisterModule("minigames-options", "vanilla", function ()
     Chk(p, "Close when you land", "A round that is running is finished first.", "closeland")
 
     W.Card(p, "Quiz", { icon = ICON .. "INV_Misc_Book_09" })
-    Drop(p, "Time per question", "A bar runs down; out of time counts as wrong.", "quiztimer", {
+    Drop(p, "Practice: time per question", "For practice only (Normal, Heroic and Mythic have their own clocks). A bar runs down; out of time counts as wrong.", "quiztimer", {
       { key = "0", label = "No timer" }, { key = "10", label = "10 seconds" }, { key = "15", label = "15 seconds" },
       { key = "20", label = "20 seconds" }, { key = "30", label = "30 seconds" } })
-    Chk(p, "Next question by itself", "Goes on a moment after you answer (longer after a wrong one, to read why).", "quiznext")
+    Chk(p, "Practice: next question by itself", "Goes on a moment after you answer (longer after a wrong one, to read why).", "quiznext")
     local cats = MG.quiz.CATS
     local count = {}
     for _, e in ipairs(MG.DATA.quiz) do count[e.c] = (count[e.c] or 0) + 1 end
     for _, d in ipairs(cats) do
       local key = d[1]
-      W.Check(p, d[2] .. " |cff8a8f99(" .. (count[key] or 0) .. ")|r", "Ask questions from this category.",
+      W.Check(p, d[2] .. " |cff8a8f99(" .. (count[key] or 0) .. ")|r", "Practice asks questions from this category. Normal, Heroic and Mythic always use every category, so the boards stay fair.",
         function() return G().cats[key] ~= "0" end,
         function(v) G().cats[key] = v and "1" or "0" MG.quiz.deck = nil end)
     end
@@ -78,7 +78,7 @@ pfUI:RegisterModule("minigames-options", "vanilla", function ()
         local _, me = MG.Store()
         me.quiz = { asked = 0, right = 0, streak = 0 }
         me.aim = {}
-      end, nil, "Your quiz streak and aim trainer bests start again.", role = "danger" },
+      end, nil, "Your quiz runs, practice streak and aim trainer bests start again.", role = "danger" },
       { "Clear the scoreboard", function() local s = MG.Store() s.board = {} end, nil,
         "Forgets the other players' scores (your own stay).", role = "danger" },
     })

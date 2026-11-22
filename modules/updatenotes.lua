@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.18", {
+    { "Quiz: Normal, Heroic and Mythic", "timed runs of 10, 25 and 40 questions (20, 15 and 10 seconds each). Faster answers score more - up to 1000 points in the first second, down to 250 at the buzzer, x1.5 on Heroic, x2 on Mythic, and up to +50% for a streak. Quiz-show look: countdown, live clock, A-D answers, a dot for every question, and a results card with a grade and the leaderboard. The old endless quiz is still there as Practice." },
+    { "New leaderboards", "every board in one clean list - the three quiz runs, the six aim modes and the practice streak - with gold, silver and bronze for the top three and your own place always shown." },
+    { "Realm tags", "every score shows the player's realm - NZ N'zoth, YS Y'Shaarj, CT C'thun. Players on older versions can't read the new scores until they update." },
+    { "Flight launcher", "the sweep of light stays inside the sign, with a softer glow that lights up the title as it passes." },
+  } },
   { "1.2.17", {
     { "New flight launcher", "an arcade marquee - a lit OCTO ARCADE sign with Darkmoon tickets, chasing bulbs and a sweep of light, a blinking INSERT COIN line, and three game cards (Quiz, Aim Trainer, High Scores) with glowing icons and live info: question count or your best streak, your top aim score, how many scores are on the board. It slides in, can be dragged anywhere, and remembers where you put it." },
     { "Flight bar", "the feather at the end of the bar no longer sits in a black square - it glows on the bar by itself." },
@@ -177,8 +183,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.79", {
     { "Whisper windows fixed", "the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made." },
-  } },
-  { "1.1.78", {
-    { "ItemRack button shows what you wear", "the set button and the minimap button show a set's picture only while that set is worn exactly. Swap a piece by hand (or wear no set) and they show your worn gear instead, updated every time your gear changes." },
   } },
 }

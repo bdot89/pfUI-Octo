@@ -40,7 +40,11 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     s.board = s.board or {}
     local me = UnitName("player") or "?"
     s.me[me] = s.me[me] or { quiz = { asked = 0, right = 0, streak = 0 }, aim = {} }
-    return s, s.me[me], me
+    local mine = s.me[me]
+    mine.quiz = mine.quiz or { asked = 0, right = 0, streak = 0 }
+    mine.quiz.runs = mine.quiz.runs or {}
+    mine.aim = mine.aim or {}
+    return s, mine, me
   end
   MG.Store = Store
 
@@ -179,6 +183,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoArcade|r: not in combat.")
       return
     end
+    -- another tab mid-run: the run ends (its clock would keep going while it is out of sight)
+    if key ~= "quiz" and MG.quiz.Abandon then MG.quiz.Abandon() end
     MG.cur = key
     local ar, ag, ab = Accent()
     win.top:SetVertexColor(ar, ag, ab, .9)
@@ -204,6 +210,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   end
   function MG.Close()
     if MG.aim.state == "run" or MG.aim.state == "count" then MG.aim.Finish(true) end
+    if MG.quiz.Abandon then MG.quiz.Abandon() end
     win:Hide()
   end
   function MG.Toggle(key)
@@ -212,27 +219,551 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
 
   -- ---------------------------------------------------------------- the quiz
 
+  -- the arcade's two fonts: tall numbers and a small pixel font for labels
+  local FONTS = "Interface\\AddOns\\pfUI\\fonts\\"
+  local NUM, PIX = FONTS .. "BigNoodleTitling.ttf", FONTS .. "Hooge.ttf"
+  local function Big(parent, size, r, g, b)
+    local t = parent:CreateFontString(nil, "OVERLAY")
+    t:SetFont(NUM, size, "OUTLINE")
+    t:SetTextColor(r or 1, g or 1, b or 1)
+    return t
+  end
+  local function Pix(parent, size, r, g, b)
+    local t = parent:CreateFontString(nil, "OVERLAY")
+    t:SetFont(PIX, size, "OUTLINE")
+    t:SetTextColor(r or .6, g or .62, b or .66)
+    return t
+  end
+  MG.Big, MG.Pix = Big, Pix
+
   local QZ = MG.quiz
   QZ.CATS = { { "lore", "Lore & history" }, { "characters", "Characters" }, { "places", "Places" }, { "dungeons", "Dungeons" },
               { "raids", "Raids" }, { "classes", "Classes & races" }, { "professions", "Professions & mounts" },
               { "items", "Items & sets" }, { "pvp", "PvP" }, { "world", "Around the world" } }
-  local qp = MG.pages.quiz
+  -- (22 Nov 2026, user: "make 3 difficulties Normal, Heroic, Mythic make them all have their own scoreboards you get
+  -- more score the faster you answer ... 10,25,40 questions all timed ... make it all look amazing and quiz styled")
+  -- Ranked runs: a set number of questions drawn from EVERY category (the category switches are for practice only, so
+  -- the boards stay fair), a clock on each. A right answer is worth 1000 in the first second, falling to 250 at the
+  -- buzzer, times the difficulty, plus 10% for each right answer in a row before it (up to +50%). Each difficulty has its
+  -- own board (qnormal / qheroic / qmythic). The old endless quiz stays as Practice (its streak board is "quiz").
+  QZ.DIFFS = {
+    { key = "normal", board = "qnormal", name = "Normal", n = 10, secs = 20, mult = 1, icon = "INV_Misc_Book_11",
+      col = { .3, .75, 1 }, tip = "A warm-up: ten questions, twenty seconds each." },
+    { key = "heroic", board = "qheroic", name = "Heroic", n = 25, secs = 15, mult = 1.5, icon = "Spell_Holy_PowerInfusion",
+      col = { .72, .45, 1 }, tip = "Twenty-five questions, fifteen seconds each, points x1.5." },
+    { key = "mythic", board = "qmythic", name = "Mythic", n = 40, secs = 10, mult = 2, icon = "INV_Misc_Head_Dragon_Black",
+      col = { 1, .5, .12 }, tip = "Forty questions, ten seconds each, points x2. Only the sharpest." },
+  }
+  QZ.DIFF = {}
+  for _, d in ipairs(QZ.DIFFS) do QZ.DIFF[d.key] = d end
+  -- points for a right answer with `left` seconds still on the clock; streak = right answers in a row, this one included
+  function QZ.Points(d, left, streak)
+    local frac = min(1, max(0, (left or 0) / max(1, d.secs - 1)))
+    local bonus = 1 + min(max((streak or 1) - 1, 0), 5) * .1
+    return floor((250 + 750 * frac) * d.mult * bonus + .5)
+  end
+  -- a grade from the share answered right
+  function QZ.Grade(right, n)
+    local pct = n > 0 and right / n * 100 or 0
+    if pct >= 100 then return "S", 1, .82, .3 end
+    if pct >= 90 then return "A", .3, 1, .55 end
+    if pct >= 75 then return "B", .35, .7, 1 end
+    if pct >= 60 then return "C", .8, .82, .86 end
+    if pct >= 40 then return "D", 1, .6, .3 end
+    return "F", 1, .35, .35
+  end
+
+  local page = MG.pages.quiz
+  local function View()
+    local f = CreateFrame("Frame", nil, page)
+    f:SetAllPoints(page)
+    f:Hide()
+    return f
+  end
+  QZ.views = { lobby = View(), run = View(), result = View(), practice = View() }
+  function QZ.View(name)
+    QZ.view = name
+    for k, f in pairs(QZ.views) do if k == name then f:Show() else f:Hide() end end
+  end
+  -- a dark panel with a coloured line on top, a small label and a big number (the run's heads-up row)
+  local function Stat(parent, w, label)
+    local f = CreateFrame("Frame", nil, parent)
+    f:SetWidth(w)
+    f:SetHeight(44)
+    f.bg = Tex(f, "BACKGROUND", .08, .085, .1, 1)
+    f.bg:SetAllPoints(f)
+    f.line = Tex(f, "ARTWORK")
+    f.line:SetHeight(2)
+    f.line:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+    f.line:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    f.label = Pix(f, 8)
+    f.label:SetPoint("TOPLEFT", f, "TOPLEFT", 7, -6)
+    f.label:SetText(label)
+    f.value = Big(f, 24)
+    f.value:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 7, 3)
+    return f
+  end
+
+  -- ---- the lobby: three difficulty cards
+  local lb = QZ.views.lobby
+  QZ.lb = lb
+  lb.title = Big(lb, 30)
+  lb.title:SetPoint("TOP", lb, "TOP", 0, 0)
+  lb.title:SetText("PICK YOUR DIFFICULTY")
+  lb.sub = Text(lb, 11, nil, .62, .64, .7)
+  lb.sub:SetPoint("TOP", lb.title, "BOTTOM", 0, -2)
+  lb.sub:SetText("Every question is on the clock - the faster you answer, the more it is worth.")
+  lb.cards = {}
+  local CARD_W, CARD_H = 164, 234
+  for i, d in ipairs(QZ.DIFFS) do
+    local r, g, b = d.col[1], d.col[2], d.col[3]
+    local c = CreateFrame("Button", nil, lb)
+    c:SetWidth(CARD_W)
+    c:SetHeight(CARD_H)
+    c:SetPoint("TOPLEFT", lb, "TOPLEFT", (i - 1) * (CARD_W + 12), -50)
+    c.edge = Tex(c, "BACKGROUND", .2, .21, .24, 1)
+    c.edge:SetPoint("TOPLEFT", c, "TOPLEFT", -1, 1)
+    c.edge:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 1, -1)
+    c.bg = Tex(c, "BORDER", .065, .07, .085, 1)
+    c.bg:SetAllPoints(c)
+    c.wash = Tex(c, "ARTWORK", r, g, b, .2)
+    c.wash:SetPoint("TOPLEFT", c, "TOPLEFT", 0, 0)
+    c.wash:SetPoint("TOPRIGHT", c, "TOPRIGHT", 0, 0)
+    c.wash:SetHeight(120)
+    if c.wash.SetGradientAlpha then c.wash:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, .26) end
+    c.line = Tex(c, "OVERLAY", r, g, b, 1)
+    c.line:SetHeight(3)
+    c.line:SetPoint("TOPLEFT", c, "TOPLEFT", 0, 0)
+    c.line:SetPoint("TOPRIGHT", c, "TOPRIGHT", 0, 0)
+    c.ring = Tex(c, "ARTWORK", r, g, b, 1)
+    c.ring:SetWidth(44)
+    c.ring:SetHeight(44)
+    c.ring:SetPoint("TOP", c, "TOP", 0, -16)
+    c.icon = c:CreateTexture(nil, "OVERLAY")
+    c.icon:SetWidth(40)
+    c.icon:SetHeight(40)
+    c.icon:SetPoint("CENTER", c.ring, "CENTER", 0, 0)
+    c.icon:SetTexture(ICON .. d.icon)
+    c.icon:SetTexCoord(.08, .92, .08, .92)
+    c.name = Big(c, 32, r, g, b)
+    c.name:SetPoint("TOP", c.ring, "BOTTOM", 0, -6)
+    c.name:SetText(string.upper(d.name))
+    c.info = Pix(c, 8, .82, .84, .88)
+    c.info:SetPoint("TOP", c.name, "BOTTOM", 0, -2)
+    c.info:SetText(d.n .. " QUESTIONS")
+    c.info2 = Pix(c, 8)
+    c.info2:SetPoint("TOP", c.info, "BOTTOM", 0, -3)
+    c.info2:SetText(d.secs .. " S EACH  -  POINTS X" .. d.mult)
+    c.rule = Tex(c, "ARTWORK", 1, 1, 1, .08)
+    c.rule:SetHeight(1)
+    c.rule:SetWidth(CARD_W - 28)
+    c.rule:SetPoint("TOP", c.info2, "BOTTOM", 0, -9)
+    c.bestL = Pix(c, 7)
+    c.bestL:SetPoint("TOP", c.rule, "BOTTOM", 0, -7)
+    c.bestL:SetText("YOUR BEST")
+    c.best = Big(c, 24)
+    c.best:SetPoint("TOP", c.bestL, "BOTTOM", 0, -2)
+    c.top = Text(c, 10, nil, .7, .72, .78)
+    c.top:SetPoint("TOP", c.best, "BOTTOM", 0, -3)
+    c.top:SetWidth(CARD_W - 12)
+    c.play = Button(c, CARD_W - 24, 28, "")
+    c.play:SetPoint("BOTTOM", c, "BOTTOM", 0, 12)
+    c.play.text:SetFont(NUM, 19, "OUTLINE")
+    c.play.text:SetText("PLAY")
+    c.play.Paint(r * .3, g * .3, b * .3, 1)
+    c.play.edge:SetVertexColor(r, g, b, 1)
+    c.play.locked = true
+    c.key = d.key
+    c.play.key = d.key
+    local function Hover(on)
+      if on then
+        c.edge:SetVertexColor(r, g, b, 1)
+        c.play.Paint(r * .45, g * .45, b * .45, 1)
+      else
+        c.edge:SetVertexColor(.2, .21, .24, 1)
+        c.play.Paint(r * .3, g * .3, b * .3, 1)
+      end
+    end
+    c:SetScript("OnEnter", function() Hover(true) end)
+    c:SetScript("OnLeave", function() Hover(false) end)
+    c.play:SetScript("OnEnter", function() Hover(true) end)
+    c.play:SetScript("OnLeave", function() Hover(false) end)
+    c:SetScript("OnClick", function() QZ.StartRun(this.key) end)
+    c.play:SetScript("OnClick", function() QZ.StartRun(this.key) end)
+    lb.cards[i] = c
+  end
+  lb.practice = Button(lb, 210, 26, "Practice - endless, at your own pace")
+  lb.practice:SetPoint("BOTTOMLEFT", lb, "BOTTOMLEFT", 0, 2)
+  lb.practice:SetScript("OnClick", function() QZ.Practice() end)
+  lb.scores = Button(lb, 150, 26, "Leaderboards")
+  lb.scores:SetPoint("BOTTOMRIGHT", lb, "BOTTOMRIGHT", 0, 2)
+  lb.scores:SetScript("OnClick", function() MG.boardSel = MG.boardSel or "qnormal" MG.Show("board") end)
+  function QZ.Lobby()
+    QZ.View("lobby")
+    win.sub:SetText("Normal, Heroic, Mythic - " .. table.getn(DATA.quiz) .. " questions")
+    local _, me = Store()
+    for i, d in ipairs(QZ.DIFFS) do
+      local c = lb.cards[i]
+      local mine = me.quiz.runs[d.key]
+      c.best:SetText(mine and mine.score and mine.score > 0 and mine.score or "--")
+      local rows = MG.Rows and MG.Rows(d.board) or {}
+      local t = rows[1]
+      c.top:SetText(t and ("|cffffd24d#1|r  " .. t.name .. " " .. MG.RealmText(t.realm) .. "  |cffffffff" .. t.v .. "|r")
+        or "|cff666e7aNo scores yet - be the first|r")
+    end
+  end
+
+  -- ---- a ranked run
+  local rv = QZ.views.run
+  rv.hud = {}
+  for i, label in ipairs({ "QUESTION", "SCORE", "STREAK", "TIME" }) do
+    local f = Stat(rv, 126, label)
+    f:SetPoint("TOPLEFT", rv, "TOPLEFT", (i - 1) * 130, 0)
+    rv.hud[i] = f
+  end
+  rv.timer = CreateFrame("StatusBar", nil, rv)
+  rv.timer:SetPoint("TOPLEFT", rv, "TOPLEFT", 0, -48)
+  rv.timer:SetPoint("TOPRIGHT", rv, "TOPRIGHT", 0, -48)
+  rv.timer:SetHeight(5)
+  rv.timer:SetStatusBarTexture(WHITE)
+  rv.timer:SetMinMaxValues(0, 1)
+  rv.timer.bg = Tex(rv.timer, "BACKGROUND", .1, .105, .12, 1)
+  rv.timer.bg:SetAllPoints(rv.timer)
+  rv.cat = Pix(rv, 8)
+  rv.cat:SetPoint("TOP", rv, "TOP", 0, -62)
+  rv.q = Text(rv, 15, "OUTLINE")
+  rv.q:SetPoint("TOP", rv, "TOP", 0, -76)
+  rv.q:SetWidth(490)
+  rv.count = Big(rv, 80)
+  rv.count:SetPoint("CENTER", rv, "CENTER", 0, -40)
+  rv.answers = {}
+  local ANS_W = 254
+  for i = 1, 4 do
+    local b = Button(rv, ANS_W, 50, "")
+    b:SetPoint("TOPLEFT", rv, "TOPLEFT", math.mod(i - 1, 2) * (ANS_W + 8), -124 - floor((i - 1) / 2) * 58)
+    b.badge = Tex(b, "OVERLAY")
+    b.badge:SetWidth(30)
+    b.badge:SetHeight(30)
+    b.badge:SetPoint("LEFT", b, "LEFT", 10, 0)
+    b.letter = Big(b, 22)
+    b.letter:SetPoint("CENTER", b.badge, "CENTER", 0, 0)
+    b.letter:SetText(string.sub("ABCD", i, i))
+    b.text:ClearAllPoints()
+    b.text:SetPoint("LEFT", b.badge, "RIGHT", 10, 0)
+    b.text:SetPoint("RIGHT", b, "RIGHT", -8, 0)
+    b.text:SetJustifyH("LEFT")
+    b.text:SetFont(Font(), 12, "")
+    b.id = i
+    b:SetScript("OnClick", function() QZ.RunAnswer(this.id) end)
+    rv.answers[i] = b
+  end
+  rv.verdict = Big(rv, 28)
+  rv.verdict:SetPoint("TOP", rv, "TOP", 0, -244)
+  rv.why = Pix(rv, 8, .85, .86, .9)
+  rv.why:SetPoint("TOP", rv.verdict, "BOTTOM", 0, -2)
+  rv.fact = Text(rv, 11, nil, .78, .8, .85)
+  rv.fact:SetPoint("TOP", rv.why, "BOTTOM", 0, -5)
+  rv.fact:SetWidth(290)
+  rv.quit = Button(rv, 70, 22, "Quit")
+  rv.quit:SetPoint("BOTTOMLEFT", rv, "BOTTOMLEFT", 0, 12)
+  rv.quit:SetScript("OnClick", function() QZ.run = nil QZ.Lobby() end)
+  rv.nextb = Button(rv, 110, 22, "Next  >")
+  rv.nextb:SetPoint("BOTTOMRIGHT", rv, "BOTTOMRIGHT", 0, 12)
+  rv.nextb:SetScript("OnClick", function() if QZ.run and QZ.run.state == "shown" then QZ.run.nextAt = 0 end end)
+  -- one pip per question along the bottom: green right, red wrong, white now, grey still to come
+  rv.pips = {}
+  for i = 1, 40 do
+    local p = Tex(rv, "ARTWORK", .2, .21, .24, 1)
+    p:SetHeight(5)
+    rv.pips[i] = p
+  end
+  function QZ.PaintPips()
+    local r = QZ.run
+    if not r then return end
+    local n = r.d.n
+    local w = (516 - (n - 1) * 2) / n
+    for i, p in ipairs(rv.pips) do
+      if i > n then p:Hide() else
+        p:ClearAllPoints()
+        p:SetWidth(w)
+        p:SetPoint("BOTTOMLEFT", rv, "BOTTOMLEFT", (i - 1) * (w + 2), 0)
+        local m = r.marks[i]
+        if m == "right" then p:SetVertexColor(.25, .85, .47, 1)
+        elseif m == "wrong" then p:SetVertexColor(1, .3, .3, 1)
+        elseif i == r.pos then p:SetVertexColor(1, 1, 1, 1)
+        else p:SetVertexColor(.2, .21, .24, 1) end
+        p:Show()
+      end
+    end
+  end
+  function QZ.PaintHud()
+    local r = QZ.run
+    if not r then return end
+    local d = r.d
+    for _, f in ipairs(rv.hud) do f.line:SetVertexColor(d.col[1], d.col[2], d.col[3], 1) end
+    rv.hud[1].value:SetText(min(max(r.pos, 1), d.n) .. "/" .. d.n)
+    rv.hud[2].value:SetText(r.score)
+    rv.hud[3].value:SetText("x" .. r.streak)
+    if r.streak >= 3 then rv.hud[3].value:SetTextColor(1, .82, .3) else rv.hud[3].value:SetTextColor(1, 1, 1) end
+  end
+  function QZ.StartRun(key)
+    local d = QZ.DIFF[key] or QZ.DIFFS[1]
+    local all = {}
+    for i in ipairs(DATA.quiz) do table.insert(all, i) end
+    for i = table.getn(all), 2, -1 do
+      local j = random(1, i)
+      all[i], all[j] = all[j], all[i]
+    end
+    local list = {}
+    for i = 1, min(d.n, table.getn(all)) do list[i] = all[i] end
+    if not list[1] then return end
+    QZ.run = { d = d, list = list, pos = 0, score = 0, right = 0, streak = 0, bestStreak = 0, marks = {}, took = 0,
+               state = "count", goAt = GetTime() + 3 }
+    QZ.View("run")
+    win.sub:SetText(d.name .. " - " .. d.n .. " questions, " .. d.secs .. " s each")
+    rv.cat:SetText("GET READY")
+    rv.cat:SetTextColor(d.col[1], d.col[2], d.col[3])
+    rv.q:SetText(string.upper(d.name) .. " - " .. d.n .. " QUESTIONS")
+    for _, b in ipairs(rv.answers) do b:Hide() end
+    rv.verdict:SetText("") rv.why:SetText("") rv.fact:SetText("")
+    rv.nextb:Hide()
+    rv.count:SetText("3")
+    rv.count:Show()
+    rv.timer:SetValue(1)
+    rv.timer:SetStatusBarColor(d.col[1], d.col[2], d.col[3])
+    rv.hud[4].value:SetText(d.secs)
+    QZ.PaintHud()
+    QZ.PaintPips()
+    Sound("start")
+  end
+  function QZ.Ask()
+    local r = QZ.run
+    r.pos = r.pos + 1
+    if r.pos > table.getn(r.list) then return QZ.EndRun() end
+    local e = DATA.quiz[r.list[r.pos]]
+    r.e = e
+    local order = { 1, 2, 3, 4 }
+    for i = 4, 2, -1 do
+      local j = random(1, i)
+      order[i], order[j] = order[j], order[i]
+    end
+    r.order = order
+    local d = r.d
+    rv.count:Hide()
+    rv.cat:SetText(string.upper(QZ.CatName(e.c)))
+    rv.q:SetText(e.q)
+    for i, b in ipairs(rv.answers) do
+      local txt = e.a[order[i]]
+      b.text:SetText(txt or "")
+      b.locked = nil
+      b:SetAlpha(1)
+      b.Paint(.1, .105, .12, 1)
+      b.edge:SetVertexColor(.25, .26, .29, 1)
+      b.badge:SetVertexColor(d.col[1] * .55, d.col[2] * .55, d.col[3] * .55, 1)
+      if txt then b:Show() else b:Hide() end
+    end
+    rv.verdict:SetText("") rv.why:SetText("") rv.fact:SetText("")
+    rv.nextb:Hide()
+    r.state = "ask"
+    r.asked = GetTime()
+    r.deadline = r.asked + d.secs
+    QZ.PaintHud()
+    QZ.PaintPips()
+  end
+  function QZ.RunAnswer(i)
+    local r = QZ.run
+    if not r or r.state ~= "ask" then return end
+    local now = GetTime()
+    local left = max(0, r.deadline - now)
+    local right = i and r.order[i] == 1
+    r.state = "shown"
+    r.took = r.took + (r.d.secs - left)
+    for n, b in ipairs(rv.answers) do
+      b.locked = true
+      if r.order[n] == 1 then
+        b.Paint(.1, .36, .18, 1)
+        b.edge:SetVertexColor(.25, .85, .47, 1)
+        b.badge:SetVertexColor(.25, .85, .47, 1)
+      elseif n == i then
+        b.Paint(.42, .09, .09, 1)
+        b.edge:SetVertexColor(1, .35, .35, 1)
+        b.badge:SetVertexColor(1, .35, .35, 1)
+      else
+        b:SetAlpha(.4)
+      end
+    end
+    local took = floor((r.d.secs - left) * 10 + .5) / 10
+    if right then
+      r.streak = r.streak + 1
+      r.bestStreak = max(r.bestStreak, r.streak)
+      r.right = r.right + 1
+      local pts = QZ.Points(r.d, left, r.streak)
+      r.score = r.score + pts
+      if not r.fastest or took < r.fastest then r.fastest = took end
+      r.marks[r.pos] = "right"
+      rv.verdict:SetText("+" .. pts)
+      rv.verdict:SetTextColor(.3, 1, .55)
+      local bonus = min(r.streak - 1, 5) * 10
+      rv.why:SetText("CORRECT  -  " .. took .. " S" .. (bonus > 0 and ("  -  STREAK X" .. r.streak .. " +" .. bonus .. "%") or ""))
+      Sound("right")
+    else
+      r.streak = 0
+      r.marks[r.pos] = "wrong"
+      rv.verdict:SetText(i and "WRONG" or "OUT OF TIME")
+      rv.verdict:SetTextColor(1, .35, .35)
+      rv.why:SetText("NO POINTS  -  STREAK LOST")
+      Sound("wrong")
+    end
+    rv.fact:SetText(r.e.f or "")
+    r.nextAt = now + (right and 1.6 or 3.2)
+    rv.nextb.text:SetText(r.pos >= table.getn(r.list) and "Results  >" or "Next  >")
+    rv.nextb:Show()
+    QZ.PaintHud()
+    QZ.PaintPips()
+  end
+  function QZ.EndRun()
+    local r = QZ.run
+    r.state = "done"
+    local d = r.d
+    local _, me = Store()
+    local old = me.quiz.runs[d.key]
+    local isBest = r.score > 0 and (not old or r.score > (old.score or 0))
+    if isBest then
+      me.quiz.runs[d.key] = { score = r.score, right = r.right, n = d.n, t = time() }
+      MG.Share(d.board, r.score, r.right)
+      Sound("best")
+    end
+    me.quiz.played = (me.quiz.played or 0) + 1
+    QZ.ShowResult(isBest)
+    if MG.after then local f = MG.after MG.after = nil f() end
+  end
+  function QZ.Tick(now)
+    local r = QZ.run
+    if not r or QZ.view ~= "run" then return end
+    if r.state == "count" then
+      local n = r.goAt - now
+      if n <= 0 then QZ.Ask()
+      else
+        local s = tostring(floor(n) + 1)
+        if rv.count:GetText() ~= s then rv.count:SetText(s) end
+        rv.count:SetAlpha(.35 + .65 * (n - floor(n)))
+      end
+    elseif r.state == "ask" then
+      local secs = r.d.secs
+      local left = r.deadline - now
+      if left <= 0 then QZ.RunAnswer(nil) return end
+      local f = left / secs
+      rv.timer:SetValue(f)
+      local d = r.d
+      if f > .5 then rv.timer:SetStatusBarColor(d.col[1], d.col[2], d.col[3])
+      elseif f > .25 then rv.timer:SetStatusBarColor(1, .7, .2)
+      else rv.timer:SetStatusBarColor(1, .25, .25) end
+      rv.hud[4].value:SetText(string.format("%.1f", left))
+      if f <= .25 then rv.hud[4].value:SetTextColor(1, .35, .35) else rv.hud[4].value:SetTextColor(1, 1, 1) end
+    elseif r.state == "shown" then
+      if now >= (r.nextAt or 0) then QZ.Ask() end
+    end
+  end
+
+  -- ---- the results
+  local rs = QZ.views.result
+  rs.left = CreateFrame("Frame", nil, rs)
+  rs.left:SetPoint("TOPLEFT", rs, "TOPLEFT", 0, 0)
+  rs.left:SetPoint("BOTTOMLEFT", rs, "BOTTOMLEFT", 0, 0)
+  rs.left:SetWidth(252)
+  rs.left.bg = Tex(rs.left, "BACKGROUND", .065, .07, .085, 1)
+  rs.left.bg:SetAllPoints(rs.left)
+  rs.left.line = Tex(rs.left, "ARTWORK")
+  rs.left.line:SetHeight(3)
+  rs.left.line:SetPoint("TOPLEFT", rs.left, "TOPLEFT", 0, 0)
+  rs.left.line:SetPoint("TOPRIGHT", rs.left, "TOPRIGHT", 0, 0)
+  rs.title = Big(rs.left, 26)
+  rs.title:SetPoint("TOP", rs.left, "TOP", 0, -12)
+  rs.diff = Pix(rs.left, 8)
+  rs.diff:SetPoint("TOP", rs.title, "BOTTOM", 0, -3)
+  rs.grade = Big(rs.left, 84)
+  rs.grade:SetPoint("TOPLEFT", rs.left, "TOPLEFT", 26, -62)
+  rs.gradeL = Pix(rs.left, 7)
+  rs.gradeL:SetPoint("TOP", rs.grade, "BOTTOM", 0, 0)
+  rs.gradeL:SetText("GRADE")
+  rs.score = Big(rs.left, 40)
+  rs.score:SetPoint("TOPRIGHT", rs.left, "TOPRIGHT", -20, -70)
+  rs.scoreL = Pix(rs.left, 7)
+  rs.scoreL:SetPoint("TOPRIGHT", rs.score, "BOTTOMRIGHT", 0, -1)
+  rs.scoreL:SetText("SCORE")
+  rs.rows = {}
+  for i, label in ipairs({ "Right", "Accuracy", "Average answer", "Fastest", "Best streak", "Your best", "Board rank" }) do
+    local l = Text(rs.left, 10, nil, .55, .57, .62)
+    l:SetPoint("TOPLEFT", rs.left, "TOPLEFT", 20, -168 - (i - 1) * 17)
+    l:SetText(label)
+    local v = Text(rs.left, 11, "OUTLINE")
+    v:SetPoint("TOPRIGHT", rs.left, "TOPRIGHT", -20, -168 - (i - 1) * 17)
+    v:SetJustifyH("RIGHT")
+    rs.rows[i] = v
+  end
+  rs.again = Button(rs, 120, 26, "Play again")
+  rs.again:SetPoint("BOTTOMLEFT", rs.left, "BOTTOMRIGHT", 12, 0)
+  rs.again:SetScript("OnClick", function() if QZ.run then QZ.StartRun(QZ.run.d.key) end end)
+  rs.lobby = Button(rs, 120, 26, "Difficulties")
+  rs.lobby:SetPoint("BOTTOMRIGHT", rs, "BOTTOMRIGHT", 0, 0)
+  rs.lobby:SetScript("OnClick", function() QZ.Lobby() end)
+  rs.boardTitle = Pix(rs, 8, 1, .82, .3)
+  rs.boardTitle:SetPoint("TOPLEFT", rs.left, "TOPRIGHT", 12, -4)
+  function QZ.ShowResult(isBest)
+    local r = QZ.run
+    local d = r.d
+    QZ.View("result")
+    local cr, cg, cb = d.col[1], d.col[2], d.col[3]
+    rs.left.line:SetVertexColor(cr, cg, cb, 1)
+    rs.title:SetText(isBest and "NEW HIGH SCORE!" or "RUN COMPLETE")
+    if isBest then rs.title:SetTextColor(1, .82, .3) else rs.title:SetTextColor(1, 1, 1) end
+    rs.diff:SetText(string.upper(d.name) .. "  -  " .. d.n .. " QUESTIONS")
+    rs.diff:SetTextColor(cr, cg, cb)
+    local g, gr, gg, gb = QZ.Grade(r.right, d.n)
+    rs.grade:SetText(g)
+    rs.grade:SetTextColor(gr, gg, gb)
+    rs.score:SetText(r.score)
+    local _, me = Store()
+    local best = me.quiz.runs[d.key]
+    local rows = MG.Rows(d.board)
+    local rank
+    for n, row in ipairs(rows) do if row.you then rank = n break end end
+    local vals = { r.right .. " / " .. d.n, floor(r.right / d.n * 100 + .5) .. "%",
+                   string.format("%.1f s", r.took / max(1, table.getn(r.list))),
+                   r.fastest and (r.fastest .. " s") or "--", "x" .. r.bestStreak, best and best.score or 0,
+                   rank and ("#" .. rank .. " of " .. table.getn(rows)) or "--" }
+    for i, v in ipairs(rs.rows) do v:SetText(vals[i]) end
+    rs.boardTitle:SetText(string.upper(d.name) .. " LEADERBOARD")
+    rs.boardTitle:SetTextColor(cr, cg, cb)
+    if not rs.table then
+      rs.table = MG.NewTable(rs, 12, 252)
+      rs.table:SetPoint("TOPLEFT", rs.left, "TOPRIGHT", 12, -18)
+    end
+    rs.table.Fill(rows, MG.BOARD[d.board])
+    win.sub:SetText(d.name .. " - " .. r.score .. " points")
+  end
+
+  -- ---- practice: the endless quiz, at your own pace (its own clock setting, the categories you pick)
+  local qp = QZ.views.practice
   qp.cat = Text(qp, 10, nil, .55, .57, .62)
   qp.cat:SetPoint("TOPLEFT", qp, "TOPLEFT", 2, -2)
+  qp.back = Button(qp, 96, 20, "<  Difficulties")
+  qp.back:SetPoint("TOPRIGHT", qp, "TOPRIGHT", 0, 2)
+  qp.back:SetScript("OnClick", function() QZ.Lobby() end)
   qp.timer = CreateFrame("StatusBar", nil, qp)
-  qp.timer:SetPoint("TOPLEFT", qp, "TOPLEFT", 0, -16)
-  qp.timer:SetPoint("TOPRIGHT", qp, "TOPRIGHT", 0, -16)
+  qp.timer:SetPoint("TOPLEFT", qp, "TOPLEFT", 0, -22)
+  qp.timer:SetPoint("TOPRIGHT", qp, "TOPRIGHT", 0, -22)
   qp.timer:SetHeight(3)
   qp.timer:SetStatusBarTexture(WHITE)
   qp.timer:SetMinMaxValues(0, 1)
   qp.q = Text(qp, 15)
-  qp.q:SetPoint("TOPLEFT", qp, "TOPLEFT", 2, -26)
-  qp.q:SetPoint("TOPRIGHT", qp, "TOPRIGHT", -2, -26)
+  qp.q:SetPoint("TOPLEFT", qp, "TOPLEFT", 2, -32)
+  qp.q:SetPoint("TOPRIGHT", qp, "TOPRIGHT", -2, -32)
   qp.q:SetJustifyH("LEFT")
   qp.answers = {}
   for i = 1, 4 do
     local b = Button(qp, 496, 32, "")
-    b:SetPoint("TOPLEFT", qp, "TOPLEFT", 10, -82 - (i - 1) * 38)
+    b:SetPoint("TOPLEFT", qp, "TOPLEFT", 10, -86 - (i - 1) * 38)
     b:SetPoint("RIGHT", qp, "RIGHT", -10, 0)
     b.key = Text(b, 11, "OUTLINE", .6, .62, .66)
     b.key:SetPoint("LEFT", b, "LEFT", 10, 0)
@@ -242,8 +773,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     qp.answers[i] = b
   end
   qp.fact = Text(qp, 12, nil, .85, .86, .9)
-  qp.fact:SetPoint("TOPLEFT", qp, "TOPLEFT", 10, -238)
-  qp.fact:SetPoint("TOPRIGHT", qp, "TOPRIGHT", -10, -238)
+  qp.fact:SetPoint("TOPLEFT", qp, "TOPLEFT", 10, -242)
+  qp.fact:SetPoint("TOPRIGHT", qp, "TOPRIGHT", -10, -242)
   qp.fact:SetJustifyH("LEFT")
   qp.nextb = Button(qp, 140, 28, "Next question")
   qp.nextb:SetPoint("BOTTOMRIGHT", qp, "BOTTOMRIGHT", -10, 34)
@@ -292,7 +823,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       order[i], order[j] = order[j], order[i]
     end
     QZ.order = order
-    qp.cat:SetText(string.upper(QZ.CatName(e.c)))
+    qp.cat:SetText(string.upper(QZ.CatName(e.c)) .. "   |cff666e7a-  PRACTICE|r")
     qp.q:SetText(e.q)
     for i, b in ipairs(qp.answers) do
       local txt = e.a[order[i]]
@@ -346,13 +877,25 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     if S().quiznext == "1" then QZ.autoAt = GetTime() + (right and 1.2 or 2.5) end
     QZ.PaintScore()
   end
-  function QZ.Open()
-    win.sub:SetText("classic Azeroth, " .. table.getn(DATA.quiz) .. " questions")
+  function QZ.Practice()
+    QZ.View("practice")
+    win.sub:SetText("practice - " .. table.getn(DATA.quiz) .. " questions, no board")
     if not QZ.cur or QZ.done then QZ.Next() else QZ.PaintScore() end
   end
-  qp:SetScript("OnUpdate", function()
+  -- the tab: back where you were (a run that was going, its results, practice), else the lobby
+  function QZ.Open()
+    if QZ.view == "run" and QZ.run and QZ.run.state ~= "done" then QZ.View("run")
+    elseif QZ.view == "result" and QZ.run then QZ.View("result")
+    elseif QZ.view == "practice" then QZ.Practice()
+    else QZ.Lobby() end
+  end
+  -- leaving the window mid-run ends the run (its clock would run out while hidden)
+  function QZ.Abandon()
+    if QZ.run and QZ.run.state ~= "done" then QZ.run = nil QZ.view = "lobby" end
+  end
+  page:SetScript("OnUpdate", function()
     local now = GetTime()
-    if QZ.deadline then
+    if QZ.deadline and QZ.view ~= "run" then
       local total = tonumber(S().quiztimer) or 15
       local left = QZ.deadline - now
       qp.timer:SetValue(max(0, left / total))
@@ -361,9 +904,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       if left <= 0 then QZ.Answer(nil) end
     end
     if QZ.autoAt and now >= QZ.autoAt then QZ.autoAt = nil QZ.Next() end
+    QZ.Tick(now)
   end)
-  -- keys 1-4 answer while the quiz shows
-  qp:EnableKeyboard(false)
 
   -- ---------------------------------------------------------------- the aim trainer
 
@@ -422,20 +964,6 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   -- a mode row of its own, four stat panels with big numbers, a draining timer bar, a dark screen with scanlines and
   -- corner brackets, 3-2-1-GO, hit bursts, combo callouts, and a results card with a grade. A mode can be picked at
   -- any time: a round that runs just stops.
-  local FONTS = "Interface\\AddOns\\pfUI\\fonts\\"
-  local NUM, PIX = FONTS .. "BigNoodleTitling.ttf", FONTS .. "Hooge.ttf"
-  local function Big(parent, size, r, g, b)
-    local t = parent:CreateFontString(nil, "OVERLAY")
-    t:SetFont(NUM, size, "OUTLINE")
-    t:SetTextColor(r or 1, g or 1, b or 1)
-    return t
-  end
-  local function Pix(parent, size, r, g, b)
-    local t = parent:CreateFontString(nil, "OVERLAY")
-    t:SetFont(PIX, size, "OUTLINE")
-    t:SetTextColor(r or .6, g or .62, b or .66)
-    return t
-  end
 
   -- mode row
   ap.chips = {}
@@ -1133,87 +1661,300 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
 
   -- ---------------------------------------------------------------- scores and sharing
 
+  -- realms (22 Nov 2026, user: "All scoreboards should show what realm the playername was on. NZ for N'zoth YS for
+  -- Y'Shaarj, CT for C'thun"): a short tag per realm, sent with every score. Others: the first two letters.
+  MG.REALMS = { nzoth = { "NZ", .72, .48, 1 }, yshaarj = { "YS", .35, .85, .55 }, cthun = { "CT", 1, .6, .25 } }
+  function MG.RealmTag(name)
+    local k = string.lower(string.gsub(tostring(name or ""), "[^%a]", ""))
+    local d = MG.REALMS[k]
+    if d then return d[1] end
+    if string.len(k) >= 2 then return string.upper(string.sub(k, 1, 2)) end
+    return "XX"
+  end
+  function MG.MyRealm()
+    local ok, n = pcall(GetRealmName)
+    return MG.RealmTag(ok and type(n) == "string" and n or "")
+  end
+  function MG.RealmColor(tag)
+    for _, d in pairs(MG.REALMS) do if d[1] == tag then return d[2], d[3], d[4] end end
+    return .62, .66, .74
+  end
+  function MG.RealmText(tag)
+    local r, g, b = MG.RealmColor(tag)
+    return string.format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, tag or "??")
+  end
+
+  -- every board: the three quiz runs, the six aim modes, the practice streak
+  MG.BOARDS = {}
+  for _, d in ipairs(QZ.DIFFS) do
+    table.insert(MG.BOARDS, { key = d.board, group = "QUIZ", name = d.name, icon = d.icon, col = d.col, extra = "right", n = d.n,
+      desc = d.n .. " questions, " .. d.secs .. " s each, points x" .. d.mult .. ". Faster answers score more." })
+  end
+  for _, m in ipairs(AM.MODES) do
+    table.insert(MG.BOARDS, { key = m.key, group = "AIM TRAINER", name = m.name, icon = m.icon, extra = "acc", desc = m.tip })
+  end
+  table.insert(MG.BOARDS, { key = "quiz", group = "PRACTICE", name = "Quiz streak", icon = "INV_Misc_Book_09",
+    desc = "Most right answers in a row in practice." })
+  MG.BOARD = {}
+  for _, b in ipairs(MG.BOARDS) do MG.BOARD[b.key] = b end
+
+  -- your own best on a board: score, extra (right answers / accuracy)
+  function MG.MyBest(key)
+    local _, me = Store()
+    if key == "quiz" then return me.quiz.best, nil end
+    for _, d in ipairs(QZ.DIFFS) do
+      if d.board == key then
+        local r = me.quiz.runs[d.key]
+        if r then return r.score, r.right end
+        return
+      end
+    end
+    local a = me.aim[key]
+    if a then return a.score, a.acc end
+  end
+  -- a board's rows, best first: { name, realm, v, acc, you }. Entries kept before realms were (by name alone) were heard
+  -- on your own realm.
+  function MG.Rows(key)
+    local s, _, myName = Store()
+    local mine = MG.MyRealm()
+    local rows = {}
+    for id, e in pairs(s.board[key] or {}) do
+      if type(e) == "table" and tonumber(e.v) then
+        table.insert(rows, { name = e.n or id, realm = e.r or mine, v = tonumber(e.v), acc = e.acc })
+      end
+    end
+    local v, acc = MG.MyBest(key)
+    if v and v > 0 then table.insert(rows, { name = myName, realm = mine, v = v, acc = acc, you = true }) end
+    table.sort(rows, function(a, b)
+      if a.v ~= b.v then return a.v > b.v end
+      return (a.name or "") < (b.name or "")
+    end)
+    return rows
+  end
+  function MG.Entry(key, name, realm)
+    local s = Store()
+    local b = s.board[key]
+    if not b then return end
+    return b[name .. "-" .. (realm or MG.MyRealm())] or b[name]
+  end
+
+  -- a scoreboard table: # / player / realm / score [/ right or accuracy]; `nrows` rows of 18 px. When you are below the
+  -- rows shown, the last row is you with your real place.
+  local MEDAL = { { 1, .82, .3 }, { .8, .84, .9 }, { .85, .55, .3 } }
+  function MG.NewTable(parent, nrows, w, extra)
+    local t = CreateFrame("Frame", nil, parent)
+    t:SetWidth(w)
+    t:SetHeight(18 + nrows * 18)
+    local scoreR = extra and (w - 58) or (w - 8)
+    local realmX = scoreR - 64 - 28
+    t.cols = {}
+    local function Head(label, x, right)
+      local h = Pix(t, 7)
+      if right then h:SetPoint("TOPRIGHT", t, "TOPLEFT", x, -5) else h:SetPoint("TOPLEFT", t, "TOPLEFT", x, -5) end
+      h:SetText(label)
+      return h
+    end
+    Head("#", 8)
+    Head("PLAYER", 34)
+    Head("REALM", realmX)
+    Head("SCORE", scoreR, true)
+    if extra then t.extraHead = Head("RIGHT", w - 8, true) end
+    t.rule = Tex(t, "ARTWORK", 1, 1, 1, .1)
+    t.rule:SetHeight(1)
+    t.rule:SetPoint("TOPLEFT", t, "TOPLEFT", 0, -17)
+    t.rule:SetPoint("TOPRIGHT", t, "TOPRIGHT", 0, -17)
+    t.rows = {}
+    for i = 1, nrows do
+      local r = CreateFrame("Frame", nil, t)
+      r:SetHeight(18)
+      r:SetPoint("TOPLEFT", t, "TOPLEFT", 0, -18 - (i - 1) * 18)
+      r:SetPoint("TOPRIGHT", t, "TOPRIGHT", 0, -18 - (i - 1) * 18)
+      r.bg = Tex(r, "BACKGROUND", 1, 1, 1, math.mod(i, 2) == 0 and .03 or 0)
+      r.bg:SetAllPoints(r)
+      r.you = Tex(r, "BORDER", 1, 1, 1, .14)
+      r.you:SetAllPoints(r)
+      r.mark = Tex(r, "ARTWORK", 1, 1, 1, 1)
+      r.mark:SetWidth(2)
+      r.mark:SetPoint("TOPLEFT", r, "TOPLEFT", 0, 0)
+      r.mark:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 0, 0)
+      r.rank = Big(r, 15)
+      r.rank:SetPoint("LEFT", r, "LEFT", 7, 0)
+      r.name = Text(r, 11)
+      r.name:SetPoint("LEFT", r, "LEFT", 34, 0)
+      r.name:SetWidth(realmX - 40)
+      r.name:SetJustifyH("LEFT")
+      r.pill = Tex(r, "ARTWORK", 1, 1, 1, .2)
+      r.pill:SetWidth(24)
+      r.pill:SetHeight(13)
+      r.pill:SetPoint("LEFT", r, "LEFT", realmX, 0)
+      r.tag = Pix(r, 7, 1, 1, 1)
+      r.tag:SetPoint("CENTER", r.pill, "CENTER", 0, 0)
+      r.score = Big(r, 15)
+      r.score:SetPoint("RIGHT", r, "LEFT", scoreR, 0)
+      r.score:SetJustifyH("RIGHT")
+      r.extra = Text(r, 10, nil, .6, .63, .68)
+      r.extra:SetPoint("RIGHT", r, "RIGHT", -8, 0)
+      r.extra:SetJustifyH("RIGHT")
+      if not extra then r.extra:Hide() end
+      t.rows[i] = r
+    end
+    t.empty = Text(t, 11, nil, .45, .48, .55)
+    t.empty:SetPoint("TOP", t, "TOP", 0, -44)
+    -- rows from MG.Rows, board from MG.BOARD (for the extra column)
+    function t.Fill(rows, board)
+      local ar, ag, ab = Accent()
+      if t.extraHead then t.extraHead:SetText(board and board.extra == "acc" and "ACC" or "RIGHT") end
+      local youAt
+      for n, row in ipairs(rows) do if row.you then youAt = n break end end
+      local shown = table.getn(t.rows)
+      for i, r in ipairs(t.rows) do
+        local n = i
+        if i == shown and youAt and youAt > shown then n = youAt end
+        local row = rows[n]
+        if not row then r:Hide() else
+          r:Show()
+          local m = MEDAL[n]
+          r.rank:SetText(n)
+          if m then r.rank:SetTextColor(m[1], m[2], m[3]) else r.rank:SetTextColor(.55, .57, .62) end
+          r.name:SetText(row.name)
+          if row.you then r.name:SetTextColor(1, 1, 1) else r.name:SetTextColor(.86, .87, .9) end
+          local cr, cg, cb = MG.RealmColor(row.realm)
+          r.pill:SetVertexColor(cr, cg, cb, .22)
+          r.tag:SetText(row.realm or "??")
+          r.tag:SetTextColor(cr, cg, cb)
+          r.score:SetText(row.v)
+          if m then r.score:SetTextColor(m[1], m[2], m[3]) else r.score:SetTextColor(1, 1, 1) end
+          local ex = ""
+          if row.acc and board then
+            if board.extra == "right" then ex = row.acc .. "/" .. (board.n or "?")
+            elseif board.extra == "acc" and row.acc > 0 then ex = row.acc .. "%" end
+          end
+          r.extra:SetText(ex)
+          if row.you then
+            r.you:SetVertexColor(ar, ag, ab, .16) r.you:Show()
+            r.mark:SetVertexColor(ar, ag, ab, 1) r.mark:Show()
+          else
+            r.you:Hide() r.mark:Hide()
+          end
+        end
+      end
+      if rows[1] then t.empty:SetText("") else t.empty:SetText("No scores yet - set the first one!") end
+    end
+    return t
+  end
+
+  -- the Scores tab: boards down the left, the picked one as a table on the right
   local bp = MG.pages.board
-  bp.cols = {}
-  function MG.Board()
-    win.sub:SetText("bests from your guild, groups and battlegrounds - and the players they have met")
-    local s, me, myName = Store()
-    for _, c in ipairs(bp.cols) do c:Hide() end
-    local list = { { key = "quiz", name = "Quiz streak", icon = "INV_Misc_Book_09" } }
-    for _, m in ipairs(AM.MODES) do table.insert(list, { key = m.key, name = m.name, icon = m.icon }) end
-    for i, d in ipairs(list) do
-      local c = bp.cols[i]
-      if not c then
-        c = CreateFrame("Frame", nil, bp)
-        c:SetWidth(126)
-        c:SetHeight(158)
-        c.bg = Tex(c, "BACKGROUND", 1, 1, 1, .03)
-        c.bg:SetAllPoints(c)
-        c.icon = c:CreateTexture(nil, "ARTWORK")
-        c.icon:SetWidth(16) c.icon:SetHeight(16)
-        c.icon:SetPoint("TOPLEFT", c, "TOPLEFT", 6, -6)
-        c.icon:SetTexCoord(.08, .92, .08, .92)
-        c.title = Text(c, 12, "OUTLINE")
-        c.title:SetPoint("LEFT", c.icon, "RIGHT", 6, 0)
-        c.lines = {}
-        for n = 1, 8 do
-          local l = Text(c, 10)
-          l:SetPoint("TOPLEFT", c, "TOPLEFT", 8, -26 - (n - 1) * 15)
-          local r = Text(c, 10)
-          r:SetPoint("TOPRIGHT", c, "TOPRIGHT", -8, -26 - (n - 1) * 15)
-          r:SetJustifyH("RIGHT")
-          c.lines[n] = { l, r }
-        end
-        bp.cols[i] = c
+  bp.list = {}
+  do
+    local y, group = 0, nil
+    for _, b in ipairs(MG.BOARDS) do
+      if b.group ~= group then
+        group = b.group
+        local h = Pix(bp, 7, .5, .52, .58)
+        h:SetPoint("TOPLEFT", bp, "TOPLEFT", 2, -y - (y > 0 and 6 or 0))
+        h:SetText(group)
+        y = y + (y > 0 and 6 or 0) + 13
       end
-      c:ClearAllPoints()
-      c:SetPoint("TOPLEFT", bp, "TOPLEFT", math.mod(i - 1, 4) * 129, -floor((i - 1) / 4) * 166)
-      c.icon:SetTexture(ICON .. d.icon)
-      c.title:SetText(d.name)
-      -- everyone's best: the board plus your own
-      local rows = {}
-      for name, e in pairs(s.board[d.key] or {}) do table.insert(rows, { name = name, v = e.v, acc = e.acc }) end
-      local mine = d.key == "quiz" and me.quiz.best or (me.aim[d.key] and me.aim[d.key].score)
-      if mine and mine > 0 then
-        local found
-        for _, r in ipairs(rows) do if r.name == myName then r.v = max(r.v, mine) found = true end end
-        if not found then table.insert(rows, { name = myName, v = mine, acc = me.aim[d.key] and me.aim[d.key].acc }) end
-      end
-      table.sort(rows, function(a, b) return a.v > b.v end)
-      for n, ln in ipairs(c.lines) do
-        local r = rows[n]
-        if r then
-          local you = r.name == myName
-          ln[1]:SetText((you and "|cffffd24d" or "|cffdddddd") .. n .. ". " .. r.name .. "|r")
-          ln[2]:SetText((you and "|cffffd24d" or "") .. r.v .. (r.acc and r.acc > 0 and ("  |cff8a8f99" .. r.acc .. "%|r") or "") .. (you and "|r" or ""))
-          ln[1]:Show() ln[2]:Show()
-        else
-          ln[1]:SetText(n == 1 and "|cff666e7aNo scores yet|r" or "")
-          ln[2]:SetText("")
-        end
-      end
-      c:Show()
+      local e = Button(bp, 150, 22, "")
+      e:SetPoint("TOPLEFT", bp, "TOPLEFT", 0, -y)
+      e.icon = e:CreateTexture(nil, "OVERLAY")
+      e.icon:SetWidth(16) e.icon:SetHeight(16)
+      e.icon:SetPoint("LEFT", e, "LEFT", 6, 0)
+      e.icon:SetTexture(ICON .. b.icon)
+      e.icon:SetTexCoord(.08, .92, .08, .92)
+      e.text:ClearAllPoints()
+      e.text:SetPoint("LEFT", e.icon, "RIGHT", 7, 0)
+      e.text:SetFont(Font(), 11, "")
+      e.text:SetText(b.name)
+      e.bar = Tex(e, "OVERLAY")
+      e.bar:SetWidth(2)
+      e.bar:SetPoint("TOPLEFT", e, "TOPLEFT", 0, 0)
+      e.bar:SetPoint("BOTTOMLEFT", e, "BOTTOMLEFT", 0, 0)
+      e.key = b.key
+      e:SetScript("OnClick", function() MG.boardSel = this.key MG.Board() Sound("hit") end)
+      table.insert(bp.list, e)
+      y = y + 24
     end
   end
-  -- a new best goes to guild / group; others' are kept (never "|" in an addon message)
+  bp.right = CreateFrame("Frame", nil, bp)
+  bp.right:SetPoint("TOPLEFT", bp, "TOPLEFT", 162, 0)
+  bp.right:SetPoint("BOTTOMRIGHT", bp, "BOTTOMRIGHT", 0, 0)
+  bp.right.bg = Tex(bp.right, "BACKGROUND", .065, .07, .085, 1)
+  bp.right.bg:SetAllPoints(bp.right)
+  bp.line = Tex(bp.right, "ARTWORK")
+  bp.line:SetHeight(3)
+  bp.line:SetPoint("TOPLEFT", bp.right, "TOPLEFT", 0, 0)
+  bp.line:SetPoint("TOPRIGHT", bp.right, "TOPRIGHT", 0, 0)
+  bp.icon = bp.right:CreateTexture(nil, "OVERLAY")
+  bp.icon:SetWidth(30) bp.icon:SetHeight(30)
+  bp.icon:SetPoint("TOPLEFT", bp.right, "TOPLEFT", 10, -11)
+  bp.icon:SetTexCoord(.08, .92, .08, .92)
+  bp.name = Big(bp.right, 26)
+  bp.name:SetPoint("TOPLEFT", bp.icon, "TOPRIGHT", 9, 3)
+  bp.desc = Text(bp.right, 10, nil, .6, .62, .68)
+  bp.desc:SetPoint("TOPLEFT", bp.name, "BOTTOMLEFT", 0, -1)
+  bp.desc:SetWidth(296)
+  bp.desc:SetJustifyH("LEFT")
+  bp.table = MG.NewTable(bp.right, 13, 334, true)
+  bp.table:SetPoint("TOPLEFT", bp.right, "TOPLEFT", 10, -50)
+  bp.foot = Pix(bp.right, 7, .45, .48, .55)
+  bp.foot:SetPoint("BOTTOM", bp.right, "BOTTOM", 0, 7)
+  function MG.Board()
+    win.sub:SetText("leaderboards - guild, groups, battlegrounds and the realm")
+    local sel = MG.BOARD[MG.boardSel or ""] and MG.boardSel or MG.BOARDS[1].key
+    MG.boardSel = sel
+    local b = MG.BOARD[sel]
+    local ar, ag, ab = Accent()
+    local cr, cg, cb = ar, ag, ab
+    if b.col then cr, cg, cb = b.col[1], b.col[2], b.col[3] end
+    for _, e in ipairs(bp.list) do
+      local o = MG.BOARD[e.key]
+      local r, g, bl = ar, ag, ab
+      if o.col then r, g, bl = o.col[1], o.col[2], o.col[3] end
+      if e.key == sel then
+        e.locked = true
+        e.Paint(r * .3, g * .3, bl * .3, 1)
+        e.edge:SetVertexColor(r, g, bl, 1)
+        e.bar:SetVertexColor(r, g, bl, 1)
+        e.bar:Show()
+      else
+        e.locked = nil
+        e.Paint(.1, .105, .12, 1)
+        e.edge:SetVertexColor(.25, .26, .29, 1)
+        e.bar:Hide()
+      end
+    end
+    bp.line:SetVertexColor(cr, cg, cb, 1)
+    bp.icon:SetTexture(ICON .. b.icon)
+    bp.name:SetText(string.upper(b.name) .. (b.group == "QUIZ" and " QUIZ" or ""))
+    bp.name:SetTextColor(cr + (1 - cr) * .25, cg + (1 - cg) * .25, cb + (1 - cb) * .25)
+    bp.desc:SetText(b.desc or "")
+    local rows = MG.Rows(sel)
+    bp.table.Fill(rows, b)
+    local n = table.getn(rows)
+    bp.foot:SetText(n == 1 and "1 PLAYER ON THIS BOARD" or (n .. " PLAYERS ON THIS BOARD"))
+  end
+  -- a new best goes to guild / group; others' are kept (never "|" in an addon message). The realm tag rides last.
   function MG.Share(key, v, acc)
     if S().share ~= "1" or not SendAddonMessage then return end
-    local msg = "B^" .. key .. "^" .. floor(v) .. "^" .. floor(acc or 0)
+    local msg = "B^" .. key .. "^" .. floor(v) .. "^" .. floor(acc or 0) .. "^" .. MG.MyRealm()
     for _, chan in ipairs(MG.Channels and MG.Channels() or { "GUILD" }) do pcall(SendAddonMessage, PREFIX, msg, chan) end
   end
-  -- "B^mode^score^acc" = the sender's own best; "R^mode^name^score^acc" = a best they heard from someone else
+  -- "B^mode^score^acc[^RT]" = the sender's own best; "R^mode^name^score^acc[^RT]" = a best they heard from someone else.
+  -- No tag (pfUI Octo before 1.2.18): the sender's realm, i.e. ours.
   function MG.Receive(msg, from)
     if not from then return end
     local _, _, short = string.find(from, "^([^%-]+)")
     from = short or from
-    local _, _, key, v, acc = string.find(msg or "", "^B%^(%a+)%^(%d+)%^(%d+)$")
+    local _, _, key, v, acc, realm = string.find(msg or "", "^B%^(%a+)%^(%d+)%^(%d+)%^?(%u*)$")
     if key then
-      MG.Keep(key, from, v, acc)
+      MG.Keep(key, from, v, acc, realm ~= "" and realm or nil)
     else
       local who
-      _, _, key, who, v, acc = string.find(msg or "", "^R%^(%a+)%^([^%^]+)%^(%d+)%^(%d+)$")
+      _, _, key, who, v, acc, realm = string.find(msg or "", "^R%^(%a+)%^([^%^]+)%^(%d+)%^(%d+)%^?(%u*)$")
       if not key then return end
-      MG.Keep(key, who, v, acc)
+      MG.Keep(key, who, v, acc, realm ~= "" and realm or nil)
     end
     if win:IsShown() and MG.cur == "board" then MG.Board() end
   end
@@ -1291,13 +2032,21 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     b:SetPoint("BOTTOMLEFT", marquee, "BOTTOMLEFT", 8 + (i - 1) * 16.2, 3)
     marquee.bulbs[i] = b
   end
-  marquee.sweep = marquee:CreateTexture(nil, "OVERLAY")
-  marquee.sweep:SetTexture(WHITE)
-  marquee.sweep:SetWidth(36)
-  marquee.sweep:SetPoint("TOP", marquee, "TOP", 0, 0)
-  marquee.sweep:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 0)
-  marquee.sweep:SetBlendMode("ADD")
-  if marquee.sweep.SetGradientAlpha then marquee.sweep:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 0, 1, 1, 1, .22) end
+  -- (22 Nov 2026, user: the sweep "leaves the end of the frame ... make this glow abit better") a tapered beam: a soft
+  -- wide bloom plus a bright core, each two halves fading in and out, clipped to the sign every frame (a cut half keeps
+  -- the right fade by setting its end alphas from where it was cut)
+  marquee.beams = {}
+  for i = 1, 4 do
+    local t = marquee:CreateTexture(nil, "OVERLAY")
+    t:SetTexture(WHITE)
+    t:SetBlendMode("ADD")
+    t:SetPoint("TOP", marquee, "TOP", 0, -1)
+    t:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 1)
+    t:Hide()
+    marquee.beams[i] = t
+  end
+  -- { half width, peak alpha } for the bloom and the core
+  marquee.BEAM = { { 46, .12 }, { 16, .32 } }
   launch.marquee = marquee
   launch.coin = Pix(launch, 8, 1, .82, .3)
   launch.coin:SetPoint("TOP", marquee, "BOTTOM", 0, -6)
@@ -1306,7 +2055,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   -- the three cards
   launch.cards = {}
   local CARDS = {
-    { key = "quiz", name = "QUIZ", icon = "INV_Misc_Book_09", tip = "Classic Azeroth trivia: lore, raids, dungeons, classes and more." },
+    { key = "quiz", name = "QUIZ", icon = "INV_Misc_Book_09", tip = "Normal, Heroic and Mythic runs against the clock - faster answers score more." },
     { key = "aim", name = "AIM TRAINER", icon = "Ability_Marksmanship", tip = "Six modes from Gridshot to Kick! - how fast are your hands?" },
     { key = "board", name = "HIGH SCORES", icon = "INV_Misc_Note_06", tip = "Your bests, your guild's and the realm's." },
   }
@@ -1398,6 +2147,48 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     for _, list in pairs(s.board) do for _ in pairs(list) do n = n + 1 end end
     launch.cards[3].sub:SetText(n > 0 and (n .. " SCORES") or "BE THE FIRST")
   end
+  -- the beam at f (0 = left of the sign .. 1 = right of it, beyond 1 = resting); every part kept inside the sign
+  function MG.PaintSweep(f)
+    local w = marquee:GetWidth() or (L_W - 2)
+    local beams = marquee.beams
+    if f > 1 then
+      for _, t in ipairs(beams) do t:Hide() end
+      marquee.title:SetAlpha(1)
+      return
+    end
+    local reach = marquee.BEAM[1][1]
+    local cx = -reach + f * (w + 2 * reach)
+    local n = 0
+    for _, layer in ipairs(marquee.BEAM) do
+      local h, peak = layer[1], layer[2]
+      for side = 1, 2 do
+        n = n + 1
+        local t = beams[n]
+        local x0, x1 = cx - h, cx
+        local a0, a1 = 0, peak
+        if side == 2 then x0, x1, a0, a1 = cx, cx + h, peak, 0 end
+        local c0, c1 = max(0, x0), min(w, x1)
+        if c1 - c0 < .5 then
+          t:Hide()
+        else
+          local function At(c) return a0 + (a1 - a0) * (c - x0) / (x1 - x0) end
+          t:ClearAllPoints()
+          t:SetPoint("TOP", marquee, "TOP", 0, -1)
+          t:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 1)
+          t:SetPoint("LEFT", marquee, "LEFT", c0, 0)
+          t:SetWidth(c1 - c0)
+          if t.SetGradientAlpha then t:SetGradientAlpha("HORIZONTAL", 1, .96, .86, At(c0), 1, .96, .86, At(c1)) end
+          t:Show()
+        end
+      end
+    end
+    -- the letters catch the light as it passes them
+    local k = max(0, 1 - math.abs(cx - w / 2) / 110)
+    local ar, ag, ab = Accent()
+    local base = .55 + .45 * k
+    marquee.title:SetTextColor(ar + (1 - ar) * base, ag + (1 - ag) * base, ab + (1 - ab) * base)
+    marquee.title:SetAlpha(1)
+  end
   launch:SetScript("OnShow", function()
     MG.PaintLauncher()
     this:ClearAllPoints()
@@ -1420,16 +2211,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     end
     -- the coin line blinks, the light sweeps the sign every 3 s, the bulbs chase
     launch.coin:SetAlpha(.4 + .6 * math.abs(math.sin(now * 2.6)))
-    local sw = math.mod(now, 3) / 1.2
-    if sw <= 1 then
-      marquee.sweep:Show()
-      marquee.sweep:ClearAllPoints()
-      marquee.sweep:SetPoint("TOP", marquee, "TOP", 0, 0)
-      marquee.sweep:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 0)
-      marquee.sweep:SetPoint("LEFT", marquee, "LEFT", -36 + sw * (L_W + 36), 0)
-    else
-      marquee.sweep:Hide()
-    end
+    MG.PaintSweep(math.mod(now, 3) / 1.4)
     local lit = floor(now * 8)
     local ar, ag, ab = Accent()
     for i, b in ipairs(marquee.bulbs) do
@@ -1457,6 +2239,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     -- a running round finishes first
     if AM.state == "count" then AM.Finish(true) end
     if AM.state == "run" then MG.after = function() win:Hide() end return end
+    if QZ.run and QZ.view == "run" and QZ.run.state ~= "done" then MG.after = function() win:Hide() end return end
     win:Hide()
   end
   local watch = CreateFrame("Frame")
@@ -1496,43 +2279,58 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     askedAt[chan] = GetTime()
     MG.Queue(chan, "Q")
   end
-  -- what we tell a channel that asked: our bests, then the best others we know
+  -- what we tell a channel that asked: our bests, then the best others we know (each with its realm tag)
   function MG.Answer(chan)
     if S().share ~= "1" then return end
     if GetTime() - (answered[chan] or -100) < 60 then return end
     answered[chan] = GetTime()
-    local s, me, myName = Store()
-    if (me.quiz.best or 0) > 0 then MG.Queue(chan, "B^quiz^" .. floor(me.quiz.best) .. "^0") end
-    for key, r in pairs(me.aim) do
-      if MG.modes[key] and (r.score or 0) > 0 then MG.Queue(chan, "B^" .. key .. "^" .. floor(r.score) .. "^" .. floor(r.acc or 0)) end
+    local s = Store()
+    local tag = MG.MyRealm()
+    for _, b in ipairs(MG.BOARDS) do
+      local v, acc = MG.MyBest(b.key)
+      if v and v > 0 then MG.Queue(chan, "B^" .. b.key .. "^" .. floor(v) .. "^" .. floor(acc or 0) .. "^" .. tag) end
     end
-    for key, list in pairs(s.board) do
-      local rows = {}
-      for name, e in pairs(list) do if name ~= myName then table.insert(rows, { name = name, v = e.v, acc = e.acc }) end end
-      table.sort(rows, function(a, b) return a.v > b.v end)
-      for i = 1, math.min(5, table.getn(rows)) do
-        local r = rows[i]
-        MG.Queue(chan, "R^" .. key .. "^" .. r.name .. "^" .. floor(r.v) .. "^" .. floor(r.acc or 0))
+    for key in pairs(s.board) do
+      if MG.BOARD[key] then
+        local n = 0
+        for _, r in ipairs(MG.Rows(key)) do
+          if not r.you then
+            n = n + 1
+            if n > 5 then break end
+            MG.Queue(chan, "R^" .. key .. "^" .. r.name .. "^" .. floor(r.v) .. "^" .. floor(r.acc or 0) .. "^" .. r.realm)
+          end
+        end
       end
     end
   end
-  -- keeps a player's score when it is their best we know of; at most 50 names a board
-  function MG.Keep(key, name, v, acc)
-    if not key or not name or (key ~= "quiz" and not MG.modes[key]) then return end
+  -- keeps a player's score when it is their best we know of; at most 50 players a board. Kept as "Name-RT" (the same
+  -- name can be on two realms); realm nil = ours.
+  function MG.Keep(key, name, v, acc, realm)
+    if not key or not name or not MG.BOARD[key] then return end
     if not string.find(name, "^[%a\128-\255][%a\128-\255]+$") then return end
+    if realm and not string.find(realm, "^%u%u%u?$") then return end
     local s, _, myName = Store()
-    if name == myName then return end
-    s.board[key] = s.board[key] or {}
-    local board = s.board[key]
-    local old = board[name]
+    local mine = MG.MyRealm()
+    realm = realm or mine
+    if name == myName and realm == mine then return end
     v = tonumber(v)
     if not v then return end
-    if old and v <= old.v then return end
-    board[name] = { v = v, acc = tonumber(acc), t = time() }
+    s.board[key] = s.board[key] or {}
+    local board = s.board[key]
+    local id = name .. "-" .. realm
+    -- an entry from before realms were kept (by name alone) was heard on this realm
+    local legacy = board[name]
+    if realm == mine and legacy and not legacy.n then
+      board[name] = nil
+      if not board[id] then board[id] = { v = legacy.v, acc = legacy.acc, t = legacy.t, n = name, r = realm } end
+    end
+    local old = board[id]
+    if old and v <= (tonumber(old.v) or 0) then return end
+    board[id] = { v = v, acc = tonumber(acc), t = time(), n = name, r = realm }
     local n, low, lowName = 0, nil, nil
     for nm, e in pairs(board) do
       n = n + 1
-      if not low or e.v < low then low, lowName = e.v, nm end
+      if not low or (tonumber(e.v) or 0) < low then low, lowName = tonumber(e.v) or 0, nm end
     end
     if n > 50 and lowName then board[lowName] = nil end
   end
@@ -1591,28 +2389,27 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     local n = string.lower(tostring(a9 or "") .. " " .. tostring(a4 or ""))
     return string.find(n, lowerChan, 1, true) and true or nil
   end
-  -- the one line: our bests
+  -- the one line: our bests. "@RT" = our realm tag (older pfUI Octo reads past it: it has no colon)
   function MG.RealmLine()
-    local _, me = Store()
     local parts = {}
-    if (me.quiz.best or 0) > 0 then table.insert(parts, "quiz:" .. floor(me.quiz.best) .. ":0") end
-    for _, m in ipairs(AM.MODES) do
-      local r = me.aim[m.key]
-      if r and (r.score or 0) > 0 then table.insert(parts, m.key .. ":" .. floor(r.score) .. ":" .. floor(r.acc or 0)) end
+    for _, b in ipairs(MG.BOARDS) do
+      local v, acc = MG.MyBest(b.key)
+      if v and v > 0 then table.insert(parts, b.key .. ":" .. floor(v) .. ":" .. floor(acc or 0)) end
     end
     if not parts[1] then return end
-    return "OA1 " .. table.concat(parts, " ")
+    return "OA1 @" .. MG.MyRealm() .. " " .. table.concat(parts, " ")
   end
   -- someone's line: every mode:score:acc goes on the board
   function MG.ReadRealm(msg, from)
     if type(msg) ~= "string" or string.sub(msg, 1, 4) ~= "OA1 " or not from then return end
     local _, _, short = string.find(from, "^([^%-]+)")
     from = short or from
+    local _, _, realm = string.find(msg, "^OA1 @(%u%u%u?) ")
     local n = 0
     for key, v, acc in string.gfind(msg, "(%a+):(%d+):(%d+)") do
       n = n + 1
-      if n > 8 then break end
-      MG.Keep(key, from, v, acc)
+      if n > 12 then break end
+      MG.Keep(key, from, v, acc, realm)
     end
     if win:IsShown() and MG.cur == "board" then MG.Board() end
     return n
