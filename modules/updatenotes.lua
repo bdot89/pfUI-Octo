@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.20", {
+    { "Fair leaderboards - the same for everyone", "the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player." },
+    { "Practice is just practice", "no clock and every category. Your best streak still shows there, but it is no longer a board, since with no clock it is not a contest. Scores now has 9 boards: Normal, Heroic, Mythic and the six aim modes." },
+    { "Flight launcher", "the quiz card shows your best score on your hardest difficulty (for example \"MYTHIC BEST 52000\")." },
+  } },
   { "1.2.19", {
     { "Top scores reach everyone on their own", "a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag." },
     { "Log in to full boards", "when you log in, one player who is online sends you the top 3 of every board, so your Scores are filled straight away. Everyone else hears it too, so all boards stay in step, and only one player answers so the channel stays quiet." },
@@ -182,8 +187,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.81", {
     { "Moved frames stay put", "a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later." },
-  } },
-  { "1.1.80", {
-    { "Whisper windows really open now", "a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - /whispers test included. Each window now starts hidden, gets its place, then shows." },
   } },
 }

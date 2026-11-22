@@ -58,25 +58,19 @@ local wrongAt
 for i = 1, 4 do if qz.order[i] ~= 1 then wrongAt = i end end
 qz.Answer(wrongAt)
 ok(qz.streak == 0 and qz.asked == 2, "a wrong answer ends the streak")
--- a category switched off is not asked
-for _, d in ipairs(qz.CATS) do S.cats[d[1]] = "0" end
-S.cats.raids = "1"
-qz.deck = nil
-local onlyRaids = true
-for _ = 1, 20 do
-  qz.Next()
-  if qz.cur and qz.cur.c ~= "raids" then onlyRaids = false end
+-- the same for everyone: no setting changes a score
+do
+  local o = pfUI.octoui and pfUI.octoui.Options
+  ok(S.aimtime == nil and S.aimsize == nil and S.quiztimer == nil and S.cats == nil, "no round length, target size, quiz clock or category settings")
+  local deck = {}
+  qz.deck = nil
+  qz.Deal()
+  ok(table.getn(qz.deck) == table.getn(MG.DATA.quiz), "practice asks every question")
+  local hasPractice
+  for _, b in ipairs(MG.BOARDS) do if b.key == "quiz" then hasPractice = true end end
+  ok(not hasPractice and table.getn(MG.BOARDS) == 9, "nine boards: three quiz runs, six aim modes (practice has none)")
+  ok(o ~= nil and deck ~= nil, "options module there")
 end
-ok(onlyRaids, "only the categories switched on are asked")
-for _, d in ipairs(qz.CATS) do S.cats[d[1]] = nil end
-qz.deck = nil
--- timer: out of time counts as wrong
-S.quiztimer = "10"
-qz.Next()
-now = now + 11
-MG.pages.quiz:GetScript("OnUpdate")()
-ok(qz.done and qz.streak == 0, "out of time counts as wrong")
-S.quiztimer = "0"
 
 -- realm tags
 ok(MG.RealmTag("N'zoth") == "NZ" and MG.RealmTag("Y'Shaarj") == "YS" and MG.RealmTag("C'Thun") == "CT"
@@ -335,7 +329,7 @@ do
   me2.aim.gridshot = { score = 1234, acc = 88 }
   me2.quiz.best = 7
   local line = MG.RealmLine()
-  ok(line and string.sub(line, 1, 4) == "OA1 " and string.find(line, "gridshot:1234:88") and string.find(line, "quiz:7:0")
+  ok(line and string.sub(line, 1, 4) == "OA1 " and string.find(line, "gridshot:1234:88") and not string.find(line, "quiz:")
     and not string.find(line, "|"), "one plain line with every best: " .. tostring(line))
   S.realm, S.share = "1", "1"
   MG.realmSaid = nil
@@ -387,7 +381,7 @@ do
     "another answer came first: we stay quiet, and its boards are kept")
   -- reading someone's line
   local n = MG.ReadRealm("OA1 hexakill:7000:92 quiz:12:0 reflex:2500:80", "Otherrealmer")
-  ok(n == 3 and MG.Entry("hexakill", "Otherrealmer").v == 7000 and MG.Entry("quiz", "Otherrealmer").v == 12, "a realm line fills the board")
+  ok(n == 3 and MG.Entry("hexakill", "Otherrealmer").v == 7000 and not MG.Entry("quiz", "Otherrealmer"), "a realm line fills the boards (an old practice streak is not a board)")
   ok(not MG.ReadRealm("hello there", "Chatter"), "ordinary chat is ignored")
   -- hidden from the chat
   ok(MG.IsOurChannel("OctoArcade", "5. OctoArcade") and not MG.IsOurChannel("World", "1. World"), "our channel is recognised")

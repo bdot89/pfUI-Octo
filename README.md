@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.20
+
+- ⚖️ **Fair leaderboards - the same for everyone:** the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player.
+- 📝 **Practice is just practice:** no clock and every category. Your best streak still shows there, but it is no longer a board, since with no clock it is not a contest. Scores now has 9 boards: Normal, Heroic, Mythic and the six aim modes.
+- 🎪 **Flight launcher:** the quiz card shows your best score on your hardest difficulty (for example "MYTHIC BEST 52000").
+
 ## 📜 New in 1.2.19
 
 - 📡 **Top scores reach everyone on their own:** a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag.

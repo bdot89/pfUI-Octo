@@ -22,12 +22,16 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   local PREFIX = "pfArc"
 
   -- settings (defaults kept here)
-  local DEF = { onflight = "pick", closeland = "1", quiztimer = "0", quiznext = "0", aimmode = "gridshot", aimtime = "30",
-                aimsize = "44", aimfaces = "enemy", sound = "1", share = "1", scale = "1" }
+  local DEF = { onflight = "pick", closeland = "1", quiznext = "0", aimmode = "gridshot",
+                aimfaces = "enemy", sound = "1", share = "1", scale = "1" }
+  -- (22 Nov 2026, user: "if it is a real highscore board it should be the same for everyone") nothing that changes a
+  -- score is a setting: every round is AIM_TIME seconds with AIM_SIZE px targets, and every quiz uses every category
+  local AIM_TIME, AIM_SIZE = 30, 44
   local function S()
     C.minigames = C.minigames or {}
     for k, v in pairs(DEF) do if C.minigames[k] == nil then C.minigames[k] = v end end
-    if type(C.minigames.cats) ~= "table" then C.minigames.cats = {} end
+    -- the old score-changing settings are gone
+    C.minigames.aimtime, C.minigames.aimsize, C.minigames.quiztimer, C.minigames.cats = nil, nil, nil, nil
     return C.minigames
   end
   MG.S = S
@@ -245,7 +249,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   -- Ranked runs: a set number of questions drawn from EVERY category (the category switches are for practice only, so
   -- the boards stay fair), a clock on each. A right answer is worth 1000 in the first second, falling to 250 at the
   -- buzzer, times the difficulty, plus 10% for each right answer in a row before it (up to +50%). Each difficulty has its
-  -- own board (qnormal / qheroic / qmythic). The old endless quiz stays as Practice (its streak board is "quiz").
+  -- own board (qnormal / qheroic / qmythic). The old endless quiz stays as Practice (no board).
   QZ.DIFFS = {
     { key = "normal", board = "qnormal", name = "Normal", n = 10, secs = 20, mult = 1, icon = "INV_Misc_Book_11",
       col = { .3, .75, 1 }, tip = "A warm-up: ten questions, twenty seconds each." },
@@ -782,14 +786,10 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   qp.score = Text(qp, 11, nil, .65, .67, .72)
   qp.score:SetPoint("BOTTOMLEFT", qp, "BOTTOMLEFT", 10, 8)
 
-  -- the deck: shuffled, every allowed question once before any repeats
-  function QZ.Allowed(e)
-    local off = S().cats
-    return off[e.c] ~= "0"
-  end
+  -- the deck: every question, shuffled, each once before any repeats
   function QZ.Deal()
     local list = {}
-    for i, e in ipairs(DATA.quiz) do if QZ.Allowed(e) then table.insert(list, i) end end
+    for i in ipairs(DATA.quiz) do table.insert(list, i) end
     for i = table.getn(list), 2, -1 do
       local j = random(1, i)
       list[i], list[j] = list[j], list[i]
@@ -809,7 +809,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   function QZ.Next()
     if not QZ.deck or QZ.pos >= table.getn(QZ.deck) then QZ.Deal() end
     if not QZ.deck[1] then
-      qp.q:SetText("No questions: every category is switched off (options > Minigames).")
+      qp.q:SetText("No questions.")
       return
     end
     QZ.pos = QZ.pos + 1
@@ -835,8 +835,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     end
     qp.fact:SetText("")
     qp.nextb:Hide()
-    QZ.deadline = tonumber(S().quiztimer) and tonumber(S().quiztimer) > 0 and (GetTime() + tonumber(S().quiztimer)) or nil
-    if QZ.deadline then qp.timer:Show() else qp.timer:Hide() end
+    qp.timer:Hide()
     QZ.PaintScore()
   end
   function QZ.Answer(i)
@@ -861,10 +860,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       QZ.right = (QZ.right or 0) + 1
       q.right = (q.right or 0) + 1
       QZ.streak = (QZ.streak or 0) + 1
-      if QZ.streak > (q.best or 0) then
-        q.best = QZ.streak
-        MG.Share("quiz", q.best, 0)
-      end
+      -- your own best streak (practice has no board: no clock, so it is not a contest)
+      if QZ.streak > (q.best or 0) then q.best = QZ.streak end
       Sound("right")
     else
       QZ.streak = 0
@@ -873,7 +870,6 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     local head = right and "|cff40d977Correct!|r" or (i and "|cffff6060Not quite.|r" or "|cffff6060Out of time.|r")
     qp.fact:SetText(head .. (QZ.cur.f and ("  " .. QZ.cur.f) or ""))
     qp.nextb:Show()
-    QZ.deadline = nil
     if S().quiznext == "1" then QZ.autoAt = GetTime() + (right and 1.2 or 2.5) end
     QZ.PaintScore()
   end
@@ -895,14 +891,6 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   end
   page:SetScript("OnUpdate", function()
     local now = GetTime()
-    if QZ.deadline and QZ.view ~= "run" then
-      local total = tonumber(S().quiztimer) or 15
-      local left = QZ.deadline - now
-      qp.timer:SetValue(max(0, left / total))
-      local r = left < total * .3 and 1 or .2
-      qp.timer:SetStatusBarColor(r, left < total * .3 and .35 or .7, left < total * .3 and .35 or 1)
-      if left <= 0 then QZ.Answer(nil) end
-    end
     if QZ.autoAt and now >= QZ.autoAt then QZ.autoAt = nil QZ.Next() end
     QZ.Tick(now)
   end)
@@ -1277,7 +1265,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   function AM.Spawn()
     local m = MG.modes[S().aimmode] or MG.modes.gridshot
     local t = table.remove(AM.pool) or NewTarget()
-    local size = tonumber(S().aimsize) or 44
+    local size = AIM_SIZE
     if m.key == "precision" then size = floor(size * .55) end
     if m.key == "tracking" then size = floor(size * 1.1) end
     local x, y = Spot(size)
@@ -1381,7 +1369,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   end
 
   function AM.PaintHud()
-    local total = tonumber(S().aimtime) or 30
+    local total = AIM_TIME
     local left = (AM.state == "run") and max(0, AM.ends - GetTime()) or total
     ap.hud[1]:SetText(string.format("%.1f", left))
     if AM.state == "run" and left < 5 then ap.hud[1]:SetTextColor(1, .3, .3) else ap.hud[1]:SetTextColor(1, 1, 1) end
@@ -1435,7 +1423,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     end
     win.sub:SetText(m.name)
     area.mode:SetText(string.upper(m.name))
-    area.small:SetText(m.tip .. "  " .. (tonumber(S().aimtime) or 30) .. " s rounds.")
+    area.small:SetText(m.tip .. "  " .. AIM_TIME .. " s rounds.")
     local b = Best(m.key)
     area.best:SetText(b and string.format("HIGH SCORE  %d   (%d%% accuracy)", b.score or 0, b.acc or 0) or "No high score yet - set one!")
     area.mode:Show() area.small:Show() area.best:Show() area.press:Show()
@@ -1466,7 +1454,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     AM.state = "run"
     AM.score, AM.hits, AM.misses, AM.combo, AM.bestCombo, AM.react = 0, 0, 0, 0, 0, 0
     AM.track, AM.trackAll = 0, 0
-    AM.ends = GetTime() + (tonumber(S().aimtime) or 30)
+    AM.ends = GetTime() + AIM_TIME
     AM.gapUntil = nil
     AM.last = GetTime()
     for _ = 1, m.n do AM.Spawn() end
@@ -1684,7 +1672,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     return string.format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, tag or "??")
   end
 
-  -- every board: the three quiz runs, the six aim modes, the practice streak
+  -- every board: the three quiz runs and the six aim modes (practice has none)
   MG.BOARDS = {}
   for _, d in ipairs(QZ.DIFFS) do
     table.insert(MG.BOARDS, { key = d.board, group = "QUIZ", name = d.name, icon = d.icon, col = d.col, extra = "right", n = d.n,
@@ -1693,8 +1681,6 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   for _, m in ipairs(AM.MODES) do
     table.insert(MG.BOARDS, { key = m.key, group = "AIM TRAINER", name = m.name, icon = m.icon, extra = "acc", desc = m.tip })
   end
-  table.insert(MG.BOARDS, { key = "quiz", group = "PRACTICE", name = "Quiz streak", icon = "INV_Misc_Book_09",
-    desc = "Most right answers in a row in practice." })
   MG.BOARD = {}
   for _, b in ipairs(MG.BOARDS) do MG.BOARD[b.key] = b end
 
@@ -2143,7 +2129,13 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     local _, me = Store()
     local bestAim, bestMode = 0, nil
     for key, r in pairs(me.aim) do if (r.score or 0) > bestAim then bestAim, bestMode = r.score, key end end
-    launch.cards[1].sub:SetText((me.quiz.best or 0) > 0 and ("BEST STREAK " .. me.quiz.best) or (table.getn(DATA.quiz) .. " QUESTIONS"))
+    -- the hardest difficulty you have a score on
+    local qbest
+    for _, d in ipairs(MG.quiz.DIFFS) do
+      local r = me.quiz.runs and me.quiz.runs[d.key]
+      if r and (r.score or 0) > 0 then qbest = string.upper(d.name) .. " BEST " .. r.score end
+    end
+    launch.cards[1].sub:SetText(qbest or "NORMAL - HEROIC - MYTHIC")
     launch.cards[2].sub:SetText(bestAim > 0 and ("BEST " .. bestAim) or (table.getn(AM.MODES) .. " MODES"))
     local s = Store()
     local n = 0
