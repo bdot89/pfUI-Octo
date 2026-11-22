@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.26
+
+- 🎯 **Threat % on your target frame:** Meters → Threat → Label → Where → **On my target frame** puts just your threat % on top of your target frame (pfUI's, or the game's own), moving and sizing with it - no meter window needed. X / Y nudge it.
+
 ## 📜 New in 1.2.25
 
 - ⚡ **Smoother raids, round three - threat:** the "DoTs on the way" countdown read every debuff on the boss about 25 times a second; now 4 times, with your DoTs' time left still exact. Your threat judgement (cap, colours, aggro countdown) is worked out once a tenth of a second and shared by the label, the popups and the window, and everyone's countdowns only when new numbers arrive.

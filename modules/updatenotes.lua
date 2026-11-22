@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.26", {
+    { "Threat % on your target frame", "Meters Threat Label Where On my target frame puts just your threat % on top of your target frame (pfUI's, or the game's own), moving and sizing with it - no meter window needed. X / Y nudge it." },
+  } },
   { "1.2.25", {
     { "Smoother raids, round three - threat", "the \"DoTs on the way\" countdown read every debuff on the boss about 25 times a second; now 4 times, with your DoTs' time left still exact. Your threat judgement (cap, colours, aggro countdown) is worked out once a tenth of a second and shared by the label, the popups and the window, and everyone's countdowns only when new numbers arrive." },
     { "Raid and party frames", "bars and texts redraw at most 10 times a second (up to 40 frames all changing in a raid fight); your own and your target's stay at 20." },
@@ -187,10 +190,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.87", {
     { "Demo mode (raid)", "Quality of Life > Demo mode, or /demo. A pretend 40-player raid on your own frames with all your settings: raid and party frames, a boss on your target frame with its crest, cast bar and abilities, debuffs to cure, raid warnings, meters and combat text. It loops trash, boss, kill or wipe and rest until you stop it. The bar at the top has Pause, speed (0.5x-4x), Next, Edit and Stop. Nothing real happens and Stop puts everything back; a real fight stops it. Needs a full client restart (new files). Dungeon, target dummy, PvP, AFK and showcase demos come next." },
-  } },
-  { "1.1.86", {
-    { "Unit Frames options sorted like ElvUI / EllesmereUI", "the tabs are now the parts of the frame, in order - Frame, Health, Power, Text, Portrait, Buffs & debuffs, Icons & art, Raid layout - and everything every frame shares sits on one gold All frames tab at the end. Names are written in full." },
-    { "Change together", "tick Player, Target, Focus (or any frame) under the tabs and every change you make goes to them too. Not their position; it stops when you log out." },
-    { "Every dragon and crest as pictures", "Icons & art > Elite, rare and boss art shows every badge as a tile - off, the word, four dragons (Elite Overlay plus three of the game's own) and every crest. Each frame can have its own." },
   } },
 }

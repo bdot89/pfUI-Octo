@@ -1090,6 +1090,9 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
         l:ClearAllPoints()
         if C.meters.twhere == "screen" then
           l:SetPoint("BOTTOM", box, "BOTTOM", 0, 6)
+        elseif C.meters.twhere == "frame" then
+          -- (the preview has no target frame: shown above the sample plate, where the frame's top would be)
+          l:SetPoint("BOTTOM", plate, "TOP", tonumber(C.meters.tx) or 0, (tonumber(C.meters.ty) or 0) + 2)
         else
           local pt = TH.POINTS[C.meters.twhere] or TH.POINTS.above
           l:SetPoint(pt[1], plate, pt[2], tonumber(C.meters.tx) or 0, tonumber(C.meters.ty) or 0)

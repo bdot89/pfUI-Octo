@@ -1067,8 +1067,10 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
 
   TH.LOOKS = { { "words", "Words: Threat 72%" }, { "number", "Just the number: 72%" }, { "bar", "A bar and the number" },
                { "none", "Nothing (popups only)" } }
+  -- (22 Nov 2026, Simpson on Discord: "a threat % that you can put into the target unit frame? i'm a single target DPS,
+  -- i don't need multiple threat bars") "frame" = on top of your target frame, moving and sizing with it
   TH.PLACES = { { "above", "Above the nameplate" }, { "below", "Below the nameplate" }, { "left", "Left of the nameplate" },
-                { "right", "Right of the nameplate" }, { "screen", "A box I place (Move frames)" } }
+                { "right", "Right of the nameplate" }, { "frame", "On my target frame" }, { "screen", "A box I place (Move frames)" } }
   local POINTS = { above = { "BOTTOM", "TOP" }, below = { "TOP", "BOTTOM" }, left = { "RIGHT", "LEFT" }, right = { "LEFT", "RIGHT" } }
   TH.POINTS = POINTS
 
@@ -1091,10 +1093,24 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     end
   end
 
+  -- your target frame: pfUI's when it is up, else the game's own
+  function TH.TargetFrame()
+    local f = rawget(_G, "pfTarget")
+    if f and f.IsVisible and f:IsVisible() then return f end
+    f = rawget(_G, "TargetFrame")
+    if f and f.IsVisible and f:IsVisible() then return f end
+  end
   function TH.Place(l, plate)
     l:ClearAllPoints()
     if C.meters.twhere == "screen" then
       l:SetPoint("CENTER", box, "CENTER", 0, 0)
+      return true
+    end
+    if C.meters.twhere == "frame" then
+      local tf = TH.TargetFrame()
+      if not tf then return false end
+      -- on the frame's top edge, nudged by the X / Y sliders
+      l:SetPoint("BOTTOM", tf, "TOP", tonumber(C.meters.tx) or 0, (tonumber(C.meters.ty) or 0) + 2)
       return true
     end
     if not plate then return false end

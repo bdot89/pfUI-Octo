@@ -439,7 +439,22 @@ do
   TH.Place(l, plate)
   pt = l.points and l.points[1]
   ok(pt and pt[5] == 2, "no auras up: the label at its own height")
+  -- (22 Nov 2026, Simpson: threat % "into the target unit frame") on my target frame: pfUI's, else the game's
+  local keepPT, keepTF, keepTx = rawget(_G, "pfTarget"), rawget(_G, "TargetFrame"), mc.tx
+  local tf = CreateFrame("Frame", "pfTarget", UIParent)
+  tf:Show()
+  _G.pfTarget = tf
+  mc.twhere, mc.tx, mc.ty = "frame", "5", "3"
+  ok(TH.Place(l, nil), "on my target frame: placed without a nameplate")
+  pt = l.points and l.points[1]
+  ok(pt and pt[1] == "BOTTOM" and pt[2] == tf and pt[3] == "TOP" and pt[4] == 5 and pt[5] == 5,
+    "on the target frame's top edge, nudged by X / Y (" .. tostring(pt and pt[4]) .. "," .. tostring(pt and pt[5]) .. ")")
+  tf:Hide()
+  _G.TargetFrame = nil
+  ok(not TH.Place(l, nil), "no target frame up: the label hides")
+  _G.pfTarget, _G.TargetFrame = keepPT, keepTF
   mc.twhere, mc.ty, pc.auras = keepWhere, keepTy, keepAuras
+  mc.tx = keepTx
 end
 
 -- (20 Nov 2026, Lobo: told to hold off on threat while tanking, out of Defensive Stance - "warriors stance dance")
