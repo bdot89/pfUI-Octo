@@ -193,6 +193,9 @@ if DM.EVENTS then
   do
     local tw = pfUI.meters.ThreatWindow and pfUI.meters.ThreatWindow()
     if tw then
+      -- (these check "Fit the lines", off by default since 22 Nov 2026)
+      local keepFit = pfUI_config.meters.tfit
+      pfUI_config.meters.tfit = "1"
       Run(2)
       local good, err = pcall(tw.Refresh, tw)
       local players = 0
@@ -207,6 +210,7 @@ if DM.EVENTS then
       for _, b in ipairs(tw.bars or {}) do if b:IsShown() and b.row and not b.row.pullrow then players = players + 1 end end
       ok(players >= 5, "a tiny saved size does not shrink it to its pull line (" .. players .. " players)")
       s.height = keepH
+      pfUI_config.meters.tfit = keepFit
     end
   end
   -- (20 Nov 2026, user: "constantly showing a live threat meter running a cycle that matches the mode and event we are

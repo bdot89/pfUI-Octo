@@ -1576,6 +1576,18 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     C.meters.snapgroupreset = "1"
     C.meters.snapgroup = "0"
   end
+  -- (22 Nov 2026, user: the threat window "stays this size even if i drag it ... it should let me drag it to what ever
+  -- size i want it and stay there") fitting the lines shrank every window back to its lines the moment the grip was let
+  -- go (one line with no fight). Off for everyone once; the size you drag is the size. Meters > Data still has it.
+  if C.meters.tfitoff ~= "1" then
+    C.meters.tfitoff = "1"
+    C.meters.tfit = "0"
+    -- a size saved while it was fitted (a line or two) comes back at the usual size, to drag from there
+    for i = 1, 6 do
+      local s = C.meters["win" .. i]
+      if type(s) == "table" and tonumber(s.height) and tonumber(s.height) < 100 then s.height = "160" end
+    end
+  end
   local TOUCH = 2
   function M.Touching(a, b)
     local la, ta, ra, ba = Outer(a)

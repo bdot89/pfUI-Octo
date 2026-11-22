@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.22", {
+    { "Meters stay the size you drag them to", "the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight)." },
+    { "Tiny windows come back", "a window that was saved shrunk to a line or two comes back once at the normal size, ready to drag. \"Fit the lines\" is still in Meters > Data for anyone who likes it, now off by default." },
+  } },
   { "1.2.21", {
     { "Meters resize where they are", "resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there." },
   } },
@@ -184,8 +188,5 @@ pfUI.octoNotes = {
   { "1.1.83", {
     { "No more game heal numbers over heads", "SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page)." },
     { "Meter windows move on their own", "windows snapped side by side no longer drag each other along. \"Snapped windows move together\" is off by default (Meters > Data) - snapping into line on drop stays." },
-  } },
-  { "1.1.82", {
-    { "Right names on the map", "hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover." },
   } },
 }

@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.22
+
+- 📏 **Meters stay the size you drag them to:** the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight).
+- 🔁 **Tiny windows come back:** a window that was saved shrunk to a line or two comes back once at the normal size, ready to drag. "Fit the lines" is still in Meters > Data for anyone who likes it, now off by default.
+
 ## 📜 New in 1.2.21
 
 - 📐 **Meters resize where they are:** resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there.

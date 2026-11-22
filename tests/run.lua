@@ -7282,6 +7282,23 @@ do
       .. tostring(pb.xpos) .. ", " .. tostring(pb.ypos) .. ")")
     pfUI_config.position.pfTestPinA, pfUI_config.position.pfTestPinB = nil, nil
   end
+  -- (22 Nov 2026, user: the threat window "stays this size even if i drag it") a size dragged with the grip stays,
+  -- even with no lines to show
+  local w = M and M.windows and M.windows[1]
+  if w and w.grip then
+    ok(pfUI_config.meters.tfit == "0", "windows do not shrink to their lines unless asked")
+    local keepFree, keepLock = w.free, M.S(w).lock
+    w.free = true
+    M.S(w).lock = "0"
+    w:SetWidth(300) w:SetHeight(90)
+    w.grip:GetScript("OnMouseDown")()
+    w:SetWidth(340) w:SetHeight(420)
+    w.grip:GetScript("OnMouseUp")()
+    M.RestyleAll()
+    ok(math.floor(w:GetHeight() + .5) == 420 and math.floor(w:GetWidth() + .5) == 340 and M.S(w).height == "420",
+      "a meter dragged to 340 x 420 stays 340 x 420 (" .. tostring(w:GetWidth()) .. " x " .. tostring(w:GetHeight()) .. ")")
+    w.free, M.S(w).lock = keepFree, keepLock
+  end
 end
 
 -- /pfprof (9 Nov 2026): off = the game's CreateFrame back; on = scripts timed, GetScript unchanged

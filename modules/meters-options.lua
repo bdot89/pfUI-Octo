@@ -947,7 +947,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       function() if M.RestyleAll then M.RestyleAll() end end)
     Chk(p, "Column headings", "Small grey \"/s  Total  %\" over the numbers (the threat window's own: Meters > Threat window).",
       G, "mheads", function() if M.RestyleAll then M.RestyleAll() end end)
-    Chk(p, "Fit the lines", "A window is as tall as the lines it shows - no empty space under them. Its size is the most it grows to.",
+    Chk(p, "Fit the lines", "Windows shrink to the lines they show (no empty space under them), up to their size. Off: they stay the size you drag them to.",
       G, "tfit", function() if M.RestyleAll then M.RestyleAll() end end)
     W.Card(p, "Meters")
     Chk(p, "Use the meters", "After a reload.", G, "enable", Reload)
@@ -1319,7 +1319,7 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       .. "names whose DoTs do it). Each player's line shows their own seconds as well.", G, "tnextpull")
     Chk(p, "Column headings", "Small grey \"Threat  %\" over the numbers.", G, "theads")
     Chk(p, "TPS column", "Threat per second for everyone, over the last few seconds (it goes first when the window is narrow).", G, "ttps")
-    Chk(p, "Fit the lines", "The window is as tall as the lines it shows - no empty space under them. Its size is the most it grows to.", G, "tfit")
+    Chk(p, "Fit the lines", "The window shrinks to the lines it shows (no empty space under them), up to its size. Off: it stays the size you drag it to.", G, "tfit")
     Color(p, "Ground", "Behind the top lines.", G, "tinfobg", function() end)
     Color(p, "Fill", "How far along a line is (your threat towards the pull point).", G, "tinfofill", function() end)
     Color(p, "Room left", "The pull line's number and mark while you have room.", G, "tcolsafe", function() end)
