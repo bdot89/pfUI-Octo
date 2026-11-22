@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.14", {
+    { "The Group Finder in pfUI's look", "OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the \"your group is ready\" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload)." },
+  } },
   { "1.2.13", {
     { "Pick your parts when you install", "the installer has a new \"Which parts do you want?\" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run /pfui install to see it." },
     { "A tidier Send tab", "the money controls have their own panel, so nothing overlaps. A line under the amount says what will happen (\"They pay 5g for each of the 3 mails\"), and Clear and a bigger Send button sit in their own column." },
@@ -175,9 +178,5 @@ pfUI.octoNotes = {
   { "1.1.75", {
     { "Totem order", "OctoTotems > Bars > Layout has an Element order choice, so the bars can go Air, Water, Fire, Earth (or any order you like)." },
     { "Earthen Bulwark bar fixed", "it said 0% with a full bulwark. It now reads the integrity from the aura's stack count and from your debuffs too. /bulwark debug prints what the game reports, if it still looks wrong." },
-  } },
-  { "1.1.74", {
-    { "OctoTotems error fixed", "the shield / weapon imbue reminder button had no font for its timer, so \"octototems.lua:952: Font not set\" repeated over and over. Every totem button now gets its font when it is made." },
-    { "Website download fixed", "the Download ZIP button works again (the newest releases had the zip under another name)." },
   } },
 }

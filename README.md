@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.14
+
+- 🔎 **The Group Finder in pfUI's look:** OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the "your group is ready" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload).
+
 ## 📜 New in 1.2.13
 
 - 🧩 **Pick your parts when you install:** the installer has a new "Which parts do you want?" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run `/pfui install` to see it.
