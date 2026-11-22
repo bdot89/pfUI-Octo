@@ -1015,6 +1015,8 @@ end)
 
 -- the most often a frame redraws its auras / its bars and texts (seconds); see OnUpdate
 pfUI.uf.AURA_EVERY, pfUI.uf.BASE_EVERY = .1, .05
+-- raid and party frames (up to 40 of them, all changing in a raid fight): bars and texts at most 10 times a second
+pfUI.uf.GROUP_EVERY = .1
 
 function pfUI.uf.OnUpdate()
   -- update combat feedback
@@ -1064,7 +1066,7 @@ function pfUI.uf.OnUpdate()
     end
 
     if this.update_base and now >= (this.baseAt or 0) then
-      this.baseAt = now + pfUI.uf.BASE_EVERY
+      this.baseAt = now + ((this.label == "raid" or this.label == "party") and pfUI.uf.GROUP_EVERY or pfUI.uf.BASE_EVERY)
       pfUI.uf:RefreshUnit(this, "base")
       this.update_base = nil
       this.predictAt = nil

@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.25", {
+    { "Smoother raids, round three - threat", "the \"DoTs on the way\" countdown read every debuff on the boss about 25 times a second; now 4 times, with your DoTs' time left still exact. Your threat judgement (cap, colours, aggro countdown) is worked out once a tenth of a second and shared by the label, the popups and the window, and everyone's countdowns only when new numbers arrive." },
+    { "Raid and party frames", "bars and texts redraw at most 10 times a second (up to 40 frames all changing in a raid fight); your own and your target's stay at 20." },
+  } },
   { "1.2.24", {
     { "Smoother raids, round two - unit frames", "on a raid boss the target frame redrew on every aura and health change, many times a second. Every unit frame (target, raid, party...) now redraws its auras at most 10 times a second and its bars and texts at most 20 - still quicker than the eye, with no change ever lost." },
     { "Debuff timers read only what changed", "the target's debuffs are only read in full for the slots whose icon changed (usually none on a boss), with a full look on a new target and every 2 seconds." },
@@ -188,8 +192,5 @@ pfUI.octoNotes = {
     { "Unit Frames options sorted like ElvUI / EllesmereUI", "the tabs are now the parts of the frame, in order - Frame, Health, Power, Text, Portrait, Buffs & debuffs, Icons & art, Raid layout - and everything every frame shares sits on one gold All frames tab at the end. Names are written in full." },
     { "Change together", "tick Player, Target, Focus (or any frame) under the tabs and every change you make goes to them too. Not their position; it stops when you log out." },
     { "Every dragon and crest as pictures", "Icons & art > Elite, rare and boss art shows every badge as a tile - off, the word, four dragons (Elite Overlay plus three of the game's own) and every crest. Each frame can have its own." },
-  } },
-  { "1.1.85", {
-    { "Faded parts in the unit frame preview", "the elite badge, raid mark, leader, loot and PvP icons now show faded on the Unit Frames preview while they are switched off. Click one to go straight to the setting that turns it on - the faded crest takes you to the Elite Overlay dragons." },
   } },
 }

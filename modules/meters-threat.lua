@@ -467,7 +467,11 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   end
   -- your DoTs on the target and their time left: OctoDoTs' reader (ClassicAPI / SuperWoW), else pfUI's timers
   local dotU = { auras = {}, na = 0 }
-  function TH.MyDots(now)
+  -- (22 Nov 2026, user's /pfperf in a raid) this read every aura on the boss and was asked ~25 times a second (popups,
+  -- the plate label, the window): what it found is kept for MYDOTS_KEEP seconds (by end time, so time left stays exact)
+  TH.MYDOTS_KEEP = .25
+  local dotsSeen, dotsAt, dotsFor = {}, -100, nil
+  function TH.ReadMyDots(now)
     local out = {}
     if not UnitExists("target") then return out end
     local D = pfUI.dots
@@ -478,7 +482,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       if pcall(D.Read, dotU, now) then
         for i = 1, dotU.na do
           local a = dotU.auras[i]
-          if a and a.kind == "mine" and a.name and a.ends and a.ends > now then table.insert(out, { name = a.name, left = a.ends - now }) end
+          if a and a.kind == "mine" and a.name and a.ends and a.ends > now then table.insert(out, { name = a.name, ends = a.ends }) end
         end
         return out
       end
@@ -488,12 +492,25 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       for i = 1, 16 do
         local name, _, tex, _, _, _, left, caster = ld:UnitDebuff("target", i)
         if not tex then break end
-        if name and caster == "player" and left and left > 0 then table.insert(out, { name = name, left = left }) end
+        if name and caster == "player" and left and left > 0 then table.insert(out, { name = name, ends = now + left }) end
       end
     end
     return out
   end
-  -- what is on its way: the threat still to come, and its moments { { in seconds, threat }, ... } in order
+  function TH.MyDots(now)
+    now = now or GetTime()
+    local who = UnitExists("target") and (UnitName("target") or "?") or nil
+    if who ~= dotsFor or now - dotsAt >= TH.MYDOTS_KEEP or now < dotsAt then
+      dotsSeen, dotsAt, dotsFor = TH.ReadMyDots(now), now, who
+    end
+    local out = {}
+    for _, d in ipairs(dotsSeen) do
+      if d.ends > now then table.insert(out, { name = d.name, left = d.ends - now }) end
+    end
+    return out
+  end
+  -- a new target or a new cast: read again at once
+  function TH.ForgetMyDots() dotsAt = -100 end
   function TH.OnTheWay(now)
     now = now or GetTime()
     -- (the demo's pretend DoTs: the same lines as a real fight would show)
@@ -667,12 +684,12 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- everyone's at once, kept for a fifth of a second (the window asks for every row)
   function TH.PredictAll(now)
     now = now or GetTime()
-    if TH.all and TH.allAt and now >= TH.allAt and now - TH.allAt < .2 and TH.allFor == TH.list then return TH.all end
+    if TH.all and TH.allAt and now >= TH.allAt and now - TH.allAt < .2 and TH.allFor == TH.base then return TH.all end
     local out = {}
     for _, e in ipairs(TH.list or {}) do
       if not e.tank then out[e.name] = TH.PredictFor(e.name, now) end
     end
-    TH.all, TH.allAt, TH.allFor = out, now, TH.list
+    TH.all, TH.allAt, TH.allFor = out, now, TH.base
     return out
   end
   -- who pulls next, and in how long (within the countdown's seconds): name, prediction
@@ -889,7 +906,18 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if TH.tankWhy and UnitAffectingCombat("player") then TH.tankFight = TH.tankWhy end
     return TH.tankWhy and true or false, TH.tankWhy
   end
+  -- (22 Nov 2026, /pfperf in a raid) asked by the popups, the plate label (10 a second) and every redraw: the same
+  -- list within a tenth of a second gets the same answer
+  local judged, judgedFor, judgedAt = nil, nil, -100
+  TH.JUDGE_KEEP = .1
   function TH.Judge(list)
+    local now = GetTime()
+    if list and list == judgedFor and now - judgedAt < TH.JUDGE_KEEP and now >= judgedAt then return judged end
+    local j = TH.JudgeNow(list)
+    judged, judgedFor, judgedAt = j, list, now
+    return j
+  end
+  function TH.JudgeNow(list)
     local me = UnitName("player")
     local mine
     local others = {}

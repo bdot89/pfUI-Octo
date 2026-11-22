@@ -4,6 +4,8 @@ local ok = octo_ok
 local TH = pfUI.meters and pfUI.meters.threat
 ok(TH and TH.Snapshot and TH.GroupRecord and TH.Rebuild and TH.Animate, "threat estimate between answers loaded")
 if not TH then return end
+-- (the tests change settings and ask again in the same instant: nothing is held between asks)
+TH.JUDGE_KEEP, TH.MYDOTS_KEEP = 0, 0
 local saved = rawget(_G, "UnitName")
 _G.UnitName = function(u) if u == "target" then return "Onyxia" end return "Tester" end
 local list = TH.Parse("TWTv4=Tank:1:1000:100:1;Rogue:0:600:60:1;")
@@ -498,4 +500,23 @@ do
   mc.ttank = keep.tt
   _G.GetNumShapeshiftForms, _G.GetShapeshiftFormInfo, _G.UnitAffectingCombat, _G.UnitName, TH.Alert = keep.n, keep.f, keep.c, keep.u, keep.a
   TH.tankFight, TH.tankAt, TH.warned = nil, nil, nil
+end
+
+-- (22 Nov 2026, /pfperf in a raid) asked many times a second: the same list is judged once a tenth of a second, and
+-- your DoTs on the boss are read once a quarter of a second
+do
+  TH.JUDGE_KEEP, TH.MYDOTS_KEEP = .1, .25
+  local l = TH.Parse("TWTv4=Tank:1:1000:100:1;Rogue:0:600:60:1;")
+  local a, b = TH.Judge(l), TH.Judge(l)
+  ok(a == b, "the same list a moment later: the same judgement, not worked out again")
+  local realRead, reads = TH.ReadMyDots, 0
+  TH.ReadMyDots = function(now) reads = reads + 1 return { { name = "Corruption", ends = now + 12 } } end
+  TH.ForgetMyDots()
+  local d1 = TH.MyDots()
+  local d2 = TH.MyDots()
+  ok(reads == 1 and d1[1] and d2[1] and d2[1].name == "Corruption" and d2[1].left > 11, "your DoTs: read once, time left still exact ("
+    .. reads .. " reads)")
+  TH.ReadMyDots = realRead
+  TH.JUDGE_KEEP, TH.MYDOTS_KEEP = 0, 0
+  TH.ForgetMyDots()
 end

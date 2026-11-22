@@ -1215,6 +1215,7 @@ if ME then
 
   -- threat: parse, ask, warn
   local TH = ME.threat
+  if TH then TH.JUDGE_KEEP, TH.MYDOTS_KEEP = 0, 0 end  -- (settings change between asks in the same instant)
   ok(TH, "threat module loaded")
   if TH then
     local list = TH.Parse("TWTv4=Tankguy:1:5000:100:1;Tester:0:4600:92:1;Healbot:0:1000:20:0#TMTv1=x")

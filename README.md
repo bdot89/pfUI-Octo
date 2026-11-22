@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.25
+
+- ⚡ **Smoother raids, round three - threat:** the "DoTs on the way" countdown read every debuff on the boss about 25 times a second; now 4 times, with your DoTs' time left still exact. Your threat judgement (cap, colours, aggro countdown) is worked out once a tenth of a second and shared by the label, the popups and the window, and everyone's countdowns only when new numbers arrive.
+- ⚡ **Raid and party frames:** bars and texts redraw at most 10 times a second (up to 40 frames all changing in a raid fight); your own and your target's stay at 20.
+
 ## 📜 New in 1.2.24
 
 - ⚡ **Smoother raids, round two - unit frames:** on a raid boss the target frame redrew on every aura and health change, many times a second. Every unit frame (target, raid, party...) now redraws its auras at most 10 times a second and its bars and texts at most 20 - still quicker than the eye, with no change ever lost.
