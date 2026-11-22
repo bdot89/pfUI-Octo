@@ -49,6 +49,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   -- the most garbage allowed now (KB above PF.live)
   function PF.Room() return (PF.held and Num("gcextra", 150) or Num("gcroom", 64)) * 1024 end
   -- lower Lua's own threshold to live + room (never past the ceiling); clean at once if already past the ceiling
+  PF.FORCE_GAP = 30
   function PF.Steer()
     if not On("gccap") or not PF.CanGC() then return end
     local kb, th = gcinfo()
@@ -57,7 +58,20 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     if not PF.live or (PF.lastKb and kb < PF.lastKb - 2048) then PF.live = kb end
     PF.lastKb = kb
     local ceiling = PF.Ceiling()
-    if kb >= ceiling then
+    -- (22 Nov 2026, Wolfahrt in BWL: "huge lag spikes (1 FPS)") when what is really in use is already near the
+    -- ceiling, a clean-up cannot bring it under: it ran a full collectgarbage() - over half a second on 600 MB -
+    -- EVERY second. A ceiling below the real use is no ceiling: it moves up to live + room, and a forced
+    -- clean-up runs at most once every PF.FORCE_GAP seconds.
+    if PF.live and PF.live + Num("gcroom", 64) * 1024 > ceiling then
+      ceiling = PF.live + PF.Room()
+      if not PF.toldBig then
+        PF.toldBig = true
+        Say("your add-ons hold " .. math.floor(PF.live / 1024) .. " MB of Lua memory, more than the " .. Num("gcmax", 600) ..
+          " MB ceiling (Settings > Performance). Turning off add-ons you do not use (or pfQuest's database) frees the most.")
+      end
+    end
+    if kb >= ceiling and Now() - (PF.forcedAt or -1000) >= PF.FORCE_GAP then
+      PF.forcedAt = Now()
       -- a hitch now is better than the game crashing out of memory, in a fight too
       PF.Clean("over the " .. Num("gcmax", 600) .. " MB ceiling")
       PF.live = gcinfo()
@@ -65,6 +79,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       return
     end
     local want = math.min(PF.live + PF.Room(), ceiling)
+    -- past the ceiling but a forced clean-up ran under PF.FORCE_GAP ago: room again, so Lua does not clean right away
+    -- by itself (the same full stop, just from Lua)
+    if kb >= ceiling then want = kb + PF.Room() end
     -- never so low that it cleans this instant (that is PF.Clean's job)
     if want < kb + 2048 then want = kb + 2048 end
     if not th or want < th - 1024 or (PF.held and want > th + 1024) then collectgarbage(math.floor(want)) end

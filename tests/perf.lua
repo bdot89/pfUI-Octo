@@ -68,7 +68,33 @@ local c0 = collects
 kb = 410 * 1024
 PF.Steer()
 ok(collects == c0 + 1 and not PF.held, "past the ceiling: cleaned at once, even in a fight")
+-- (22 Nov 2026, Wolfahrt in BWL: 1 FPS) add-ons that really hold more than the ceiling: a clean-up frees nothing,
+-- and it used to run a full one EVERY second
 S.gcmax = "600"
+PF.held, PF.live, PF.lastKb, PF.forcedAt, PF.toldBig = true, nil, nil, nil, nil
+local realCollect = _G.collectgarbage
+local fulls = 0
+_G.collectgarbage = function(n)
+  n = n or 0
+  if n <= kb then fulls = fulls + 1 kb = 620 * 1024 th = 2 * kb else th = n end
+end
+kb, th = 620 * 1024, 1240 * 1024
+PF.Steer()
+for s = 1, 20 do now = now + 1 kb = kb + 3 * 1024 PF.Steer() end
+ok(fulls == 0, "real use past the ceiling: no clean-up every second (" .. fulls .. " in 20 s)")
+ok(th > kb + 32 * 1024, "and Lua is given room, so it does not clean by itself at once (" .. math.floor((th - kb) / 1024) .. " MB)")
+ok(PF.toldBig, "the player is told once why")
+-- a real ceiling breach (garbage, not use) is still cleaned, but not more than once in PF.FORCE_GAP
+PF.live, PF.lastKb = 300 * 1024, nil
+kb = 610 * 1024
+fulls = 0
+PF.forcedAt = nil
+PF.Steer()
+kb = 610 * 1024
+now = now + 1 PF.Steer()
+ok(fulls == 1, "garbage past the ceiling: one clean-up, then a pause (" .. fulls .. ")")
+_G.collectgarbage = realCollect
+PF.forcedAt, PF.toldBig = nil, nil
 kb, th = 300 * 1024, 600 * 1024
 PF.live, PF.lastKb = nil, nil
 S.gccap = "0"

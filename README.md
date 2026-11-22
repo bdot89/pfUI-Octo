@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.27
+
+- ⚡ **No more 1 FPS in raids with lots of add-ons:** when your add-ons together hold more memory than the ceiling (Settings → Performance), the out-of-memory guard ran a full clean-up every second - the game froze again and again. Now the ceiling follows what is really in use, a forced clean-up runs at most once every 30 seconds, and you get one chat line saying how much memory your add-ons hold.
+
 ## 📜 New in 1.2.26
 
 - 🎯 **Threat % on your target frame:** Meters → Threat → Label → Where → **On my target frame** puts just your threat % on top of your target frame (pfUI's, or the game's own), moving and sizing with it - no meter window needed. X / Y nudge it.
