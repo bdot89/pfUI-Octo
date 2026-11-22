@@ -499,3 +499,120 @@ end
 
 for k, v in pairs(keep) do rawset(_G, k, v) end
 pfUI_cache.perfsaved = nil
+
+-- (22 Nov 2026, user's HUD: pfActionBar 4.1 ms and pfRinseEvents 3 ms a second standing still)
+do
+  local hub = pfUI.api.libclient and pfUI.api.libclient.hub
+  local bar = _G.pfActionBar
+  if hub and bar and hub:GetScript("OnEvent") then
+    local asked = {}
+    local keepUsable = _G.IsUsableAction
+    _G.IsUsableAction = function(slot) asked[slot] = (asked[slot] or 0) + 1 return 1 end
+    _G.event, _G.arg1 = "ACTION_USABLE_CHANGED", { { slot = 3, usable = true, noMana = false } }
+    hub:GetScript("OnEvent")()
+    _G.IsUsableAction = keepUsable
+    local others = 0
+    for s, n in pairs(asked) do if s ~= 3 then others = others + n end end
+    ok(bar.usableEvents and others == 0, "ClassicAPI's ACTION_USABLE_CHANGED: only the changed slot is read again (others " .. others .. ")")
+  end
+  local R = pfUI.rinse
+  local ev = R and R.events
+  if ev and ev:GetScript("OnUpdate") then
+    local pulses, keepPulse = 0, R.Pulse
+    R.Pulse = function() pulses = pulses + 1 end
+    local run = ev:GetScript("OnUpdate")
+    now = now + 10
+    for _ = 1, 20 do _G.arg1 = 1 / 140 run() end
+    R.Pulse = keepPulse
+    ok(pulses == 1, "OctoRinse's loop: once per 1/" .. R.LOOP_HZ .. " s, not every frame (" .. pulses .. " in 20 frames)")
+  end
+end
+
+-- (22 Nov 2026, user's HUD: WorldFrame 3.4 ms a second) the game's WorldFrame_OnUpdate walks its popups only while
+-- the UI is hidden
+do
+  local PF2 = pfUI.perf
+  -- (the test host has no FrameXML: a stand-in for the game's function, then the wrap)
+  local keepWF, origRan = rawget(_G, "WorldFrame_OnUpdate"), 0
+  if not PF2.wfOrig then
+    _G.WorldFrame_OnUpdate = function() origRan = origRan + 1 end
+    PF2.WrapWorldFrame()
+  end
+  if PF2.wfOrig and _G.WorldFrame_OnUpdate ~= PF2.wfOrig then
+    local calls = 0
+    local keep = { rawget(_G, "StaticPopup_OnUpdate"), rawget(_G, "StaticPopup1"), rawget(_G, "UIParent") }
+    _G.StaticPopup_OnUpdate = function() calls = calls + 1 end
+    local shownHidden = { IsShown = function() return 1 end, IsVisible = function() return nil end }
+    _G.StaticPopup1 = shownHidden
+    local uiShown = true
+    _G.UIParent = { IsVisible = function() return uiShown end }
+    for _ = 1, 5 do _G.WorldFrame_OnUpdate(.01) end
+    ok(calls == 0, "UI showing: no popup walk (" .. calls .. ")")
+    uiShown = false
+    _G.WorldFrame_OnUpdate(.01)
+    ok(calls == 1, "UI hidden (Alt+Z / map): the popup's timer still runs (" .. calls .. ")")
+    -- switched off: the game's own function runs
+    pfUI_config.perf.wftick = "0"
+    _G.WorldFrame_OnUpdate(.01)
+    ok(origRan == 1, "switched off: the game's own function runs")
+    pfUI_config.perf.wftick = "1"
+    _G.StaticPopup_OnUpdate, _G.StaticPopup1, _G.UIParent = keep[1], keep[2], keep[3]
+    _G.WorldFrame_OnUpdate, PF2.wfOrig = keepWF, nil
+  else
+    ok(false, "WorldFrame_OnUpdate wrapped")
+  end
+end
+
+-- (22 Nov 2026) the aggro glow: one pass a second for every frame, the same counts as pfUI's per-frame walk
+do
+  local env = getfenv(pfUI.api.UnitHasAggro)
+  local names = { player = "Me", raid1 = "Tank", raid2 = "Heal", raid1target = "Boss", raid2target = "Boss",
+                  raid1targettarget = "Tank", raid2targettarget = "Tank", target = "Boss", targettarget = "Tank" }
+  local hostile = { Boss = true }
+  local keep = {}
+  local fakes = {
+    UnitExists = function(u) return names[u] and 1 end,
+    UnitName = function(u) return names[u] end,
+    UnitCanAttack = function(a, b) return (hostile[names[a] or ""] ~= nil) ~= (hostile[names[b] or ""] ~= nil) end,
+    UnitIsFriend = function(a) return not hostile[names[a] or ""] end,
+    UnitGUID = function() return nil end,
+  }
+  for k, f in pairs(fakes) do keep[k] = { rawget(env, k), rawget(_G, k) } rawset(env, k, f) rawset(_G, k, f) end
+  now = now + 5
+  local tank, heal = pfUI.api.UnitHasAggro("raid1"), pfUI.api.UnitHasAggro("raid2")
+  ok(tank > 0 and heal == 0, "aggro: the tank has it, the healer not (" .. tank .. ", " .. heal .. ")")
+  ok(pfUI.api.UnitHasAggro("raid1target") == 0, "a hostile unit never counts as having aggro")
+  -- asked by 40 frames in the same second: one pass only
+  local passes = 0
+  local ex = fakes.UnitExists
+  rawset(env, "UnitExists", function(u) if u == "raid1target" then passes = passes + 1 end return ex(u) end)
+  rawset(_G, "UnitExists", rawget(env, "UnitExists"))
+  now = now + 5
+  for _ = 1, 40 do pfUI.api.UnitHasAggro("raid1") end
+  ok(passes <= 3, "40 frames asking in one second: one pass over the tokens (" .. passes .. " looks at raid1target)")
+  for k, v in pairs(keep) do rawset(env, k, v[1]) rawset(_G, k, v[2]) end
+end
+
+-- (22 Nov 2026) timer texts only rebuilt when the shown time can have changed
+do
+  local sets = 0
+  local fs = { SetText = function() sets = sets + 1 end }
+  for t = 30, 29.1, -.1 do pfUI.api.SetTimeText(fs, t) end
+  ok(sets <= 3, "SetTimeText: ten asks within a second, at most a few texts built (" .. sets .. ")")
+  pfUI.api.SetTimeText(fs, nil)
+  local before = sets
+  pfUI.api.SetTimeText(fs, nil)
+  ok(sets == before, "SetTimeText: an empty timer is set once")
+  -- the raid sorter sleeps out of a raid (it asked UnitInRaid every frame)
+  local raid = pfUI.uf and pfUI.uf.raid
+  if raid and raid.GetScript and raid:GetScript("OnUpdate") then
+    local env = getfenv(raid:GetScript("OnUpdate"))
+    local keepIn = rawget(env, "UnitInRaid")
+    rawset(env, "UnitInRaid", function() return nil end)
+    raid:Show()
+    _G.this = raid
+    raid:GetScript("OnUpdate")()
+    ok(not raid:IsShown(), "raid sorter: out of a raid it hides until the roster changes")
+    rawset(env, "UnitInRaid", keepIn)
+  end
+end

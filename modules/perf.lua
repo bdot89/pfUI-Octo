@@ -260,6 +260,48 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   end
   PF.WrapUIParent()
 
+  -- (22 Nov 2026, user's HUD standing still: WorldFrame 3.4 ms a second.) The game's WorldFrame_OnUpdate runs every
+  -- frame and walks its 4 popup dialogs and 3 breath / fatigue bars by name ("StaticPopup" .. i) - work that only
+  -- matters while the UI is hidden (Alt+Z, the world map): then a popup's or bar's own script cannot run and this one
+  -- runs it for them. With C.perf.wftick on, the frame rate text is kept up as the game does and the walk only happens
+  -- while UIParent cannot be seen, over frames looked up once. Off = the game's own function.
+  function PF.WrapWorldFrame()
+    local orig = rawget(_G, "WorldFrame_OnUpdate")
+    if type(orig) ~= "function" or PF.wfOrig then return end
+    PF.wfOrig = orig
+    local dialogs, bars
+    _G.WorldFrame_OnUpdate = function(elapsed)
+      if not On("wftick") then return orig(elapsed) end
+      local wf = _G.this
+      local ft = rawget(_G, "FramerateText")
+      if wf and ft and ft:IsVisible() then
+        local left = (wf.fpsTime or 0) - (elapsed or 0)
+        if left <= 0 then
+          wf.fpsTime = _G.FRAMERATE_FREQUENCY or .25
+          ft:SetText(string.format("%.1f", GetFramerate()))
+        else
+          wf.fpsTime = left
+        end
+      end
+      local ui = rawget(_G, "UIParent")
+      if ui and ui:IsVisible() then return end
+      if not dialogs then
+        dialogs, bars = {}, {}
+        for i = 1, (tonumber(_G.STATICPOPUP_NUMDIALOGS) or 4) do table.insert(dialogs, _G["StaticPopup" .. i] or false) end
+        for i = 1, (tonumber(_G.MIRRORTIMER_NUMTIMERS) or 3) do table.insert(bars, _G["MirrorTimer" .. i] or false) end
+      end
+      for i = 1, table.getn(dialogs) do
+        local d = dialogs[i]
+        if d and d:IsShown() and not d:IsVisible() and _G.StaticPopup_OnUpdate then _G.StaticPopup_OnUpdate(d, elapsed) end
+      end
+      for i = 1, table.getn(bars) do
+        local b = bars[i]
+        if b and b:IsShown() and not b:IsVisible() and _G.MirrorTimerFrame_OnUpdate then _G.MirrorTimerFrame_OnUpdate(b, _G.arg1) end
+      end
+    end
+  end
+  PF.WrapWorldFrame()
+
   -- ---------------------------------------------------------------- memory growth (KB a second)
   local lastKB, lastAt = nil, 0
   function PF.Sample()

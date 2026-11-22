@@ -610,6 +610,8 @@ function pfUI:LoadConfig()
     fxglow = "1", fxweather = "1", fxparticles = "1", fxfoot = "1", fxfarclip = "0", farclip = "350",
     -- (17 Nov 2026) the game's own UI ticker 30 times a second, not every frame
     uitick = "1",
+    -- (22 Nov 2026) the game's WorldFrame_OnUpdate without its per-frame popup / breath bar walk while the UI shows
+    wftick = "1",
     -- (17 Nov 2026) the small performance HUD (perf-window.lua), off until asked for
     hud = "0",
     -- (20 Nov 2026) monitor Hz (hz = the one picked, "" = not set), ClassicAPI animations at it, G-Sync / FreeSync cap;
@@ -758,6 +760,9 @@ function pfUI:LoadConfig()
     -- bright | compact | icons; border px in the school's colour ("" = the look's own); out-of-range opacity; the top
     -- row pulses; range = your cures' range in yards by hand ("" = read from the spell, ClassicAPI first)
     look = "octo", border = "", oor = "0.45", pulse = "1", range = "",
+    -- (22 Nov 2026, user: "more bar and layout looks ... less stress") Tiles' icons a row; rows stay put; order inside
+    -- the list order | health | time; out of range at the bottom; seconds left on the icons in every look
+    columns = "5", sticky = "0", sort = "order", oorlast = "0", showtime = "0",
   }) do pfUI:UpdateConfig("rinse", nil, k, v) end
   for _, k in ipairs({ "skip", "prio", "black", "hide", "priority", "prioclass", "hideclass", "boss", "firstclass", "neverclass", "firstgroup", "nevergroup" }) do
     pfUI:UpdateConfig("rinse", nil, k, {})

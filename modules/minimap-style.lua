@@ -967,10 +967,11 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
 
     ApplyElements()
     map:SetAlpha(UnitAffectingCombat("player") and (tonumber(S.combatalpha) or 1) or (tonumber(S.alpha) or 1))
+    if map.SpinCheck then map.SpinCheck() end
   end
 
-  -- spin the art
-  above:SetScript("OnUpdate", function()
+  -- spin the art (octo, 22 Nov 2026: the script only while some layer spins - it looped over the three every frame)
+  local function Spin()
     for i = 1, 3 do
       local l = layers[i]
       if l.speed and l.speed ~= 0 and l.tex then
@@ -978,7 +979,16 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
         Turn(l.tex, rad(l.angle))
       end
     end
-  end)
+  end
+  function map.SpinCheck()
+    local any
+    for i = 1, 3 do
+      local l = layers[i]
+      if l.speed and l.speed ~= 0 and l.tex then any = true end
+    end
+    above:SetScript("OnUpdate", any and Spin or nil)
+  end
+  map.SpinCheck()
 
   -- opacity in / out of combat, and re-apply after pfUI rebuilds the map
   local events = CreateFrame("Frame")

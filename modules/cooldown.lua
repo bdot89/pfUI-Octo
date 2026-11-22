@@ -65,6 +65,15 @@ pfUI:RegisterModule("cooldown", "vanilla:tbc", function ()
     return hex .. math.ceil(remaining)
   end
 
+  -- (octo, 22 Nov 2026) the number only when it can have changed: every visible cooldown asks 10 times a second and
+  -- built a new coloured string each time; the text changes at most every half second (tenths in the last 5 s)
+  function CDX.SetText(cd, remaining)
+    local key = pfUI.api.TimeKey(remaining)
+    if cd.textKey == key then return end
+    cd.textKey = key
+    cd.text:SetText(CDX.Text(remaining))
+  end
+
   -- the number's size: bigger in the last seconds when lowgrow is on
   local function Grow(this, remaining)
     local want = (C.appearance.cd.lowgrow == "1" and remaining <= 5) and 1.35 or 1
@@ -199,7 +208,7 @@ pfUI:RegisterModule("cooldown", "vanilla:tbc", function ()
       -- calculating remaining time as it should be
       local remaining = this.duration - (GetTime() - this.start)
       if remaining >= 0 then
-        this.text:SetText(CDX.Text(remaining))
+        CDX.SetText(this, remaining)
         Grow(this, remaining)
       else
         Done(this)
@@ -217,7 +226,7 @@ pfUI:RegisterModule("cooldown", "vanilla:tbc", function ()
       local remaining = cdEndTime - time
 
       if remaining >= 0 then
-        this.text:SetText(CDX.Text(remaining))
+        CDX.SetText(this, remaining)
         Grow(this, remaining)
       else
         Done(this)
@@ -282,8 +291,12 @@ pfUI:RegisterModule("cooldown", "vanilla:tbc", function ()
 
     -- realign cooldown frames
     local parent = this.GetParent and this:GetParent()
-    if parent and parent:GetWidth() / 36 > 0 then
-      this:SetScale(parent:GetWidth() / 36)
+    -- (octo, 22 Nov 2026: this ran for every button on every cooldown event; scale and points are only set again when
+    -- the button's width changed)
+    local pw = parent and parent:GetWidth() or 0
+    if pw / 36 > 0 and this.pfAlignW ~= pw then
+      this.pfAlignW = pw
+      this:SetScale(pw / 36)
       this:SetPoint("TOPLEFT", parent, "TOPLEFT", -1, 1)
       this:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", 1, -1)
     end
@@ -328,6 +341,7 @@ pfUI:RegisterModule("cooldown", "vanilla:tbc", function ()
       this.pfCooldownText.start = start
       this.pfCooldownText.duration = duration
       this.pfCooldownText.finished = nil
+      this.pfCooldownText.textKey = nil
       this.pfCooldownText:Show()
     elseif(this.pfCooldownText) then
       this.pfCooldownText:Hide()

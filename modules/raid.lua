@@ -97,7 +97,10 @@ pfUI:RegisterModule("raid", "vanilla:tbc", function ()
   pfUI.uf.raid:SetScript("OnEvent", function() this:Show() end)
   pfUI.uf.raid:SetScript("OnUpdate", function()
     -- don't proceed without raid or during combat
-    if not UnitInRaid("player") or (InCombatLockdown and InCombatLockdown()) then return end
+    -- (octo, 22 Nov 2026: out of a raid it went to sleep only after a sort, so it asked UnitInRaid every frame from the
+    -- first roster change on; roster events show it again)
+    if not UnitInRaid("player") then this:Hide() return end
+    if InCombatLockdown and InCombatLockdown() then return end
 
     -- clear all existing frames
     for i=1, maxraid do SetRaidIndex(pfUI.uf.raid[i], 0) end

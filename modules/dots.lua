@@ -569,6 +569,48 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   -- auras are read only for mobs in sort order until the rows are full (faster than Cursive's
   -- read-everything), so 40 mobs in a raid cost as much as the rows shown.
   local POOL = {}
+  -- (22 Nov 2026, user: "use classicAPI better for this and the dot tracker") every mob on the bars had all its
+  -- debuffs read (and a new table made for them) five times a second. With ClassicAPI the bars' mobs are registered
+  -- for UNIT_AURA by GUID (frame:RegisterGUIDEvent): a mob is read again only when its auras changed, when your own or
+  -- a tracked cast lands (D.readAll / D.auraSeen), and every D.READ_EVERY s to be safe. Time left needs no read: the
+  -- end times are kept. Without ClassicAPI (or if the GUID registration is refused) every pass reads, as before.
+  D.READ_EVERY = 1
+  D.auraSeen = {}
+  local gev = CreateFrame("Frame")
+  D.auraEvents = gev
+  local watchList, watchN = {}, 0
+  gev:SetScript("OnEvent", function()
+    local g = arg1
+    if not g then return end
+    if D.units[g] then D.auraSeen[g] = true else D.readAll = true end
+    D.dirty = true
+  end)
+  -- register the GUIDs of the bars' mobs (only when the set changed)
+  function D.WatchAuras(list)
+    if not gev.RegisterGUIDEvent or not D.Classic() then D.guidEvents = nil return end
+    local n, same = 0, true
+    for _, u in ipairs(list) do
+      if u.guid and u.guid ~= "target" then
+        n = n + 1
+        if watchList[n] ~= u.guid then same = false watchList[n] = u.guid end
+      end
+    end
+    if same and n == watchN then return end
+    for i = n + 1, watchN do watchList[i] = nil end
+    if SETN then SETN(watchList, n) end
+    watchN = n
+    if n == 0 then
+      if gev.UnregisterGUIDEvent then pcall(gev.UnregisterGUIDEvent, gev, "UNIT_AURA") end
+      return
+    end
+    local ok = pcall(gev.RegisterGUIDEvent, gev, "UNIT_AURA", unpack(watchList))
+    D.guidEvents = ok or nil
+  end
+  local function NeedRead(u, now)
+    if not D.guidEvents or D.readAll or u.guid == "target" or not u.readAt or D.auraSeen[u.guid] then return true end
+    return now - u.readAt >= D.READ_EVERY or now < u.readAt
+  end
+
   function D.Scan()
     local now = GetTime()
     local list = D.list
@@ -591,7 +633,11 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     local rows, mine = D.Slots(), C.dots.mineonly == "1"
     for _, u in ipairs(POOL) do
       if table.getn(list) >= rows then break end
-      D.Read(u, now)
+      if NeedRead(u, now) then
+        D.Read(u, now)
+        u.readAt = now
+        D.auraSeen[u.guid] = nil
+      end
       if not mine or (u.guid == TG and C.dots.alwaystarget == "1") or D.HasMine(u) then
         -- out of range / out of sight (stripes)
         if C.dots.stripes == "1" and u.guid ~= "target" then
@@ -609,6 +655,8 @@ pfUI:RegisterModule("dots", "vanilla", function ()
       end
     end
     D.dirty = nil
+    D.readAll = nil
+    D.WatchAuras(list)
     return list
   end
 
@@ -1198,6 +1246,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     if t >= nextSlow then
       nextSlow = t + 1
       D.Evict()
+      for g in pairs(D.auraSeen) do if not D.units[g] then D.auraSeen[g] = nil end end
       D.ScanGroup()
       for k, v in pairs(D.pending) do if v < t then D.pending[k] = nil end end
     end
@@ -1276,12 +1325,14 @@ pfUI:RegisterModule("dots", "vanilla", function ()
         D.cast[target] = D.cast[target] or {}
         D.cast[target][id] = { t = GetTime(), caster = caster }
         if D.seen[target] then D.seen[target][id] = nil end
+        -- (its auras are read again on the next pass)
+        D.auraSeen[target] = true
       end
       if (caster == me or DATA.spells[id]) and not D.units[target] then
         local ok, hostile = pcall(UnitCanAttack, "player", target)
         if ok and hostile then D.Add(target) end
       end
-      if caster == me then D.dirty = true end
+      if caster == me then D.dirty = true D.readAll = true end
     elseif e == "CHAT_MSG_SPELL_SELF_DAMAGE" then
       D.Failed(a1)
     elseif e == "PLAYER_ENTERING_WORLD" then

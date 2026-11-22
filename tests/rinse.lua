@@ -188,6 +188,92 @@ do
 end
 R.prio = { "player", "party1" }
 
+-- (22 Nov 2026, user: "use classicAPI better") each player's debuffs are read once and kept until the game says they
+-- changed (UNIT_AURA, by name), or R.FULL_EVERY s have passed
+do
+  local reads, keepD = 0, R.Debuff
+  R.Debuff = function(unit, i) if i == 1 then reads = reads + 1 end return keepD(unit, i) end
+  R.ForgetReads()
+  R.Scan()
+  local first = reads
+  R.Scan()
+  ok(first == 2 and reads == 2, "debuffs read once per player, not again on the next pass (" .. first .. ", " .. reads .. ")")
+  _G.event, _G.arg1 = "UNIT_AURA", "party1"
+  R.events:GetScript("OnEvent")()
+  R.Scan()
+  ok(reads == 3, "UNIT_AURA on party1: only that player read again (" .. reads .. ")")
+  ok(string.find(Shown(), "@Hunty"), "and the kept debuffs still show (" .. Shown() .. ")")
+  now = now + R.FULL_EVERY + .1
+  R.Scan()
+  ok(reads == 5, "every " .. R.FULL_EVERY .. " s everyone is read again to be safe (" .. reads .. ")")
+  R.Debuff = keepD
+  R.ForgetReads()
+end
+
+-- (22 Nov 2026, user: "more bar and layout looks ... less stress") rows stay put, sort, the new looks
+do
+  local keep = { look = S.look, sticky = S.sticky, sort = S.sort, buttons = S.buttons, columns = S.columns }
+  S.look, S.sticky, S.buttons = "octo", "1", "5"
+  R.ApplyLayout()
+  R.prio = { "player", "party1" }
+  R.ForgetReads()
+  R.Scan()
+  ok(R.buttons[1].unitName == "Me", "first pass: Me on the top row")
+  R.prio = { "party1", "player" }
+  R.Scan()
+  ok(R.buttons[1].unitName == "Me" and R.buttons[2].unitName == "Hunty", "Rows stay put: Me keeps the top row though the order changed")
+  S.sticky = "0"
+  R.ApplyLayout()
+  R.Scan()
+  ok(R.buttons[1].unitName == "Hunty", "without it the list order wins")
+  -- sort by health: the lower one first
+  -- (the module runs in pfUI's environment, which may hold its own stand-ins: set them there)
+  local env = getfenv(R.Scan)
+  local keepHP, keepMax = rawget(env, "UnitHealth"), rawget(env, "UnitHealthMax")
+  local function HP(u) return u == "player" and 20 or 90 end
+  local function MAXHP() return 100 end
+  rawset(env, "UnitHealth", HP) rawset(env, "UnitHealthMax", MAXHP)
+  S.sort = "health"
+  R.Scan()
+  ok(R.buttons[1].unitName == "Me", "Sort lowest health first (" .. Shown() .. ")")
+  -- Health bars: the fill follows health, the tag says it
+  S.look = "health"
+  R.ApplyLayout()
+  R.Scan()
+  local b = R.buttons[1]
+  ok(math.abs(b.wash:GetWidth() - b.fullW * .2) < 1 and string.find(b.tag:GetText() or "", "20%%"), "Health bars: 20% filled and said")
+  rawset(env, "UnitHealth", keepHP) rawset(env, "UnitHealthMax", keepMax)
+  -- Timer bars: the row drains by the debuff's time left
+  S.look = "timer"
+  R.ApplyLayout()
+  R.Test(5)
+  b = R.buttons[1]
+  local full = b.wash:GetWidth()
+  now = now + 3
+  R.Pulse(now)
+  ok(b.wash:GetWidth() < full and b.timer:GetText() and b.timer:GetText() ~= "", "Timer bars: the fill drains and the seconds show")
+  R.testUntil = 0
+  -- Spotlight: the top row taller than the next
+  S.look = "spotlight"
+  R.ApplyLayout()
+  ok(R.buttons[1]:GetHeight() > R.buttons[2]:GetHeight() * 1.5, "Spotlight: the next cure is large, the rest slim")
+  -- Tiles: 10 icons in rows of 5
+  S.look, S.buttons, S.columns = "tiles", "10", "5"
+  R.ApplyLayout()
+  local _, _, _, x1, y1 = R.buttons[1]:GetPoint()
+  local _, _, _, x6, y6 = R.buttons[6]:GetPoint()
+  ok(x1 == x6 and y6 ~= y1, "Tiles: the 6th icon starts the second row")
+  -- Calm: no pulse
+  S.look, S.buttons = "calm", "5"
+  R.ApplyLayout()
+  R.Test(5)
+  R.Pulse(now)
+  ok(not R.buttons[1].glow:IsShown() and R.sticky, "Calm: no pulse, rows stay put")
+  R.testUntil = 0
+  for k, v in pairs(keep) do S[k] = v end
+  R.ApplyLayout()
+end
+
 -- UpsiRinse's saved settings come over; its browser ticks on boss debuffs go to those bosses only
 local bossBefore = R.BossGet(GROB, "Mutating Injection", "b")
 _G.RINSE_CONFIG = { SCALE = 1.2, BUTTONS = 7, PRINT = false, SKIP_ARRAY = { { name = "Bob", class = "MAGE" } },

@@ -111,6 +111,40 @@ do
   S.lockorder = "1"
 end
 
+-- (22 Nov 2026, user: "use classicAPI better for ... the dot tracker") the bars' mobs are registered for UNIT_AURA
+-- by GUID; a mob is read again only when its auras changed (or every D.READ_EVERY s)
+do
+  local gev = D.auraEvents
+  local registered, reads = {}, 0
+  -- (no varargs: the test host is LuaJIT, the checker wants Lua 5.0)
+  gev.RegisterGUIDEvent = function(_, e, g1, g2, g3, g4, g5, g6)
+    local n = 0
+    for _, g in ipairs({ g1, g2, g3, g4, g5, g6 }) do if g then n = n + 1 end end
+    registered = { e = e, n = n }
+    return true
+  end
+  gev.UnregisterGUIDEvent = function() end
+  local keepRead = D.Read
+  D.Read = function(u, t) reads = reads + 1 return keepRead(u, t) end
+  D.Scan()
+  ok(registered.e == "UNIT_AURA" and registered.n >= 1 and D.guidEvents, "the bars' mobs are registered for UNIT_AURA by GUID (" .. tostring(registered.n) .. ")")
+  for _, uu in pairs(D.units) do uu.readAt = nil end
+  D.Scan()
+  reads = 0
+  D.Scan()
+  local quiet = reads
+  _G.event, _G.arg1 = "UNIT_AURA", "0xB"
+  gev:GetScript("OnEvent")()
+  D.Scan()
+  ok(reads == quiet + 1, "an aura change on one mob: only that one read again (" .. quiet .. " then " .. (reads - quiet) .. ")")
+  now = now + D.READ_EVERY + .1
+  reads = 0
+  D.Scan()
+  ok(reads >= 2, "after " .. D.READ_EVERY .. " s all are read again to be safe")
+  D.Read = keepRead
+  gev.RegisterGUIDEvent, gev.UnregisterGUIDEvent, D.guidEvents = nil, nil, nil
+end
+
 -- multi-DoT: Corruption goes to the mob that lacks it
 local cast
 _G.CastSpellByName = function(s, g) cast = { s, g } end

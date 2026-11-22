@@ -122,6 +122,16 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.28
+
+- 💧 **OctoRinse, five new looks:** **Timer bars** (each row drains as its debuff runs out, seconds on the icon), **Health bars** (rows filled with the player's health in their class colour - save the one who is dying), **Spotlight** (the next cure large on top, the rest slim), **Calm** (soft colours, no pulse or sound, rows stay put) and **Tiles** (big icons in rows, set the Columns).
+- 🧘 **OctoRinse, less stress:** new card **Order and calm** - sort by lowest health or shortest time left, **Rows stay put** (nothing jumps under your mouse), **Out of range at the bottom**, and seconds left on the icons in any look.
+- ⚡ **OctoRinse and the DoT tracker read less:** a player's (or mob's) debuffs are only read again when the game says they changed (ClassicAPI GUID events for the DoT tracker), with a safety read every 1-2 s. OctoRinse no longer reads all 40 raiders four times a second, and its loop runs 30 times a second instead of every frame. In encounters it reads the bosses from the new `boss1`-`boss5` units.
+- ⚡ **Action bars:** with ClassicAPI only the buttons whose usable state changed are redone (it was every button on every mana tick), cooldowns are only redrawn for buttons whose cooldown changed (it was every button on every global cooldown), and Shift / Ctrl / Alt page switching waits for a key change instead of looking every frame.
+- ⚡ **Raid frames:** the aggro glow / square is one shared pass a second (it walked ~190 unit names for each frame, ~7,600 checks a second in a raid), heal prediction 10 times a second like the bars, and the raid sorter sleeps outside a raid.
+- ⚡ **Timers everywhere:** buff timers and cooldown numbers only rebuild their text when the shown time changes; the player frame's aura swipes only restart when the aura changes.
+- ⚡ **The game's own world frame script** no longer looks over its popups every frame while the interface is showing (Settings → Performance → Lighter world frame script). Minimap art only spins its loop while something spins.
+
 ## 📜 New in 1.2.27
 
 - ⚡ **No more 1 FPS in raids with lots of add-ons:** when your add-ons together hold more memory than the ceiling (Settings → Performance), the out-of-memory guard ran a full clean-up every second - the game froze again and again. Now the ceiling follows what is really in use, a forced clean-up runs at most once every 30 seconds, and you get one chat line saying how much memory your add-ons hold.

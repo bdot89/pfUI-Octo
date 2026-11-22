@@ -658,7 +658,10 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
   end
 
   local start, duration, enable
-  local function ButtonCooldownUpdate(button)
+  -- onlyChanged (octo, 22 Nov 2026, user's HUD: pfActionBar 4.1 ms a second): ACTIONBAR_UPDATE_COOLDOWN comes on
+  -- every global cooldown and redid every visible button - CooldownFrame_SetTimer, cooldown text, scale and points.
+  -- From that event only buttons whose start / duration / enable changed are redone; every other caller always is.
+  local function ButtonCooldownUpdate(button, onlyChanged)
     if not button then return end
 
     if button.bar == 11 then
@@ -672,6 +675,9 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
       start, duration, enable = GetActionCooldown(button.id)
     end
 
+    if onlyChanged and button.cdStart == start and button.cdDur == duration and button.cdEnable == enable
+      and button.cdId == button.id then return end
+    button.cdStart, button.cdDur, button.cdEnable, button.cdId = start, duration, enable, button.id
     CooldownFrame_SetTimer(button.cd, start, duration, enable)
   end
 
@@ -782,7 +788,10 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     if eventcache["ACTIONBAR_UPDATE_USABLE"] then
       eventcache["ACTIONBAR_UPDATE_USABLE"] = nil
       for id, button in pairs(buttoncache) do
-        if button:IsVisible() then ButtonUsableUpdate(button) else button.stale = true; stale = true end
+        -- (once ClassicAPI's ACTION_USABLE_CHANGED has come it redoes just the slots that changed - see below;
+        -- the stance and pet bars are not action slots and still follow this event)
+        if self.usableEvents and button.bar ~= 11 and button.bar ~= 12 then
+        elseif button:IsVisible() then ButtonUsableUpdate(button) else button.stale = true; stale = true end
       end
     end
 
@@ -790,7 +799,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     if eventcache["ACTIONBAR_UPDATE_COOLDOWN"] then
       eventcache["ACTIONBAR_UPDATE_COOLDOWN"] = nil
       for id, button in pairs(buttoncache) do
-        if button:IsVisible() then ButtonCooldownUpdate(button) else button.stale = true; stale = true end
+        if button:IsVisible() then ButtonCooldownUpdate(button, true) else button.stale = true; stale = true end
       end
     end
 
@@ -885,6 +894,27 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     for _, e in ipairs({ "ACTIONBAR_PAGE_CHANGED", "UPDATE_BONUS_ACTIONBAR", "ACTIONBAR_SLOT_CHANGED" }) do
       libclient.On(e, function() bars.tick = 0 end)
     end
+  end
+
+  -- octo (22 Nov 2026, user's HUD: pfActionBar 4.1 ms a second standing still): ACTIONBAR_UPDATE_USABLE comes on every
+  -- mana / rage / energy change, and IsUsableAction was read again on every visible button. ClassicAPI's
+  -- ACTION_USABLE_CHANGED lists only the slots whose usable / no-mana state changed: once it has arrived, only the
+  -- buttons on those slots are redone (bars.usableEvents; ButtonUsableUpdate still reads the state itself).
+  if libclient and libclient.On then
+    libclient.On("ACTION_USABLE_CHANGED", function(_, changes)
+      if type(changes) ~= "table" then return end
+      bars.usableEvents = true
+      for _, c in ipairs(changes) do
+        local slot = type(c) == "table" and tonumber(c.slot)
+        if slot then
+          for _, button in pairs(buttoncache) do
+            if button.id == slot and button.bar ~= 11 and button.bar ~= 12 then
+              if button:IsVisible() then ButtonUsableUpdate(button) else button.stale = true; stale = true end
+            end
+          end
+        end
+      end
+    end)
   end
 
   -- enable bar paging via secure functions
@@ -1031,8 +1061,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     pageswitch:RegisterEvent("PLAYER_AURAS_CHANGED")
     pageswitch:RegisterEvent("UPDATE_SHAPESHIFT_FORMS")
     pageswitch:RegisterEvent("PLAYER_ENTERING_WORLD")
-    pageswitch:SetScript("OnEvent", ReadCatStealth)
-    pageswitch:SetScript("OnUpdate", function()
+    local function PageCheck()
       -- switch actionbar page depending on meta key that is pressed
       if C.bars.pagemastershift == "1" and IsShiftKeyDown() then
         SwitchBar(shift)
@@ -1056,7 +1085,31 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
           SwitchBar(default)
         end
       end
+    end
+    -- (octo, 22 Nov 2026) nothing to look at while no modifier page and no druid stealth page is switched on; with
+    -- ClassicAPI's MODIFIER_STATE_CHANGED (once one has arrived) the check runs when a modifier key or the stealth
+    -- state changes instead of every frame
+    local function Wanted()
+      return C.bars.pagemastershift == "1" or C.bars.pagemasterctrl == "1" or C.bars.pagemasteralt == "1" or C.bars.druidstealth == "1"
+    end
+    pageswitch:SetScript("OnEvent", function()
+      ReadCatStealth()
+      if pageswitch.byEvent and Wanted() then PageCheck() end
     end)
+    pageswitch:SetScript("OnUpdate", function()
+      if pageswitch.byEvent or not Wanted() then return end
+      PageCheck()
+    end)
+    bars.PageCheck = PageCheck
+    if libclient and libclient.On then
+      libclient.On("MODIFIER_STATE_CHANGED", function()
+        if not pageswitch.byEvent then
+          pageswitch.byEvent = true
+          pageswitch:SetScript("OnUpdate", nil)
+        end
+        if Wanted() then PageCheck() end
+      end)
+    end
   end
 
   local function CreateActionButton(parent, bar, button)

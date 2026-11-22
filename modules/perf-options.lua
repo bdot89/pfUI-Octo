@@ -146,6 +146,8 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
     Chk(p, "Game's own UI ticker 30 times a second", "The game runs its fades, flashes, chat-frame mouse check, button pulses and "
       .. "battleground map dots every frame - the costliest script in /pfperf. This runs them 30 times a second at their real speed. "
       .. "Off = every frame, as the game does.", "uitick")
+    Chk(p, "Lighter world frame script", "The game's world frame looks over its popups and breath bars every frame, work that "
+      .. "only matters while the interface is hidden (Alt+Z, the map). On: only then. Off = as the game does.", "wftick")
     if not PF.CanGC() then W.Note(p, "|cffffcc00This client does not let add-ons steer the clean-up.|r") end
 
     W.Card(p, "Raid graphics", { icon = "Interface\\Icons\\Spell_Holy_PrayerOfHealing02",

@@ -152,8 +152,12 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
         stacks = ohcharge
       end
 
-      this.timer:SetText(timeleft > 0 and GetColoredTimeString(timeleft) or "")
-      this.stacks:SetText(stacks > 1 and stacks or "")
+      -- (octo, 22 Nov 2026: the texts only when they change - this runs 10 times a second for every buff)
+      pfUI.api.SetTimeText(this.timer, timeleft > 0 and timeleft or nil)
+      if this.lastStacks ~= stacks then
+        this.lastStacks = stacks
+        this.stacks:SetText(stacks > 1 and stacks or "")
+      end
 
       -- the sweep: 1.12 gives a buff's time left but not its full length, so the
       -- length is the time left when it was first seen (or renewed: more time left

@@ -1433,6 +1433,23 @@ function pfUI.api.GetColoredTimeString(remaining)
   end
 end
 
+-- [ SetTimeText ] -- (octo, 22 Nov 2026)
+-- Sets fontstring fs to GetColoredTimeString(remaining) ("" for nil), but only when the shown text can have changed:
+-- timers ask 5-10 times a second and the text changes at most every half second (tenths in the last 5 s with
+-- milliseconds on). Saves building a new coloured string on every ask. Key = remaining in half seconds (round and
+-- ceil both change on those) or in tenths.
+function pfUI.api.TimeKey(remaining)
+  if not remaining then return -1 end
+  if remaining <= 5 and pfUI_config.appearance.cd.milliseconds == "1" then return math.floor(remaining * 10) + 1000000 end
+  return math.floor(remaining * 2)
+end
+function pfUI.api.SetTimeText(fs, remaining)
+  local key = pfUI.api.TimeKey(remaining)
+  if fs.pfTimeKey == key then return end
+  fs.pfTimeKey = key
+  fs:SetText(remaining and pfUI.api.GetColoredTimeString(remaining) or "")
+end
+
 -- [ GetColorGradient ] --
 -- 'perc'     percentage (0-1)
 -- return r,g,b and hexcolor

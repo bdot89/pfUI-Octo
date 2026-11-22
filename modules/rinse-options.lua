@@ -714,8 +714,10 @@ pfUI:RegisterModule("rinse-options", "vanilla", function ()
     local tiles = {}
     for _, l in ipairs(R.LOOKS or {}) do
       local look = l
-      table.insert(tiles, { look.label, look.tip, ICON .. ({ octo = "Spell_Holy_DispelMagic", bars = "INV_Misc_Bandage_15",
-        bright = "Spell_Holy_SearingLight", compact = "INV_Misc_Note_01", icons = "INV_Misc_Gem_Variety_01" })[look.key],
+      table.insert(tiles, { look.label, look.tip, ICON .. (({ octo = "Spell_Holy_DispelMagic", bars = "INV_Misc_Bandage_15",
+        bright = "Spell_Holy_SearingLight", compact = "INV_Misc_Note_01", icons = "INV_Misc_Gem_Variety_01",
+        timer = "INV_Misc_PocketWatch_01", health = "Spell_Holy_FlashHeal", spotlight = "Spell_Holy_MindVision",
+        calm = "Spell_Nature_Sleep", tiles = "INV_Misc_Gem_Variety_02" })[look.key] or "Spell_Holy_DispelMagic"),
         function()
           C.rinse.look = look.key
           C.rinse.border = tostring(look.rim or 0)
@@ -788,6 +790,20 @@ pfUI:RegisterModule("rinse-options", "vanilla", function ()
     Sld(p, "Out of range", "How see-through a row is while its player is out of your cure's range.", .1, 1, .05, "oor",
       function(v) return math.floor(v * 100 + .5) .. "%" end)
     Chk(p, "Pulse the top row", "The next cure - the top row - softly pulses in its school's colour.", "pulse")
+
+    -- (22 Nov 2026, user: "layout looks to make it easier to see and better less stress")
+    W.Card(p, "Order and calm", { icon = ICON .. "Spell_Nature_Sleep", tip = "What comes first, and how much the rows move." })
+    W.Dropdown(p, "Sort", "Inside the list (totems and Cure first debuffs always stay on top).", {
+      { key = "order", label = "As scanned (Cure first players, then shared out)" },
+      { key = "health", label = "Lowest health first" },
+      { key = "time", label = "Shortest time left first (ClassicAPI)" },
+    }, function() return C.rinse.sort or "order" end, function(v) C.rinse.sort = v R.dirty = true end)
+    Chk(p, "Rows stay put", "A player keeps their row while the debuff lasts; new ones take the free rows. Nothing jumps "
+      .. "under your mouse. The Calm look always does this.", "sticky")
+    Chk(p, "Out of range at the bottom", "Players you cannot reach drop under the ones you can cure now.", "oorlast")
+    Chk(p, "Seconds left on the icons", "The debuff's time left on its icon, red in the last 3 s (ClassicAPI tells the "
+      .. "time; without it nothing shows). Timer bars and Tiles always show it.", "showtime")
+    Sld(p, "Columns (Tiles)", "How many icons a row in the Tiles look.", 1, 10, 1, "columns")
 
     -- (20 Nov 2026, a druid friend: talents that lengthen his cures' range were not counted)
     W.Card(p, "Range", { icon = ICON .. "Ability_Hunter_SniperShot", tip = "When a player counts as in range of your cure." })

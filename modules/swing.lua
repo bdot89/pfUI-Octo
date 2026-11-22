@@ -449,7 +449,13 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     _G.st_timer = ST.Left("main")
     _G.st_timerOff = s.dual and ST.Left("off") or 0
   end
-  stvars:SetScript("OnUpdate", function() ST.PublishST() end)
+  -- (octo, 22 Nov 2026) 30 times a second, not every frame: macros read these when a key is pressed
+  stvars:SetScript("OnUpdate", function()
+    local t = GetTime()
+    if (this.at or 0) > t then return end
+    this.at = t + 1 / 30
+    ST.PublishST()
+  end)
   ST.PublishST()
   -- your cast with a cast time is over (13 Nov 2026). C.swing.castswing:
   --   pause   (default) the swing waited while you cast and goes on from where it was: both hands' bars

@@ -918,6 +918,10 @@ function pfUI.api.SkinArrowButton(button, dir, size)
     local button, state = button, nil
     button.pficonfade = CreateFrame("Frame", nil, button)
     button.pficonfade:SetScript("OnUpdate", function()
+      -- (octo, 22 Nov 2026: ten looks a second, not every frame, for each skinned arrow button)
+      local t = GetTime()
+      if (this.at or 0) > t then return end
+      this.at = t + .1
       if state == button:IsEnabled() then return end
       state = button:IsEnabled()
 

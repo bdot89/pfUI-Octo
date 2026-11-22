@@ -449,10 +449,21 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     return UnitAffectingCombat(u)
   end
   local WATCH = { "target", "targettarget", "mouseover", "focus", "pettarget" }
+  -- (22 Nov 2026, ClassicAPI of that day: boss1-boss5 tokens) while the client names the encounter's bosses itself,
+  -- they are read directly and the walk over every raid member's target is skipped
+  local BOSSES = { "boss1", "boss2", "boss3", "boss4", "boss5" }
   function R.Watch()
     for _, u in ipairs(WATCH) do
       local ok, yes = pcall(Hostile, u)
       if ok and yes then R.Engage(UnitName(u)) end
+    end
+    if _G.C_UnitAuras then
+      local any
+      for _, u in ipairs(BOSSES) do
+        local ok, yes = pcall(Hostile, u)
+        if ok and yes then R.Engage(UnitName(u)) any = true end
+      end
+      if any then return end
     end
     local n = GetNumRaidMembers()
     if n > 0 then
@@ -563,14 +574,16 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     end
     return scan
   end
-  -- school, name, texture, stacks, caster name for debuff i of unit (nil = no more)
+  -- school, name, texture, stacks, caster name, duration, end time for debuff i of unit (nil = no more); the last two
+  -- only from ClassicAPI (22 Nov 2026: the Timer bars look drains each row by its debuff's time left)
   function R.Debuff(unit, i)
-    local name, school, tex, stacks, caster
+    local name, school, tex, stacks, caster, dur, ends
     local ca = _G.C_UnitAuras
     if ca and ca.UnitAura and lc and lc.IsToken(unit) then
-      local ok, n, icon, count, dtype, _, _, source = pcall(ca.UnitAura, unit, i, "HARMFUL")
+      local ok, n, icon, count, dtype, d, e, source = pcall(ca.UnitAura, unit, i, "HARMFUL")
       if not ok or not n then return end
       name, tex, stacks, school = n, icon, count, dtype
+      if type(d) == "number" and d > 0 and type(e) == "number" and e > 0 then dur, ends = d, e end
       if source then
         local ok2, cn = pcall(UnitName, source)
         if ok2 then caster = cn end
@@ -591,7 +604,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     end
     if name and not school and R.SNARES[name] then school = "Snare" end
     if school == "" then school = nil end
-    return school or false, name, tex, stacks or 0, caster
+    return school or false, name, tex, stacks or 0, caster, dur, ends
   end
 
   -- ---------------------------------------------------------------- range and casting
@@ -815,42 +828,103 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   end
 
   local count = 0
-  local function Save(unit, idx, class, school, name, tex, stacks)
+  local function Save(unit, e, class, abolish)
+    local school, name = e.school, e.name
     local isPet = string.find(unit, "pet") ~= nil
     local isPrio = R.IsPriority(name, class)
     if isPet and not On("pets") and not isPrio then return end
     if not R.usable[school] then return end
-    if not On("abolish") and HasAbolish(unit, school) then return end
+    if not On("abolish") and abolish[school] then return end
     count = count + 1
     local d = R.debuffs[count]
     local uname = UnitName(unit) or ""
-    d.name, d.school, d.tex, d.stacks, d.unit, d.unitName, d.class = name, school, tex, stacks, unit, uname, class
-    d.index, d.hidden, d.prio = idx, false, isPrio
+    d.name, d.school, d.tex, d.stacks, d.unit, d.unitName, d.class = name, school, e.tex, e.stacks, unit, uname, class
+    d.index, d.hidden, d.prio, d.dur, d.ends = e.i, false, isPrio, e.dur, e.ends
     d.totem = Totem(uname, school, isPet)
     return true
   end
-  local function ScanUnit(unit)
+
+  -- (22 Nov 2026, user: "use classicAPI better") each player's debuffs are read once and kept: read again only when
+  -- the game says that player's auras changed (UNIT_AURA, by name - a raid member can come as raidN or partyN), on a
+  -- new name behind the token, and every R.FULL_EVERY s to be safe. It used to read every debuff of up to 40 players
+  -- four times a second. The 0.25 s pass now only re-checks rules, range and order.
+  R.FULL_EVERY = 2
+  local reads, readAt, readName = {}, {}, {}
+  R.auraChanged, R.reads = {}, reads
+  local function ReadUnit(unit)
+    local list = reads[unit] or { abolish = {} }
+    reads[unit] = list
     local _, class = UnitClass(unit)
-    local i = 1
-    while count < MAXD - 1 and i <= 40 do
-      local school, name, tex, stacks, caster = R.Debuff(unit, i)
+    local n, i, cure = 0, 1, nil
+    while i <= 40 do
+      local school, name, tex, stacks, caster, dur, ends = R.Debuff(unit, i)
       if school == nil then break end
       if caster then R.Engage(caster) end
       if school and name and class then
         R.Observe(name, school, tex)
-        Save(unit, i, class, school, name, tex, stacks)
+        n = n + 1
+        local e = list[n] or {}
+        list[n] = e
+        e.i, e.school, e.name, e.tex, e.stacks, e.dur, e.ends = i, school, name, tex, stacks, dur, ends
+        if school == "Poison" or school == "Disease" then cure = true end
       end
       i = i + 1
+    end
+    list.n, list.class = n, class
+    -- (Abolish Poison / Disease running: a buff read only when such a debuff is there)
+    list.abolish.Poison = cure and HasAbolish(unit, "Poison") or nil
+    list.abolish.Disease = cure and HasAbolish(unit, "Disease") or nil
+  end
+  -- forget every read (roster changes, a loading screen)
+  function R.ForgetReads()
+    for k in pairs(readAt) do readAt[k] = nil end
+  end
+  local function ScanUnit(unit, now)
+    local name = UnitName(unit)
+    if not reads[unit] or readName[unit] ~= name or (name and R.auraChanged[name]) or now - (readAt[unit] or -100) >= R.FULL_EVERY
+      or now < (readAt[unit] or 0) then
+      ReadUnit(unit)
+      readAt[unit], readName[unit] = now, name
+    end
+    local list = reads[unit]
+    for k = 1, list.n do
+      if count >= MAXD - 1 then break end
+      Save(unit, list[k], list.class, list.abolish)
+    end
+  end
+
+  -- the order inside one part of the list (lo..hi): by C.rinse.sort = order (the scan's own) | health | time
+  local function SortKey(d)
+    local s = C.rinse.sort
+    if s == "health" then
+      local mx = UnitHealthMax(d.unit) or 0
+      return mx > 0 and (UnitHealth(d.unit) or 0) / mx or 1
+    elseif s == "time" then
+      return d.ends and (d.ends - GetTime()) or 9999
+    end
+  end
+  local function SortPart(list, lo, hi)
+    if (C.rinse.sort or "order") == "order" then return end
+    for i = lo, hi do list[i].key = SortKey(list[i]) or 0 end
+    -- (insertion sort: a few dozen entries, and it keeps equal ones in the scan's order)
+    for i = lo + 1, hi do
+      local d, j = list[i], i - 1
+      while j >= lo and list[j].key > d.key do list[j + 1] = list[j] j = j - 1 end
+      list[j + 1] = d
     end
   end
 
   function R.Scan()
     count = 0
+    local now = GetTime()
     R.UpdateActive()
-    if GoodUnit("target") then ScanUnit("target") end
+    if GoodUnit("target") then ScanUnit("target", now) end
     for _, u in ipairs(R.prio) do
-      if GoodUnit(u) and not UnitIsUnit("target", u) then ScanUnit(u) end
+      if GoodUnit(u) and not UnitIsUnit("target", u) then ScanUnit(u, now) end
     end
+    -- (every token of a changed player has been read now; marks for players not scanned need no keeping either:
+    -- they are read anew within R.FULL_EVERY once they can be)
+    Wipe(R.auraChanged)
     local list = R.debuffs
     for i = 1, count do
       local d = list[i]
@@ -883,6 +957,19 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         list[front], list[i] = list[i], list[front]
         front = front + 1
       end
+    end
+    SortPart(list, front, count)
+    -- range once per pass (Paint fades by it); with C.rinse.oorlast the ones you cannot reach go to the bottom
+    for i = 1, count do
+      local d = list[i]
+      d.near = (d.totem or R.InRange(d.unit, R.usable[d.school])) and true or false
+    end
+    if On("oorlast") then
+      local near, far = {}, {}
+      for i = 1, count do table.insert(list[i].near and near or far, list[i]) end
+      local k = 0
+      for _, d in ipairs(near) do k = k + 1 list[k] = d end
+      for _, d in ipairs(far) do k = k + 1 list[k] = d end
     end
     R.count = count
     R.Paint()
@@ -1458,6 +1545,9 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     b.player:SetJustifyH("LEFT")
     b.tag = b:CreateFontString(nil, "OVERLAY")
     b.tag:SetJustifyH("RIGHT")
+    -- (22 Nov 2026) seconds left, on the icon (looks with timetext, or C.rinse.showtime)
+    b.timer = b:CreateFontString(nil, "OVERLAY")
+    b.timer:SetJustifyH("CENTER")
     b.hl = b:CreateTexture(nil, "HIGHLIGHT")
     b.hl:SetTexture("Interface\\Buttons\\WHITE8X8")
     b.hl:SetAllPoints(b)
@@ -1496,6 +1586,21 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     { key = "bright", label = "Bright", fill = .75, rim = 2, big = 2, edge = 4, tip = "A strong fill, a border in the school's colour and bigger words: the easiest to see." },
     { key = "compact", label = "Compact", oneline = true, small = true, tip = "Slim rows: player and debuff on one line." },
     { key = "icons", label = "Icons", grid = true, rim = 2, tip = "A row of big debuff icons, each framed in its school's colour, the player's name under it." },
+    -- (22 Nov 2026, user: "more bar and layout looks to make it easier to see and better less stress")
+    --   mode  what fills the row: timer = the debuff's time left (ClassicAPI), health = the player's health in their
+    --         class colour, class = the class colour; else the school's colour
+    --   spot  the top row (the next cure) large, the rest slim      calm  no pulse, no sound, rows stay put, soft fill
+    --   wrap  big icons in rows of C.rinse.columns
+    { key = "timer", label = "Timer bars", mode = "timer", fill = .6, edge = 4, timetext = true,
+      tip = "Each row drains like a cast bar as its debuff runs out (ClassicAPI), the seconds on the icon - cure the shortest first." },
+    { key = "health", label = "Health bars", mode = "health", fill = .7, edge = 5, rim = 1,
+      tip = "Each row filled with the player's health in their class colour, the debuff's school on the left edge - save the one who is dying." },
+    { key = "spotlight", label = "Spotlight", spot = true, fill = .7, rim = 2, edge = 5,
+      tip = "The next cure large and bright on top, the rest small under it: one thing to look at." },
+    { key = "calm", label = "Calm", calm = true, fill = .18, edge = 2, oneline = true,
+      tip = "Soft colours, no pulse or sound, and rows stay where they are while their debuff lasts - nothing jumps about." },
+    { key = "tiles", label = "Tiles", grid = true, wrap = true, rim = 2, timetext = true,
+      tip = "Big icons in rows (Columns sets how many a row), framed in the school's colour, the seconds left on each." },
   }
   function R.Look()
     for _, l in ipairs(R.LOOKS) do if l.key == C.rinse.look then return l end end
@@ -1509,8 +1614,12 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     local gap = Num("spacing", 2)
     local font, fs = Font(), Num("fontsize", 11) + (L.big or 0)
     local rim = tonumber(C.rinse.border) or L.rim or 0
-    -- the Icons look: square buttons side by side
+    -- the Icons look: square buttons side by side (Tiles: in rows of C.rinse.columns)
     local isz = L.grid and math.max(24, math.floor(h * 1.4)) or nil
+    local cols = L.wrap and math.max(1, math.min(n, Num("columns", 5))) or n
+    -- Spotlight: the top row large, the others slim
+    local bigH, smallH = math.floor(h * 1.7), math.max(16, math.floor(h * .7))
+    R.timeText = L.timetext or On("showtime")
     -- (17 Nov 2026, user: the size "keeps resetting ... should be set always to where i put it and what size can never
     -- change") one scale only: layout mode's saved one (C.position.pfRinse.scale) wins and is mirrored into C.rinse.scale;
     -- the bar used to set its own option's scale on every option change and undo the layout mode size
@@ -1518,7 +1627,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     if pos and tonumber(pos.scale) then C.rinse.scale = tostring(pos.scale) end
     frame:SetScale(Num("scale", 1))
     frame:SetAlpha(Num("alpha", 1))
-    frame:SetWidth(L.grid and math.max(w, n * (isz + gap) - gap) or w)
+    frame:SetWidth(L.grid and math.max(L.wrap and 0 or w, cols * (isz + gap) - gap) or w)
     local showHead = On("header")
     local hh = showHead and 20 or 0
     head:ClearAllPoints()
@@ -1536,29 +1645,38 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     head.text:SetText("OctoRinse")
     head.text:SetTextColor(ar + (1 - ar) * .35, ag + (1 - ag) * .35, ab + (1 - ab) * .35)
     head.boss:SetFont(font, fs - 1, "OUTLINE")
+    local y = hh + 2
     for i = 1, n do
       local b = R.buttons[i] or NewButton(i)
       R.buttons[i] = b
       b:ClearAllPoints()
       b.look = L
+      -- this row's height, words and line layout (Spotlight: the first big, the rest slim on one line)
+      local bh, bfs, oneline = h, fs, L.oneline
+      if L.spot then
+        if i == 1 then bh, bfs = bigH, fs + 4 else bh, bfs, oneline = smallH, fs - 1, true end
+      end
+      b.fs = bfs
       if L.grid then
-        -- a row of big icons, the player's name under each
+        -- big icons, the player's name under each; Tiles wrap into rows
         b:SetWidth(isz)
         b:SetHeight(isz)
-        local x = (i - 1) * (isz + gap)
-        if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", x, hh + 2 + fs + 4) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -(hh + 2)) end
+        local col, row = math.mod(i - 1, cols), math.floor((i - 1) / cols)
+        local x, ry = col * (isz + gap), row * (isz + fs + 6)
+        if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", x, hh + 2 + fs + 4 + ry) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, -(hh + 2 + ry)) end
       else
         b:SetWidth(w)
-        b:SetHeight(h)
-        local y = hh + 2 + (i - 1) * (h + gap)
+        b:SetHeight(bh)
         if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, y) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y) end
+        y = y + bh + gap
       end
       b.bg:SetVertexColor(.06, .065, .075, On("backdrop") and .88 or .35)
       -- the school-colour fill: the whole row, or the fade at its left
       b.wash:ClearAllPoints()
       b.wash:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
       b.wash:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
-      b.wash:SetWidth(L.fill and (L.grid and isz or w) or 60)
+      b.fullW = L.grid and isz or w
+      b.wash:SetWidth(L.fill and b.fullW or 60)
       if b.wash.SetGradientAlpha then
         if L.fill then b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, L.fill, 1, 1, 1, L.fill * .55)
         else b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, .35, 1, 1, 1, 0) end
@@ -1572,7 +1690,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       else
         b.rim:Hide()
       end
-      local ic = L.grid and (isz - 2 * math.max(rim, 1) - 2) or (h - 6)
+      local ic = L.grid and (isz - 2 * math.max(rim, 1) - 2) or (bh - 6)
       b.iconbg:ClearAllPoints()
       if L.grid then b.iconbg:SetPoint("CENTER", b, "CENTER", 0, 0) else b.iconbg:SetPoint("LEFT", b, "LEFT", 6, 0) end
       b.iconbg:SetWidth(ic + 2)
@@ -1581,14 +1699,19 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       b.icon:SetPoint("CENTER", b.iconbg, "CENTER", 0, 0)
       b.icon:SetWidth(ic)
       b.icon:SetHeight(ic)
-      b.count:SetFont(font, fs - 1, "OUTLINE")
+      b.count:SetFont(font, bfs - 1, "OUTLINE")
       b.count:ClearAllPoints()
       b.count:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT", 1, 0)
-      b.debuff:SetFont(font, fs, "OUTLINE")
+      b.timer:SetFont(font, math.max(9, math.floor(ic * .45)), "OUTLINE")
+      b.timer:ClearAllPoints()
+      b.timer:SetPoint("CENTER", b.icon, "CENTER", 0, 0)
+      b.timer:SetText("")
+      b.timeShown = nil
+      b.debuff:SetFont(font, bfs, "OUTLINE")
       b.debuff:ClearAllPoints()
-      b.player:SetFont(font, fs - 1, "OUTLINE")
+      b.player:SetFont(font, bfs - 1, "OUTLINE")
       b.player:ClearAllPoints()
-      b.tag:SetFont(font, fs - 2, "OUTLINE")
+      b.tag:SetFont(font, bfs - 2, "OUTLINE")
       b.tag:ClearAllPoints()
       if L.grid then
         b.debuff:Hide()
@@ -1596,7 +1719,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         b.player:SetPoint("TOP", b, "BOTTOM", 0, -1)
         b.player:SetWidth(isz + gap)
         b.player:SetJustifyH("CENTER")
-      elseif L.oneline then
+      elseif oneline then
         -- "Player  Debuff" on one line, the school on the right
         b.debuff:Show()
         b.tag:Show()
@@ -1618,8 +1741,12 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     end
     for i = n + 1, table.getn(R.buttons) do R.buttons[i]:Hide() R.buttons[i].unit = nil end
     R.shown = n
-    if L.grid then frame:SetHeight(hh + 2 + isz + fs + 6)
-    else frame:SetHeight(hh + 2 + n * (h + gap)) end
+    if L.grid then frame:SetHeight(hh + 2 + math.ceil(n / cols) * (isz + fs + 6))
+    else frame:SetHeight(y) end
+    -- Calm: rows keep their places (C.rinse.sticky does the same for any look)
+    R.sticky = L.calm or On("sticky")
+    R.slotOf = R.slotOf or {}
+    for k in pairs(R.slotOf) do R.slotOf[k] = nil end
     R.dirty = true
   end
 
@@ -1636,12 +1763,54 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   local NOTICE, ERROR = "Sound\\Doodad\\BellTollTribal.wav", "Sound\\Interface\\Error.wav"
   local playNotice = true
 
+  -- (22 Nov 2026) the row's fill for the looks that measure something: timer = time left of the debuff (rows without
+  -- a known end stay full), health = the player's health. Called from Fill and R.Pulse (30 a second); the seconds
+  -- text only changes when the whole second does.
+  function R.Measure(b, now)
+    local L = b.look or R.Look()
+    if not b:IsShown() then return end
+    local frac
+    if L.mode == "timer" and b.dur and b.ends then
+      frac = math.max(0, math.min(1, (b.ends - now) / b.dur))
+    elseif L.mode == "health" then
+      if b.hp then frac = b.hp
+      elseif b.unit and UnitExists(b.unit) then
+        local mx = UnitHealthMax(b.unit) or 0
+        frac = mx > 0 and math.max(0, math.min(1, (UnitHealth(b.unit) or 0) / mx)) or 1
+      end
+      if frac then
+        local pct = math.floor(frac * 100 + .5)
+        if b.hpShown ~= pct then
+          b.hpShown = pct
+          b.tag:SetText((pct <= 35 and "|cffff5555" or "|cffffffff") .. pct .. "%|r")
+        end
+      end
+    end
+    if frac and b.fullW then b.wash:SetWidth(math.max(1, b.fullW * frac)) end
+    if R.timeText then
+      local s = b.ends and math.ceil(b.ends - now) or nil
+      if s and s < 0 then s = 0 end
+      if b.timeShown ~= s then
+        b.timeShown = s
+        b.timer:SetText(s and ((s <= 3 and "|cffff5555" or "|cffffffff") .. s) or "")
+      end
+    end
+  end
+
   local function Fill(b, d)
     local c = R.COLOR[d.school] or R.COLOR.Unknown
+    local L = b.look or R.Look()
     b.icon:SetTexture(d.totem and R.TOTEMICON[d.totem] or d.tex)
     b.iconbg:SetVertexColor(c[1], c[2], c[3], 1)
     b.edge:SetVertexColor(c[1], c[2], c[3], 1)
-    b.wash:SetVertexColor(c[1], c[2], c[3], 1)
+    -- health / class looks fill in the player's class colour, the school stays on the edge, icon frame and border
+    if L.mode == "health" or L.mode == "class" then
+      local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[d.class or ""]
+      if cc then b.wash:SetVertexColor(cc.r, cc.g, cc.b, 1) else b.wash:SetVertexColor(.6, .6, .6, 1) end
+    else
+      b.wash:SetVertexColor(c[1], c[2], c[3], 1)
+    end
+    b.dur, b.ends, b.hp = d.dur, d.ends, d.hp
     if b.rim and b.rim:IsShown() then b.rim:SetBackdropBorderColor(c[1], c[2], c[3], 1) end
     if b.glow then b.glow:SetVertexColor(c[1], c[2], c[3]) end
     b.debuff:SetText(d.totem and ("Totem - " .. d.name) or d.name)
@@ -1651,33 +1820,69 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     b.tag:SetText(d.prio and "|cffffd24dPRIORITY|r" or d.totem and "|cff40d977TOTEM|r" or "|cff" .. c[4] .. string.upper(d.school) .. "|r")
     b.unit, b.unitName, b.class, b.school, b.totem, b.debuffName, b.index = d.unit, d.unitName, d.class, d.school, d.totem, d.name, d.index
     b:Show()
+    b.hpShown = nil
+    if L.mode or R.timeText then R.Measure(b, GetTime()) end
   end
 
+  -- what each button shows: the list in order, one row a player; with R.sticky (Calm, or "Rows stay put") a player
+  -- keeps the row they had while their debuff lasts and newcomers take the free rows
+  local pick, taken = {}, {}
   function R.Paint()
-    local list, used = R.debuffs, {}
-    local bi, di = 1, 1
+    local list = R.debuffs
     local n = R.shown or 0
-    while bi <= n do
-      while di <= R.count and (list[di].hidden or used[list[di].unitName]) do di = di + 1 end
-      local b = R.buttons[bi]
-      if di <= R.count then
-        local d = list[di]
-        used[d.unitName] = true
+    WipeList(pick)
+    Wipe(taken)
+    local seen, k = {}, 0
+    for di = 1, R.count do
+      local d = list[di]
+      if not d.hidden and not seen[d.unitName] then
+        seen[d.unitName] = true
+        k = k + 1
+        if k > n and not R.sticky then break end
+        table.insert(pick, d)
+      end
+    end
+    local slots = {}
+    if R.sticky and R.slotOf then
+      -- first the players who already had a row (and still fit), then the rest in order into the free rows
+      for _, d in ipairs(pick) do
+        local s = R.slotOf[d.unitName]
+        if s and s <= n and not slots[s] then slots[s] = d taken[d] = true end
+      end
+      local free = 1
+      for _, d in ipairs(pick) do
+        if not taken[d] then
+          while free <= n and slots[free] do free = free + 1 end
+          if free > n then break end
+          slots[free] = d
+        end
+      end
+      for name in pairs(R.slotOf) do R.slotOf[name] = nil end
+      for s = 1, n do if slots[s] then R.slotOf[slots[s].unitName] = s end end
+    else
+      for s = 1, math.min(n, table.getn(pick)) do slots[s] = pick[s] end
+    end
+    local calm = (R.Look()).calm
+    for bi = 1, n do
+      local b, d = R.buttons[bi], slots[bi]
+      if d then
         Fill(b, d)
-        -- a totem is dropped at your feet: no range to check
-        b:SetAlpha((d.totem or R.InRange(d.unit, R.usable[d.school])) and 1 or Num("oor", .45))
-        if bi == 1 and playNotice then
+        -- a totem is dropped at your feet: no range to check (d.near: worked out once in the scan)
+        local near = d.near
+        if near == nil then near = d.totem or R.InRange(d.unit, R.usable[d.school]) end
+        b:SetAlpha(near and 1 or Num("oor", .45))
+        if bi == 1 and playNotice and not calm then
           Sound(NOTICE)
           playNotice = false
         end
-        di = di + 1
       else
         b:Hide()
         b.unit = nil
       end
-      bi = bi + 1
     end
-    if not (R.buttons[1] and R.buttons[1]:IsShown()) then playNotice = true end
+    local any = false
+    for bi = 1, n do if R.buttons[bi] and R.buttons[bi]:IsShown() then any = true end end
+    if not any then playNotice = true end
     -- the boss whose lists count now, on the title
     local name
     for key in pairs(R.active) do
@@ -1763,9 +1968,14 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     { name = "Brood Affliction: Red", school = "Disease", tex = "Interface\\Icons\\Spell_Shadow_CreepingPlague", class = "ROGUE", unitName = "Stabby", stacks = 0 },
     { name = "Mind Flay", school = "Snare", tex = "Interface\\Icons\\Spell_Shadow_SiphonMana", class = "HUNTER", unitName = "Pewpew", stacks = 0 },
   }
+  -- (the samples' made-up time left and health, so Timer bars / Health bars show what they do)
+  local SAMPLELEFT, SAMPLEHP = { 6, 14, 3, 18, 9 }, { .62, .28, .9, .45, .75 }
   function R.Sample()
+    local now = GetTime()
     for i = 1, (R.shown or 0) do
-      local d = R.SAMPLE[math.mod(i - 1, table.getn(R.SAMPLE)) + 1]
+      local k = math.mod(i - 1, table.getn(R.SAMPLE)) + 1
+      local d = R.SAMPLE[k]
+      d.dur, d.ends, d.hp = 20, now + SAMPLELEFT[k], SAMPLEHP[k]
       Fill(R.buttons[i], d)
       R.buttons[i].unit = nil
       R.buttons[i]:SetAlpha(i == 4 and .45 or 1)
@@ -1810,7 +2020,12 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   end
   local prioAt
   ev:SetScript("OnEvent", function()
-    if event == "UNIT_AURA" or event == "PLAYER_TARGET_CHANGED" then
+    if event == "UNIT_AURA" then
+      -- only that player is read again (by name: tokens differ between events and the scan)
+      local n = arg1 and UnitName(arg1)
+      if n then R.auraChanged[n] = true else R.ForgetReads() end
+      R.dirty = true
+    elseif event == "PLAYER_TARGET_CHANGED" then
       R.dirty = true
     elseif event == "RAID_ROSTER_UPDATE" or event == "PARTY_MEMBERS_CHANGED" or event == "UNIT_PET" then
       prioAt = GetTime() + 2
@@ -1832,6 +2047,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         R.last.spell = nil
       end
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" then
+      R.ForgetReads()
       R.UpdateSpells()
       R.UpdatePrio()
       R.dirty = true
@@ -1854,16 +2070,33 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
   function R.Pulse(now)
     local b = R.buttons and R.buttons[1]
     if not b or not b.glow then return end
-    if On("pulse") and b:IsShown() and b.unit then
+    -- timer / health fills and the seconds on the icons (only the looks that show them)
+    local L = R.Look()
+    if L.mode or R.timeText then
+      for i = 1, (R.shown or 0) do
+        local bb = R.buttons[i]
+        if bb and bb:IsShown() then R.Measure(bb, now or GetTime()) end
+      end
+    end
+    if On("pulse") and not L.calm and b:IsShown() and (b.unit or R.Testing()) then
       b.glow:SetAlpha(.12 + .14 * (math.sin((now or 0) * 6) + 1) / 2)
       b.glow:Show()
     else
       b.glow:Hide()
     end
   end
+  -- (22 Nov 2026, user's HUD standing alone with nothing to cure: pfRinseEvents 3 ms a second) this ran on every
+  -- frame - 140 times a second at 140 fps - for a title fade, a glow pulse and timers that need far less. Now at most
+  -- R.LOOP_HZ times a second (an aura change still rescans within 1 / R.LOOP_HZ s); the fade gets the time it missed.
+  R.LOOP_HZ = 30
+  local loopAt, loopSum = 0, 0
   ev:SetScript("OnUpdate", function()
-    R.HeadFade(arg1)
     local now = GetTime()
+    loopSum = loopSum + (arg1 or 0)
+    if now < loopAt then return end
+    loopAt = now + 1 / R.LOOP_HZ
+    R.HeadFade(loopSum)
+    loopSum = 0
     R.Pulse(now)
     if R.Testing() then
       if not frame:IsShown() then frame:Show() R.Sample() end

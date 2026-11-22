@@ -45,6 +45,15 @@ local glow2 = {
 }
 
 local maxdurations = {}
+-- octo (22 Nov 2026): the player frame's aura icons read their aura 5 times a second and restarted the cooldown swipe
+-- (and its text) every time, though nothing had changed. Now only when the start moved by more than .3 s (a renewed
+-- aura), the length changed or it switched on / off.
+local function CooldownSoon(icon, start, dur, enable)
+  if icon.cdEnable == enable and icon.cdDur == dur and icon.cdStart and math.abs(start - icon.cdStart) <= .3 then return end
+  icon.cdStart, icon.cdDur, icon.cdEnable = start, dur, enable
+  CooldownFrame_SetTimer(icon.cd, start, dur, enable)
+end
+
 local function BuffOnUpdate()
   if ( this.tick or 1) > GetTime() then return else this.tick = GetTime() + .2 end
   local timeleft = GetPlayerBuffTimeLeft(GetPlayerBuff(PLAYER_BUFF_START_ID+this.id,"HELPFUL"))
@@ -60,7 +69,7 @@ local function BuffOnUpdate()
     start = GetTime() + timeleft - maxdurations[texture]
   end
 
-  CooldownFrame_SetTimer(this.cd, start, maxdurations[texture], timeleft > 0 and 1 or 0)
+  CooldownSoon(this, start, maxdurations[texture], timeleft > 0 and 1 or 0)
 end
 
 -- an aura's clock from its duration and time left. A talent that makes an
@@ -158,7 +167,7 @@ local function DebuffOnUpdate()
     start = GetTime() + timeleft - maxdurations[texture]
   end
 
-  CooldownFrame_SetTimer(this.cd, start, maxdurations[texture], timeleft > 0 and 1 or 0)
+  CooldownSoon(this, start, maxdurations[texture], timeleft > 0 and 1 or 0)
 end
 
 local function DebuffOnEnter()
@@ -198,32 +207,52 @@ visibilityscan:SetScript("OnUpdate", function()
   VisibilityScan()
 end)
 
-local aggrodata = { }
-function pfUI.api.UnitHasAggro(unit)
-  if aggrodata[unit] and GetTime() < aggrodata[unit].check + 1 then
-    return aggrodata[unit].state
+-- octo (22 Nov 2026, optimizing raids): pfUI walked every known unit token (~190 in a raid: raid1-40, their pets,
+-- their targets...) and built two names per token for EACH frame that asked, once a second - 40 raid frames meant
+-- ~7,600 token checks and ~15,000 names a second for the aggro glow / square. Now one pass a second counts, for every
+-- unit, how many hostile units target it (the same two counts as before: "u's target is it and u can attack it", and
+-- "u's target's target is it and u's target can attack it"), keyed by GUID (ClassicAPI / SuperWoW) or name; each
+-- frame then only looks its own count up.
+local aggroTokens, aggroBy, aggroAt = nil, {}, -10
+local function AggroKey(unit)
+  local guid = rawget(_G, "UnitGUID")
+  if guid then
+    local ok, g = pcall(guid, unit)
+    if ok and g then return g end
   end
-
-  aggrodata[unit] = aggrodata[unit] or { }
-  aggrodata[unit].check = GetTime()
-  aggrodata[unit].state = 0
-
-  if UnitExists(unit) and UnitIsFriend(unit, "player") then
-    for u in pairs(pfValidUnits) do
-      local t = u .. "target"
-      local tt = t .. "target"
-
-      if UnitExists(t) and UnitIsUnit(t, unit) and UnitCanAttack(u, unit) then
-        aggrodata[unit].state = aggrodata[unit].state + 1
+  return UnitName(unit)
+end
+local function AggroPass()
+  if not aggroTokens then
+    aggroTokens = {}
+    for u in pairs(pfValidUnits) do table.insert(aggroTokens, { u, u .. "target", u .. "targettarget" }) end
+  end
+  for k in pairs(aggroBy) do aggroBy[k] = nil end
+  for i = 1, table.getn(aggroTokens) do
+    local e = aggroTokens[i]
+    local u, t, tt = e[1], e[2], e[3]
+    if UnitExists(t) then
+      if UnitCanAttack(u, t) then
+        local k = AggroKey(t)
+        if k then aggroBy[k] = (aggroBy[k] or 0) + 1 end
       end
-
-      if UnitExists(tt) and UnitIsUnit(tt, unit) and UnitCanAttack(t, unit) then
-        aggrodata[unit].state = aggrodata[unit].state + 1
+      if UnitExists(tt) and UnitCanAttack(t, tt) then
+        local k = AggroKey(tt)
+        if k then aggroBy[k] = (aggroBy[k] or 0) + 1 end
       end
     end
   end
-
-  return aggrodata[unit].state
+end
+pfUI.api.AggroPass = AggroPass
+function pfUI.api.UnitHasAggro(unit)
+  local now = GetTime()
+  if now - aggroAt >= 1 or now < aggroAt then
+    aggroAt = now
+    AggroPass()
+  end
+  if not UnitExists(unit) or not UnitIsFriend(unit, "player") then return 0 end
+  local k = AggroKey(unit)
+  return k and aggroBy[k] or 0
 end
 
 pfUI.uf.glow = CreateFrame("Frame")
@@ -1132,7 +1161,9 @@ function pfUI.uf.OnUpdate()
   -- bars only move on events; pfUI asked libpredict on every frame)
   local now = GetTime()
   if libpredict and now >= (this.predictAt or 0) then
-    this.predictAt = now + .05
+    -- (octo, 22 Nov 2026: raid and party frames - up to 40 - ask 10 times a second, as their bars redraw; 800 asks a
+    -- second in a full raid before)
+    this.predictAt = now + ((this.label == "raid" or this.label == "party") and pfUI.uf.GROUP_EVERY or .05)
     local unit = this.label .. this.id
     local heal = libpredict:UnitGetIncomingHeals(unit)
     local ress = libpredict:UnitHasIncomingResurrection(unit)
@@ -1870,6 +1901,8 @@ function pfUI.uf:RefreshUnit(unit, component)
         if unit:GetName() == "pfPlayer" then
           local timeleft = GetPlayerBuffTimeLeft(GetPlayerBuff(PLAYER_BUFF_START_ID+unit.debuffs[i].id, "HARMFUL"),"HARMFUL")
           CooldownFrame_SetTimer(unit.debuffs[i].cd, GetTime(), timeleft, 1)
+          -- (its own OnUpdate puts the full length back on its next tick: CooldownSoon must not skip it)
+          unit.debuffs[i].cdStart = nil
         elseif libdebuff and selfdebuff == "1" then
           local name, rank, texture, stacks, dtype, duration, timeleft, caster = libdebuff:UnitOwnDebuff(unitstr, i)
           if duration and timeleft then
