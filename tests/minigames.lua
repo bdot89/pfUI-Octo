@@ -342,7 +342,49 @@ do
   MG.JoinRealm()
   MG.SayRealm()
   MG.SayRealm()
+  local tick = MG.chanTick:GetScript("OnUpdate")
+  local function Run(secs)
+    for _ = 1, secs * 4 do
+      now = now + .25
+      _G.this = MG.chanTick
+      tick()
+    end
+  end
+  Run(2)
   ok(joined == 1 and table.getn(said) == 1 and said[1][2] == "CHANNEL" and said[1][3] == 5, "joined, and said once on the channel (joined " .. joined .. ", said " .. table.getn(said) .. ", " .. tostring(said[1] and said[1][2]) .. " " .. tostring(said[1] and said[1][3]) .. ")")
+  ok(string.find(said[1][1], "^OA1 @NZ %? ") and string.find(said[1][1], "gridshot:1234:88"), "the login line asks for the boards: " .. said[1][1])
+  -- a new best goes to the whole realm a few seconds later, two in a row as one line
+  said = {}
+  me2.aim.reflex = { score = 3300, acc = 91 }
+  MG.Share("reflex", 3300, 91)
+  me2.aim.hexakill = { score = 6100, acc = 80 }
+  MG.Share("hexakill", 6100, 80)
+  Run(1)
+  ok(table.getn(said) == 0, "not at once")
+  Run(4)
+  ok(table.getn(said) == 1 and string.find(said[1][1], "^OA1 @NZ hexakill:6100:80 reflex:3300:91$"), "then one line with both new bests: " .. tostring(said[1] and said[1][1]))
+  -- someone logs in and asks: we answer with the top 3 of every board, unless someone else answers first
+  said = {}
+  MG.answerHeard, MG.answerSent = nil, nil
+  MG.ReadRealm("OA1 @YS ? qnormal:900:3", "Newbie")
+  ok(MG.answerAt and MG.Entry("qnormal", "Newbie", "YS").v == 900, "a login line is read, and an answer is planned")
+  Run(14)
+  local answer, short = "", true
+  for _, m in ipairs(said) do
+    answer = answer .. m[1] .. "\n"
+    if string.len(m[1]) > 255 or string.sub(m[1], 1, 8) ~= "OA2 @NZ " then short = false end
+  end
+  ok(said[1] and short and string.find(answer, "reflex:Me%-NZ:3300:91") and string.find(answer, "qmythic:Yshplayer%-YS:52000:38")
+    and not string.find(answer, "|"), "the answer: the boards, with realms, in short lines: " .. answer)
+  said = {}
+  MG.ReadRealm("OA1 @CT ? gridshot:10:10", "Another")
+  ok(not MG.answerAt, "we answered a moment ago: someone else's turn")
+  MG.answerSent = nil
+  MG.ReadRealm("OA1 @CT ? gridshot:10:10", "Another")
+  MG.ReadRealm("OA2 @CT qmythic:Topdog-CT:88000:40 gridshot:Aimer-YS:9000:95", "Fasterone")
+  Run(14)
+  ok(table.getn(said) == 0 and MG.Entry("qmythic", "Topdog", "CT").v == 88000 and MG.Entry("gridshot", "Aimer", "YS").v == 9000,
+    "another answer came first: we stay quiet, and its boards are kept")
   -- reading someone's line
   local n = MG.ReadRealm("OA1 hexakill:7000:92 quiz:12:0 reflex:2500:80", "Otherrealmer")
   ok(n == 3 and MG.Entry("hexakill", "Otherrealmer").v == 7000 and MG.Entry("quiz", "Otherrealmer").v == 12, "a realm line fills the board")

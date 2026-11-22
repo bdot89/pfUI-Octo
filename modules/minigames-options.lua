@@ -63,8 +63,8 @@ pfUI:RegisterModule("minigames-options", "vanilla", function ()
 
     W.Card(p, "Scores", { icon = ICON .. "INV_Misc_Note_06" })
     Chk(p, "Share my bests", "New bests go to your guild and group, so they show on their Scores too.", "share")
-    W.Check(p, "Share on the realm channel", "pfUI joins a hidden OctoArcade channel and, once a login, says one short line "
-      .. "with your bests to everyone on the realm who has it. You never see the channel in your chat.",
+    W.Check(p, "Share on the realm channel", "pfUI joins a hidden OctoArcade channel: every new best you set goes to everyone on the realm with pfUI Octo, "
+      .. "and when you log in your boards fill from the top scores. You never see the channel in your chat.",
       function() return G().realm ~= "0" end,
       function(v)
         G().realm = v and "1" or "0"

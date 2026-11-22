@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.19
+
+- 📡 **Top scores reach everyone on their own:** a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag.
+- 🔑 **Log in to full boards:** when you log in, one player who is online sends you the top 3 of every board, so your Scores are filled straight away. Everyone else hears it too, so all boards stay in step, and only one player answers so the channel stays quiet.
+- 🔄 **Live boards:** an open Scores tab or quiz lobby updates the moment a score comes in. It all runs over the hidden OctoArcade channel; switch it off in Minigames > Scores.
+
 ## 📜 New in 1.2.18
 
 - 🧠 **Quiz: Normal, Heroic and Mythic:** timed runs of 10, 25 and 40 questions (20, 15 and 10 seconds each). Faster answers score more - up to 1000 points in the first second, down to 250 at the buzzer, x1.5 on Heroic, x2 on Mythic, and up to +50% for a streak. Quiz-show look: countdown, live clock, A-D answers, a dot for every question, and a results card with a grade and the leaderboard. The old endless quiz is still there as Practice.

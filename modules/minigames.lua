@@ -1937,7 +1937,10 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   end
   -- a new best goes to guild / group; others' are kept (never "|" in an addon message). The realm tag rides last.
   function MG.Share(key, v, acc)
-    if S().share ~= "1" or not SendAddonMessage then return end
+    if S().share ~= "1" then return end
+    -- the whole realm hears it too, a few seconds later (MG.PushBest)
+    if MG.PushBest then MG.PushBest(key) end
+    if not SendAddonMessage then return end
     local msg = "B^" .. key .. "^" .. floor(v) .. "^" .. floor(acc or 0) .. "^" .. MG.MyRealm()
     for _, chan in ipairs(MG.Channels and MG.Channels() or { "GUILD" }) do pcall(SendAddonMessage, PREFIX, msg, chan) end
   end
@@ -2389,30 +2392,80 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     local n = string.lower(tostring(a9 or "") .. " " .. tostring(a4 or ""))
     return string.find(n, lowerChan, 1, true) and true or nil
   end
-  -- the one line: our bests. "@RT" = our realm tag (older pfUI Octo reads past it: it has no colon)
-  function MG.RealmLine()
+  -- (22 Nov 2026, user: "Topscores are pushed when you get a new one to everyone with pfui or when someone logs in ...
+  -- its just shared seemlessly") Three kinds of line, all on the hidden channel:
+  --   "OA1 @RT ? key:score:acc ..."  your login line: your bests, and "?" = fill my boards, please
+  --   "OA1 @RT key:score:acc ..."    a new best, said a few seconds after it is set (several in a row go as one line)
+  --   "OA2 @RT key:Name-RT:score:acc ..."  the top 3 of every board, said by ONE player after someone's "?": everyone
+  --                                  waits 2-12 s and stays quiet when another answer comes first (and for a minute after)
+  -- Older pfUI Octo reads OA1 lines and skips the rest.
+  function MG.RealmLine(ask)
     local parts = {}
     for _, b in ipairs(MG.BOARDS) do
       local v, acc = MG.MyBest(b.key)
       if v and v > 0 then table.insert(parts, b.key .. ":" .. floor(v) .. ":" .. floor(acc or 0)) end
     end
-    if not parts[1] then return end
-    return "OA1 @" .. MG.MyRealm() .. " " .. table.concat(parts, " ")
+    if not parts[1] and not ask then return end
+    return "OA1 @" .. MG.MyRealm() .. (ask and " ?" or "") .. (parts[1] and (" " .. table.concat(parts, " ")) or "")
   end
-  -- someone's line: every mode:score:acc goes on the board
+  -- the boards for someone who just logged in: lines of at most 240 characters, 6 lines at most
+  function MG.BoardLines()
+    local head = "OA2 @" .. MG.MyRealm()
+    local lines, cur = {}, head
+    for _, b in ipairs(MG.BOARDS) do
+      local n = 0
+      for _, r in ipairs(MG.Rows(b.key)) do
+        n = n + 1
+        if n > 3 then break end
+        local part = " " .. b.key .. ":" .. r.name .. "-" .. r.realm .. ":" .. floor(r.v) .. ":" .. floor(r.acc or 0)
+        if string.len(cur) + string.len(part) > 240 then
+          table.insert(lines, cur)
+          cur = head
+        end
+        cur = cur .. part
+      end
+    end
+    if cur ~= head then table.insert(lines, cur) end
+    while table.getn(lines) > 6 do table.remove(lines) end
+    return lines
+  end
+  -- someone's line
   function MG.ReadRealm(msg, from)
-    if type(msg) ~= "string" or string.sub(msg, 1, 4) ~= "OA1 " or not from then return end
+    if type(msg) ~= "string" or not from then return end
     local _, _, short = string.find(from, "^([^%-]+)")
     from = short or from
-    local _, _, realm = string.find(msg, "^OA1 @(%u%u%u?) ")
     local n = 0
-    for key, v, acc in string.gfind(msg, "(%a+):(%d+):(%d+)") do
-      n = n + 1
-      if n > 12 then break end
-      MG.Keep(key, from, v, acc, realm)
+    if string.sub(msg, 1, 4) == "OA2 " then
+      -- an answer: whoever was going to answer stays quiet
+      MG.answerAt = nil
+      MG.answerHeard = GetTime()
+      for key, who, rt, v, acc in string.gfind(msg, "(%a+):([^%s:%-]+)%-(%u%u%u?):(%d+):(%d+)") do
+        n = n + 1
+        if n > 40 then break end
+        MG.Keep(key, who, v, acc, rt)
+      end
+    elseif string.sub(msg, 1, 4) == "OA1 " then
+      local _, _, realm = string.find(msg, "^OA1 @(%u%u%u?)")
+      for key, v, acc in string.gfind(msg, "(%a+):(%d+):(%d+)") do
+        n = n + 1
+        if n > 12 then break end
+        MG.Keep(key, from, v, acc, realm)
+      end
+      if string.find(msg, "^OA1 @%u+ %?") then MG.Asked2() end
+    else
+      return
     end
     if win:IsShown() and MG.cur == "board" then MG.Board() end
+    if win:IsShown() and MG.cur == "quiz" and QZ.view == "lobby" then QZ.Lobby() end
     return n
+  end
+  -- a "?" heard: answer later unless someone else does first (or answered in the last minute)
+  function MG.Asked2()
+    local now = GetTime()
+    if MG.answerAt then return end
+    if MG.answerHeard and now - MG.answerHeard < 60 then return end
+    if MG.answerSent and now - MG.answerSent < 60 then return end
+    MG.answerAt = now + 2 + random() * 10
   end
   function MG.JoinRealm()
     if S().realm ~= "1" or S().share ~= "1" or not JoinChannelByName then return end
@@ -2427,14 +2480,60 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   function MG.LeaveRealm()
     if LeaveChannelByName and GetChannelName and (GetChannelName(MG.CHANNEL) or 0) > 0 then pcall(LeaveChannelByName, MG.CHANNEL) end
   end
-  function MG.SayRealm()
-    if MG.realmSaid or S().realm ~= "1" or S().share ~= "1" then return end
-    local id = GetChannelName and GetChannelName(MG.CHANNEL)
-    local line = MG.RealmLine()
-    if not id or id == 0 or not line then return end
-    MG.realmSaid = true
-    pcall(SendChatMessage, line, "CHANNEL", nil, id)
+  -- the channel's number, when sharing there is on
+  function MG.RealmChan()
+    if S().realm ~= "1" or S().share ~= "1" or not GetChannelName then return end
+    local id = GetChannelName(MG.CHANNEL)
+    if id and id ~= 0 then return id end
   end
+  -- lines go out one every 1.5 s
+  MG.chanQ = {}
+  function MG.SayChan(line)
+    if line and MG.RealmChan() and table.getn(MG.chanQ) < 10 then table.insert(MG.chanQ, line) end
+  end
+  function MG.SayRealm()
+    if MG.realmSaid or not MG.RealmChan() then return end
+    MG.realmSaid = true
+    MG.SayChan(MG.RealmLine(true))
+  end
+  -- a new best: told to the realm a few seconds later, with any other set meanwhile
+  MG.pushKeys = {}
+  function MG.PushBest(key)
+    if not MG.realmSaid or not MG.RealmChan() or not MG.BOARD[key] then return end
+    MG.pushKeys[key] = true
+    MG.pushAt = GetTime() + 3
+  end
+  function MG.PushLine()
+    local parts = {}
+    for _, b in ipairs(MG.BOARDS) do
+      if MG.pushKeys[b.key] then
+        local v, acc = MG.MyBest(b.key)
+        if v and v > 0 then table.insert(parts, b.key .. ":" .. floor(v) .. ":" .. floor(acc or 0)) end
+      end
+    end
+    MG.pushKeys = {}
+    if parts[1] then return "OA1 @" .. MG.MyRealm() .. " " .. table.concat(parts, " ") end
+  end
+  local chanTick = CreateFrame("Frame")
+  MG.chanTick = chanTick
+  chanTick:SetScript("OnUpdate", function()
+    local now = GetTime()
+    if MG.pushAt and now >= MG.pushAt then
+      MG.pushAt = nil
+      MG.SayChan(MG.PushLine())
+    end
+    if MG.answerAt and now >= MG.answerAt then
+      MG.answerAt = nil
+      MG.answerSent = now
+      for _, line in ipairs(MG.BoardLines()) do MG.SayChan(line) end
+    end
+    if MG.chanQ[1] and now >= (this.next or 0) then
+      this.next = now + 1.5
+      local id = MG.RealmChan()
+      local line = table.remove(MG.chanQ, 1)
+      if id then pcall(SendChatMessage, line, "CHANNEL", nil, id) end
+    end
+  end)
   -- the channel's lines and join / leave notices never reach a chat window
   local chatEvent = _G.ChatFrame_OnEvent
   if chatEvent then

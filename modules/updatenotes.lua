@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.19", {
+    { "Top scores reach everyone on their own", "a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag." },
+    { "Log in to full boards", "when you log in, one player who is online sends you the top 3 of every board, so your Scores are filled straight away. Everyone else hears it too, so all boards stay in step, and only one player answers so the channel stays quiet." },
+    { "Live boards", "an open Scores tab or quiz lobby updates the moment a score comes in. It all runs over the hidden OctoArcade channel; switch it off in Minigames > Scores." },
+  } },
   { "1.2.18", {
     { "Quiz: Normal, Heroic and Mythic", "timed runs of 10, 25 and 40 questions (20, 15 and 10 seconds each). Faster answers score more - up to 1000 points in the first second, down to 250 at the buzzer, x1.5 on Heroic, x2 on Mythic, and up to +50% for a streak. Quiz-show look: countdown, live clock, A-D answers, a dot for every question, and a results card with a grade and the leaderboard. The old endless quiz is still there as Practice." },
     { "New leaderboards", "every board in one clean list - the three quiz runs, the six aim modes and the practice streak - with gold, silver and bronze for the top three and your own place always shown." },
@@ -180,8 +185,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.80", {
     { "Whisper windows really open now", "a new window was never given a place on the screen (the game counts a new window as already shown), so nothing appeared - /whispers test included. Each window now starts hidden, gets its place, then shows." },
-  } },
-  { "1.1.79", {
-    { "Whisper windows fixed", "the window per person broke for anyone you had whispered before - its saved conversation went in before the window had a font, which the game refuses. Each window now gets its font the moment it is made." },
   } },
 }
