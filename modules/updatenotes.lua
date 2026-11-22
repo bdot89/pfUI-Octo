@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.17", {
+    { "New flight launcher", "an arcade marquee - a lit OCTO ARCADE sign with Darkmoon tickets, chasing bulbs and a sweep of light, a blinking INSERT COIN line, and three game cards (Quiz, Aim Trainer, High Scores) with glowing icons and live info: question count or your best streak, your top aim score, how many scores are on the board. It slides in, can be dragged anywhere, and remembers where you put it." },
+    { "Flight bar", "the feather at the end of the bar no longer sits in a black square - it glows on the bar by itself." },
+  } },
   { "1.2.16", {
     { "Aim trainer, arcade style", "modes on their own row (pick any mode at any time - a running round just stops), big stat panels, a timer bar that runs down, a scanline screen with glowing corners, 3-2-1-GO!, hit bursts, combo callouts (ON FIRE! x20, GODLIKE x50, BULLSEYE!, INTERRUPTED!), and a results card with a grade from S to D and a flashing NEW HIGH SCORE!" },
     { "Scores across the realm", "pfUI joins a hidden OctoArcade channel and says one short line with your bests once per login; everyone on the realm with pfUI Octo reads it into their Scores. You never see the channel in chat. Switch it off in Minigames Scores." },
@@ -176,8 +180,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.78", {
     { "ItemRack button shows what you wear", "the set button and the minimap button show a set's picture only while that set is worn exactly. Swap a piece by hand (or wear no set) and they show your worn gear instead, updated every time your gear changes." },
-  } },
-  { "1.1.77", {
-    { "Old ClassicAPI? You'll be told", "OctoLauncher installs an older ClassicAPI (v1.15) with no damage meter. If that's yours, you get one chat line per character on how to get the newest: close the game, run Install pfUI Octo DLLs.bat in your pfUI folder (or the Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI and doesn't swap it back." },
   } },
 }

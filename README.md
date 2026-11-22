@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.17
+
+- 🎪 **New flight launcher:** an arcade marquee - a lit OCTO ARCADE sign with Darkmoon tickets, chasing bulbs and a sweep of light, a blinking INSERT COIN line, and three game cards (Quiz, Aim Trainer, High Scores) with glowing icons and live info: question count or your best streak, your top aim score, how many scores are on the board. It slides in, can be dragged anywhere, and remembers where you put it.
+- 🪶 **Flight bar:** the feather at the end of the bar no longer sits in a black square - it glows on the bar by itself.
+
 ## 📜 New in 1.2.16
 
 - 🕹️ **Aim trainer, arcade style:** modes on their own row (pick any mode at any time - a running round just stops), big stat panels, a timer bar that runs down, a scanline screen with glowing corners, **3-2-1-GO!**, hit bursts, combo callouts (ON FIRE! x20, GODLIKE x50, BULLSEYE!, INTERRUPTED!), and a results card with a grade from S to D and a flashing NEW HIGH SCORE!

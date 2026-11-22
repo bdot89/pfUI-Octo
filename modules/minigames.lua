@@ -1220,44 +1220,229 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
 
   -- ---------------------------------------------------------------- on flights
 
-  -- the launcher: three icons near the top of the screen while you fly
+  -- the launcher while you fly (22 Nov 2026, user: the first one "looks rubbish make it look inviting and arcadish give
+  -- it some artwork and wording"): an arcade marquee - a glowing OCTOARCADE sign between two Darkmoon tickets with a light
+  -- sweeping across it, a blinking INSERT COIN line, and three game cards (icon with a pulsing halo, name, what is in
+  -- it / your best). It slides in, can be dragged (its place is kept: S().lx / ly) and closes with the x or on landing.
+  local L_W, L_H = 330, 116
   local launch = CreateFrame("Frame", "pfOctoArcadeLauncher", UIParent)
   MG.launcher = launch
-  launch:SetWidth(132)
-  launch:SetHeight(36)
-  launch:SetPoint("TOP", UIParent, "TOP", 0, -130)
+  launch:SetWidth(L_W)
+  launch:SetHeight(L_H)
   launch:SetFrameStrata("HIGH")
+  launch:SetClampedToScreen(true)
+  launch:SetMovable(true)
+  launch:EnableMouse(true)
+  launch:RegisterForDrag("LeftButton")
+  launch:SetScript("OnDragStart", function() this:StartMoving() end)
+  launch:SetScript("OnDragStop", function()
+    this:StopMovingOrSizing()
+    local x, y = this:GetCenter()
+    local ux, uy = UIParent:GetCenter()
+    if x and ux then S().lx, S().ly = floor(x - ux + .5), floor(y - uy + .5) end
+  end)
   launch:Hide()
-  launch.bg = Tex(launch, "BACKGROUND", .05, .055, .065, .9)
+  launch.bg = Tex(launch, "BACKGROUND", .03, .04, .07, .94)
   launch.bg:SetAllPoints(launch)
-  launch.text = Text(launch, 10, nil, .6, .62, .66)
-  launch.text:SetPoint("BOTTOM", launch, "TOP", 0, 3)
-  launch.text:SetText("Something to play on the way?")
-  local LB = { { "quiz", "INV_Misc_Book_09", "Quiz" }, { "aim", "Ability_Marksmanship", "Aim Trainer" }, { "board", "INV_Misc_Note_06", "Scores" } }
-  for i, d in ipairs(LB) do
-    local b = CreateFrame("Button", nil, launch)
-    b:SetWidth(30) b:SetHeight(30)
-    b:SetPoint("LEFT", launch, "LEFT", 6 + (i - 1) * 42, 0)
-    b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetAllPoints(b)
-    b.icon:SetTexture(ICON .. d[2])
-    b.icon:SetTexCoord(.08, .92, .08, .92)
-    b.key, b.label = d[1], d[3]
-    b:SetScript("OnClick", function() launch:Hide() MG.Show(this.key) end)
-    b:SetScript("OnEnter", function()
+  launch.shade = Tex(launch, "BORDER", 0, 0, 0, 1)
+  launch.shade:SetAllPoints(launch)
+  if launch.shade.SetGradientAlpha then launch.shade:SetGradientAlpha("VERTICAL", 0, 0, 0, .5, 0, 0, 0, 0) end
+  launch.edges = {}
+  for i, pt in ipairs({ { "TOPLEFT", "TOPRIGHT", 1 }, { "BOTTOMLEFT", "BOTTOMRIGHT", 1 }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+    local e = Tex(launch, "ARTWORK")
+    if pt[3] then e:SetHeight(1) else e:SetWidth(1) end
+    e:SetPoint(pt[1], launch, pt[1], 0, 0)
+    e:SetPoint(pt[2], launch, pt[2], 0, 0)
+    launch.edges[i] = e
+  end
+  launch.corners = {}
+  for _, c in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+    local h = Tex(launch, "OVERLAY") h:SetWidth(14) h:SetHeight(2) h:SetPoint(c, launch, c, 0, 0)
+    local v = Tex(launch, "OVERLAY") v:SetWidth(2) v:SetHeight(14) v:SetPoint(c, launch, c, 0, 0)
+    table.insert(launch.corners, h) table.insert(launch.corners, v)
+  end
+  -- the marquee: a lit strip, the name, a ticket each side, a sweep of light
+  local marquee = CreateFrame("Frame", nil, launch)
+  marquee:SetPoint("TOPLEFT", launch, "TOPLEFT", 1, -1)
+  marquee:SetPoint("TOPRIGHT", launch, "TOPRIGHT", -1, -1)
+  marquee:SetHeight(30)
+  marquee.glow = Tex(marquee, "BACKGROUND")
+  marquee.glow:SetAllPoints(marquee)
+  marquee.line = Tex(marquee, "ARTWORK")
+  marquee.line:SetHeight(1)
+  marquee.line:SetPoint("BOTTOMLEFT", marquee, "BOTTOMLEFT", 0, 0)
+  marquee.line:SetPoint("BOTTOMRIGHT", marquee, "BOTTOMRIGHT", 0, 0)
+  marquee.title = Big(marquee, 24)
+  marquee.title:SetPoint("CENTER", marquee, "CENTER", 0, 0)
+  marquee.title:SetText("OCTO ARCADE")
+  for i, side in ipairs({ "LEFT", "RIGHT" }) do
+    local t = marquee:CreateTexture(nil, "OVERLAY")
+    t:SetWidth(20) t:SetHeight(20)
+    t:SetTexture(ICON .. "INV_Misc_Ticket_Darkmoon_01")
+    t:SetTexCoord(.08, .92, .08, .92)
+    t:SetPoint(side == "LEFT" and "RIGHT" or "LEFT", marquee.title, side, side == "LEFT" and -10 or 10, 0)
+    marquee["ticket" .. i] = t
+  end
+  -- little bulbs along the bottom of the sign
+  marquee.bulbs = {}
+  for i = 1, 20 do
+    local b = Tex(marquee, "OVERLAY")
+    b:SetWidth(3) b:SetHeight(3)
+    b:SetPoint("BOTTOMLEFT", marquee, "BOTTOMLEFT", 8 + (i - 1) * 16.2, 3)
+    marquee.bulbs[i] = b
+  end
+  marquee.sweep = marquee:CreateTexture(nil, "OVERLAY")
+  marquee.sweep:SetTexture(WHITE)
+  marquee.sweep:SetWidth(36)
+  marquee.sweep:SetPoint("TOP", marquee, "TOP", 0, 0)
+  marquee.sweep:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 0)
+  marquee.sweep:SetBlendMode("ADD")
+  if marquee.sweep.SetGradientAlpha then marquee.sweep:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 0, 1, 1, 1, .22) end
+  launch.marquee = marquee
+  launch.coin = Pix(launch, 8, 1, .82, .3)
+  launch.coin:SetPoint("TOP", marquee, "BOTTOM", 0, -6)
+  launch.coin:SetText("INSERT COIN  -  PICK A GAME FOR THE FLIGHT")
+
+  -- the three cards
+  launch.cards = {}
+  local CARDS = {
+    { key = "quiz", name = "QUIZ", icon = "INV_Misc_Book_09", tip = "Classic Azeroth trivia: lore, raids, dungeons, classes and more." },
+    { key = "aim", name = "AIM TRAINER", icon = "Ability_Marksmanship", tip = "Six modes from Gridshot to Kick! - how fast are your hands?" },
+    { key = "board", name = "HIGH SCORES", icon = "INV_Misc_Note_06", tip = "Your bests, your guild's and the realm's." },
+  }
+  local CW, CH = 100, 60
+  for i, d in ipairs(CARDS) do
+    local c = CreateFrame("Button", nil, launch)
+    c:SetWidth(CW) c:SetHeight(CH)
+    c:SetPoint("TOPLEFT", launch, "TOPLEFT", 8 + (i - 1) * (CW + 7), -48)
+    c.bg = Tex(c, "BACKGROUND", .07, .08, .11, 1)
+    c.bg:SetAllPoints(c)
+    c.edge = Tex(c, "BORDER", .22, .23, .27, 1)
+    c.edge:SetPoint("TOPLEFT", c, "TOPLEFT", -1, 1)
+    c.edge:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 1, -1)
+    c.bg:SetDrawLayer("ARTWORK")
+    c.halo = c:CreateTexture(nil, "ARTWORK")
+    c.halo:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\disc")
+    c.halo:SetBlendMode("ADD")
+    c.halo:SetWidth(40) c.halo:SetHeight(40)
+    c.halo:SetPoint("TOP", c, "TOP", 0, 2)
+    c.icon = c:CreateTexture(nil, "OVERLAY")
+    c.icon:SetWidth(24) c.icon:SetHeight(24)
+    c.icon:SetPoint("CENTER", c.halo, "CENTER", 0, 0)
+    c.icon:SetTexture(ICON .. d.icon)
+    c.icon:SetTexCoord(.08, .92, .08, .92)
+    c.name = Big(c, 14)
+    c.name:SetPoint("TOP", c.icon, "BOTTOM", 0, -3)
+    c.name:SetText(d.name)
+    c.sub = Pix(c, 7)
+    c.sub:SetPoint("TOP", c.name, "BOTTOM", 0, -2)
+    c.key, c.tip, c.title = d.key, d.tip, d.name
+    c:SetScript("OnClick", function()
+      Sound("start")
+      launch:Hide()
+      MG.Show(this.key)
+    end)
+    c:SetScript("OnEnter", function()
+      this.hover = true
+      local ar, ag, ab = Accent()
+      this.edge:SetVertexColor(ar, ag, ab, 1)
+      this.bg:SetVertexColor(ar * .22, ag * .22, ab * .22, 1)
       GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
-      GameTooltip:SetText(this.label, 1, 1, 1)
+      GameTooltip:SetText(this.title, 1, 1, 1)
+      GameTooltip:AddLine(this.tip, .8, .82, .86, 1)
+      GameTooltip:AddLine("Click to play", .3, 1, .55)
       GameTooltip:Show()
     end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    c:SetScript("OnLeave", function()
+      this.hover = nil
+      this.edge:SetVertexColor(.22, .23, .27, 1)
+      this.bg:SetVertexColor(.07, .08, .11, 1)
+      GameTooltip:Hide()
+    end)
+    launch.cards[i] = c
   end
+  -- not now
   local closeL = CreateFrame("Button", nil, launch)
-  closeL:SetWidth(14) closeL:SetHeight(14)
-  closeL:SetPoint("TOPRIGHT", launch, "TOPRIGHT", -2, -2)
-  closeL.t = Text(closeL, 10, "OUTLINE", .6, .62, .66)
+  closeL:SetWidth(16) closeL:SetHeight(16)
+  closeL:SetPoint("TOPRIGHT", launch, "TOPRIGHT", -5, -7)
+  closeL.t = Pix(closeL, 10, .7, .72, .76)
   closeL.t:SetAllPoints(closeL)
-  closeL.t:SetText("x")
+  closeL.t:SetText("X")
   closeL:SetScript("OnClick", function() launch:Hide() end)
+  closeL:SetScript("OnEnter", function()
+    this.t:SetTextColor(1, .35, .35)
+    GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+    GameTooltip:SetText("Not now", 1, 1, 1)
+    GameTooltip:AddLine("Comes back on your next flight. /arcade opens it any time.", .8, .82, .86, 1)
+    GameTooltip:Show()
+  end)
+  closeL:SetScript("OnLeave", function() this.t:SetTextColor(.7, .72, .76) GameTooltip:Hide() end)
+
+  -- what each card says under its name: the bank size, the modes and your best, your top score
+  function MG.PaintLauncher()
+    local ar, ag, ab = Accent()
+    for _, e in ipairs(launch.edges) do e:SetVertexColor(ar, ag, ab, .55) end
+    for _, c in ipairs(launch.corners) do c:SetVertexColor(ar, ag, ab, 1) end
+    marquee.glow:SetVertexColor(ar, ag, ab, 1)
+    if marquee.glow.SetGradientAlpha then marquee.glow:SetGradientAlpha("VERTICAL", ar, ag, ab, .05, ar, ag, ab, .35) end
+    marquee.line:SetVertexColor(ar, ag, ab, .8)
+    marquee.title:SetTextColor(ar + (1 - ar) * .55, ag + (1 - ag) * .55, ab + (1 - ab) * .55)
+    for _, c in ipairs(launch.cards) do c.halo:SetVertexColor(ar, ag, ab, .3) end
+    local _, me = Store()
+    local bestAim, bestMode = 0, nil
+    for key, r in pairs(me.aim) do if (r.score or 0) > bestAim then bestAim, bestMode = r.score, key end end
+    launch.cards[1].sub:SetText((me.quiz.best or 0) > 0 and ("BEST STREAK " .. me.quiz.best) or (table.getn(DATA.quiz) .. " QUESTIONS"))
+    launch.cards[2].sub:SetText(bestAim > 0 and ("BEST " .. bestAim) or (table.getn(AM.MODES) .. " MODES"))
+    local s = Store()
+    local n = 0
+    for _, list in pairs(s.board) do for _ in pairs(list) do n = n + 1 end end
+    launch.cards[3].sub:SetText(n > 0 and (n .. " SCORES") or "BE THE FIRST")
+  end
+  launch:SetScript("OnShow", function()
+    MG.PaintLauncher()
+    this:ClearAllPoints()
+    local x, y = S().lx, S().ly
+    this.home = { x or 0, y or (UIParent:GetHeight() / 2 - 130 - L_H / 2) }
+    this.t0 = GetTime()
+    this:SetAlpha(0)
+    this:SetPoint("CENTER", UIParent, "CENTER", this.home[1], this.home[2] + 30)
+  end)
+  launch:SetScript("OnUpdate", function()
+    local now = GetTime()
+    -- slide in over .35 s
+    if this.t0 then
+      local a = min(1, (now - this.t0) / .35)
+      local ease = 1 - (1 - a) * (1 - a)
+      this:SetAlpha(ease)
+      this:ClearAllPoints()
+      this:SetPoint("CENTER", UIParent, "CENTER", this.home[1], this.home[2] + 30 * (1 - ease))
+      if a >= 1 then this.t0 = nil end
+    end
+    -- the coin line blinks, the light sweeps the sign every 3 s, the bulbs chase
+    launch.coin:SetAlpha(.4 + .6 * math.abs(math.sin(now * 2.6)))
+    local sw = math.mod(now, 3) / 1.2
+    if sw <= 1 then
+      marquee.sweep:Show()
+      marquee.sweep:ClearAllPoints()
+      marquee.sweep:SetPoint("TOP", marquee, "TOP", 0, 0)
+      marquee.sweep:SetPoint("BOTTOM", marquee, "BOTTOM", 0, 0)
+      marquee.sweep:SetPoint("LEFT", marquee, "LEFT", -36 + sw * (L_W + 36), 0)
+    else
+      marquee.sweep:Hide()
+    end
+    local lit = floor(now * 8)
+    local ar, ag, ab = Accent()
+    for i, b in ipairs(marquee.bulbs) do
+      if math.mod(i + lit, 3) == 0 then b:SetVertexColor(1, .9, .5, 1) else b:SetVertexColor(ar, ag, ab, .35) end
+    end
+    -- the cards' halos breathe; a hovered card's icon grows
+    local p = .22 + .14 * math.sin(now * 3)
+    for _, c in ipairs(launch.cards) do
+      c.halo:SetAlpha(c.hover and .9 or p / .3)
+      local s = c.hover and 28 or 24
+      c.icon:SetWidth(s) c.icon:SetHeight(s)
+    end
+  end)
 
   function MG.FlightStart()
     local how = S().onflight

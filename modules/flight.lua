@@ -536,11 +536,23 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       f.pic:SetWidth(pic)
       f.pic:SetHeight(pic)
       local path = S().pictex
-      f.pic:SetTexture((path and path ~= "") and path or "Interface\\Icons\\INV_Feather_01")
+      local own = path and path ~= ""
+      f.pic:SetTexture(own and path or "Interface\\Icons\\INV_Feather_01")
       f.picEdge:ClearAllPoints()
       f.picEdge:SetPoint("TOPLEFT", f.pic, "TOPLEFT", -1, 1)
       f.picEdge:SetPoint("BOTTOMRIGHT", f.pic, "BOTTOMRIGHT", 1, -1)
-      f.pic:Show() f.picEdge:Show()
+      -- (22 Nov 2026, user: "the black square is terrible") the feather icon's black backdrop: drawn additive, its
+      -- black is see-through and the feather glows on the bar; no frame round it. A picture of your own keeps its frame.
+      if own then
+        f.pic:SetBlendMode("BLEND")
+        f.pic:SetTexCoord(.07, .93, .07, .93)
+        f.picEdge:Show()
+      else
+        f.pic:SetBlendMode("ADD")
+        f.pic:SetTexCoord(.1, .9, .1, .9)
+        f.picEdge:Hide()
+      end
+      f.pic:Show()
     else
       f.pic:Hide() f.picEdge:Hide()
     end
