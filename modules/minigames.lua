@@ -132,6 +132,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   win.title = Text(win, 16, "OUTLINE")
   win.title:SetPoint("LEFT", win.icon, "RIGHT", 8, 0)
   win.title:SetText("OctoArcade")
+  win.title:SetFont("Interface\\AddOns\\pfUI\\fonts\\BigNoodleTitling.ttf", 22, "OUTLINE")
   win.sub = Text(win, 11, nil, .6, .62, .66)
   win.sub:SetPoint("LEFT", win.title, "RIGHT", 8, -1)
   local close = Button(win, 22, 22, "x")
@@ -202,7 +203,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     win:Show()
   end
   function MG.Close()
-    if MG.aim.state == "run" then MG.aim.Finish(true) end
+    if MG.aim.state == "run" or MG.aim.state == "count" then MG.aim.Finish(true) end
     win:Hide()
   end
   function MG.Toggle(key)
@@ -416,111 +417,230 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     end,
   }
   local ap = MG.pages.aim
-  -- HUD
-  ap.hud = {}
-  local HUD = { "Time", "Score", "Accuracy", "Combo" }
-  for i, label in ipairs(HUD) do
-    local l = Text(ap, 10, nil, .55, .57, .62)
-    l:SetPoint("TOPLEFT", ap, "TOPLEFT", 2 + (i - 1) * 128, -2)
-    l:SetText(string.upper(label))
-    local v = Text(ap, 17, "OUTLINE")
-    v:SetPoint("TOPLEFT", l, "BOTTOMLEFT", 0, -2)
-    ap.hud[i] = v
+  -- (22 Nov 2026, user with the first build: the mode buttons lay over the scores, "very simple and plain make it look
+  -- better and more like an actual arcade", and modes could not be changed until a round ended) the arcade cabinet:
+  -- a mode row of its own, four stat panels with big numbers, a draining timer bar, a dark screen with scanlines and
+  -- corner brackets, 3-2-1-GO, hit bursts, combo callouts, and a results card with a grade. A mode can be picked at
+  -- any time: a round that runs just stops.
+  local FONTS = "Interface\\AddOns\\pfUI\\fonts\\"
+  local NUM, PIX = FONTS .. "BigNoodleTitling.ttf", FONTS .. "Hooge.ttf"
+  local function Big(parent, size, r, g, b)
+    local t = parent:CreateFontString(nil, "OVERLAY")
+    t:SetFont(NUM, size, "OUTLINE")
+    t:SetTextColor(r or 1, g or 1, b or 1)
+    return t
   end
-  -- mode chips
+  local function Pix(parent, size, r, g, b)
+    local t = parent:CreateFontString(nil, "OVERLAY")
+    t:SetFont(PIX, size, "OUTLINE")
+    t:SetTextColor(r or .6, g or .62, b or .66)
+    return t
+  end
+
+  -- mode row
   ap.chips = {}
+  local CHIP_W = 83
   for i, m in ipairs(AM.MODES) do
-    local b = Button(ap, 82, 20, m.name)
-    b.text:SetFont(Font(), 10, "")
-    b:SetPoint("TOPRIGHT", ap, "TOPRIGHT", -((table.getn(AM.MODES) - i) * 84), -2)
+    local b = Button(ap, CHIP_W, 26, "")
+    b:SetPoint("TOPLEFT", ap, "TOPLEFT", (i - 1) * (CHIP_W + 3), 0)
+    b.icon = b:CreateTexture(nil, "OVERLAY")
+    b.icon:SetWidth(16) b.icon:SetHeight(16)
+    b.icon:SetPoint("LEFT", b, "LEFT", 5, 0)
+    b.icon:SetTexture(ICON .. m.icon)
+    b.icon:SetTexCoord(.08, .92, .08, .92)
+    b.text:ClearAllPoints()
+    b.text:SetPoint("LEFT", b.icon, "RIGHT", 4, 0)
+    b.text:SetFont(Font(), 11, "")
+    b.text:SetText(m.name)
+    b.glow = Tex(b, "OVERLAY")
+    b.glow:SetHeight(2)
+    b.glow:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+    b.glow:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
     b.key = m.key
     b:SetScript("OnClick", function()
-      if AM.state == "run" then return end
+      -- any time: a round that runs stops, the new mode is ready
+      if AM.state == "run" or AM.state == "count" then AM.Finish(true) end
       S().aimmode = this.key
       AM.Idle()
+      Sound("hit")
     end)
     b:SetScript("OnEnter", function()
+      if not this.locked then this.bg:SetVertexColor(.16, .17, .19, 1) end
       GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
       GameTooltip:SetText(MG.modes[this.key].name, 1, 1, 1)
       GameTooltip:AddLine(MG.modes[this.key].tip, .8, .82, .86, 1)
+      local _, me = Store()
+      local best = me.aim[this.key]
+      GameTooltip:AddLine(best and ("Your best: " .. best.score) or "No best yet", 1, .82, .3)
       GameTooltip:Show()
     end)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:SetScript("OnLeave", function()
+      if not this.locked then this.bg:SetVertexColor(.1, .105, .12, 1) end
+      GameTooltip:Hide()
+    end)
     ap.chips[i] = b
   end
-  -- the play area
+
+  -- stat panels
+  ap.hud = {}
+  local HUD = { "TIME", "SCORE", "ACCURACY", "COMBO" }
+  local PANEL_W = 126
+  for i, label in ipairs(HUD) do
+    local f = CreateFrame("Frame", nil, ap)
+    f:SetWidth(PANEL_W)
+    f:SetHeight(44)
+    f:SetPoint("TOPLEFT", ap, "TOPLEFT", (i - 1) * (PANEL_W + 4), -32)
+    f.bg = Tex(f, "BACKGROUND", .08, .085, .1, 1)
+    f.bg:SetAllPoints(f)
+    f.line = Tex(f, "ARTWORK")
+    f.line:SetHeight(1)
+    f.line:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
+    f.line:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
+    f.label = Pix(f, 8)
+    f.label:SetPoint("TOPLEFT", f, "TOPLEFT", 7, -6)
+    f.label:SetText(label)
+    f.value = Big(f, 24)
+    f.value:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 7, 3)
+    ap.hud[i] = f.value
+    ap.hud[i].panel = f
+  end
+  -- the timer bar
+  ap.timer = CreateFrame("StatusBar", nil, ap)
+  ap.timer:SetPoint("TOPLEFT", ap, "TOPLEFT", 0, -80)
+  ap.timer:SetPoint("TOPRIGHT", ap, "TOPRIGHT", 0, -80)
+  ap.timer:SetHeight(4)
+  ap.timer:SetStatusBarTexture(WHITE)
+  ap.timer:SetMinMaxValues(0, 1)
+  ap.timer.bg = Tex(ap.timer, "BACKGROUND", .1, .105, .12, 1)
+  ap.timer.bg:SetAllPoints(ap.timer)
+
+  -- the screen
   local area = CreateFrame("Button", nil, ap)
   ap.area = area
-  area:SetPoint("TOPLEFT", ap, "TOPLEFT", 0, -44)
+  area:SetPoint("TOPLEFT", ap, "TOPLEFT", 0, -88)
   area:SetPoint("BOTTOMRIGHT", ap, "BOTTOMRIGHT", 0, 0)
   area:RegisterForClicks("LeftButtonDown", "RightButtonDown")
-  area.bg = Tex(area, "BACKGROUND", .08, .085, .095, 1)
+  area.bg = Tex(area, "BACKGROUND", .03, .045, .08, 1)
   area.bg:SetAllPoints(area)
-  area.grid = {}
+  area.shade = Tex(area, "BACKGROUND", 0, 0, 0, 1)
+  area.shade:SetAllPoints(area)
+  if area.shade.SetGradientAlpha then area.shade:SetGradientAlpha("VERTICAL", 0, 0, 0, .55, 0, 0, 0, 0) end
   for i = 1, 3 do
-    local h = Tex(area, "BORDER", 1, 1, 1, .025)
+    local h = Tex(area, "BORDER", 1, 1, 1, .03)
     h:SetHeight(1)
     h:SetPoint("LEFT", area, "LEFT", 0, 0)
     h:SetPoint("RIGHT", area, "RIGHT", 0, 0)
-    h:SetPoint("TOP", area, "TOP", 0, -i * 70)
-    local v = Tex(area, "BORDER", 1, 1, 1, .025)
+    h:SetPoint("TOP", area, "TOP", 0, -i * 66)
+    local v = Tex(area, "BORDER", 1, 1, 1, .03)
     v:SetWidth(1)
     v:SetPoint("TOP", area, "TOP", 0, 0)
     v:SetPoint("BOTTOM", area, "BOTTOM", 0, 0)
     v:SetPoint("LEFT", area, "LEFT", i * 129, 0)
   end
-  area.big = Text(area, 22, "OUTLINE")
-  area.big:SetPoint("CENTER", area, "CENTER", 0, 26)
+  -- scanlines
+  for i = 1, 84 do
+    local s = Tex(area, "BORDER", 0, 0, 0, .18)
+    s:SetHeight(1)
+    s:SetPoint("LEFT", area, "LEFT", 0, 0)
+    s:SetPoint("RIGHT", area, "RIGHT", 0, 0)
+    s:SetPoint("TOP", area, "TOP", 0, -i * 3)
+  end
+  area.edge = {}
+  for i, pt in ipairs({ { "TOPLEFT", "TOPRIGHT", 1 }, { "BOTTOMLEFT", "BOTTOMRIGHT", 1 }, { "TOPLEFT", "BOTTOMLEFT" }, { "TOPRIGHT", "BOTTOMRIGHT" } }) do
+    local e = Tex(area, "ARTWORK")
+    if pt[3] then e:SetHeight(1) else e:SetWidth(1) end
+    e:SetPoint(pt[1], area, pt[1], 0, 0)
+    e:SetPoint(pt[2], area, pt[2], 0, 0)
+    area.edge[i] = e
+  end
+  -- corner brackets
+  area.corners = {}
+  for _, c in ipairs({ { "TOPLEFT", 1, -1 }, { "TOPRIGHT", -1, -1 }, { "BOTTOMLEFT", 1, 1 }, { "BOTTOMRIGHT", -1, 1 } }) do
+    local h = Tex(area, "OVERLAY")
+    h:SetWidth(18) h:SetHeight(3)
+    h:SetPoint(c[1], area, c[1], 0, 0)
+    local v = Tex(area, "OVERLAY")
+    v:SetWidth(3) v:SetHeight(18)
+    v:SetPoint(c[1], area, c[1], 0, 0)
+    table.insert(area.corners, h)
+    table.insert(area.corners, v)
+  end
+  -- the idle / countdown words
+  area.mode = Big(area, 34)
+  area.mode:SetPoint("CENTER", area, "CENTER", 0, 42)
   area.small = Text(area, 12, nil, .78, .8, .84)
-  area.small:SetPoint("TOP", area.big, "BOTTOM", 0, -8)
+  area.small:SetPoint("TOP", area.mode, "BOTTOM", 0, -6)
   area.small:SetWidth(440)
-  area.best = Text(area, 12, nil, .35, .7, 1)
-  area.best:SetPoint("TOP", area.small, "BOTTOM", 0, -6)
+  area.best = Text(area, 12, "OUTLINE", 1, .82, .3)
+  area.best:SetPoint("TOP", area.small, "BOTTOM", 0, -8)
+  area.press = Pix(area, 12, 1, 1, 1)
+  area.press:SetPoint("TOP", area.best, "BOTTOM", 0, -16)
+  area.press:SetText("CLICK TO START")
+  area.count = Big(area, 72)
+  area.count:SetPoint("CENTER", area, "CENTER", 0, 0)
+  area.count:Hide()
+  area.call = Big(area, 30, 1, .82, .3)
+  area.call:SetPoint("TOP", area, "TOP", 0, -14)
+  area.call:Hide()
+  -- keep the old names the rest uses
+  area.big = area.mode
   area:SetScript("OnClick", function()
     if AM.state == "idle" or AM.state == "done" then
       if AM.state == "done" and GetTime() < (AM.lockUntil or 0) then return end
-      AM.Start()
+      AM.Begin()
     elseif AM.state == "run" then
       AM.Miss()
     end
   end)
+
   -- results card
   local card = CreateFrame("Frame", nil, area)
   ap.card = card
-  card:SetWidth(250)
-  card:SetHeight(196)
+  card:SetWidth(320)
+  card:SetHeight(214)
   card:SetPoint("CENTER", area, "CENTER", 0, 0)
   card:SetFrameLevel(area:GetFrameLevel() + 20)
-  card.bg = Tex(card, "BACKGROUND", .05, .055, .065, .97)
+  card.bg = Tex(card, "BACKGROUND", .04, .05, .07, .97)
   card.bg:SetAllPoints(card)
-  card.edge = Tex(card, "BORDER", .3, .31, .35, 1)
+  card.edge = Tex(card, "BORDER")
   card.edge:SetPoint("TOPLEFT", card, "TOPLEFT", -1, 1)
   card.edge:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", 1, -1)
   card.bg:SetDrawLayer("ARTWORK")
-  card.title = Text(card, 15, "OUTLINE")
+  card.title = Big(card, 24)
   card.title:SetPoint("TOP", card, "TOP", 0, -10)
+  card.grade = Big(card, 78)
+  card.grade:SetPoint("TOPLEFT", card, "TOPLEFT", 22, -40)
+  card.gradeLabel = Pix(card, 8)
+  card.gradeLabel:SetPoint("TOP", card.grade, "BOTTOM", 0, -2)
+  card.gradeLabel:SetText("GRADE")
+  card.score = Big(card, 34)
+  card.score:SetPoint("TOPRIGHT", card, "TOPRIGHT", -18, -42)
+  card.scoreLabel = Pix(card, 8)
+  card.scoreLabel:SetPoint("TOPRIGHT", card.score, "BOTTOMRIGHT", 0, -1)
+  card.scoreLabel:SetText("SCORE")
   card.rows = {}
   local ROWS = { "Hits", "Misses", "Accuracy", "Reaction", "Best combo", "Score", "Best" }
   for i, label in ipairs(ROWS) do
-    local l = Text(card, 11, nil, .6, .62, .66)
-    l:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -34 - (i - 1) * 16)
+    local col, row = math.mod(i - 1, 2), floor((i - 1) / 2)
+    local l = Text(card, 10, nil, .55, .57, .62)
+    l:SetPoint("TOPLEFT", card, "TOPLEFT", 108 + col * 104, -96 - row * 16)
     l:SetText(label)
-    local v = Text(card, 11)
-    v:SetPoint("TOPRIGHT", card, "TOPRIGHT", -14, -34 - (i - 1) * 16)
-    v:SetJustifyH("RIGHT")
+    local v = Text(card, 11, "OUTLINE")
+    v:SetPoint("TOPLEFT", card, "TOPLEFT", 166 + col * 104, -96 - row * 16)
     card.rows[i] = v
+    if i == 6 then l:Hide() v:Hide() end
   end
-  card.again = Button(card, 108, 22, "Play again")
-  card.again:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 12, 10)
-  card.again:SetScript("OnClick", function() if GetTime() >= (AM.lockUntil or 0) then AM.Start() end end)
-  card.next = Button(card, 108, 22, "Next mode")
-  card.next:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -12, 10)
+  card.again = Button(card, 140, 26, "Play again")
+  card.again:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 14, 12)
+  card.again:SetScript("OnClick", function() if GetTime() >= (AM.lockUntil or 0) then AM.Begin() end end)
+  card.next = Button(card, 140, 26, "Next mode")
+  card.next:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -14, 12)
   card.next:SetScript("OnClick", function()
     local cur = S().aimmode
     for i, m in ipairs(AM.MODES) do
       if m.key == cur then
-        local n = AM.MODES[math.mod(i, table.getn(AM.MODES)) + 1]
-        S().aimmode = n.key
+        S().aimmode = AM.MODES[math.mod(i, table.getn(AM.MODES)) + 1].key
+        break
       end
     end
     AM.Idle()
@@ -529,35 +649,41 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
 
   -- targets: a pool of buttons
   AM.pool, AM.live = {}, {}
+  local DISC = "Interface\\AddOns\\pfUI\\img\\octo\\disc"
   local function NewTarget()
     local t = CreateFrame("Button", nil, area)
     t:RegisterForClicks("LeftButtonDown", "RightButtonDown")
     t:SetFrameLevel(area:GetFrameLevel() + 3)
-    t.ring = t:CreateTexture(nil, "BACKGROUND")
-    t.ring:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\disc")
+    t.halo = t:CreateTexture(nil, "BACKGROUND")
+    t.halo:SetTexture(DISC)
+    t.halo:SetPoint("CENTER", t, "CENTER", 0, 0)
+    t.halo:SetBlendMode("ADD")
+    t.ring = t:CreateTexture(nil, "BORDER")
+    t.ring:SetTexture(DISC)
     t.ring:SetPoint("CENTER", t, "CENTER", 0, 0)
     t.pic = t:CreateTexture(nil, "ARTWORK")
     t.pic:SetPoint("TOPLEFT", t, "TOPLEFT", 3, -3)
     t.pic:SetPoint("BOTTOMRIGHT", t, "BOTTOMRIGHT", -3, 3)
     t.cast = CreateFrame("StatusBar", nil, t)
-    t.cast:SetPoint("TOPLEFT", t, "BOTTOMLEFT", -4, -3)
-    t.cast:SetPoint("TOPRIGHT", t, "BOTTOMRIGHT", 4, -3)
-    t.cast:SetHeight(5)
-    t.cast:SetStatusBarTexture(WHITE)
+    t.cast:SetPoint("TOPLEFT", t, "BOTTOMLEFT", -6, -4)
+    t.cast:SetPoint("TOPRIGHT", t, "BOTTOMRIGHT", 6, -4)
+    t.cast:SetHeight(6)
+    t.cast:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     t.cast:SetStatusBarColor(1, .7, .1, 1)
     t.cast:SetMinMaxValues(0, 1)
-    t.castbg = Tex(t.cast, "BACKGROUND", 0, 0, 0, .7)
-    t.castbg:SetAllPoints(t.cast)
+    t.castbg = Tex(t.cast, "BACKGROUND", 0, 0, 0, .8)
+    t.castbg:SetPoint("TOPLEFT", t.cast, "TOPLEFT", -1, 1)
+    t.castbg:SetPoint("BOTTOMRIGHT", t.cast, "BOTTOMRIGHT", 1, -1)
     t:SetScript("OnClick", function() AM.Hit(this) end)
     return t
   end
-  -- floating "+120" / "-50" texts
-  AM.pops = {}
+  -- floating "+120" / "-50" texts and hit bursts
+  AM.pops, AM.bursts = {}, {}
   local function Pop(x, y, text, r, g, b)
     local p
     for _, e in ipairs(AM.pops) do if not e.on then p = e break end end
     if not p then
-      p = Text(area, 13, "OUTLINE")
+      p = Big(area, 18)
       table.insert(AM.pops, p)
     end
     p:ClearAllPoints()
@@ -566,6 +692,26 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     p:SetTextColor(r, g, b)
     p.on, p.t0, p.x, p.y = true, GetTime(), x, y
     p:Show()
+  end
+  local function Burst(x, y, size, r, g, b)
+    local e
+    for _, o in ipairs(AM.bursts) do if not o.on then e = o break end end
+    if not e then
+      e = area:CreateTexture(nil, "OVERLAY")
+      e:SetTexture(DISC)
+      e:SetBlendMode("ADD")
+      table.insert(AM.bursts, e)
+    end
+    e:ClearAllPoints()
+    e:SetPoint("CENTER", area, "TOPLEFT", x, -y)
+    e:SetVertexColor(r, g, b, 1)
+    e.on, e.t0, e.size = true, GetTime(), size
+    e:Show()
+  end
+  local function Callout(text)
+    area.call:SetText(text)
+    area.call.t0 = GetTime()
+    area.call:Show()
   end
 
   local function Faces()
@@ -576,14 +722,14 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
   end
   -- a free spot in the area, not on another target
   local function Spot(size)
-    local w, h = area:GetWidth() or 516, area:GetHeight() or 300
+    local w, h = area:GetWidth() or 516, area:GetHeight() or 260
     local x, y
     for _ = 1, 12 do
-      x = random(floor(size / 2) + 6, floor(w - size / 2 - 6))
-      y = random(floor(size / 2) + 6, floor(h - size / 2 - 14))
+      x = random(floor(size / 2) + 8, floor(w - size / 2 - 8))
+      y = random(floor(size / 2) + 8, floor(h - size / 2 - 16))
       local free = true
       for _, o in ipairs(AM.live) do
-        if (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < (size + 8) * (size + 8) then free = false break end
+        if (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < (size + 10) * (size + 10) then free = false break end
       end
       if free then break end
     end
@@ -595,6 +741,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     t:SetHeight(size)
     t.ring:SetWidth(size * 1.3)
     t.ring:SetHeight(size * 1.3)
+    t.halo:SetWidth(size * 1.9)
+    t.halo:SetHeight(size * 1.9)
     t:ClearAllPoints()
     t:SetPoint("CENTER", area, "TOPLEFT", x, -y)
   end
@@ -610,7 +758,8 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     t.pic:SetTexture(face[1])
     if face[2] then t.pic:SetTexCoord(face[2][1], face[2][2], face[2][3], face[2][4]) else t.pic:SetTexCoord(.08, .92, .08, .92) end
     local ar, ag, ab = Accent()
-    t.ring:SetVertexColor(ar, ag, ab, .45)
+    t.ring:SetVertexColor(ar, ag, ab, .55)
+    t.halo:SetVertexColor(ar, ag, ab, .18)
     t.born = GetTime()
     t.base = size
     t.life = (m.key == "reflex") and 1.5 or nil
@@ -637,6 +786,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     table.insert(AM.pool, t)
   end
 
+  local CALLS = { [5] = "COMBO x5", [10] = "COMBO x10!", [20] = "ON FIRE! x20", [30] = "UNSTOPPABLE x30", [50] = "GODLIKE x50" }
   local function Points()
     return floor(100 * (1 + min(AM.combo, 20) * .05))
   end
@@ -651,6 +801,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     AM.hits = AM.hits + 1
     AM.combo = AM.combo + 1
     if AM.combo > AM.bestCombo then AM.bestCombo = AM.combo end
+    if CALLS[AM.combo] then Callout(CALLS[AM.combo]) end
     AM.react = AM.react + (now - t.born)
     local pts = Points()
     if m.key == "precision" then
@@ -661,14 +812,17 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       if cx and tx then
         local d = sqrt((cx / s - tx) ^ 2 + (cy / s - ty) ^ 2) / (t.size / 2)
         pts = floor(pts * (1.6 - min(1, d)))
+        if d < .3 then Callout("BULLSEYE!") end
       end
     elseif m.key == "kick" and t.castTime then
       -- kicked early = more
       local f = (now - t.born) / t.castTime
       pts = floor(pts * (1.5 - f))
+      if f < .35 then Callout("INTERRUPTED!") end
     end
     AM.score = AM.score + pts
-    Pop(t.x, t.y - t.size / 2 - 6, "+" .. pts, .25, .85, .47)
+    Pop(t.x, t.y - t.size / 2 - 8, "+" .. pts, .3, 1, .55)
+    Burst(t.x, t.y, t.size, .3, 1, .55)
     Sound("hit")
     Retire(t)
     if m.key ~= "reflex" then AM.Spawn() else AM.gapUntil = now + .25 + random() * .5 end
@@ -680,6 +834,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     if not why and now - (AM.lastClick or 0) < .05 then return end
     AM.lastClick = now
     AM.misses = AM.misses + 1
+    if AM.combo >= 10 then Callout("COMBO BROKEN") end
     AM.combo = 0
     AM.score = max(0, AM.score - 50)
     if not x then
@@ -688,18 +843,40 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       local left, top = area:GetLeft(), area:GetTop()
       if cx and left then x, y = cx / s - left, top - cy / s end
     end
-    if x then Pop(x, y, why or "-50", 1, .35, .35) end
+    if x then
+      Pop(x, y, why or "-50", 1, .3, .3)
+      Burst(x, y, 20, 1, .25, .25)
+    end
     Sound("miss")
+    AM.shake = now + .15
     AM.PaintHud()
   end
 
   function AM.PaintHud()
-    local left = AM.state == "run" and max(0, AM.ends - GetTime()) or (tonumber(S().aimtime) or 30)
+    local total = tonumber(S().aimtime) or 30
+    local left = (AM.state == "run") and max(0, AM.ends - GetTime()) or total
     ap.hud[1]:SetText(string.format("%.1f", left))
+    if AM.state == "run" and left < 5 then ap.hud[1]:SetTextColor(1, .3, .3) else ap.hud[1]:SetTextColor(1, 1, 1) end
     ap.hud[2]:SetText(AM.score or 0)
     local shots = (AM.hits or 0) + (AM.misses or 0)
     ap.hud[3]:SetText(shots > 0 and (floor(AM.hits / shots * 100 + .5) .. "%") or "--")
     ap.hud[4]:SetText("x" .. (AM.combo or 0))
+    if (AM.combo or 0) >= 10 then ap.hud[4]:SetTextColor(1, .82, .3) else ap.hud[4]:SetTextColor(1, 1, 1) end
+    local f = left / total
+    ap.timer:SetValue(f)
+    local ar, ag, ab = Accent()
+    if f > .5 then ap.timer:SetStatusBarColor(ar, ag, ab)
+    elseif f > .2 then ap.timer:SetStatusBarColor(1, .7, .2)
+    else ap.timer:SetStatusBarColor(1, .25, .25) end
+  end
+  -- the accent colour on the cabinet's lines (it can change in the options)
+  local function PaintCabinet()
+    local ar, ag, ab = Accent()
+    for _, e in ipairs(area.edge) do e:SetVertexColor(ar, ag, ab, .45) end
+    for _, c in ipairs(area.corners) do c:SetVertexColor(ar, ag, ab, 1) end
+    for _, v in ipairs(ap.hud) do v.panel.line:SetVertexColor(ar, ag, ab, .8) end
+    card.edge:SetVertexColor(ar, ag, ab, .8)
+    area.mode:SetTextColor(ar + (1 - ar) * .45, ag + (1 - ag) * .45, ab + (1 - ab) * .45)
   end
   local function Best(key)
     local _, me = Store()
@@ -709,37 +886,53 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     AM.state = "idle"
     for i = table.getn(AM.live), 1, -1 do Retire(AM.live[i]) end
     card:Hide()
+    area.count:Hide()
+    area.call:Hide()
+    PaintCabinet()
     local m = MG.modes[S().aimmode] or MG.modes.gridshot
     local ar, ag, ab = Accent()
     for _, b in ipairs(ap.chips) do
       if b.key == m.key then
         b.locked = true
-        b.Paint(ar * .35, ag * .35, ab * .35, 1)
+        b.Paint(ar * .3, ag * .3, ab * .3, 1)
         b.edge:SetVertexColor(ar, ag, ab, 1)
+        b.glow:SetVertexColor(ar, ag, ab, 1)
+        b.glow:Show()
       else
         b.locked = nil
         b.Paint(.1, .105, .12, 1)
         b.edge:SetVertexColor(.25, .26, .29, 1)
+        b.glow:Hide()
       end
     end
     win.sub:SetText(m.name)
-    area.big:SetText("Click to start")
+    area.mode:SetText(string.upper(m.name))
     area.small:SetText(m.tip .. "  " .. (tonumber(S().aimtime) or 30) .. " s rounds.")
     local b = Best(m.key)
-    area.best:SetText(b and string.format("Your best: %d  (%d%% accuracy)", b.score or 0, b.acc or 0) or "No best yet")
-    area.big:Show() area.small:Show() area.best:Show()
+    area.best:SetText(b and string.format("HIGH SCORE  %d   (%d%% accuracy)", b.score or 0, b.acc or 0) or "No high score yet - set one!")
+    area.mode:Show() area.small:Show() area.best:Show() area.press:Show()
     AM.score, AM.hits, AM.misses, AM.combo = 0, 0, 0, 0
     AM.PaintHud()
   end
   function AM.Open()
-    if AM.state ~= "run" and AM.state ~= "done" then AM.Idle() end
+    if AM.state ~= "run" and AM.state ~= "done" and AM.state ~= "count" then AM.Idle() end
     local m = MG.modes[S().aimmode] or MG.modes.gridshot
     win.sub:SetText(m.name)
+  end
+  -- 3, 2, 1, GO! then the round
+  function AM.Begin()
+    card:Hide()
+    area.mode:Hide() area.small:Hide() area.best:Hide() area.press:Hide()
+    AM.state = "count"
+    AM.countAt = GetTime()
+    AM.countShown = nil
+    area.count:Show()
   end
   function AM.Start()
     local m = MG.modes[S().aimmode] or MG.modes.gridshot
     card:Hide()
-    area.big:Hide() area.small:Hide() area.best:Hide()
+    area.count:Hide()
+    area.mode:Hide() area.small:Hide() area.best:Hide() area.press:Hide()
     for i = table.getn(AM.live), 1, -1 do Retire(AM.live[i]) end
     AM.faces = Faces()
     AM.state = "run"
@@ -747,14 +940,25 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     AM.track, AM.trackAll = 0, 0
     AM.ends = GetTime() + (tonumber(S().aimtime) or 30)
     AM.gapUntil = nil
+    AM.last = GetTime()
     for _ = 1, m.n do AM.Spawn() end
     Sound("start")
     AM.PaintHud()
+  end
+  -- a grade from accuracy (tracking: time on target)
+  function AM.Grade(acc, best)
+    if acc >= 95 and best then return "S", 1, .82, .3 end
+    if acc >= 95 then return "A+", .3, 1, .55 end
+    if acc >= 88 then return "A", .3, 1, .55 end
+    if acc >= 78 then return "B", .35, .7, 1 end
+    if acc >= 65 then return "C", .8, .82, .86 end
+    return "D", 1, .35, .35
   end
   function AM.Finish(quiet)
     AM.state = "done"
     AM.lockUntil = GetTime() + 1
     for i = table.getn(AM.live), 1, -1 do Retire(AM.live[i]) end
+    area.count:Hide()
     if quiet then AM.Idle() return end
     local key = S().aimmode
     local shots = AM.hits + AM.misses
@@ -763,13 +967,19 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     local react = AM.hits > 0 and floor(AM.react / AM.hits * 1000 + .5) or nil
     local _, me = Store()
     local old = me.aim[key]
-    local isBest = not old or AM.score > (old.score or 0)
-    if isBest and AM.score > 0 then
+    local isBest = (not old or AM.score > (old.score or 0)) and AM.score > 0
+    if isBest then
       me.aim[key] = { score = AM.score, acc = acc, t = time() }
       MG.Share(key, AM.score, acc)
       Sound("best")
     end
-    card.title:SetText(isBest and AM.score > 0 and "|cffffd24dNew best!|r" or "Round over")
+    card.isBest = isBest
+    card.title:SetText(isBest and "NEW HIGH SCORE!" or "ROUND OVER")
+    card.title:SetTextColor(1, isBest and .82 or 1, isBest and .3 or 1)
+    local g, r, gg, b = AM.Grade(acc, isBest)
+    card.grade:SetText(g)
+    card.grade:SetTextColor(r, gg, b)
+    card.score:SetText(AM.score)
     local vals = { AM.hits, AM.misses, acc .. "%", react and (react .. " ms") or "--", "x" .. AM.bestCombo, AM.score,
                    me.aim[key] and me.aim[key].score or 0 }
     if key == "tracking" then vals[1], vals[2] = floor(AM.track * 10) / 10 .. " s on", floor((AM.trackAll - AM.track) * 10) / 10 .. " s off" end
@@ -779,54 +989,106 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     if MG.after then local f = MG.after MG.after = nil f() end
   end
 
-  -- every frame while a round runs
+  -- every frame
   ap:SetScript("OnUpdate", function()
     local now = GetTime()
     for _, p in ipairs(AM.pops) do
       if p.on then
-        local a = (now - p.t0) / .6
+        local a = (now - p.t0) / .7
         if a >= 1 then p.on = nil p:Hide()
         else
-          p:SetAlpha(1 - a)
+          p:SetAlpha(1 - a * a)
           p:ClearAllPoints()
-          p:SetPoint("CENTER", area, "TOPLEFT", p.x, -(p.y - a * 18))
+          p:SetPoint("CENTER", area, "TOPLEFT", p.x, -(p.y - a * 22))
         end
       end
+    end
+    for _, e in ipairs(AM.bursts) do
+      if e.on then
+        local a = (now - e.t0) / .25
+        if a >= 1 then e.on = nil e:Hide()
+        else
+          local s = e.size * (1 + a * 1.2)
+          e:SetWidth(s) e:SetHeight(s)
+          e:SetAlpha(1 - a)
+        end
+      end
+    end
+    if area.call:IsShown() then
+      local a = (now - (area.call.t0 or now)) / .9
+      if a >= 1 then area.call:Hide() else area.call:SetAlpha(1 - a * a) end
+    end
+    if card:IsShown() and card.isBest then
+      card.title:SetAlpha(.55 + .45 * math.abs(math.sin(now * 5)))
+    end
+    if AM.state == "idle" or AM.state == "done" then
+      area.press:SetAlpha(.35 + .65 * math.abs(math.sin(now * 3)))
+    end
+    -- the countdown
+    if AM.state == "count" then
+      local e = now - AM.countAt
+      local step = floor(e / .55)
+      local words = { "3", "2", "1", "GO!" }
+      if step >= 4 then AM.Start() return end
+      if AM.countShown ~= step then
+        AM.countShown = step
+        area.count:SetText(words[step + 1])
+        Sound(step == 3 and "start" or "hit")
+      end
+      local f = (e - step * .55) / .55
+      area.count:SetAlpha(1 - f * .6)
+      area.count:SetFont(NUM, 72 * (1.5 - f * .5), "OUTLINE")
+      if step == 3 then area.count:SetTextColor(.3, 1, .55) else area.count:SetTextColor(1, 1, 1) end
+      return
     end
     if AM.state ~= "run" then return end
     local dt = now - (AM.last or now)
     AM.last = now
     if now >= AM.ends then AM.Finish() return end
+    -- a short shake of the screen on a miss
+    if AM.shake and now < AM.shake then
+      area:ClearAllPoints()
+      local dx = (random() - .5) * 6
+      area:SetPoint("TOPLEFT", ap, "TOPLEFT", dx, -88)
+      area:SetPoint("BOTTOMRIGHT", ap, "BOTTOMRIGHT", dx, 0)
+    elseif AM.shake then
+      AM.shake = nil
+      area:ClearAllPoints()
+      area:SetPoint("TOPLEFT", ap, "TOPLEFT", 0, -88)
+      area:SetPoint("BOTTOMRIGHT", ap, "BOTTOMRIGHT", 0, 0)
+    end
     local m = MG.modes[S().aimmode]
+    local pulse = .45 + .2 * math.sin(now * 6)
     for i = table.getn(AM.live), 1, -1 do
       local t = AM.live[i]
       local age = now - t.born
-      -- grow in over .12 s
       local grow = min(1, age / .12)
+      t.halo:SetAlpha(pulse)
       if t.life then
         -- reflex: shrinks to nothing over its life
         local f = 1 - age / t.life
         if f <= 0 then
-          AM.Miss(t.x, t.y, "too slow")
+          AM.Miss(t.x, t.y, "TOO SLOW")
           Retire(t)
           AM.gapUntil = now + .3
         else
           local s = max(4, t.base * f * grow)
           t:SetWidth(s) t:SetHeight(s)
           t.ring:SetWidth(s * 1.3) t.ring:SetHeight(s * 1.3)
+          t.halo:SetWidth(s * 1.9) t.halo:SetHeight(s * 1.9)
         end
       elseif t.castTime then
         local f = age / t.castTime
         t.cast:SetValue(min(1, f))
-        t.cast:SetStatusBarColor(1, .7 - min(.6, f * .6), .1, 1)
+        t.cast:SetStatusBarColor(1, .75 - min(.6, f * .6), .1, 1)
         if f >= 1 then
-          AM.Miss(t.x, t.y, "cast landed!")
+          AM.Miss(t.x, t.y, "CAST LANDED!")
           Retire(t)
           AM.Spawn()
         end
       elseif t.vx then
         -- tracking: moves, bounces off the edges, turns now and then
-        local w, h = area:GetWidth() or 516, area:GetHeight() or 300
+        local w, h = area:GetWidth() or 516, area:GetHeight() or 260
         local x, y = t.x + t.vx * dt, t.y + t.vy * dt
         local r = t.size / 2
         if x < r or x > w - r then t.vx = -t.vx x = max(r, min(w - r, x)) end
@@ -846,13 +1108,16 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
             AM.hits = AM.hits + 1
             AM.combo = AM.combo + 1
             if AM.combo > AM.bestCombo then AM.bestCombo = AM.combo end
+            if CALLS[AM.combo] then Callout(CALLS[AM.combo]) end
             AM.score = AM.score + floor(10 * (1 + min(AM.combo, 50) * .02))
           end
-          t.ring:SetVertexColor(.25, .85, .47, .7)
+          t.ring:SetVertexColor(.3, 1, .55, .8)
+          t.halo:SetVertexColor(.3, 1, .55, .3)
         else
           if AM.combo > 0 then AM.combo = 0 end
           local ar, ag, ab = Accent()
-          t.ring:SetVertexColor(ar, ag, ab, .45)
+          t.ring:SetVertexColor(ar, ag, ab, .55)
+          t.halo:SetVertexColor(ar, ag, ab, .18)
         end
       elseif grow < 1 then
         local s = t.base * (.4 + .6 * grow)
@@ -1005,6 +1270,7 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
     if not MG.openedForFlight or S().closeland ~= "1" then return end
     MG.openedForFlight = nil
     -- a running round finishes first
+    if AM.state == "count" then AM.Finish(true) end
     if AM.state == "run" then MG.after = function() win:Hide() end return end
     win:Hide()
   end
@@ -1123,6 +1389,106 @@ pfUI:RegisterModule("minigames", "vanilla", function ()
       if win:IsShown() then MG.Close() end
       launch:Hide()
     end
+  end)
+
+  -- ---------------------------------------------------------------- the realm channel
+  -- (22 Nov 2026, user: "share scores over a chat channel people have with the pfui ... log into a realm and share the
+  -- new scores ... sent only once when logged in and received lightweight") 1.12's SendAddonMessage cannot go to a chat
+  -- channel, so pfUI joins a hidden custom channel (MG.CHANNEL) and says ONE line per login, ~20 s after entering the
+  -- world: "OA1 mode:score:acc mode:score:acc ..." (only modes with a best; plain text, no |). Everyone on the realm in the
+  -- channel reads it into their board; nobody answers, nothing else is ever sent there. The channel never shows: it is
+  -- taken out of every chat window and its lines and join notices are dropped before the chat sees them.
+  -- C.minigames.realm = "0" leaves the channel.
+  MG.CHANNEL = "OctoArcade"
+  if S().realm == nil then S().realm = "1" end
+  local lowerChan = string.lower(MG.CHANNEL)
+  function MG.IsOurChannel(a9, a4)
+    local n = string.lower(tostring(a9 or "") .. " " .. tostring(a4 or ""))
+    return string.find(n, lowerChan, 1, true) and true or nil
+  end
+  -- the one line: our bests
+  function MG.RealmLine()
+    local _, me = Store()
+    local parts = {}
+    if (me.quiz.best or 0) > 0 then table.insert(parts, "quiz:" .. floor(me.quiz.best) .. ":0") end
+    for _, m in ipairs(AM.MODES) do
+      local r = me.aim[m.key]
+      if r and (r.score or 0) > 0 then table.insert(parts, m.key .. ":" .. floor(r.score) .. ":" .. floor(r.acc or 0)) end
+    end
+    if not parts[1] then return end
+    return "OA1 " .. table.concat(parts, " ")
+  end
+  -- someone's line: every mode:score:acc goes on the board
+  function MG.ReadRealm(msg, from)
+    if type(msg) ~= "string" or string.sub(msg, 1, 4) ~= "OA1 " or not from then return end
+    local _, _, short = string.find(from, "^([^%-]+)")
+    from = short or from
+    local n = 0
+    for key, v, acc in string.gfind(msg, "(%a+):(%d+):(%d+)") do
+      n = n + 1
+      if n > 8 then break end
+      MG.Keep(key, from, v, acc)
+    end
+    if win:IsShown() and MG.cur == "board" then MG.Board() end
+    return n
+  end
+  function MG.JoinRealm()
+    if S().realm ~= "1" or S().share ~= "1" or not JoinChannelByName then return end
+    local id = GetChannelName and GetChannelName(MG.CHANNEL)
+    if not id or id == 0 then pcall(JoinChannelByName, MG.CHANNEL) end
+    -- out of every chat window: it is only ever read by pfUI
+    for i = 1, (NUM_CHAT_WINDOWS or 7) do
+      local cf = _G["ChatFrame" .. i]
+      if cf and ChatFrame_RemoveChannel then pcall(ChatFrame_RemoveChannel, cf, MG.CHANNEL) end
+    end
+  end
+  function MG.LeaveRealm()
+    if LeaveChannelByName and GetChannelName and (GetChannelName(MG.CHANNEL) or 0) > 0 then pcall(LeaveChannelByName, MG.CHANNEL) end
+  end
+  function MG.SayRealm()
+    if MG.realmSaid or S().realm ~= "1" or S().share ~= "1" then return end
+    local id = GetChannelName and GetChannelName(MG.CHANNEL)
+    local line = MG.RealmLine()
+    if not id or id == 0 or not line then return end
+    MG.realmSaid = true
+    pcall(SendChatMessage, line, "CHANNEL", nil, id)
+  end
+  -- the channel's lines and join / leave notices never reach a chat window
+  local chatEvent = _G.ChatFrame_OnEvent
+  if chatEvent then
+    _G.ChatFrame_OnEvent = function(e)
+      local ev2 = e or event
+      if (ev2 == "CHAT_MSG_CHANNEL" or ev2 == "CHAT_MSG_CHANNEL_NOTICE" or ev2 == "CHAT_MSG_CHANNEL_JOIN"
+          or ev2 == "CHAT_MSG_CHANNEL_LEAVE" or ev2 == "CHAT_MSG_CHANNEL_NOTICE_USER") and MG.IsOurChannel(arg9, arg4) then
+        return
+      end
+      return chatEvent(e)
+    end
+  end
+  local realm = CreateFrame("Frame")
+  MG.realmFrame = realm
+  realm:RegisterEvent("PLAYER_ENTERING_WORLD")
+  realm:RegisterEvent("CHAT_MSG_CHANNEL")
+  realm:SetScript("OnEvent", function()
+    if event == "CHAT_MSG_CHANNEL" then
+      if MG.IsOurChannel(arg9, arg4) and arg2 ~= UnitName("player") then MG.ReadRealm(arg1, arg2) end
+    elseif event == "PLAYER_ENTERING_WORLD" and not this.joined then
+      this.joined = true
+      this.sayAt = GetTime() + 20
+    end
+  end)
+  realm:SetScript("OnUpdate", function()
+    if not this.sayAt or GetTime() < this.sayAt then return end
+    if not this.joinedChan then
+      -- join first, say a few seconds later (the channel needs a moment)
+      this.joinedChan = true
+      MG.JoinRealm()
+      this.sayAt = GetTime() + 5
+      return
+    end
+    this.sayAt = nil
+    MG.SayRealm()
+    this:SetScript("OnUpdate", nil)
   end)
 
   -- ---------------------------------------------------------------- commands

@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.16
+
+- 🕹️ **Aim trainer, arcade style:** modes on their own row (pick any mode at any time - a running round just stops), big stat panels, a timer bar that runs down, a scanline screen with glowing corners, **3-2-1-GO!**, hit bursts, combo callouts (ON FIRE! x20, GODLIKE x50, BULLSEYE!, INTERRUPTED!), and a results card with a grade from S to D and a flashing NEW HIGH SCORE!
+- 🌐 **Scores across the realm:** pfUI joins a hidden OctoArcade channel and says one short line with your bests once per login; everyone on the realm with pfUI Octo reads it into their Scores. You never see the channel in chat. Switch it off in Minigames → Scores.
+
 ## 📜 New in 1.2.15
 
 - 🎮 **OctoArcade - minigames for flights:** a small launcher pops up when a flight starts (or the game you pick opens by itself), and closes when you land. Also `/arcade`, `/quiz`, `/aim`, key bindings, and **Quality of Life → Minigames**. Switch it off there or in the QoL Helpers list. New files: restart the game fully once.

@@ -1564,3 +1564,9 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   polled .5 s; C.minigames.onflight pick (launcher pfOctoArcadeLauncher) | quiz | aim | off; closeland (a running round
   finishes first, MG.after). Combat closes it. Options: Quality of Life > Minigames (minigames-options.lua, key arcade).
   Settings defaults live in MG.S(). Tests: tests\minigames.lua (checks every question: 4 different answers, a category, no repeats).
+  Then (22 Nov): arcade look for the aim trainer (mode row, stat panels in BigNoodleTitling / Hooge, timer bar, scanline
+  screen, AM.Begin = 3-2-1-GO then AM.Start, bursts, callouts, AM.Grade S..D, shake on a miss; a mode chip mid-round stops
+  it). Realm channel: SendAddonMessage cannot reach a chat channel on 1.12, so MG.JoinRealm joins the hidden custom channel
+  "OctoArcade" (removed from every chat frame; a ChatFrame_OnEvent wrapper drops its lines and notices) and MG.SayRealm
+  sends ONE "OA1 mode:score:acc ..." line ~25 s after the first login world entry (MG.realmSaid); MG.ReadRealm reads others'
+  (max 8 pairs) into the board. C.minigames.realm "0" leaves it. Tests: pfUI.env.SendChatMessage shadows _G in the mock.

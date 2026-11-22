@@ -63,6 +63,13 @@ pfUI:RegisterModule("minigames-options", "vanilla", function ()
 
     W.Card(p, "Scores", { icon = ICON .. "INV_Misc_Note_06" })
     Chk(p, "Share my bests", "New bests go to your guild and group, so they show on their Scores too.", "share")
+    W.Check(p, "Share on the realm channel", "pfUI joins a hidden OctoArcade channel and, once a login, says one short line "
+      .. "with your bests to everyone on the realm who has it. You never see the channel in your chat.",
+      function() return G().realm ~= "0" end,
+      function(v)
+        G().realm = v and "1" or "0"
+        if v then MG.JoinRealm() else MG.LeaveRealm() end
+      end)
     W.Slider(p, "Window size", nil, .7, 1.5, .05, function() return tonumber(G().scale) or 1 end,
       function(v) G().scale = tostring(v) if MG.win:IsShown() then MG.win:SetScale(v) end end,
       function(v) return math.floor(v * 100 + .5) .. "%" end)

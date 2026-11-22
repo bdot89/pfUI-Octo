@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.16", {
+    { "Aim trainer, arcade style", "modes on their own row (pick any mode at any time - a running round just stops), big stat panels, a timer bar that runs down, a scanline screen with glowing corners, 3-2-1-GO!, hit bursts, combo callouts (ON FIRE! x20, GODLIKE x50, BULLSEYE!, INTERRUPTED!), and a results card with a grade from S to D and a flashing NEW HIGH SCORE!" },
+    { "Scores across the realm", "pfUI joins a hidden OctoArcade channel and says one short line with your bests once per login; everyone on the realm with pfUI Octo reads it into their Scores. You never see the channel in chat. Switch it off in Minigames Scores." },
+  } },
   { "1.2.15", {
     { "OctoArcade - minigames for flights", "a small launcher pops up when a flight starts (or the game you pick opens by itself), and closes when you land. Also /arcade, /quiz, /aim, key bindings, and Quality of Life Minigames. Switch it off there or in the QoL Helpers list. New files: restart the game fully once." },
     { "Classic quiz", "660 questions of our own on lore, characters, places, dungeons, raids, classes, professions, items, PvP and the world - 10 categories you can switch on or off, a short \"did you know\" after many answers, streaks, and an optional timer." },
@@ -175,10 +179,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.77", {
     { "Old ClassicAPI? You'll be told", "OctoLauncher installs an older ClassicAPI (v1.15) with no damage meter. If that's yours, you get one chat line per character on how to get the newest: close the game, run Install pfUI Octo DLLs.bat in your pfUI folder (or the Octo DLL Installer), then start from OctoLauncher - it keeps your new ClassicAPI and doesn't swap it back." },
-  } },
-  { "1.1.76", {
-    { "Pick your meter", "the top of /pfui Meters now has pfUI Octo / ClassicAPI / Blizzard. \"ClassicAPI\" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset." },
-    { "New hover panel on meter bars", "each spell with its picture and a bar in the player's class colour, then total, per second and share - no other add-ons' tooltip lines mixed in." },
-    { "ClassicAPI's numbers in our windows are now opt-in", "(Meters Data), after a crash on one PC when ClassicAPI's meter window loaded. You get one chat line about the new choice the first time you log in with ClassicAPI 1.22. New file: restart the game fully once." },
   } },
 }

@@ -106,6 +106,23 @@ now = now + 2
 MG.pages.aim:GetScript("OnUpdate")()
 ok(AM.misses == 1, "Reflex: a target that shrinks away is a miss")
 AM.Finish(true)
+-- pick another mode in the middle of a round: it stops, the new mode is ready
+S.aimmode = "gridshot"
+AM.Start()
+local chip
+for _, b in ipairs(MG.pages.aim.chips) do if b.key == "hexakill" then chip = b end end
+_G.this = chip
+chip:GetScript("OnClick")()
+ok(AM.state == "idle" and S.aimmode == "hexakill" and table.getn(AM.live) == 0, "a mode can be picked while a round runs")
+-- 3, 2, 1, GO!
+AM.Begin()
+ok(AM.state == "count" and table.getn(AM.live) == 0, "a countdown first")
+now = now + 2.3
+MG.pages.aim:GetScript("OnUpdate")()
+ok(AM.state == "run" and table.getn(AM.live) == 6, "then the round (Hexakill: six targets)")
+AM.Finish(true)
+-- grades
+ok(AM.Grade(97, true) == "S" and AM.Grade(90) == "A" and AM.Grade(80) == "B" and AM.Grade(50) == "D", "grades from accuracy")
 -- every mode starts
 for _, m in ipairs(AM.MODES) do
   S.aimmode = m.key
@@ -197,6 +214,47 @@ ok(MG.win:IsShown(), "a running round keeps the window on landing")
 AM.Finish()
 ok(not MG.win:IsShown(), "it closes when the round ends")
 S.onflight = "pick"
+
+-- the realm channel: one line a login, read by everyone in it, never shown in chat
+do
+  local keep2 = {}
+  for _, k in ipairs({ "JoinChannelByName", "GetChannelName", "SendChatMessage", "LeaveChannelByName" }) do keep2[k] = rawget(_G, k) end
+  local joined, said = 0, {}
+  local chanId = 0
+  _G.JoinChannelByName = function(n) if n == "OctoArcade" then joined = joined + 1 chanId = 5 end end
+  _G.GetChannelName = function(n) if n == "OctoArcade" then return chanId end return 0 end
+  _G.SendChatMessage = function(msg, kind, lang, id) table.insert(said, { msg, kind, id }) end
+  local envSend = pfUI.env and rawget(pfUI.env, "SendChatMessage")
+  if pfUI.env then pfUI.env.SendChatMessage = _G.SendChatMessage end
+  local _, me2 = MG.Store()
+  me2.aim.gridshot = { score = 1234, acc = 88 }
+  me2.quiz.best = 7
+  local line = MG.RealmLine()
+  ok(line and string.sub(line, 1, 4) == "OA1 " and string.find(line, "gridshot:1234:88") and string.find(line, "quiz:7:0")
+    and not string.find(line, "|"), "one plain line with every best: " .. tostring(line))
+  S.realm, S.share = "1", "1"
+  MG.realmSaid = nil
+  MG.JoinRealm()
+  MG.SayRealm()
+  MG.SayRealm()
+  ok(joined == 1 and table.getn(said) == 1 and said[1][2] == "CHANNEL" and said[1][3] == 5, "joined, and said once on the channel (joined " .. joined .. ", said " .. table.getn(said) .. ", " .. tostring(said[1] and said[1][2]) .. " " .. tostring(said[1] and said[1][3]) .. ")")
+  -- reading someone's line
+  local n = MG.ReadRealm("OA1 hexakill:7000:92 quiz:12:0 reflex:2500:80", "Otherrealmer")
+  local s2 = MG.Store()
+  ok(n == 3 and s2.board.hexakill.Otherrealmer.v == 7000 and s2.board.quiz.Otherrealmer.v == 12, "a realm line fills the board")
+  ok(not MG.ReadRealm("hello there", "Chatter"), "ordinary chat is ignored")
+  -- hidden from the chat
+  ok(MG.IsOurChannel("OctoArcade", "5. OctoArcade") and not MG.IsOurChannel("World", "1. World"), "our channel is recognised")
+  -- switched off: nothing is said
+  S.realm = "0"
+  MG.realmSaid = nil
+  said = {}
+  MG.SayRealm()
+  ok(table.getn(said) == 0, "realm sharing off: nothing is said")
+  S.realm = "1"
+  for k, v in pairs(keep2) do _G[k] = v end
+  if pfUI.env then pfUI.env.SendChatMessage = envSend end
+end
 
 pfUI_cache.arcade = nil
 for k, v in pairs(keep) do _G[k] = v end
