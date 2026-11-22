@@ -1518,8 +1518,14 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     if not win or not win.GetPoint or (win.GetNumPoints and win:GetNumPoints() > 1) then return end
     local a, rel, rp, x, y = win:GetPoint(1)
     if not a then return end
-    if type(rel) ~= "table" and type(rel) ~= "string" then rel, rp, x, y = UIParent, a, rel, rp end -- SetPoint(point, x, y)
+    -- (22 Nov 2026, user: the threat meter "keeps jumping to the top left of my screen when i resize it") after
+    -- StartSizing / StartMoving the client hands the point back as (point, nil, relativePoint, x, y): no frame means
+    -- the screen. This used to be read as the SetPoint(point, x, y) form, which took x from the nil and y from the
+    -- point's name - both 0 - and pinned the window to the screen's top-left corner.
+    if type(rel) == "number" then rel, rp, x, y = UIParent, a, rel, rp -- SetPoint(point, x, y)
+    elseif rel == nil then rel = UIParent end
     if type(rel) == "string" then rel = _G[rel] end
+    if rel == nil then return end
     if rel ~= UIParent then return end
     local f = 1 / ((win.GetScale and win:GetScale()) or 1)
     local SW, SH = GetScreenWidth() * f, GetScreenHeight() * f
@@ -2543,6 +2549,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
         return
       end
       if win.free and S(win).lock ~= "1" then
+        -- the top-left corner stays where it is: noted now, put back when the grip is let go
+        local l, t = win:GetLeft(), win:GetTop()
+        win.sizeFrom = l and t and { l, t } or nil
         win:SetResizable(true)
         win:StartSizing("BOTTOMRIGHT")
         win.sizing = true
@@ -2559,7 +2568,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
       win.sizing = nil
       S(win).width = tostring(floor(win:GetWidth()))
       S(win).height = tostring(floor(win:GetHeight()))
-      M.Pin(win)
+      local from = win.sizeFrom
+      win.sizeFrom = nil
+      if from then M.PinAt(win, from[1], from[2]) else M.Pin(win) end
       Refresh(win)
     end)
     win.grip:SetScript("OnUpdate", function()

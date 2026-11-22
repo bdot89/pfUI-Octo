@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.21", {
+    { "Meters resize where they are", "resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there." },
+  } },
   { "1.2.20", {
     { "Fair leaderboards - the same for everyone", "the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player." },
     { "Practice is just practice", "no clock and every category. Your best streak still shows there, but it is no longer a board, since with no clock it is not a contest. Scores now has 9 boards: Normal, Heroic, Mythic and the six aim modes." },
@@ -184,8 +187,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.82", {
     { "Right names on the map", "hovering a party or raid member's dot on the world map could show a player from a group you were in before - the name was read once and kept. It is now read fresh on every hover." },
-  } },
-  { "1.1.81", {
-    { "Moved frames stay put", "a game window you picked with Move anything (the quest log, for example) went back to the game's own place whenever the game laid its windows out. Its saved place now goes back on after that, as it opens, and once more a moment later." },
   } },
 }

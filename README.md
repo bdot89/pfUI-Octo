@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.21
+
+- 📐 **Meters resize where they are:** resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there.
+
 ## 📜 New in 1.2.20
 
 - ⚖️ **Fair leaderboards - the same for everyone:** the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player.

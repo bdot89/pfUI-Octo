@@ -7263,6 +7263,23 @@ do
     local old = { anchor = "TOPLEFT", xpos = 300, ypos = 720 }
     ok(M.FixOldSnap(b, old) and old.ypos == 720 - SH and not M.FixOldSnap(b, { anchor = "TOPLEFT", xpos = 1, ypos = -5 }),
       "an older snapped save comes back where it was (" .. tostring(old.ypos) .. ")")
+    -- (22 Nov 2026, user: resizing the threat meter threw it to the screen's top-left) after StartSizing the client
+    -- hands the point back with no frame: (point, nil, relativePoint, x, y) is the screen, not SetPoint(point, x, y)
+    local realGet = b.GetPoint
+    b:SetHeight(200)
+    b.GetPoint = function() return "BOTTOMLEFT", nil, "BOTTOMLEFT", 300, 500 end
+    lb, tb = Top(b)
+    b.GetPoint = realGet
+    ok(lb == 300 and tb == 700, "a point with no frame is read against the screen (" .. tostring(lb) .. ", " .. tostring(tb) .. ")")
+    -- only the first read is the client's (the window is put back by its top-left after that)
+    b.GetPoint = function(self, n)
+      b.GetPoint = realGet
+      return "BOTTOMLEFT", nil, "BOTTOMLEFT", 300, 500
+    end
+    M.Pin(b)
+    b.GetPoint = realGet
+    ok(pb.anchor == "TOPLEFT" and pb.xpos == 300 and pb.ypos == 700 - SH, "a resized window is saved where it is, not at the top-left ("
+      .. tostring(pb.xpos) .. ", " .. tostring(pb.ypos) .. ")")
     pfUI_config.position.pfTestPinA, pfUI_config.position.pfTestPinB = nil, nil
   end
 end
