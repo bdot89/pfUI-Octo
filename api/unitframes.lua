@@ -1013,6 +1013,9 @@ logout:SetScript("OnEvent", function()
   end
 end)
 
+-- the most often a frame redraws its auras / its bars and texts (seconds); see OnUpdate
+pfUI.uf.AURA_EVERY, pfUI.uf.BASE_EVERY = .1, .05
+
 function pfUI.uf.OnUpdate()
   -- update combat feedback
   if this.feedbackText then CombatFeedback_OnUpdate(arg1) end
@@ -1037,7 +1040,12 @@ function pfUI.uf.OnUpdate()
     this.update_pvp = nil
   else
     -- process individual events
-    if this.update_aura then
+    -- (22 Nov 2026, user's /pfperf in a raid: the target frame 32 ms a second) a raid boss's auras and health change
+    -- many times a second and each change redrew on the very next frame. Auras now redraw at most AURA_EVERY seconds
+    -- and the bars / texts at most BASE_EVERY (still faster than the eye follows); the flags wait until then.
+    local now = GetTime()
+    if this.update_aura and now >= (this.auraAt or 0) then
+      this.auraAt = now + pfUI.uf.AURA_EVERY
       pfUI.uf:RefreshUnit(this, "aura")
       this.update_aura = nil
       this.update_base = true
@@ -1055,7 +1063,8 @@ function pfUI.uf.OnUpdate()
       this.update_base = true
     end
 
-    if this.update_base then
+    if this.update_base and now >= (this.baseAt or 0) then
+      this.baseAt = now + pfUI.uf.BASE_EVERY
       pfUI.uf:RefreshUnit(this, "base")
       this.update_base = nil
       this.predictAt = nil

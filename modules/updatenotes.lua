@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.24", {
+    { "Smoother raids, round two - unit frames", "on a raid boss the target frame redrew on every aura and health change, many times a second. Every unit frame (target, raid, party...) now redraws its auras at most 10 times a second and its bars and texts at most 20 - still quicker than the eye, with no change ever lost." },
+    { "Debuff timers read only what changed", "the target's debuffs are only read in full for the slots whose icon changed (usually none on a boss), with a full look on a new target and every 2 seconds." },
+    { "Threat window", "redraws at most every 0.15 s - the server's numbers come about 5 times a second anyway." },
+  } },
   { "1.2.23", {
     { "Smoother raids - threat", "in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers." },
     { "Lighter debuff tracking", "DoT tick lines get a quick check before the full match, your target's debuffs are read at most 5 times a second (at once on a new target), and your own spell lines are only checked while a cast is pending." },
@@ -186,8 +191,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.85", {
     { "Faded parts in the unit frame preview", "the elite badge, raid mark, leader, loot and PvP icons now show faded on the Unit Frames preview while they are switched off. Click one to go straight to the setting that turns it on - the faded crest takes you to the Elite Overlay dragons." },
-  } },
-  { "1.1.84", {
-    { "Elite Overlay dragons", "Shagu's pfUI-eliteoverlay is built in. Pick \"Dragons (Elite Overlay)\" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side \"Badge at\" picks. Needs a full client restart for the new pictures." },
   } },
 }

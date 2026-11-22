@@ -709,7 +709,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- TH.TAKE seconds (the newest wins, parts of one answer still join), and the window redraws at most every
   -- TH.DRAW seconds for hits and glides. Nothing is read while the threat is not wanted (no target in a fight).
   TH.inbox = {}
-  TH.TAKE, TH.DRAW = .15, .1
+  TH.TAKE, TH.DRAW = .15, .15
   function TH.Take()
     local box = TH.inbox
     if not box[1] then return end

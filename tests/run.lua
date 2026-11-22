@@ -1237,6 +1237,27 @@ if ME then
     TH.takenAt = nil  -- (a moment later: answers in a burst wait for the next take)
     Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1")
     ok(table.getn(Mock.sounds) == 1, "warning past 90% of the pull point")
+    -- (22 Nov 2026, /pfperf in a raid: the target frame 32 ms) aura changes redraw a frame at most every AURA_EVERY s
+    do
+      local uf = pfUI.uf
+      local fr = { label = "target", id = "", predictAt = 1e12, baseAt = 1e12, config = {} }
+      local realRefresh, n = uf.RefreshUnit, 0
+      uf.RefreshUnit = function(self, f, what) if what == "aura" then n = n + 1 end end
+      local realTime = GetTime
+      local t = 500
+      GetTime = function() return t end
+      local keepThis = _G.this
+      _G.this = fr
+      fr.update_aura = true uf.OnUpdate()
+      fr.update_aura = true uf.OnUpdate()
+      local first = n
+      t = t + uf.AURA_EVERY + .01
+      uf.OnUpdate()
+      ok(first == 1 and n == 2 and not fr.update_aura, "two aura changes at once redraw once, the next after the wait ("
+        .. first .. ", " .. n .. ")")
+      _G.this = keepThis
+      GetTime, uf.RefreshUnit = realTime, realRefresh
+    end
     -- (22 Nov 2026, /pfperf in a raid) the debuff scanner only matches tick lines that can be "afflicted by" ones
     do
       local LD = pfUI.api.libdebuff

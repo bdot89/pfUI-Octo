@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.24
+
+- ⚡ **Smoother raids, round two - unit frames:** on a raid boss the target frame redrew on every aura and health change, many times a second. Every unit frame (target, raid, party...) now redraws its auras at most 10 times a second and its bars and texts at most 20 - still quicker than the eye, with no change ever lost.
+- ⚡ **Debuff timers read only what changed:** the target's debuffs are only read in full for the slots whose icon changed (usually none on a boss), with a full look on a new target and every 2 seconds.
+- ⚡ **Threat window:** redraws at most every 0.15 s - the server's numbers come about 5 times a second anyway.
+
 ## 📜 New in 1.2.23
 
 - ⚡ **Smoother raids - threat:** in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers.

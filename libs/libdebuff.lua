@@ -173,12 +173,29 @@ libdebuff.afflicted = (function()
   if mid and string.len(mid) >= 3 then return mid end
 end)()
 libdebuff.AURAWAIT = .2
-local function ScanTarget()
+-- only the slots whose icon changed since the last look are read in full (a raid boss carries 16 debuffs that mostly
+-- stay put; the full read is a ClassicAPI aura call or a tooltip); a new target reads them all
+local seenTex, fullAt = {}, 0
+local function ScanTarget(fresh)
+  -- (and every slot again every 2 s: a debuff that ran out and came back in the same slot is seen too)
+  if fresh or GetTime() >= fullAt then
+    seenTex = {}
+    fullAt = GetTime() + 2
+  end
   for i=1, 16 do
-    local effect, _, texture = libdebuff:UnitDebuff("target", i)
+    local tex = UnitDebuff("target", i)
 
     -- abort when no further debuff was found
-    if not texture then return end
+    if not tex then
+      for j = i, 16 do seenTex[j] = nil end
+      return
+    end
+    local effect, texture
+    if seenTex[i] ~= tex then
+      seenTex[i] = tex
+      local e, _, t = libdebuff:UnitDebuff("target", i)
+      effect, texture = e, t
+    end
 
     if texture and effect and effect ~= "" then
       -- don't overwrite existing timers
@@ -234,7 +251,7 @@ libdebuff:SetScript("OnEvent", function()
   -- Add Missing Buffs by Iteration (a new target at once; aura changes at most every AURAWAIT seconds)
   elseif event == "PLAYER_TARGET_CHANGED" then
     auraWatch:Hide()
-    ScanTarget()
+    ScanTarget(true)
   elseif event == "UNIT_AURA" and arg1 == "target" then
     if not auraWatch:IsShown() then
       libdebuff.auraAt = GetTime() + libdebuff.AURAWAIT
