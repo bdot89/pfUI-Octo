@@ -43,4 +43,5 @@
   <Include file="..\skins\blizzard\arena.lua"/>
   <Include file="..\skins\blizzard\time_manager.lua"/>
   <Include file="..\skins\blizzard\lfg.lua"/>
+  <Include file="..\skins\blizzard\lft.lua"/>
 </Ui>
