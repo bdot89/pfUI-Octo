@@ -1551,3 +1551,16 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   login (note on the page). Left out on purpose: M2Faster / M2UseShaders (exist, effect on this client unknown).
   Tests at the end of tests\perf.lua. Unverified in game: GetRefreshRates' return shape, RestartGx under DXVK, the
   keep box, gxFixLag's gain through DXVK.
+- OctoArcade minigames (22 Nov 2026, NOT seen in game; NEW FILES = full client restart; user with Naowh Forever's quiz and
+  aim trainer: pop up on flights, open from the menu, "all the questions + more about classic wow lore", aim trainers "our
+  own version but better"). Naowh Forever is all rights reserved: features read only; the quiz bank is our own wording.
+  modules\minigames-quiz1-3.lua = pfUI.minigameData.quiz (660 questions; c = category of minigames.lua QZ.CATS, q, a = 4
+  answers with the right one first, shuffled when asked, f = optional fact). modules\minigames.lua (module "minigames",
+  pfUI.minigames = MG, window pfOctoArcade, tabs quiz / aim / board; /arcade /quiz /aim, bindings PFARCADEQUIZ / AIM):
+  quiz deck (no repeats until all seen, categories off in C.minigames.cats), optional timer and auto-next; aim modes
+  gridshot hexakill reflex precision tracking kick (MG.aim.MODES; kick = casters with cast bars, a landed cast is a miss);
+  faces enemy (INV_Misc_Head_* of the other faction) / creatures / class / marks / spells; bests per character in
+  pfUI_cache.arcade.me[name], others' in .board[mode][name] via prefix pfArc "B^mode^score^acc". Flights: UnitOnTaxi
+  polled .5 s; C.minigames.onflight pick (launcher pfOctoArcadeLauncher) | quiz | aim | off; closeland (a running round
+  finishes first, MG.after). Combat closes it. Options: Quality of Life > Minigames (minigames-options.lua, key arcade).
+  Settings defaults live in MG.S(). Tests: tests\minigames.lua (checks every question: 4 different answers, a category, no repeats).

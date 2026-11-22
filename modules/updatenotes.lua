@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.15", {
+    { "OctoArcade - minigames for flights", "a small launcher pops up when a flight starts (or the game you pick opens by itself), and closes when you land. Also /arcade, /quiz, /aim, key bindings, and Quality of Life Minigames. Switch it off there or in the QoL Helpers list. New files: restart the game fully once." },
+    { "Classic quiz", "660 questions of our own on lore, characters, places, dungeons, raids, classes, professions, items, PvP and the world - 10 categories you can switch on or off, a short \"did you know\" after many answers, streaks, and an optional timer." },
+    { "Aim trainer, six modes", "Gridshot, Hexakill, Reflex, Precision (centre hits score more), Tracking (keep the mouse on a moving target) and Kick! (click the casters before their cast bar fills). Targets wear the other faction's faces, creatures, class pictures, raid marks or spell icons; results show accuracy, reaction time and best combo." },
+    { "Scores shared between players", "bests go to your guild, group and battleground, and boards fill from the players they have met too." },
+  } },
   { "1.2.14", {
     { "The Group Finder in pfUI's look", "OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the \"your group is ready\" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload)." },
   } },
@@ -174,9 +180,5 @@ pfUI.octoNotes = {
     { "Pick your meter", "the top of /pfui Meters now has pfUI Octo / ClassicAPI / Blizzard. \"ClassicAPI\" (with ClassicAPI 1.22 or newer) puts our windows away and shows ClassicAPI's own damage meter - and the Windows page becomes its page: style, numbers, when it shows, bar height, gap, text size, class colours, pictures, opacity, with a live preview, plus unlock, new window and reset." },
     { "New hover panel on meter bars", "each spell with its picture and a bar in the player's class colour, then total, per second and share - no other add-ons' tooltip lines mixed in." },
     { "ClassicAPI's numbers in our windows are now opt-in", "(Meters Data), after a crash on one PC when ClassicAPI's meter window loaded. You get one chat line about the new choice the first time you log in with ClassicAPI 1.22. New file: restart the game fully once." },
-  } },
-  { "1.1.75", {
-    { "Totem order", "OctoTotems > Bars > Layout has an Element order choice, so the bars can go Air, Water, Fire, Earth (or any order you like)." },
-    { "Earthen Bulwark bar fixed", "it said 0% with a full bulwark. It now reads the integrity from the aura's stack count and from your debuffs too. /bulwark debug prints what the game reports, if it still looks wrong." },
   } },
 }

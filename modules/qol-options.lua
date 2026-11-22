@@ -162,6 +162,8 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Mod(p, "Whisper forwarding", "A chat button that forwards whispers to another character.", "whisperproxy")
     Mod(p, "Friend and guild list extras", "Last seen, class and zone colours, notes on friends.", "socialmod")
     Mod(p, "Clean macro history", "/run, /script and /cast lines stay out of the chat history.", "macrotweak")
+    -- (22 Nov 2026) OctoArcade, the flight minigames (its own page: Quality of Life > Minigames)
+    Mod(p, "Minigames on flights (OctoArcade)", "The quiz and aim trainer: pop up on flights, /arcade, /quiz, /aim.", "minigames")
 
     -- (11 Nov 2026) add-ons that do what pfUI Octo already does: listed, and asked about again
     local AC = pfUI.addoncompat

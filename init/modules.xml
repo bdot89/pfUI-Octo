@@ -173,6 +173,11 @@
   <Include file="..\modules\bulwark-options.lua"/>
   <Include file="..\modules\flight.lua"/>
   <Include file="..\modules\flight-options.lua"/>
+  <Include file="..\modules\minigames-quiz1.lua"/>
+  <Include file="..\modules\minigames-quiz2.lua"/>
+  <Include file="..\modules\minigames-quiz3.lua"/>
+  <Include file="..\modules\minigames.lua"/>
+  <Include file="..\modules\minigames-options.lua"/>
   <Include file="..\modules\worldbuffs.lua"/>
   <Include file="..\modules\demo.lua"/>
   <Include file="..\modules\demo-options.lua"/>

@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.15
+
+- 🎮 **OctoArcade - minigames for flights:** a small launcher pops up when a flight starts (or the game you pick opens by itself), and closes when you land. Also `/arcade`, `/quiz`, `/aim`, key bindings, and **Quality of Life → Minigames**. Switch it off there or in the QoL Helpers list. New files: restart the game fully once.
+- 📚 **Classic quiz:** 660 questions of our own on lore, characters, places, dungeons, raids, classes, professions, items, PvP and the world - 10 categories you can switch on or off, a short "did you know" after many answers, streaks, and an optional timer.
+- 🎯 **Aim trainer, six modes:** Gridshot, Hexakill, Reflex, Precision (centre hits score more), Tracking (keep the mouse on a moving target) and **Kick!** (click the casters before their cast bar fills). Targets wear the other faction's faces, creatures, class pictures, raid marks or spell icons; results show accuracy, reaction time and best combo.
+- 🏆 **Scores shared between players:** bests go to your guild, group and battleground, and boards fill from the players they have met too.
+
 ## 📜 New in 1.2.14
 
 - 🔎 **The Group Finder in pfUI's look:** OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the "your group is ready" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload).

@@ -102,6 +102,8 @@
   <Binding name="PFGEARSLOT19">if pfUI and pfUI.gear then pfUI.gear.UseSlot(19) end</Binding>
   <Binding name="PFGEARNAKED">if pfUI and pfUI.gear then pfUI.gear.ToggleNaked() end</Binding>
   <Binding name="PFCONSUMENEXT" header="PFCONSUMES">if pfUI and pfUI.consumes then pfUI.consumes.UseNext() end</Binding>
+  <Binding name="PFARCADEQUIZ" header="PFARCADE">if pfUI and pfUI.minigames then pfUI.minigames.Toggle("quiz") end</Binding>
+  <Binding name="PFARCADEAIM">if pfUI and pfUI.minigames then pfUI.minigames.Toggle("aim") end</Binding>
   <Binding name="PFTOTEMSET" header="PFTOTEMS">if pfUI and pfUI.octototems then pfUI.octototems.ThrowSet() end</Binding>
   <Binding name="PFTOTEMSETFORCE">if pfUI and pfUI.octototems then pfUI.octototems.ThrowSet(nil, true) end</Binding>
   <Binding name="PFTOTEMADVISED">if pfUI and pfUI.octototems then pfUI.octototems.ThrowAdvised() end</Binding>
