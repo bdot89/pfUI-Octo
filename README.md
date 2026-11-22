@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.23
+
+- ⚡ **Smoother raids - threat:** in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers.
+- ⚡ **Lighter debuff tracking:** DoT tick lines get a quick check before the full match, your target's debuffs are read at most 5 times a second (at once on a new target), and your own spell lines are only checked while a cast is pending.
+- ⚡ **OctoRinse in raids:** debuff changes rescan at most 10 times a second in a raid (20 in a group) - cures still show almost instantly.
+
 ## 📜 New in 1.2.22
 
 - 📏 **Meters stay the size you drag them to:** the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight).

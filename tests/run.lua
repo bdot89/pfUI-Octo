@@ -1234,8 +1234,34 @@ if ME then
     Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:4600:92:1;Healbot:0:1000:20:0")
     ok(TH.list and TH.list[2].name == "Tester", "answer stored")
     ok(table.getn(Mock.sounds) == 0, "no warning at 84% of the pull point")
+    TH.takenAt = nil  -- (a moment later: answers in a burst wait for the next take)
     Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1")
     ok(table.getn(Mock.sounds) == 1, "warning past 90% of the pull point")
+    -- (22 Nov 2026, /pfperf in a raid) the debuff scanner only matches tick lines that can be "afflicted by" ones
+    do
+      local LD = pfUI.api.libdebuff
+      ok(LD and LD.afflicted == " is afflicted by " and LD.ScanTarget and LD.auraWatch, "debuff scanner: plain find before the pattern ("
+        .. tostring(LD and LD.afflicted) .. ")")
+    end
+    -- (22 Nov 2026, user's /pfperf in a raid: meters-threat the costliest add-on) a burst of answers (every raider's
+    -- ask brings one) is read once, not once per message; the newest few wait for the next take
+    do
+      local realParse, parsed = TH.Parse, 0
+      TH.Parse = function(m) parsed = parsed + 1 return realParse(m) end
+      TH.takenAt = nil
+      for i = 1, 30 do
+        Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:" .. (5100 + i) .. ":102:1")
+      end
+      ok(parsed == 1 and table.getn(TH.inbox) == 4, "30 answers at once: 1 read now, the newest 4 wait (" .. parsed .. " read, "
+        .. table.getn(TH.inbox) .. " waiting)")
+      TH.takenAt = nil
+      TH.Take()
+      ok(TH.list and TH.list[1].threat >= 5130 and not TH.inbox[1], "the next take has the newest numbers (" .. tostring(TH.list and TH.list[1].threat) .. ")")
+      TH.Parse = realParse
+      -- back to the answer the next checks read
+      TH.list, TH.base, TH.takenAt = nil, nil, nil
+      Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1")
+    end
     local w2 = pfMeter2
     if w2 then
       w2.Refresh(w2)

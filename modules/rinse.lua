@@ -1879,8 +1879,10 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       if ok and R.CanAny() then frame:Show() else frame:Hide() end
     end
     if not R.here or not frame:IsShown() then return end
-    -- instant: an aura change rescans on the next frame (at most 20 a second); otherwise the range fade every .25 s
-    if (R.dirty and now >= nextScan - .2) or now >= nextScan then
+    -- instant: an aura change rescans on the next frame (at most 20 a second; in a raid, where auras change all the
+    -- time, at most 10 - 22 Nov 2026, /pfperf in a raid); otherwise the range fade every .25 s
+    local soon = GetNumRaidMembers() > 0 and .15 or .2
+    if (R.dirty and now >= nextScan - soon) or now >= nextScan then
       R.dirty = nil
       nextScan = now + .25
       R.Scan()

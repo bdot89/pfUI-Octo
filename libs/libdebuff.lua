@@ -163,6 +163,43 @@ libdebuff.rp = { SPELLIMMUNESELFOTHER, IMMUNEDAMAGECLASSSELFOTHER,
 libdebuff.objects = {}
 libdebuff.pending = {}
 
+-- (22 Nov 2026, user's /pfperf in a raid: pfdebuffsScanner 35 ms a second in events) Raids send hundreds of DoT tick
+-- lines a second and the target's auras change all the time. A tick line is only matched when it can be an
+-- "afflicted by" line (a plain find on the template's middle words first), the target's 16 debuffs are read at most
+-- every .2 s however often UNIT_AURA comes, and your own spell lines are only matched while a cast is pending.
+libdebuff.afflicted = (function()
+  local t = AURAADDEDOTHERHARMFUL or ""
+  local _, _, mid = string.find(t, "%%s(.-)%%s")
+  if mid and string.len(mid) >= 3 then return mid end
+end)()
+libdebuff.AURAWAIT = .2
+local function ScanTarget()
+  for i=1, 16 do
+    local effect, _, texture = libdebuff:UnitDebuff("target", i)
+
+    -- abort when no further debuff was found
+    if not texture then return end
+
+    if texture and effect and effect ~= "" then
+      -- don't overwrite existing timers
+      local unitlevel = UnitLevel("target") or 0
+      local unit = UnitName("target")
+      if not libdebuff.objects[unit] or not libdebuff.objects[unit][unitlevel] or not libdebuff.objects[unit][unitlevel][effect] then
+        libdebuff:AddEffect(unit, unitlevel, effect)
+      end
+    end
+  end
+end
+libdebuff.ScanTarget = ScanTarget
+local auraWatch = CreateFrame("Frame")
+libdebuff.auraWatch = auraWatch
+auraWatch:Hide()
+auraWatch:SetScript("OnUpdate", function()
+  if GetTime() < (libdebuff.auraAt or 0) then return end
+  this:Hide()
+  ScanTarget()
+end)
+
 -- Gather Data by Events
 libdebuff:SetScript("OnEvent", function()
   -- paladin seal refresh
@@ -185,6 +222,7 @@ libdebuff:SetScript("OnEvent", function()
 
   -- Add Combat Log
   elseif event == "CHAT_MSG_SPELL_PERIODIC_HOSTILEPLAYER_DAMAGE" or event == "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE" then
+    if libdebuff.afflicted and not string.find(arg1 or "", libdebuff.afflicted, 1, true) then return end
     local unit, effect = cmatch(arg1, AURAADDEDOTHERHARMFUL)
     if unit and effect then
       local unitlevel = UnitName("target") == unit and UnitLevel("target") or 0
@@ -193,26 +231,20 @@ libdebuff:SetScript("OnEvent", function()
       end
     end
 
-  -- Add Missing Buffs by Iteration
-  elseif ( event == "UNIT_AURA" and arg1 == "target" ) or event == "PLAYER_TARGET_CHANGED" then
-    for i=1, 16 do
-      local effect, rank, texture, stacks, dtype, duration, timeleft = libdebuff:UnitDebuff("target", i)
-
-      -- abort when no further debuff was found
-      if not texture then return end
-
-      if texture and effect and effect ~= "" then
-        -- don't overwrite existing timers
-        local unitlevel = UnitLevel("target") or 0
-        local unit = UnitName("target")
-        if not libdebuff.objects[unit] or not libdebuff.objects[unit][unitlevel] or not libdebuff.objects[unit][unitlevel][effect] then
-          libdebuff:AddEffect(unit, unitlevel, effect)
-        end
-      end
+  -- Add Missing Buffs by Iteration (a new target at once; aura changes at most every AURAWAIT seconds)
+  elseif event == "PLAYER_TARGET_CHANGED" then
+    auraWatch:Hide()
+    ScanTarget()
+  elseif event == "UNIT_AURA" and arg1 == "target" then
+    if not auraWatch:IsShown() then
+      libdebuff.auraAt = GetTime() + libdebuff.AURAWAIT
+      auraWatch:Show()
     end
 
   -- Update Pending Spells
   elseif event == "CHAT_MSG_SPELL_FAILED_LOCALPLAYER" or event == "CHAT_MSG_SPELL_SELF_DAMAGE" then
+    -- nothing pending and nothing to take back: no line can matter
+    if not libdebuff.pending[3] and not (lastspell and lastspell.start_old) then return end
     -- Remove pending spell
     for _, msg in pairs(libdebuff.rp) do
       local effect = cmatch(arg1, msg)

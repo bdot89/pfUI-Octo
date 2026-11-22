@@ -703,23 +703,56 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   f:RegisterEvent("PARTY_MEMBERS_CHANGED")
   f:RegisterEvent("RAID_ROSTER_UPDATE")
+  -- (22 Nov 2026, user's /pfperf in a raid: meters-threat 47 ms a second plus 23 ms in its events, +5 MB of garbage a
+  -- second) In a raid the server's answers reach everyone (every raider's ask brings one), and each was read, sorted,
+  -- judged and drawn at once - dozens a second. Now answers wait in TH.inbox and are taken together at most every
+  -- TH.TAKE seconds (the newest wins, parts of one answer still join), and the window redraws at most every
+  -- TH.DRAW seconds for hits and glides. Nothing is read while the threat is not wanted (no target in a fight).
+  TH.inbox = {}
+  TH.TAKE, TH.DRAW = .15, .1
+  function TH.Take()
+    local box = TH.inbox
+    if not box[1] then return end
+    TH.inbox = {}
+    local list
+    for _, msg in ipairs(box) do
+      local part = TH.Parse(msg)
+      if part then list = list and TH.Join(list, part) or part end
+    end
+    if not list then return end
+    -- (12 Nov 2026) a longer list may come in more than one message: parts that answer the same ask join up
+    if TH.list and TH.ansAsk == TH.askAt and TH.askAt > 0 and not TH.estimated then list = TH.Join(TH.list, list) end
+    TH.ansAsk = TH.askAt
+    TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
+    -- an answer for a normal mob: this server sends them too
+    if UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
+    TH.Snapshot(list)
+    TH.estimated = nil
+    TH.Warn()
+    M.Changed()
+    -- shown at once when the last redraw was a while ago, else at the next one
+    local now = GetTime()
+    if now >= (TH.drawAt or 0) and M.RefreshThreat then
+      TH.drawAt = now + TH.DRAW
+      M.RefreshThreat()
+    else
+      TH.drawNow = true
+    end
+  end
   f:SetScript("OnEvent", function()
     if event == "CHAT_MSG_ADDON" then
       if type(arg2) ~= "string" or not string.find(arg2, "TWTv4=", 1, true) then return end
-      local list = TH.Parse(arg2)
-      if not list then return end
-      -- (12 Nov 2026) a longer list may come in more than one message: parts that answer the same ask join up
-      if TH.list and TH.ansAsk == TH.askAt and TH.askAt > 0 and not TH.estimated then list = TH.Join(TH.list, list) end
-      TH.ansAsk = TH.askAt
-      TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
-      -- an answer for a normal mob: this server sends them too
-      if UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
-      TH.Snapshot(list)
-      TH.estimated = nil
-      TH.Warn()
-      M.Changed()
-      -- shown at once, not at the next .2 s redraw of every window
-      if M.RefreshThreat then M.RefreshThreat() end
+      if not TH.Wanted() then return end
+      local box = TH.inbox
+      table.insert(box, arg2)
+      -- only the newest few: one answer is at most a few parts
+      if table.getn(box) > 4 then table.remove(box, 1) end
+      -- the first answer in a while is taken at once; the rest of a burst waits for the next take
+      local now = GetTime()
+      if now - (TH.takenAt or -100) >= TH.TAKE then
+        TH.takenAt = now
+        TH.Take()
+      end
     elseif event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE" then
       -- (7 Nov 2026, GratisNinja: the meter did not go back to solo when the group was dismissed) a new group,
       -- or none: the server gets asked again, and an estimate of the old one goes
@@ -732,6 +765,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
       TH.list, TH.warned, TH.estimated = nil, nil, nil
       TH.base, TH.baseBy, TH.dmg, TH.shown = nil, nil, {}, {}
       TH.samples, TH.predWarned, TH.others, TH.hist, TH.all = {}, nil, {}, {}, nil
+      TH.inbox = {}
       -- (a fight over: the solo tallies start again)
       -- (and "a tank in this fight" is forgotten: the next fight decides again)
       if event == "PLAYER_REGEN_ENABLED" then TH.est, TH.tankFight, TH.tankAt = {}, nil, nil end
@@ -748,28 +782,41 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   end)
 
   f:SetScript("OnUpdate", function()
-    if (this.tick or 0) > GetTime() then return end
-    this.tick = GetTime() + .03
+    local now = GetTime()
+    if (this.tick or 0) > now then return end
+    this.tick = now + .03
     TH.Ask()
-    -- a hit or heal landed: the numbers move now; bars glide
-    if TH.dirty and TH.base then
-      TH.dirty = nil
-      TH.Rebuild()
-      TH.Warn()
-      if M.RefreshThreat then M.RefreshThreat() end
-    -- (ClassicAPI eases the bars itself: no redraw every 30 ms for our own glide then)
-    elseif TH.list and not (M.Eased and M.Eased()) and TH.Animate() and M.RefreshThreat then
-      M.RefreshThreat()
+    if TH.inbox[1] and now - (TH.takenAt or 0) >= TH.TAKE then
+      TH.takenAt = now
+      TH.Take()
+    end
+    -- a hit or heal landed: the numbers move; bars glide - redrawn at most every TH.DRAW seconds
+    if now >= (TH.drawAt or 0) then
+      local draw = TH.drawNow
+      TH.drawNow = nil
+      if TH.dirty and TH.base then
+        TH.dirty = nil
+        TH.Rebuild()
+        TH.Warn()
+        draw = true
+      -- (ClassicAPI eases the bars itself: no redraw for our own glide then)
+      elseif TH.list and not (M.Eased and M.Eased()) and TH.Animate() then
+        draw = true
+      end
+      if draw and M.RefreshThreat then
+        TH.drawAt = now + TH.DRAW
+        M.RefreshThreat()
+      end
     end
     -- buffs that change threat: looked at every 3 s while the numbers are on screen
-    if TH.list and (TH.scanAt or 0) <= GetTime() then
-      TH.scanAt = GetTime() + 3
+    if TH.list and (TH.scanAt or 0) <= now then
+      TH.scanAt = now + 3
       TH.ScanMods()
     end
-    if (this.stale or 0) > GetTime() then return end
-    this.stale = GetTime() + .25
+    if (this.stale or 0) > now then return end
+    this.stale = now + .25
     -- answers older than 3 s are stale
-    if TH.list and GetTime() - TH.at > 3 then
+    if TH.list and now - TH.at > 3 then
       TH.list, TH.base = nil, nil
       M.Changed()
     end

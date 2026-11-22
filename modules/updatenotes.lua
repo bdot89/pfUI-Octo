@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.23", {
+    { "Smoother raids - threat", "in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers." },
+    { "Lighter debuff tracking", "DoT tick lines get a quick check before the full match, your target's debuffs are read at most 5 times a second (at once on a new target), and your own spell lines are only checked while a cast is pending." },
+    { "OctoRinse in raids", "debuff changes rescan at most 10 times a second in a raid (20 in a group) - cures still show almost instantly." },
+  } },
   { "1.2.22", {
     { "Meters stay the size you drag them to", "the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight)." },
     { "Tiny windows come back", "a window that was saved shrunk to a line or two comes back once at the normal size, ready to drag. \"Fit the lines\" is still in Meters > Data for anyone who likes it, now off by default." },
@@ -184,9 +189,5 @@ pfUI.octoNotes = {
   } },
   { "1.1.84", {
     { "Elite Overlay dragons", "Shagu's pfUI-eliteoverlay is built in. Pick \"Dragons (Elite Overlay)\" under Unit Frames > Frames > Class and status: gold dragons wrap elites and rare elites, red ones world bosses, grey ones rares, on the side \"Badge at\" picks. Needs a full client restart for the new pictures." },
-  } },
-  { "1.1.83", {
-    { "No more game heal numbers over heads", "SuperWoW's own heal numbers could come back on after a client start and float over every player you healed. While pfUI Octo's combat text is on they are now kept off at every login (unless you switched them on yourself on the Combat Text page)." },
-    { "Meter windows move on their own", "windows snapped side by side no longer drag each other along. \"Snapped windows move together\" is off by default (Meters > Data) - snapping into line on drop stays." },
   } },
 }
