@@ -883,6 +883,11 @@ pfUI:RegisterModule("panel", "vanilla:tbc", function()
       cf:SetParent(UIParent)
       if tab then tab:SetParent(UIParent) end
       if FCF_DockFrame then FCF_DockFrame(cf) end
+      -- (23 Nov 2026, mechanism: the left chat went blank. FCF_DockFrame makes the window it docks the
+      -- shown one and hides General; General stays the one on screen, Loot & Spam is a tab beside it)
+      local main = _G.SELECTED_CHAT_FRAME
+      if not (main and main ~= cf and main.isDocked) then main = _G.DEFAULT_CHAT_FRAME or _G.ChatFrame1 end
+      if main and main ~= cf and FCF_SelectDockFrame then FCF_SelectDockFrame(main) end
       if pfUI.chat.RefreshChat then pfUI.chat.RefreshChat() end
       if FCF_DockUpdate then FCF_DockUpdate() end
       pfUI.chat.right:Hide()

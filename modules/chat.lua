@@ -468,8 +468,6 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
   -- refresh, when a tab is picked, and once a second as the last word.
   function pfUI.chat.FixDock(report)
     if pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("chat") then return end
-    local sel = _G.SELECTED_CHAT_FRAME or _G.ChatFrame1
-    if not sel then return end
     local docked = {}
     for i = 1, (_G.NUM_CHAT_WINDOWS or 7) do
       local f = _G["ChatFrame" .. i]
@@ -478,7 +476,16 @@ pfUI:RegisterModule("chat", "vanilla:tbc", function ()
       end
     end
     for _, f in pairs(_G.DOCKED_CHAT_FRAMES or {}) do docked[f] = true end
-    if not docked[sel] then return end
+    -- (23 Nov 2026, mechanism: the panel arrow emptied the left chat. FCF_DockFrame shows the window it docks
+    -- (SELECTED_DOCK_FRAME) and hides the rest, while SELECTED_CHAT_FRAME still named General - this hid the shown
+    -- one too, every second. The dock's own pick wins; the window picked is put on screen.)
+    local sel = _G.SELECTED_DOCK_FRAME
+    if not (sel and docked[sel]) then sel = _G.SELECTED_CHAT_FRAME or _G.ChatFrame1 end
+    if not (sel and docked[sel]) then return end
+    if not sel:IsShown() and sel:GetParent() and sel:GetParent():IsShown() then
+      sel:Show()
+      if report then DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r chat: showed " .. (sel:GetName() or "?")) end
+    end
     for f in pairs(docked) do
       if f ~= sel and f:IsShown() then
         f:Hide()

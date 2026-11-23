@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.29
+
+- 💬 **Left chat no longer goes blank** when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second.
+
 ## 📜 New in 1.2.28
 
 - 💧 **OctoRinse, five new looks:** **Timer bars** (each row drains as its debuff runs out, seconds on the icon), **Health bars** (rows filled with the player's health in their class colour - save the one who is dying), **Spotlight** (the next cure large on top, the rest slim), **Calm** (soft colours, no pulse or sound, rows stay put) and **Tiles** (big icons in rows, set the Columns).

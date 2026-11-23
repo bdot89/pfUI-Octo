@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.29", {
+    { "Left chat no longer goes blank", "when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second." },
+  } },
   { "1.2.28", {
     { "OctoRinse, five new looks", "Timer bars (each row drains as its debuff runs out, seconds on the icon), Health bars (rows filled with the player's health in their class colour - save the one who is dying), Spotlight (the next cure large on top, the rest slim), Calm (soft colours, no pulse or sound, rows stay put) and Tiles (big icons in rows, set the Columns)." },
     { "OctoRinse, less stress", "new card Order and calm - sort by lowest health or shortest time left, Rows stay put (nothing jumps under your mouse), Out of range at the bottom, and seconds left on the icons in any look." },
@@ -189,11 +192,5 @@ pfUI.octoNotes = {
     { "Read every auction is lighter", "a full read only notes prices, no longer redraws the list after every page and takes a short pause between pages, so the game stays smooth on a busy auction house." },
     { "Nameplate spell icons can be turned off", "text on nameplates has its own Spell icon setting (Combat Text > Nameplates > Look). The scroll areas' setting never reached it." },
     { "Quest pins stay inside a round minimap", "pfQuest's pins follow the map's shape (round, diamond, octagon...) instead of spilling over the edge." },
-  } },
-  { "1.1.89", {
-    { "Demos play your own class", "every demo but AFK casts your class's real spells, DoTs, cooldowns and procs, so your action bars, OctoDoTs, cooldown bars, combat text and meters show what you would really see. The Demo Mode page lists the spells it uses." },
-    { "Party frames always join in", "if your settings hide the party frames (hidden in raids, raid frames for groups, placed off screen), the demo shows them anyway and says once in chat why they were hidden." },
-    { "Every module plays its own test", "cooldown bars, OctoTotems, consumables and the rest cycle through their samples while a demo runs, and the AFK demo has its own AFK screen." },
-    { "Crash fix", "a disconnect while a demo was running could crash the game (#132). The demo now cleans up when you leave the world, before the game frees its unit data." },
   } },
 }

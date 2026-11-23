@@ -546,6 +546,43 @@ do
     C.chat.right.enable = rc
     C.panel.arrowopen = "0"
     PN.ArrowSet(false)
+    -- (23 Nov 2026, mechanism: in chat mode the arrow's shut left the left chat blank) the game's
+    -- FCF_DockFrame shows the window it docks and hides the rest: General must end up on screen
+    do
+      local env = getfenv(PN.ArrowSet)
+      local keep = {}
+      local names = { "FCF_DockFrame", "FCF_SelectDockFrame", "FCF_DockUpdate", "FCF_UnDockFrame", "ChatFrame1", "ChatFrame3",
+        "ChatFrame3Tab", "DEFAULT_CHAT_FRAME", "SELECTED_CHAT_FRAME", "SELECTED_DOCK_FRAME", "DOCKED_CHAT_FRAMES" }
+      for _, k in ipairs(names) do keep[k] = { rawget(_G, k), rawget(env, k) } end
+      local cf1 = CreateFrame("Frame", nil, UIParent)
+      local cf3 = CreateFrame("Frame", nil, UIParent)
+      cf1.isDocked = 1
+      local function G(k, v) rawset(_G, k, v) if env ~= _G then rawset(env, k, v) end end
+      G("ChatFrame1", cf1) G("ChatFrame3", cf3) G("ChatFrame3Tab", CreateFrame("Button", nil, UIParent))
+      G("DEFAULT_CHAT_FRAME", cf1) G("SELECTED_CHAT_FRAME", cf1) G("SELECTED_DOCK_FRAME", cf1)
+      G("DOCKED_CHAT_FRAMES", { cf1 })
+      local function Update()
+        for _, f in ipairs(_G.DOCKED_CHAT_FRAMES) do if f == _G.SELECTED_DOCK_FRAME then f:Show() else f:Hide() end end
+      end
+      G("FCF_DockUpdate", Update)
+      G("FCF_SelectDockFrame", function(f) G("SELECTED_DOCK_FRAME", f) Update() end)
+      G("FCF_DockFrame", function(f)
+        if f.isDocked then return end
+        f.isDocked = 1
+        table.insert(_G.DOCKED_CHAT_FRAMES, f)
+        _G.FCF_SelectDockFrame(f)
+      end)
+      G("FCF_UnDockFrame", function(f) f.isDocked = nil end)
+      local om2, rc2 = C.panel.arrowmode, C.chat.right.enable
+      C.panel.arrowmode = "chat"
+      PN.ArrowSet(true)
+      cf3:Show()
+      PN.ArrowSet(false)
+      ok(cf1:IsShown() and not cf3:IsShown() and _G.SELECTED_DOCK_FRAME == cf1 and cf3.isDocked,
+        "arrow shut (chat mode): Loot & Spam docks as a tab, General stays on screen in the left chat")
+      C.panel.arrowmode, C.chat.right.enable = om2, rc2
+      for k, v in pairs(keep) do rawset(_G, k, v[1]) if env ~= _G then rawset(env, k, v[2]) end end
+    end
     C.panel.arrowmode, C.panel.arrowopen, C.panel.arrowwins = om, oo, ow
     C.meters.win1.width, C.meters.win2.width = w1, w2
   else
