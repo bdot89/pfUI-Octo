@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.34", {
+    { "No more quest tracker error spam", "the built-in quest tracker can no longer fill your screen with \"tracker.lua:282\" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!" },
+  } },
   { "1.2.33", {
     { "Auto Shot in the right colour", "combat text showed Auto Shot (and wand / throw shots) in the yellow of \"Your spells\", whatever colour you set. They now use \"Your melee and Auto Shot\", as the setting says. Thanks Javelin!" },
     { "Hex codes and a Default button on every colour", "the colour picker now has a box where you can type a colour like #ff8800 (it also shows the code of the colour picked), and a Default button that puts that setting back to its original colour. Right-click any colour square to reset it straight away. Thanks Javelin for the idea!" },
@@ -178,13 +181,5 @@ pfUI.octoNotes = {
     { "Neat columns everywhere", "per second, total and % in columns of their own that line up down every window, with small headings. A narrow window drops columns before it squashes names." },
     { "Windows fit their lines", "no empty space under the last bar." },
     { "Clearer threat window", "the DoTs line names whose DoTs pull next (\"DoTs Gul'dan in 7 s\"), the title shows your own %, \"You hold aggro\" while you tank, calm top lines with their own colour options, and a preview that always matches your meter." },
-  } },
-  { "1.1.94", {
-    { "Threat is back inside Meters", "a big \"Damage, healing & more | Threat\" switch at the top of every Meters page, and a working preview of your threat window." },
-    { "% of the pull point", "each player's % is of where THEY pull aggro (110% of the tank in melee, 130% at range). The one the boss is on is first, on \"Aggro\". Nobody else ever reaches 100% until the boss turns to them." },
-    { "Everyone's DoT countdown", "every player's line shows their own seconds before they pull, and a \"Next\" line names who pulls next, so a raid leader sees it too. Your own \"DoTs +22.5k\" line shows what your DoTs still add." },
-    { "Clear and readable", "info lines in their own colours (DoTs purple, next amber), words that shrink to fit, and the target's full name, never cut." },
-    { "Whispers", "a green +N on the bar for new messages, and unfolding goes to the oldest new one first." },
-    { "Power dots everywhere", "every section with an on/off dot keeps it while its module is off, so you can always switch it back on." },
   } },
 }

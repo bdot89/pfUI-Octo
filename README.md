@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.34
+
+- 🗺️ **No more quest tracker error spam:** the built-in quest tracker can no longer fill your screen with "tracker.lua:282" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!
+
 ## 📜 New in 1.2.33
 
 - 🏹 **Auto Shot in the right colour:** combat text showed Auto Shot (and wand / throw shots) in the yellow of "Your spells", whatever colour you set. They now use "Your melee and Auto Shot", as the setting says. Thanks Javelin!

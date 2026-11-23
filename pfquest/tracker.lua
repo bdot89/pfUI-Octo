@@ -279,7 +279,7 @@ tracker:SetScript("OnUpdate", function()
     this.backdrop:SetAlpha(alpha + ((goal - alpha) > 0 and 0.1 or (goal - alpha) < 0 and -0.1 or 0))
   end
 
-  local qwatch = pfQuestCompat.QuestWatchFrame or QuestWatchFrame or WatchFrame
+  local qwatch = (pfQuestCompat and pfQuestCompat.QuestWatchFrame) or QuestWatchFrame or WatchFrame
   if qwatch and qwatch.IsShown and qwatch:IsShown() then
     qwatch:Hide()
   end

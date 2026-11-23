@@ -160,7 +160,7 @@ $patches = @{
     $t = Must $t 'this.sectionSignature = nil' 'pfQuestMapTracker.sectionSignature = nil'
     # (17 Nov 2026, Wolfahrt: "tracker.lua:282: attempt to index a nil value", every frame) the game's quest
     # watch frame was gone when pfQuest loaded (another add-on); look it up each time and skip it when missing
-    $t = Must $t "  if pfQuestCompat.QuestWatchFrame:IsShown() then`n    pfQuestCompat.QuestWatchFrame:Hide()" "  local qwatch = pfQuestCompat.QuestWatchFrame or QuestWatchFrame or WatchFrame`n  if qwatch and qwatch.IsShown and qwatch:IsShown() then`n    qwatch:Hide()"
+    $t = Must $t "  if pfQuestCompat.QuestWatchFrame:IsShown() then`n    pfQuestCompat.QuestWatchFrame:Hide()" "  local qwatch = (pfQuestCompat and pfQuestCompat.QuestWatchFrame) or QuestWatchFrame or WatchFrame`n  if qwatch and qwatch.IsShown and qwatch:IsShown() then`n    qwatch:Hide()"
     Must $t 'this:ScheduleLayout()' 'pfQuestMapTracker.layoutAt = GetTime() + 0.05'
   }
   # (21 Nov 2026, user: "when i do a /db it should bring up the database window") plain /db opens and closes the
