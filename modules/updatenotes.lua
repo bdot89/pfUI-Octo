@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.33", {
+    { "Auto Shot in the right colour", "combat text showed Auto Shot (and wand / throw shots) in the yellow of \"Your spells\", whatever colour you set. They now use \"Your melee and Auto Shot\", as the setting says. Thanks Javelin!" },
+    { "Hex codes and a Default button on every colour", "the colour picker now has a box where you can type a colour like #ff8800 (it also shows the code of the colour picked), and a Default button that puts that setting back to its original colour. Right-click any colour square to reset it straight away. Thanks Javelin for the idea!" },
+  } },
   { "1.2.32", {
     { "Spells drag off your bars again", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!" },
     { "\"Already built in\" check knows more add-ons", "at login pfUI Octo now also offers to switch off aux, Auctionator, TurtleMail, Postal, CT_MailMod, LazyPig, DPSMate, Details, KLHThreatMeter, MikScrollingBattleText, OneBag, SwingTimer and consume trackers - all built in already. Thanks Wolfahrt!" },
@@ -182,12 +186,5 @@ pfUI.octoNotes = {
     { "Clear and readable", "info lines in their own colours (DoTs purple, next amber), words that shrink to fit, and the target's full name, never cut." },
     { "Whispers", "a green +N on the bar for new messages, and unfolding goes to the oldest new one first." },
     { "Power dots everywhere", "every section with an on/off dot keeps it while its module is off, so you can always switch it back on." },
-  } },
-  { "1.1.93", {
-    { "OctoThreat, its own section", "your threat window with a live preview, locked to threat so its menu can't switch it away, plus every threat setting on two pages (Threat window / Label & warnings)." },
-    { "\"DoTs pull in 4 s\" in the threat window", "the pull line turns red with the countdown, and your line shows the threat still on its way as a lighter part." },
-    { "Steadier raid threat", "between the server's answers nobody jumps above the tank on a guess. Only the server's own numbers can put someone past the tank." },
-    { "Demo events", "an Events menu on the demo bar and buttons on the Demo mode page: Overthreat, DoTs pull aggro, Tank dies, Raid-wide damage, Big cast, Debuffs to cure, Enrage, Healers out of mana, Someone dies, Battle res, Res everyone, Wipe, Kill the boss." },
-    { "Whispers in one window", "a tab per person instead of a window each." },
   } },
 }

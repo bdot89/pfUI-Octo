@@ -24,7 +24,7 @@ pfUI:RegisterModule("bags-options", "vanilla:tbc", function ()
     end, function(r, g, b, a)
       G()[key] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
       Up()
-    end)
+    end, function() return pfUI.ConfigDefault(G(), key) end)
   end
   BP.WASH = { { key = "class", label = "Class colour" }, { key = "accent", label = "Accent colour" }, { key = "custom", label = "My own colour" } }
 

@@ -754,10 +754,19 @@ local function SpellHit(target, caster, id, amount, mit, hit, school, eff)
          Periodic(eff)
 end
 
+-- (23 Nov 2026, Javelin: "auto shot ... show yellow text ... even tho its set to white") nampower reports the
+-- auto-repeat ranged shots as spell hits; they belong with "Your melee and Auto Shot": Auto Shot, Shoot Bow / Gun /
+-- Crossbow, Throw, wand Shoot.
+EV.AUTOSHOT = { [75] = true, [2480] = true, [7918] = true, [7919] = true, [2764] = true, [5019] = true }
+
 B:On("SPELL_DAMAGE_EVENT_SELF", function(ev, target, caster, id, amount, mit, hit, school, eff)
   if target == Me() or not TargetOk(target) then return end
   local info, periodic = SpellHit(target, caster, id, amount, mit, hit, school, eff)
   info.guid, info.name = target, NameOf(target)
+  if EV.AUTOSHOT[tonumber(id) or 0] and not periodic then
+    info.school = nil
+    return EV:Add("outMelee", info)
+  end
   EV:Add(periodic and "outDot" or "outSpell", info)
 end)
 

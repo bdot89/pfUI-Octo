@@ -56,7 +56,7 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     return W.Color(p, label, desc, function() return ColorOf(S()[getKey()]) end, function(r, g, b, a)
       S()[getKey()] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
       U()
-    end)
+    end, function() return pfUI.ConfigDefault(S(), getKey()) end)
   end
   local function Accent()
     if GetAccentColor then return GetAccentColor() end

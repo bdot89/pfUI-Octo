@@ -1,7 +1,39 @@
 -- load pfUI environment
 setfenv(1, pfUI:GetEnvironment())
 
+-- octo (23 Nov 2026, Javelin: "a specific default button that sets the specific color back to its default"):
+-- every default handed to UpdateConfig is noted, so an options page can put one setting back.
+-- pfUI.configDefaults[group].v[entry] / [group].s[subgroup][entry]
+pfUI.configDefaults = pfUI.configDefaults or {}
+local function NoteDefault(group, subgroup, entry, value)
+  if not group or not entry or value == nil or type(value) == "table" then return end
+  local d = pfUI.configDefaults[group]
+  if not d then d = { v = {}, s = {} } pfUI.configDefaults[group] = d end
+  if subgroup then
+    d.s[subgroup] = d.s[subgroup] or {}
+    if d.s[subgroup][entry] == nil then d.s[subgroup][entry] = value end
+  elseif d.v[entry] == nil then
+    d.v[entry] = value
+  end
+end
+
+-- the default of tbl[key], where tbl is one of pfUI_config's groups or subgroups (nil when unknown)
+function pfUI.ConfigDefault(tbl, key)
+  if type(tbl) ~= "table" or not key or type(pfUI_config) ~= "table" then return nil end
+  for g, gt in pairs(pfUI_config) do
+    local d = pfUI.configDefaults[g]
+    if d and type(gt) == "table" then
+      if gt == tbl then return d.v[key] end
+      for s, st in pairs(gt) do
+        if st == tbl then return d.s[s] and d.s[s][key] end
+      end
+    end
+  end
+  return nil
+end
+
 function pfUI:UpdateConfig(group, subgroup, entry, value)
+  NoteDefault(group, subgroup, entry, value)
   -- create empty config if not existing
   if not pfUI_config then
     _G.pfUI_config = {}

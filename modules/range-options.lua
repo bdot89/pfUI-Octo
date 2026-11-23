@@ -18,7 +18,7 @@ pfUI:RegisterModule("range-options", "vanilla", function ()
       return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
     end, function(r, g, b, a)
       G()[key] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
-    end)
+    end, function() return pfUI.ConfigDefault(G(), key) end)
   end
   local function Fonts()
     local list = { { key = "", label = "pfUI's font" } }

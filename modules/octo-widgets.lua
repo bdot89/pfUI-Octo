@@ -1779,14 +1779,166 @@ function W.Swatch(parent, size)
   return sw
 end
 
-function W.Color(p, label, desc, get, set)
+-- (23 Nov 2026, Javelin: "a specific default button that sets the specific color back to its default ... and/or the
+-- option to set colors manually by a string like #11111") Every colour picker, ours and pfUI's, gets a strip under
+-- it: a hex box (#rrggbb, follows the wheel, Enter = use it) and "Default" when whoever opened the picker said what
+-- the default is (ColorPickerFrame.octoDefault = { r, g, b, a }, cleared when the picker closes). Both only move the
+-- wheel: Okay keeps it, Cancel puts back what it was, as with the wheel itself.
+
+-- "r,g,b[,a]" string, or r, g, b, a numbers -> r, g, b, a (nil when it is not a colour)
+function W.ColorOf(r, g, b, a)
+  if type(r) == "table" then r, g, b, a = r[1], r[2], r[3], r[4] end
+  if type(r) == "string" then
+    local _, _, sr, sg, sb, sa = string.find(r, "^%s*([%d%.]+)%s*,%s*([%d%.]+)%s*,%s*([%d%.]+)%s*,?%s*([%d%.]*)")
+    if not sr then return nil end
+    r, g, b, a = tonumber(sr), tonumber(sg), tonumber(sb), tonumber(sa)
+  end
+  if type(r) ~= "number" or type(g) ~= "number" or type(b) ~= "number" then return nil end
+  return r, g, b, a or 1
+end
+
+function W.Hex(r, g, b)
+  local function H(v) return math.floor(math.max(0, math.min(1, v or 0)) * 255 + .5) end
+  return string.format("#%02x%02x%02x", H(r), H(g), H(b))
+end
+
+-- "#11aaff", "11aaff", "#1af" -> r, g, b (0-1); nil when it is not one
+function W.FromHex(s)
+  if type(s) ~= "string" then return nil end
+  s = string.gsub(string.gsub(s, "%s", ""), "^#", "")
+  s = string.gsub(s, "^0[xX]", "")
+  if string.len(s) == 3 and not string.find(s, "[^%x]") then
+    s = string.sub(s, 1, 1) .. string.sub(s, 1, 1) .. string.sub(s, 2, 2) .. string.sub(s, 2, 2)
+      .. string.sub(s, 3, 3) .. string.sub(s, 3, 3)
+  end
+  if string.len(s) ~= 6 or string.find(s, "[^%x]") then return nil end
+  return tonumber(string.sub(s, 1, 2), 16) / 255, tonumber(string.sub(s, 3, 4), 16) / 255,
+    tonumber(string.sub(s, 5, 6), 16) / 255
+end
+
+-- puts the picker's wheel (and opacity) on r, g, b, a; its own OnColorSelect shows it live
+function W.PickerSet(r, g, b, a)
+  local cp = ColorPickerFrame
+  if not cp or not r then return end
+  cp:SetColorRGB(r, g, b)
+  if cp.hasOpacity and a and OpacitySliderFrame and OpacitySliderFrame.SetValue then
+    OpacitySliderFrame:SetValue(1 - a)
+    if cp.opacityFunc then cp.opacityFunc() end
+  end
+  if cp.func then cp.func() end
+  if W.pickerStrip then W.pickerStrip.Sync() end
+end
+
+function W.PickerExtras()
+  local cp = ColorPickerFrame
+  if W.pickerStrip or not cp then return W.pickerStrip end
+  local s = CreateFrame("Frame", "pfOctoColorPickerStrip", cp)
+  W.pickerStrip = s
+  s:SetHeight(30)
+  s:SetPoint("TOPLEFT", cp, "BOTTOMLEFT", 0, -4)
+  s:SetPoint("TOPRIGHT", cp, "BOTTOMRIGHT", 0, -4)
+  W.Flat(s, C.panel or C.btn, 1, C.line)
+  local label = W.Font(s:CreateFontString(nil, "OVERLAY"), 11, C.dim[1], C.dim[2], C.dim[3])
+  label:SetPoint("LEFT", s, "LEFT", 8, 0)
+  label:SetText("Hex")
+  local box = W.EditBox(s, 82, "pfOctoColorPickerHex")
+  box:SetPoint("LEFT", label, "RIGHT", 6, 0)
+  box:SetMaxLetters(9)
+  s.box = box
+  local def = W.Button(s, "Default", 70, 20)
+  def:SetPoint("RIGHT", s, "RIGHT", -6, 0)
+  s.def = def
+  local note = W.Font(s:CreateFontString(nil, "OVERLAY"), 10, C.dim[1], C.dim[2], C.dim[3])
+  note:SetPoint("LEFT", box, "RIGHT", 6, 0)
+  note:SetPoint("RIGHT", def, "LEFT", -4, 0)
+  note:SetJustifyH("LEFT")
+  s.note = note
+  function s.Sync()
+    if box.typing then return end
+    local r, g, b = cp:GetColorRGB()
+    box:SetText(W.Hex(r, g, b))
+    box:SetTextColor(C.text[1], C.text[2], C.text[3])
+    note:SetText("")
+  end
+  local function Use()
+    local r, g, b = W.FromHex(box:GetText())
+    if not r then
+      box:SetTextColor(1, .35, .35)
+      note:SetText("Not a colour")
+      return
+    end
+    W.PickerSet(r, g, b, nil)
+    box:ClearFocus()
+    s.Sync()
+  end
+  box:SetScript("OnEnterPressed", Use)
+  box:SetScript("OnEscapePressed", function() this:ClearFocus() s.Sync() end)
+  W.Tip(box, "Hex colour", "Type a colour like #ff8800 (or #f80) and press Enter. Okay keeps it.")
+  def:SetScript("OnClick", function()
+    local d = cp.octoDefault
+    if not d then return end
+    W.PickerSet(d[1], d[2], d[3], d[4])
+  end)
+  W.Tip(def, "Default", "Puts this colour back to what it was when pfUI Octo was new. Okay keeps it, Cancel goes back.")
+  local select = cp:GetScript("OnColorSelect")
+  cp:SetScript("OnColorSelect", function()
+    if select then select() end
+    s.Sync()
+  end)
+  local show = cp:GetScript("OnShow")
+  cp:SetScript("OnShow", function()
+    if show then show() end
+    if cp.octoDefault then def:Show() else def:Hide() end
+    s.Sync()
+  end)
+  local hide = cp:GetScript("OnHide")
+  cp:SetScript("OnHide", function()
+    if hide then hide() end
+    cp.octoDefault = nil
+    box:ClearFocus()
+  end)
+  return s
+end
+
+-- before ShowUIPanel(ColorPickerFrame): the strip, and the default (any form W.ColorOf reads, or nil = no button)
+function W.PickerDefault(r, g, b, a)
+  W.PickerExtras()
+  local dr, dg, db, da = W.ColorOf(r, g, b, a)
+  ColorPickerFrame.octoDefault = dr and { dr, dg, db, da } or nil
+  if W.pickerStrip then
+    if dr then W.pickerStrip.def:Show() else W.pickerStrip.def:Hide() end
+  end
+end
+
+-- every picker gets the hex box, whoever opens it (Default only shows when the opener gave one)
+pcall(W.PickerExtras)
+
+-- def (optional): the default colour - a function returning a "r,g,b,a" string or r, g, b, a, or such a value.
+-- Right-click the swatch = back to the default at once.
+function W.Color(p, label, desc, get, set, def)
   -- (8 Nov 2026) label left, the swatch right; the whole row picks
   local row, c, fs = SettingRow(p, label)
   local sw = W.Swatch(row, 18)
   sw:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   local function Apply() sw.fill:SetVertexColor(get()) end
-  RowHit(row, fs, label, desc or "Click to pick a colour.", function() sw:Click() end)
+  local function Def()
+    if type(def) == "function" then return W.ColorOf(def()) end
+    return W.ColorOf(def)
+  end
+  local tip = desc or "Click to pick a colour."
+  if def then tip = tip .. "\n|cff999999Right-click: back to the default.|r" end
+  RowHit(row, fs, label, tip, function() sw:Click() end)
+  sw:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   sw:SetScript("OnClick", function()
+    if arg1 == "RightButton" then
+      local dr, dg, db, da = Def()
+      if dr then
+        set(dr, dg, db, da)
+        Apply()
+      end
+      return
+    end
+    W.PickerDefault(Def())
     local r, g, b, a = get()
     ColorPickerFrame.func = function()
       local nr, ng, nb = ColorPickerFrame:GetColorRGB()
@@ -1804,7 +1956,7 @@ function W.Color(p, label, desc, get, set)
     ColorPickerFrame:SetFrameStrata("FULLSCREEN_DIALOG")
     ShowUIPanel(ColorPickerFrame)
   end)
-  W.Tip(sw, label, desc or "Click to pick a colour.")
+  W.Tip(sw, label, tip)
   PutHalf(c, row, 1)
   Index(p, label, desc, row)
   Track(p, { Refresh = Apply })

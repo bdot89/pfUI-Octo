@@ -421,6 +421,9 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
             preview:SetTexture(cr,cg,cb,ca)
           end
 
+          -- octo (23 Nov 2026, Javelin): Default button and hex box under the picker
+          local OW = pfUI.octoui and pfUI.octoui.W
+          if OW and OW.PickerDefault then OW.PickerDefault(pfUI.ConfigDefault and pfUI.ConfigDefault(category, config)) end
           ColorPickerFrame.opacityFunc = ColorPickerFrame.func
           ColorPickerFrame.element = this
           ColorPickerFrame.opacity = 1 - ca

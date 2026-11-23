@@ -36,7 +36,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     end, function(r, g, b, a)
       group()[key] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
       U()
-    end)
+    end, function() return pfUI.ConfigDefault(group(), key) end)
   end
   local function Edit(p, label, desc, group, key)
     return W.Edit(p, label, desc, function() return group()[key] end, function(v)

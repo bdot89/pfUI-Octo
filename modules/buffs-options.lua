@@ -41,7 +41,7 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     end, function(r, g, b, a)
       group()[key] = string.format("%.2f,%.2f,%.2f,%.2f", r, g, b, a or 1)
       after()
-    end)
+    end, function() return pfUI.ConfigDefault(group(), key) end)
   end
   local function Col(str)
     local r, g, b, a = GetStringColor(str or "1,1,1,1")

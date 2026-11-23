@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.33
+
+- 🏹 **Auto Shot in the right colour:** combat text showed Auto Shot (and wand / throw shots) in the yellow of "Your spells", whatever colour you set. They now use "Your melee and Auto Shot", as the setting says. Thanks Javelin!
+- 🎨 **Hex codes and a Default button on every colour:** the colour picker now has a box where you can type a colour like #ff8800 (it also shows the code of the colour picked), and a Default button that puts that setting back to its original colour. Right-click any colour square to reset it straight away. Thanks Javelin for the idea!
+
 ## 📜 New in 1.2.32
 
 - 🖱️ **Spells drag off your bars again:** if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!

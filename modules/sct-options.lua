@@ -662,7 +662,8 @@ BUILD.ctplates = function(p)
   W.Card(p, "Teammates' look", { folded = true, text = "Colour, size and position of your team's numbers." })
   Chk(p, "Class colours", "Off: every teammate in the colour beside it.", TM, "classColor")
   W.Color(p, "Colour", "The colour used when class colours are off.", function() local t = B.db.sct.team return t.r, t.g, t.b end,
-    function(r, g, b) local t = B.db.sct.team t.r, t.g, t.b = r, g, b end)
+    function(r, g, b) local t = B.db.sct.team t.r, t.g, t.b = r, g, b end,
+    function() local t = B.DEFAULTS.sct.team return t.r, t.g, t.b, 1 end)
   Chk(p, "Name of who hit", "\"512 Bob\" - the teammate's name after the number.", TM, "sourceName")
   W.Space(p, 2)
   Sld(p, "Size", "Of your own nameplate text size.", 0.4, 1.2, 0.05, TM, "scale", nil, Pct)
@@ -785,7 +786,8 @@ function CritLookCards(p)
   Drop(p, "Crit outline", "A dark edge around crit numbers.", CRIT_OUTLINES, CL, "outline", SampleCrit)
   Chk(p, "Crits in their own colour", "Instead of the message's colour.", CL, "tint", SampleCrit)
   W.Color(p, "Crit colour", "The colour crits use when 'Crits in their own colour' is ticked.", function() local L = CL() return L.r, L.g, L.b end,
-    function(r, g, b) local L = CL() L.r, L.g, L.b = r, g, b end)
+    function(r, g, b) local L = CL() L.r, L.g, L.b = r, g, b end,
+    function() local L = B.DEFAULTS.sct.critLook return L.r, L.g, L.b, 1 end)
   Chk(p, "Flash behind crits", "A starburst in the crit's colour that flares and fades.", CL, "glow", SampleCrit)
   Chk(p, "Only the number", "No spell name, school or names on crits - shorter and punchier.", CL, "numberOnly")
   Sld(p, "Flash size", "How big the flash behind crits is.", 0.5, 2, 0.1, CL, "glowSize", nil, Pct)
@@ -846,8 +848,21 @@ local function EventRow(p, key)
   local sw = W.Swatch(row, 16)
   sw:SetPoint("LEFT", row, "LEFT", COL.color, 0)
   local fill = sw.fill
+  -- (23 Nov 2026, Javelin) right-click = the message's default colour; the picker has Default and a hex box
+  local function Def()
+    local d = B.DEFAULTS.sct.events[key]
+    if d and d.r then return d.r, d.g, d.b, 1 end
+  end
+  sw:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+  W.Tip(sw, e.label, "Click: pick its colour (Default and a hex box are under the picker).\nRight-click: back to the default colour.")
   sw:SetScript("OnClick", function()
     local s = S()
+    if arg1 == "RightButton" then
+      local dr, dg, db = Def()
+      if dr then s.r, s.g, s.b = dr, dg, db fill:SetVertexColor(dr, dg, db) end
+      return
+    end
+    if W.PickerDefault then W.PickerDefault(Def()) end
     local r, g, b = s.r, s.g, s.b
     ColorPickerFrame.func = function()
       local nr, ng, nb = ColorPickerFrame:GetColorRGB()

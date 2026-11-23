@@ -126,6 +126,22 @@ B.db.sct.events.outDot.area = "out"
 B.db.sct.merge = false
 Fire("SPELL_DAMAGE_EVENT_SELF", FOE, ME, 172, 77, "0,0,0", 0, 5, "0,0,0,3")
 ok(LiveText("77"), "damage over time tick")
+-- (23 Nov 2026, Javelin: "auto shot with ranged show yellow text ... even tho its set to white") Auto Shot comes as a
+-- spell hit (id 75): it is "Your melee and Auto Shot", in that message's colour
+do
+  local m = B.db.sct.events.outMelee
+  local keep = { m.area, m.r, m.g, m.b }
+  m.area, m.r, m.g, m.b = "out", 1, 1, 1
+  Fire("SPELL_DAMAGE_EVENT_SELF", FOE, ME, 75, 321, "0,0,0", 0, 1, "0,0,0,0")
+  local o = LiveText("321")
+  local r, g, b
+  if o and o.fs and o.fs.color then r, g, b = o.fs.color[1], o.fs.color[2], o.fs.color[3] end
+  ok(o and r == 1 and g == 1 and b == 1, "Auto Shot shows in Your melee and Auto Shot's white (" .. tostring(r) .. ","
+    .. tostring(g) .. "," .. tostring(b) .. ")")
+  Fire("SPELL_DAMAGE_EVENT_SELF", FOE, ME, 5019, 87, "0,0,0", 0, 1, "0,0,0,0")
+  ok(LiveText("87"), "a wand shot too")
+  m.area, m.r, m.g, m.b = keep[1], keep[2], keep[3], keep[4]
+end
 
 -- incoming
 Fire("AUTO_ATTACK_OTHER", FOE, ME, 300, 0, 1, 1, 20, 0, 0)
@@ -670,4 +686,24 @@ do
   ok(not EV.Ignored("buffGain", "Fire Strike") and not EV.Ignored("outMelee", "Lightning Strike"), "buffs and melee are never hidden as procs")
   db.hideProcs, db.events.outSpell.area, db.merge = false, keepArea, keepMerge
   CT:Clear()
+end
+
+-- (23 Nov 2026, Javelin: "a specific default button ... set colors manually by a string like #11111") colour pickers:
+-- hex box, Default, right-click on a swatch
+do
+  local W = pfUI.octoui.W
+  local r, g, b = W.FromHex("#ff8000")
+  ok(r == 1 and math.abs(g - 128 / 255) < 1e-6 and b == 0 and W.FromHex("f80") and not W.FromHex("#12345") and not W.FromHex("zzzzzz"),
+    "hex colours read (#rrggbb, #rgb), others refused")
+  ok(W.Hex(1, 0.5, 0) == "#ff8000", "and written back (" .. W.Hex(1, 0.5, 0) .. ")")
+  local cr, cg, cb, ca = W.ColorOf("0.2,0.4,0.6,0.8")
+  ok(cr == 0.2 and cb == 0.6 and ca == 0.8 and not W.ColorOf(nil), "a saved colour string reads as a colour")
+  ok(W.pickerStrip and W.pickerStrip.box and W.pickerStrip.def, "every colour picker has the hex box and Default")
+  ok(pfUI.ConfigDefault(pfUI_config.appearance.border, "background") == "0,0,0,1",
+    "pfUI's defaults are known per setting (" .. tostring(pfUI.ConfigDefault(pfUI_config.appearance.border, "background")) .. ")")
+  W.PickerDefault("0.1,0.2,0.3,1")
+  local d = ColorPickerFrame.octoDefault
+  ok(d and d[1] == 0.1 and d[3] == 0.3, "the opener's default goes to the Default button")
+  W.PickerDefault(nil)
+  ok(ColorPickerFrame.octoDefault == nil, "no default: no button")
 end
