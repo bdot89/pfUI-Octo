@@ -251,6 +251,17 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
       Z.dragged = nil
     end)
     HookScript(WorldMapButton, "OnMouseUp", function() Z.drag = nil end)
+    -- (23 Nov 2026, mechanism on Discord: after using the zoom, the ping when the map opens "happens in the wrong
+    -- location") The game places WorldMapPing (a Model) by the player's map position against the picture's top-left,
+    -- in units that do not follow the picture's zoom. The player marker (WorldMapPlayer) is placed right at every zoom,
+    -- so the ping is hung on it after the game's own update each frame (-7 / -9 = the game's own nudge).
+    Z.FixPing = function()
+      local ping, me = _G.WorldMapPing, _G.WorldMapPlayer
+      if not ping or not me or not ping:IsVisible() then return end
+      ping:ClearAllPoints()
+      ping:SetPoint("CENTER", me, "CENTER", -7, -9)
+    end
+    HookScript(WorldMapButton, "OnUpdate", Z.FixPing)
     local click = WorldMapButton:GetScript("OnClick")
     WorldMapButton:SetScript("OnClick", function()
       if Z.dragged then Z.dragged = nil return end

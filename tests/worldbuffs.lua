@@ -112,6 +112,20 @@ if Z then
     ok(math.abs(Z.h - mh) < .01 and Z.v == 0, "the view never leaves the map")
     Z.Reset()
     ok(Z.zoom == 1 and Z.h == 0 and Z.v == 0, "back to the whole map")
+    -- (23 Nov 2026, mechanism: the ping on opening the map landed in the wrong place after zooming) the ping hangs on
+    -- the player marker, which is right at every zoom
+    if Z.FixPing then
+      local keepPing, keepMe = rawget(_G, "WorldMapPing"), rawget(_G, "WorldMapPlayer")
+      local ping, me = CreateFrame("Frame"), CreateFrame("Frame")
+      ping:Show()
+      _G.WorldMapPing, _G.WorldMapPlayer = ping, me
+      Z.SetZoom(3, 501, 334)
+      Z.FixPing()
+      local pp = ping.points and ping.points[1]
+      ok(pp and pp[1] == "CENTER" and pp[2] == me and pp[4] == -7 and pp[5] == -9, "zoomed in: the ping sits on your marker")
+      _G.WorldMapPing, _G.WorldMapPlayer = keepPing, keepMe
+      Z.Reset()
+    end
   end
   pfUI_config.appearance.worldmap.zoom = "0"
   ok(not Z.Wanted(), "switched off: not set up")

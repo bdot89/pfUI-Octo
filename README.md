@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.31
+
+- 📍 **Map ping in the right place:** after using the world map zoom, the ping that marks you when the map opens could show up somewhere else. It now always lands on your arrow, zoomed in or not. Thanks mechanism for the report!
+
 ## 📜 New in 1.2.30
 
 - 🌍 **See everyone on the realm running pfUI Octo:** every pfUI Octo now joins the hidden realm channel at login and says its version there. The About page's "online now" counts everyone in that channel - the whole realm, older versions (1.2.16 on) included - and hovering it shows who and which version (older ones in red).
