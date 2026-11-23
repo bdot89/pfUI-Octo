@@ -86,6 +86,8 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
       local age = now - (e.t or 0)
       local live = on[name]
       if live == nil then live = U.session[name] and (GetTime() - U.session[name]) < 1800 end
+      -- (in the realm channel now: online, whatever the guild list says)
+      if pfUI.realmChannel and pfUI.realmChannel.IsOnline(name) then live = true end
       c.ever = c.ever + 1
       if age < 86400 then c.day = c.day + 1 end
       if age < 604800 then
@@ -102,6 +104,119 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
       return a.name < b.name
     end)
     return c
+  end
+
+  -- ---------------------------------------------------------------- the realm channel
+  -- (23 Nov 2026, user: "show all players on the realm with same hidden channel as the arcade uses it should tell
+  -- people to update in the popup ... they all join the channel once i login and push it out no matter what version")
+  -- Addon messages never leave guild / group / battleground, so every pfUI Octo now joins OctoArcade's hidden realm
+  -- channel at login (whether OctoArcade is on or not; Minigames > "Share on the realm channel" off = never) and says
+  -- "OV1 <version> ?" once. Everyone in it is counted:
+  --   * the channel's member list (ListChannelByName -> CHAT_MSG_CHANNEL_LIST) = who runs pfUI Octo online now, older
+  --     versions too (OctoArcade has joined it since 1.2.16), asked after joining and every 5 minutes;
+  --   * "OV1 <version>" = that player's version; OctoArcade's "OA1 / OA2" score lines = pfUI Octo, version unsaid.
+  -- A newer version heard there opens the update window, as one heard in the guild does. The "?" asks for the newest:
+  -- ONE player newer than the asker answers "OV1 <theirs>" 2-10 s later; anyone hearing an answer at least as new as
+  -- their own stays quiet. Older versions read only their score lines, so they are told by guild and group as before.
+  -- Nothing ever shows in chat: the lines, the join notices and the member list are kept out of every chat window.
+  local RC = { NAME = "OctoArcade", q = {}, online = {} }
+  pfUI.realmChannel = RC
+  local lowerName = string.lower(RC.NAME)
+  function RC.On() return not (C.minigames and C.minigames.realm == "0") end
+  function RC.Id()
+    local id = GetChannelName and GetChannelName(RC.NAME)
+    if id and id ~= 0 then return id end
+  end
+  function RC.IsOurs(a9, a4)
+    local n = string.lower(tostring(a9 or "") .. " " .. tostring(a4 or ""))
+    return string.find(n, lowerName, 1, true) and true or nil
+  end
+  function RC.Join()
+    if not RC.On() or not JoinChannelByName then return end
+    if not RC.Id() then pcall(JoinChannelByName, RC.NAME) end
+    for i = 1, (NUM_CHAT_WINDOWS or 7) do
+      local cf = _G["ChatFrame" .. i]
+      if cf and ChatFrame_RemoveChannel then pcall(ChatFrame_RemoveChannel, cf, RC.NAME) end
+    end
+  end
+  function RC.Say(line)
+    if line and RC.On() and RC.Id() and table.getn(RC.q) < 6 then table.insert(RC.q, line) end
+  end
+  function RC.Line(ask)
+    return "OV1 " .. string.gsub(tostring(pfUI.version.octo), "[^%d%.]", "") .. (ask and " ?" or "")
+  end
+  -- the member list: who is in the channel now (each event may hold part of a long list)
+  function RC.List()
+    if not RC.On() or not RC.Id() or not ListChannelByName then return end
+    RC.listAsked, RC.fresh = GetTime(), {}
+    pcall(ListChannelByName, RC.NAME)
+  end
+  function RC.ReadList(text)
+    if not RC.listAsked or GetTime() - RC.listAsked > 10 or type(text) ~= "string" then return end
+    local n = 0
+    for name in string.gfind(text, "[^,%s]+") do
+      name = string.gsub(name, "^[%*@#]+", "")
+      local _, _, short = string.find(name, "^([^%-]+)")
+      name = short or name
+      if string.find(name, "^[%a\128-\255]+$") then
+        RC.fresh[name] = true
+        U.Heard(name, nil)
+        n = n + 1
+      end
+    end
+    RC.online, RC.listAt = RC.fresh, GetTime()
+    return n
+  end
+  -- a line said in the channel: version (or nil), and whether it asks for the newest
+  function RC.Read(msg, from)
+    if type(msg) ~= "string" or not from then return end
+    local _, _, v, ask = string.find(msg, "^OV1 ([%d%.]+)(.*)$")
+    if v then
+      U.Heard(from, v)
+      return v, string.find(ask or "", "?", 1, true) and true or nil
+    end
+    local head = string.sub(msg, 1, 4)
+    if head == "OA1 " or head == "OA2 " then U.Heard(from, nil) end
+  end
+  -- planned answer to a "?": only newer than the asker, and only until someone at least as new answers
+  function RC.Asked(theirs)
+    if OctoNum(theirs) >= OctoNum(pfUI.version.octo) or RC.answerAt then return end
+    if GetTime() - (RC.answered or -100) < 60 then return end
+    RC.answerAt = GetTime() + 2 + math.random() * 8
+  end
+  function RC.HeardAnswer(v)
+    if RC.answerAt and OctoNum(v) >= OctoNum(pfUI.version.octo) then RC.answerAt = nil RC.answered = GetTime() end
+  end
+  -- every half second from the updater: answer, send one waiting line (one every 1.5 s), refresh the list
+  function RC.Tick(now)
+    if RC.answerAt and now >= RC.answerAt then
+      RC.answerAt, RC.answered = nil, now
+      RC.Say(RC.Line(false))
+    end
+    if RC.q[1] and now >= (RC.sendAt or 0) then
+      RC.sendAt = now + 1.5
+      local line = table.remove(RC.q, 1)
+      local id = RC.Id()
+      if id then pcall(SendChatMessage, line, "CHANNEL", nil, id) end
+    end
+    if RC.listAt and now - RC.listAt > 300 then RC.List() end
+  end
+  -- online now, from the channel (fresh for 10 minutes)
+  function RC.IsOnline(name)
+    return RC.listAt and GetTime() - RC.listAt < 600 and RC.online[name] and true or nil
+  end
+  -- the channel never shows in a chat window
+  local chatEvent = _G.ChatFrame_OnEvent
+  if chatEvent then
+    _G.ChatFrame_OnEvent = function(e)
+      local ev2 = e or event
+      if (ev2 == "CHAT_MSG_CHANNEL" or ev2 == "CHAT_MSG_CHANNEL_NOTICE" or ev2 == "CHAT_MSG_CHANNEL_JOIN"
+          or ev2 == "CHAT_MSG_CHANNEL_LEAVE" or ev2 == "CHAT_MSG_CHANNEL_NOTICE_USER" or ev2 == "CHAT_MSG_CHANNEL_LIST")
+          and RC.IsOurs(arg9, arg4) then
+        return
+      end
+      return chatEvent(e)
+    end
   end
 
   -- (17 Nov 2026, user: "a warning to people if they are outdated that pops up when they login ... a link they
@@ -497,8 +612,30 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
   -- answers to "Q" wait 1-4 s (so a guild does not answer all at once), one per channel each 30 s
   local answer, answered = {}, {}
   pfUI.updater:RegisterEvent("PLAYER_REGEN_ENABLED")
+  pfUI.updater:RegisterEvent("CHAT_MSG_CHANNEL")
+  pfUI.updater:RegisterEvent("CHAT_MSG_CHANNEL_LIST")
+  -- a newer version heard anywhere: kept for the About page, and the update window when it may open
+  function UP.Saw(v)
+    if not v or OctoNum(v) <= OctoNum(pfUI.version.octo) then return end
+    if OctoNum(v) > OctoNum(pfUI_init.octoupdate) then pfUI_init.octoupdate = v end
+    local up = pfUI.updater
+    if UP.Wanted() then up.popAt = math.max(GetTime() + 3, (up.loginAt or 0) + 6) end
+  end
   pfUI.updater:SetScript("OnUpdate", function()
     UP.SendWaiting()
+    -- the realm channel: joined 20 s after the first loading screen, our version said 5 s later, the list asked 3 s
+    -- after that
+    local now = GetTime()
+    if this.rcAt and now >= this.rcAt then
+      local step = this.rcStep or 1
+      if step == 1 then RC.Join() this.rcAt, this.rcStep = now + 5, 2
+      elseif step == 2 then RC.Say(RC.Line(true)) this.rcAt, this.rcStep = now + 3, 3
+      else RC.List() this.rcAt = nil end
+    end
+    if (this.rcTick or 0) <= now then
+      this.rcTick = now + .25
+      RC.Tick(now)
+    end
     -- the update window: first look 6 s after the first loading screen, then whenever a newer one is heard
     if this.popAt and GetTime() >= this.popAt then
       this.popAt = nil
@@ -513,6 +650,17 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
     end
   end)
   pfUI.updater:SetScript("OnEvent", function()
+    if event == "CHAT_MSG_CHANNEL" or event == "CHAT_MSG_CHANNEL_LIST" then
+      if not RC.IsOurs(arg9, arg4) then return end
+      if event == "CHAT_MSG_CHANNEL_LIST" then RC.ReadList(arg1) return end
+      if arg2 == UnitName("player") then return end
+      local v, ask = RC.Read(arg1, arg2)
+      if v then
+        UP.Saw(v)
+        if ask then RC.Asked(v) else RC.HeardAnswer(v) end
+      end
+      return
+    end
     if event == "CHAT_MSG_ADDON" and U.PREFIXES[arg1 or ""] then
       local me = UnitName("player")
       if arg4 and arg4 ~= me then
@@ -566,6 +714,7 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
       if not this.loginAt then
         this.loginAt = GetTime()
         this.popAt = GetTime() + 6
+        this.rcAt = GetTime() + 20
       end
       local newer = pfUI.octoUpdate.Newer()
       if newer and not this.octoshown then

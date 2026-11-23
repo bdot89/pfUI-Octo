@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.30", {
+    { "See everyone on the realm running pfUI Octo", "every pfUI Octo now joins the hidden realm channel at login and says its version there. The About page's \"online now\" counts everyone in that channel - the whole realm, older versions (1.2.16 on) included - and hovering it shows who and which version (older ones in red)." },
+    { "Update popup from anywhere on the realm", "a newer version heard on the channel opens the update window, not only one heard in your guild or group. When someone older logs in, one player with a newer version answers them, so they find out at once - the channel stays quiet otherwise and never shows in chat. Switch it off with Minigames > \"Share on the realm channel\"." },
+  } },
   { "1.2.29", {
     { "Left chat no longer goes blank", "when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second." },
   } },
@@ -186,11 +190,5 @@ pfUI.octoNotes = {
     { "Threat on the way, for warlocks and every DoT class", "the threat label shows where your DoTs and the spell you are casting will take you (\"72% > 88%\"), like incoming heals on a health bar." },
     { "\"DoTs pull in 4 s\"", "a countdown before you pull aggro. \"DoTs pull\" means the DoTs already ticking will do it even if you stop now, so move to the tank. \"Aggro in\" means your current pace gets you there." },
     { "A popup before you pull", "\"DOTS PULL AGGRO IN 3 s\" with the threat sound, and the threat window's pull line shows the countdown too. Settings on Meters > Threat > What is on the way." },
-  } },
-  { "1.1.90", {
-    { "Right-click to attach works with other add-ons", "with the mailbox open, right-clicking an item in your bags adds it to the Send list and opens the Send tab, even when another add-on (like _LazyPig) changes what a bag click does." },
-    { "Read every auction is lighter", "a full read only notes prices, no longer redraws the list after every page and takes a short pause between pages, so the game stays smooth on a busy auction house." },
-    { "Nameplate spell icons can be turned off", "text on nameplates has its own Spell icon setting (Combat Text > Nameplates > Look). The scroll areas' setting never reached it." },
-    { "Quest pins stay inside a round minimap", "pfQuest's pins follow the map's shape (round, diamond, octagon...) instead of spilling over the edge." },
   } },
 }

@@ -2024,8 +2024,12 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
         local c = U.Counts()
         GameTooltip:SetOwner(users, "ANCHOR_TOP")
         GameTooltip:SetText("Players running pfUI Octo", 1, 1, 1)
-        GameTooltip:AddLine("Counted from what every pfUI Octo since 29 Oct says to your guild, group and "
-          .. "battleground (any version). Players you never share one of those with can't be heard.", .7, .72, .76, 1)
+        -- (23 Nov 2026) the whole realm: everyone in pfUI Octo's hidden realm channel (updatenotify.lua RC)
+        local RC = pfUI.realmChannel
+        if RC and RC.List and (not RC.listAsked or GetTime() - RC.listAsked > 30) then RC.List() end
+        GameTooltip:AddLine("Everyone on the realm in pfUI Octo's hidden channel (every version since 1.2.16 with "
+          .. "realm sharing on), plus what guild, group and battleground say. Versions show once a player has said theirs.",
+          .7, .72, .76, 1)
         GameTooltip:AddLine(" ")
         GameTooltip:AddDoubleLine("Online now", c.online, 1, 1, 1, .25, .85, .47)
         GameTooltip:AddDoubleLine("Heard today", c.day, 1, 1, 1, 1, 1, 1)
@@ -2051,7 +2055,10 @@ pfUI:RegisterModule("gui", "vanilla:tbc", function ()
           for i = 1, math.min(20, table.getn(c.list)) do
             local e = c.list[i]
             local when = e.live and "|cff40d977online|r" or ("|cff8a8f99" .. Ago(e.t) .. "|r")
-            GameTooltip:AddDoubleLine(e.name .. (e.v and ("  |cff8a8f99v" .. e.v .. "|r") or ""), when, 1, 1, 1, 1, 1, 1)
+            -- an older version than ours in red (they are told to update when they hear a newer one)
+            local old = e.v and pfUI.octoUpdate.Num(e.v) < pfUI.octoUpdate.Num(pfUI.version.octo)
+            GameTooltip:AddDoubleLine(e.name .. (e.v and ("  " .. (old and "|cffff6060" or "|cff8a8f99") .. "v" .. e.v .. "|r") or ""),
+              when, 1, 1, 1, 1, 1, 1)
           end
           if table.getn(c.list) > 20 then
             GameTooltip:AddLine("... and " .. (table.getn(c.list) - 20) .. " more", .55, .58, .62)

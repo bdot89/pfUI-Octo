@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.30
+
+- 🌍 **See everyone on the realm running pfUI Octo:** every pfUI Octo now joins the hidden realm channel at login and says its version there. The About page's "online now" counts everyone in that channel - the whole realm, older versions (1.2.16 on) included - and hovering it shows who and which version (older ones in red).
+- 🔔 **Update popup from anywhere on the realm:** a newer version heard on the channel opens the update window, not only one heard in your guild or group. When someone older logs in, one player with a newer version answers them, so they find out at once - the channel stays quiet otherwise and never shows in chat. Switch it off with Minigames > "Share on the realm channel".
+
 ## 📜 New in 1.2.29
 
 - 💬 **Left chat no longer goes blank** when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second.

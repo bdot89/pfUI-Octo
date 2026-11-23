@@ -67,5 +67,73 @@ now = now + 5
 onUpdate()
 ok(table.getn(sent) == 1, "not again within 30 s")
 
+
+-- (23 Nov 2026) the whole realm, through pfUI Octo's hidden channel (updatenotify.lua pfUI.realmChannel)
+do
+  local RC = pfUI.realmChannel
+  ok(RC and RC.Join and RC.List and RC.Read and RC.Tick, "realm channel loaded")
+  local keep2 = {}
+  for _, k in ipairs({ "JoinChannelByName", "GetChannelName", "SendChatMessage", "ListChannelByName", "arg9" }) do keep2[k] = rawget(_G, k) end
+  local chanId, said, listed = 0, {}, 0
+  _G.JoinChannelByName = function(n) if n == "OctoArcade" then chanId = 7 end end
+  _G.GetChannelName = function(n) if n == "OctoArcade" then return chanId end return 0 end
+  _G.SendChatMessage = function(msg, kind, lang, id) table.insert(said, { msg, kind, id }) end
+  _G.ListChannelByName = function(n) if n == "OctoArcade" then listed = listed + 1 end end
+  local envSend = pfUI.env and rawget(pfUI.env, "SendChatMessage")
+  if pfUI.env then pfUI.env.SendChatMessage = _G.SendChatMessage end
+  local function Chan(text, from, ev)
+    _G.event, _G.arg1, _G.arg2, _G.arg4, _G.arg9 = ev or "CHAT_MSG_CHANNEL", text, from, "7. OctoArcade", "OctoArcade"
+    _G.this = pfUI.updater
+    onEvent()
+  end
+  local function Run(secs)
+    for _ = 1, secs * 4 do
+      now = now + .25
+      _G.this = pfUI.updater
+      onUpdate()
+    end
+  end
+  -- login: joined after 20 s, "OV1 <version> ?" said, the member list asked
+  pfUI.updater.rcAt, pfUI.updater.rcStep = now + 20, nil
+  Run(32)
+  ok(chanId == 7 and said[1] and said[1][1] == "OV1 " .. pfUI.version.octo .. " ?" and said[1][2] == "CHANNEL" and said[1][3] == 7
+    and listed == 1, "at login: joined, version said on the channel, member list asked (" .. tostring(said[1] and said[1][1]) .. ")")
+  -- the member list: everyone in the channel is online now, any version
+  Chan("*Owner, Fiona, Gus-NZ, Hal", nil, "CHAT_MSG_CHANNEL_LIST")
+  local c = U.Counts()
+  local live = {}
+  for _, e in ipairs(c.list) do if e.live then live[e.name] = true end end
+  ok(live.Owner and live.Fiona and live.Gus and live.Hal, "everyone in the channel counts as online (any version)")
+  -- versions said on the channel; older score lines count as pfUI Octo with no version
+  Chan("OV1 1.2.12", "Fiona")
+  Chan("OA1 @NZ ? gridshot:100:50", "Hal")
+  local s2 = U.Store()
+  ok(s2.Fiona.v == "1.2.12" and s2.Hal and s2.Hal.v == nil, "versions from the channel; an older score line counts too")
+  -- someone older asks: one answer from us, unless someone at least as new answers first
+  said = {}
+  RC.answered = nil
+  Chan("OV1 1.0.1 ?", "Oldie")
+  ok(RC.answerAt, "an older player asking: an answer is planned")
+  Run(12)
+  ok(said[1] and said[1][1] == "OV1 " .. pfUI.version.octo, "we answer with our version: " .. tostring(said[1] and said[1][1]))
+  said = {}
+  RC.answered = nil
+  Chan("OV1 1.0.2 ?", "Oldie2")
+  Chan("OV1 " .. pfUI.version.octo, "Quicker")
+  Run(12)
+  ok(table.getn(said) == 0, "someone just as new answered first: we stay quiet")
+  -- a newer version on the channel: the update window is wanted
+  local keepSeen, keepSkip = pfUI_init.octoupdate, pfUI_init.octoupdateskip
+  pfUI_init.octoupdate, pfUI_init.octoupdateskip = nil, nil
+  Chan("OV1 99.0.0 ?", "Future")
+  ok(pfUI_init.octoupdate == "99.0.0" and pfUI.updater.popAt, "a newer version heard on the channel: the update window opens")
+  pfUI.updater.popAt = nil
+  pfUI_init.octoupdate, pfUI_init.octoupdateskip = keepSeen, keepSkip
+  -- never in chat
+  ok(RC.IsOurs("OctoArcade", "7. OctoArcade") and not RC.IsOurs("General", "1. General"), "the channel is known (kept out of chat)")
+  for k, v in pairs(keep2) do _G[k] = v end
+  if pfUI.env then pfUI.env.SendChatMessage = envSend end
+end
+
 for k, v in pairs(keep) do _G[k] = v end
 pfUI_cache.octousers = nil
