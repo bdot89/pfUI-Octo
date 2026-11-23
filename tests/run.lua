@@ -3137,7 +3137,7 @@ do
       ok(not foundLoose, "a button made elsewhere and anchored to the map is not searched for")
       loose:Hide()
       local ownSpot
-      for _, n in ipairs(pfUI.addonbuttons:List()) do if string.find(n, "^pf") and n ~= "pfGearMinimapButton" then ownSpot = n end end
+      for _, n in ipairs(pfUI.addonbuttons:List()) do if string.find(n, "^pf") and n ~= "pfGearMinimapButton" and n ~= "pfUIMinimapButton" then ownSpot = n end end
       ok(not ownSpot, "pfUI's own parts are left alone (" .. tostring(ownSpot) .. ")")
       -- a lit button row: on while its check says so
       local litOn = false

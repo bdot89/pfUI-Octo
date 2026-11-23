@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.35", {
+    { "pfUI Octo minimap button", "click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips." },
+    { "pfUI button stays in the Esc menu", "with the Game Menu skin switched off, the \"pfUI Config\" button used to vanish too. It is now always there." },
+    { "Installer only at login", "closing the installer with its X made it come back after every loading screen. It now only asks again at your next login or reload. Thanks Barbeque_Squirrel for both reports!" },
+  } },
   { "1.2.34", {
     { "No more quest tracker error spam", "the built-in quest tracker can no longer fill your screen with \"tracker.lua:282\" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!" },
   } },
@@ -175,11 +180,5 @@ pfUI.octoNotes = {
     { "The boss turns for real", "after an overthreat (yours or a raider's), target of target shows whoever has aggro, and the boss hits them until the tank taunts it back." },
     { "A live threat meter all demo long", "a threat cycle runs on its own (a DoT player's countdown, your overthreat, a melee pull), and the meter keeps the last fight between pulls." },
     { "Meter windows never stay stuck small", "a window saved while fitted to its lines grows back to show everyone." },
-  } },
-  { "1.1.95", {
-    { "Smooth bars in every meter", "with ClassicAPI the bars glide to their new size in the game client itself. It's smoother and costs the add-on nothing. A bar that changes player jumps at once." },
-    { "Neat columns everywhere", "per second, total and % in columns of their own that line up down every window, with small headings. A narrow window drops columns before it squashes names." },
-    { "Windows fit their lines", "no empty space under the last bar." },
-    { "Clearer threat window", "the DoTs line names whose DoTs pull next (\"DoTs Gul'dan in 7 s\"), the title shows your own %, \"You hold aggro\" while you tank, calm top lines with their own colour options, and a preview that always matches your meter." },
   } },
 }

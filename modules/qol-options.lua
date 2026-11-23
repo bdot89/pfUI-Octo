@@ -78,6 +78,9 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Chk(p, "Roll timer in the item's colour", "The loot roll timer bar in the item's rarity colour.", "loot", nil, "raritytimer")
 
     W.Card(p, "Map and tooltips")
+    Chk(p, "pfUI Octo minimap button", "A button on the minimap: click opens these options, right-click moves frames, "
+      .. "drag moves it round the map. The Esc menu's pfUI button is there too, skin or not.", "global", nil, "mmbutton",
+      function() if O.ShowMinimap then O.ShowMinimap() end end)
     Chk(p, "Reveal the whole map", "Areas you have not been to show on the world map.", "appearance", "worldmap", "mapreveal")
     Chk(p, "Map exploration points", "Marks the spots that count for exploration.", "appearance", "worldmap", "mapexploration")
     -- (21 Nov 2026, Lo5t1ncyb3r: Magnify built in)

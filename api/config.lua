@@ -1775,6 +1775,9 @@ function pfUI:LoadConfig()
 
   -- octo: Plater's ideas on the nameplates (modules/plates.lua)
   pfUI:UpdateConfig("global",     nil,           "screenshotmsg",    "0")
+  -- (23 Nov 2026) pfUI Octo minimap button (octo-options.lua): on, and where round the map
+  pfUI:UpdateConfig("global",     nil,           "mmbutton",         "1")
+  pfUI:UpdateConfig("global",     nil,           "mmangle",          "160")
   pfUI:UpdateConfig("plates",     nil,           "enable",           "1")
   pfUI:UpdateConfig("plates",     nil,           "firstlook",        "0")
   pfUI:UpdateConfig("plates",     nil,           "bartexture",       "Interface\\AddOns\\pfUI\\img\\plates\\bar-soft")

@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.35
+
+- 🧭 **pfUI Octo minimap button:** click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips.
+- ⚙️ **pfUI button stays in the Esc menu:** with the Game Menu skin switched off, the "pfUI Config" button used to vanish too. It is now always there.
+- 🛠️ **Installer only at login:** closing the installer with its X made it come back after every loading screen. It now only asks again at your next login or reload. Thanks Barbeque_Squirrel for both reports!
+
 ## 📜 New in 1.2.34
 
 - 🗺️ **No more quest tracker error spam:** the built-in quest tracker can no longer fill your screen with "tracker.lua:282" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!

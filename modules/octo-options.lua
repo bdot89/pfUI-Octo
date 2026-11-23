@@ -2934,6 +2934,75 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
   O:AddPage("Blizzard UI", "blizzui", "Blizzard UI", BuildBlizz)
 
+  -- ---------------------------------------------------------------- ways in
+  -- (23 Nov 2026, Barbeque_Squirrel: with the Game Menu skin off, the pfUI button in the Esc menu was gone -
+  -- the skin made it.) The Esc menu button is made here, always; the skin only restyles it. And a minimap
+  -- button (C.global.mmbutton, drag round the map, angle C.global.mmangle; pfUI's addon button bar takes it in
+  -- like any other).
+  if GameMenuFrame and GameMenuButtonOptions and not GameMenuButtonPFUI then
+    local mb = CreateFrame("Button", "GameMenuButtonPFUI", GameMenuFrame, "GameMenuButtonTemplate")
+    mb:SetPoint("TOP", 0, -10)
+    mb:SetText(T["|cff33ffccpf|cffffffffUI|cffcccccc Config"])
+    mb:SetScript("OnClick", function()
+      pfUI.gui:Show()
+      HideUIPanel(GameMenuFrame)
+    end)
+    local point, relativeTo, relativePoint, xOffset, yOffset = GameMenuButtonOptions:GetPoint()
+    GameMenuButtonOptions:SetPoint(point, relativeTo, relativePoint, xOffset, (yOffset or 0) - 22)
+    GameMenuFrame:SetHeight(GameMenuFrame:GetHeight() + 22)
+  end
+
+  if Minimap and not pfUIMinimapButton then
+    local mm = CreateFrame("Button", "pfUIMinimapButton", Minimap)
+    mm:SetWidth(26)
+    mm:SetHeight(26)
+    mm:SetFrameStrata("MEDIUM")
+    mm:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 8)
+    mm.icon = mm:CreateTexture(nil, "ARTWORK")
+    mm.icon:SetAllPoints(mm)
+    mm.icon:SetTexture("Interface\\Icons\\INV_Misc_Gear_01")
+    mm.icon:SetTexCoord(.07, .93, .07, .93)
+    mm:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    mm:RegisterForDrag("LeftButton")
+    mm:SetScript("OnDragStart", function() this.dragging = true end)
+    mm:SetScript("OnDragStop", function() this.dragging = nil end)
+    mm:SetScript("OnUpdate", function()
+      if not this.dragging then return end
+      local mx, my = Minimap:GetCenter()
+      local cx, cy = GetCursorPosition()
+      local s = Minimap:GetEffectiveScale()
+      C.global.mmangle = tostring(math.floor(math.deg(math.atan2(cy / s - my, cx / s - mx))))
+      O.PlaceMinimap()
+    end)
+    mm:SetScript("OnClick", function()
+      if arg1 == "RightButton" then
+        if pfUI.unlock then if pfUI.unlock:IsShown() then pfUI.unlock:Hide() else pfUI.unlock:Show() end end
+      elseif g:IsShown() then g:Hide() else g:Show() end
+    end)
+    mm:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_LEFT")
+      GameTooltip:AddLine("pfUI Octo")
+      GameTooltip:AddLine("Click: options", 1, 1, 1)
+      GameTooltip:AddLine("Right-click: move frames", 1, 1, 1)
+      GameTooltip:AddLine("Drag: move this button", .7, .7, .7)
+      GameTooltip:Show()
+    end)
+    mm:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    O.minimap = mm
+    function O.PlaceMinimap()
+      -- (in the addon button bar: it places it there)
+      if mm:GetParent() ~= Minimap then return end
+      local a = math.rad(tonumber(C.global.mmangle) or 160)
+      local r = (Minimap:GetWidth() or 140) / 2 + 6
+      mm:ClearAllPoints()
+      mm:SetPoint("CENTER", Minimap, "CENTER", math.cos(a) * r, math.sin(a) * r)
+    end
+    function O.ShowMinimap()
+      if C.global.mmbutton == "0" then mm:Hide() else mm:Show() O.PlaceMinimap() end
+    end
+    O.ShowMinimap()
+  end
+
   -- ---------------------------------------------------------------- open / close
 
   O:Build()

@@ -150,3 +150,33 @@ do
   MV.Unpick("OctoTestQuestLog")
   MV.SetShowing(false)
 end
+
+-- (23 Nov 2026, Barbeque_Squirrel) ways into the options without the Game Menu skin, and the installer only at login
+do
+  ok(_G.GameMenuButtonPFUI ~= nil, "the Esc menu has the pfUI button (made by octo-options, not the skin)")
+  local mm = _G.pfUIMinimapButton
+  ok(mm ~= nil and pfUI.octoui.Options.ShowMinimap ~= nil, "pfUI Octo minimap button made")
+  if mm then
+    local CG = pfUI_config.global
+    local was = CG.mmbutton
+    CG.mmbutton = "0"
+    pfUI.octoui.Options.ShowMinimap()
+    ok(not mm:IsShown(), "minimap button switched off hides")
+    CG.mmbutton = "1"
+    pfUI.octoui.Options.ShowMinimap()
+    ok(mm:IsShown(), "and switched on shows")
+    CG.mmbutton = was
+  end
+  local fr = pfUI.firstrun
+  if fr and fr.GetScript then
+    local seen = 0
+    local real = fr.NextStep
+    fr.NextStep = function() seen = seen + 1 end
+    _G.this = fr
+    local h = fr:GetScript("OnEvent")
+    if h then h() h() end
+    fr.NextStep = real
+    ok(seen >= 1, "the installer looks at the first loading screen")
+    ok(fr.IsEventRegistered == nil or not fr:IsEventRegistered("PLAYER_ENTERING_WORLD"), "and stops listening after it")
+  end
+end

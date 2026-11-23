@@ -9,7 +9,12 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
   pfUI.firstrun.steps = {}
 
   pfUI.firstrun:RegisterEvent("PLAYER_ENTERING_WORLD")
-  pfUI.firstrun:SetScript("OnEvent", function() pfUI.firstrun:NextStep() end)
+  -- (23 Nov 2026, Barbeque_Squirrel: the installer came back at every loading screen after its X was used)
+  -- PLAYER_ENTERING_WORLD fires at every zone change: only the first one, at login / reload, may open it
+  pfUI.firstrun:SetScript("OnEvent", function()
+    this:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    pfUI.firstrun:NextStep()
+  end)
 
   local accent -- "|cffrrggbb" of the accent colour, set when a page is built
 

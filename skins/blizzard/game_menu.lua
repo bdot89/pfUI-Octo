@@ -16,17 +16,23 @@ pfUI:RegisterSkin("Game Menu", "vanilla:tbc", function ()
   title:SetPoint("TOP", GameMenuFrame, "TOP", 0, 16)
   title:SetFont(pfUI.font_default, C.global.font_size + 2, "OUTLINE")
 
-  local pfUIButton = CreateFrame("Button", "GameMenuButtonPFUI", GameMenuFrame, "GameMenuButtonTemplate")
-  pfUIButton:SetPoint("TOP", 0, -10)
-  pfUIButton:SetText(T["|cff33ffccpf|cffffffffUI|cffcccccc Config"])
-  pfUIButton:SetScript("OnClick", function()
-    pfUI.gui:Show()
-    HideUIPanel(GameMenuFrame)
-  end)
+  -- (23 Nov 2026) the pfUI button is made by octo-options.lua whether this skin is on or not (it made room
+  -- for it and grew the menu by 22: take that back, this skin's height above was measured without it)
+  local pfUIButton = GameMenuButtonPFUI
+  if pfUIButton then
+    GameMenuFrame:SetHeight(GameMenuFrame:GetHeight() - 22)
+  else
+    pfUIButton = CreateFrame("Button", "GameMenuButtonPFUI", GameMenuFrame, "GameMenuButtonTemplate")
+    pfUIButton:SetPoint("TOP", 0, -10)
+    pfUIButton:SetText(T["|cff33ffccpf|cffffffffUI|cffcccccc Config"])
+    pfUIButton:SetScript("OnClick", function()
+      pfUI.gui:Show()
+      HideUIPanel(GameMenuFrame)
+    end)
+    local point, relativeTo, relativePoint, xOffset, yOffset = GameMenuButtonOptions:GetPoint()
+    GameMenuButtonOptions:SetPoint(point, relativeTo, relativePoint, xOffset, yOffset - 22)
+  end
   SkinButton(pfUIButton)
-
-  local point, relativeTo, relativePoint, xOffset, yOffset = GameMenuButtonOptions:GetPoint()
-  GameMenuButtonOptions:SetPoint(point, relativeTo, relativePoint, xOffset, yOffset - 22)
 
   local buttons = {
     GameMenuButtonOptions,
