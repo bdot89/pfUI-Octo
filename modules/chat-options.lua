@@ -726,6 +726,31 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
       return "|cffffd100/whispers|r reopens everyone you talked to   |cffffd100/whispers close|r closes them   "
         .. "|cffffd100/whispers test|r a test window   right-click a tab closes it   shift-click the bar's x closes all"
     end)
+
+    -- (23 Nov 2026) chat history: modules/chat-history.lua keeps it, the whisper window shows it
+    local function HS() return C.chat.history end
+    local function Lay() if WHm then WHm.Layout() end end
+    W.Card(p, "Chat history", { tip = "Whispers, guild, officer, party, raid and battleground chat kept for days, per character. In "
+      .. "the whisper window: History at the top of the list opens old whispers, the row of letters at the bottom opens a "
+      .. "channel's history (and you can talk there from the box), the small arrow on the dividing line hides the list." })
+    Chk(p, "Keep chat history", "Off: nothing new is kept (what is kept stays until it is too old).", HS, "enable")
+    Sld(p, "Keep for", "Older lines are dropped at login.", 1, 60, 1, HS, "days", function(v) return v .. (v == 1 and " day" or " days") end)
+    Sld(p, "Most lines a channel keeps", "A busy guild's month fits in 4 000. Each person's whispers keep a quarter of this.",
+      500, 10000, 500, HS, "max", function(v) return pfUI.honor and pfUI.honor.Fmt and pfUI.honor.Fmt(v) or tostring(v) end)
+    Chk(p, "Whispers", nil, HS, "whisper")
+    Chk(p, "Guild", nil, HS, "guild", Lay)
+    Chk(p, "Officer", nil, HS, "officer", Lay)
+    Chk(p, "Party", nil, HS, "party", Lay)
+    Chk(p, "Raid and raid warnings", nil, HS, "raid", Lay)
+    Chk(p, "Battleground", nil, HS, "bg", Lay)
+    Chk(p, "Say and yell", "Busy cities fill this fast.", HS, "say", Lay)
+    Chk(p, "Channel row in the window", "The G O P R B S buttons at the bottom of the whisper window's list.", WS, "channels", Lay)
+    W.Buttons(p, {
+      { "Open guild history", function() if WHm and WHm.OpenChannel then WHm.OpenChannel("guild") end end, 150,
+        "The whisper window on your guild's history (/chathistory raid, party ...)." },
+      { "Old whispers", function() if WHm and WHm.HistoryMenu then WHm.HistoryMenu(this) end end, 120,
+        "Everyone you whispered with in the kept days." },
+    })
   end
 
   -- (31 Oct 2026, user: menus "overwhelming": Tools had three small cards on a

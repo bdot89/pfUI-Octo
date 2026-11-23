@@ -186,6 +186,71 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     line:SetWidth(1)
     line:SetPoint("TOPLEFT", list, "TOPRIGHT", 2, 0)
     line:SetPoint("BOTTOMLEFT", list, "BOTTOMRIGHT", 2, 0)
+    H.line = line
+
+    -- (23 Nov 2026, user: old whispers "in a drop down menu", guild and raid history, "a really good navigation system
+    -- ... hidden and brought back with a small arrow") the top of the list: everyone whispered with in the kept days
+    local hist = Btn(list, "History", "Old whispers", function() WH.HistoryMenu(this) end)
+    hist:SetHeight(18)
+    hist:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
+    hist:SetPoint("TOPRIGHT", list, "TOPRIGHT", 0, 0)
+    hist.text:SetFont(pfUI.font_default, 11, "OUTLINE")
+    hist.text:SetText("History  |cff888888v|r")
+    hist:SetScript("OnEnter", function()
+      local r, g, b = Accent()
+      this:SetBackdropBorderColor(r, g, b, 1)
+      GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      GameTooltip:SetText("Old whispers", 1, 1, 1)
+      GameTooltip:AddLine("Everyone you whispered with in the last " .. (C.chat.history and C.chat.history.days or 30)
+        .. " days, newest first. Pick one to open the whole conversation.", .7, .7, .7, 1)
+      GameTooltip:Show()
+    end)
+    H.hist = hist
+    -- the bottom of the list: a button per kept channel (guild, officer, party, raid, battleground, say)
+    H.chans = {}
+    local CHH = pfUI.chatHistory
+    for i, k in ipairs(CHH and CHH.KINDS or {}) do
+      local kind = k
+      local b = Btn(list, k.short, k.name .. " history", function() WH.OpenChannel(kind.key) end)
+      b.text:SetTextColor(k.color[1], k.color[2], k.color[3])
+      b.kind = k
+      b:SetScript("OnEnter", function()
+        local r, g, bb = Accent()
+        this:SetBackdropBorderColor(r, g, bb, 1)
+        GameTooltip:SetOwner(this, "ANCHOR_TOP")
+        GameTooltip:SetText(this.kind.name, this.kind.color[1], this.kind.color[2], this.kind.color[3])
+        local n = table.getn(CHH.Lines(this.kind.key))
+        GameTooltip:AddLine(n .. " lines kept. Click: read it, and talk there from the box.", .7, .7, .7, 1)
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() WH.PaintChans() GameTooltip:Hide() end)
+      H.chans[i] = b
+    end
+    -- the arrow on the dividing line: the list folds away and comes back
+    local arrow = CreateFrame("Button", nil, H)
+    arrow:SetWidth(10)
+    arrow:SetHeight(26)
+    arrow:SetFrameLevel(H:GetFrameLevel() + 5)
+    arrow:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    arrow:SetBackdropColor(.1, .1, .12, 1)
+    arrow:SetBackdropBorderColor(.25, .25, .28, 1)
+    arrow.text = arrow:CreateFontString(nil, "OVERLAY")
+    arrow.text:SetFont(pfUI.font_default, 10, "OUTLINE")
+    arrow.text:SetPoint("CENTER", arrow, "CENTER", 1, 0)
+    arrow:SetPoint("CENTER", line, "CENTER", 0, 0)
+    arrow:SetScript("OnClick", function()
+      S().listhidden = S().listhidden == "1" and "0" or "1"
+      WH.ApplyList()
+    end)
+    arrow:SetScript("OnEnter", function()
+      local r, g, b = Accent()
+      this:SetBackdropBorderColor(r, g, b, 1)
+      GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      GameTooltip:SetText(S().listhidden == "1" and "Show the list" or "Hide the list", 1, 1, 1)
+      GameTooltip:Show()
+    end)
+    arrow:SetScript("OnLeave", function() this:SetBackdropBorderColor(.25, .25, .28, 1) GameTooltip:Hide() end)
+    H.arrow = arrow
 
     -- the picked conversation goes here
     local page = CreateFrame("Frame", nil, H)
@@ -329,17 +394,75 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   end
 
   -- the tabs in order, the ones that do not fit scrolled away
+  -- the channel row along the bottom of the list (only the kept kinds), the picked one lit
+  function WH.ChanRow()
+    if not H then return 0 end
+    local shown = {}
+    local CHH = pfUI.chatHistory
+    for _, b in ipairs(H.chans) do
+      if S().channels ~= "0" and CHH and CHH.On(b.kind.key) then table.insert(shown, b) else b:Hide() end
+    end
+    local n = table.getn(shown)
+    if n == 0 then return 0 end
+    local w = H.list:GetWidth() or 120
+    local each = (w - (n - 1) * 2) / n
+    for i, b in ipairs(shown) do
+      b:ClearAllPoints()
+      b:SetWidth(math.max(8, each))
+      b:SetHeight(18)
+      b:SetPoint("BOTTOMLEFT", H.list, "BOTTOMLEFT", (i - 1) * (each + 2), 0)
+      b:Show()
+    end
+    WH.PaintChans()
+    return 22
+  end
+  function WH.PaintChans()
+    if not H then return end
+    local r, g, b = Accent()
+    for _, btn in ipairs(H.chans) do
+      if WH.active == "#" .. btn.kind.key then
+        btn:SetBackdropColor(r * .35, g * .35, b * .35, 1)
+        btn:SetBackdropBorderColor(r, g, b, 1)
+      else
+        btn:SetBackdropColor(.1, .1, .12, 1)
+        btn:SetBackdropBorderColor(.25, .25, .28, 1)
+      end
+    end
+  end
+  -- the list shown, or folded to nothing by the arrow on the dividing line
+  function WH.ApplyList()
+    if not H then return end
+    local hide = S().listhidden == "1" or H.folded
+    if hide then
+      H.list:Hide()
+      H.list:SetWidth(1)
+    else
+      H.list:SetWidth(tonumber(S().tabwidth) or 120)
+      if not H.folded then H.list:Show() end
+    end
+    if H.folded then H.line:Hide() H.arrow:Hide() else H.line:Show() H.arrow:Show() end
+    H.arrow.text:SetText(S().listhidden == "1" and ">" or "<")
+    WH.Layout()
+  end
+
   function WH.Layout()
     if not H then return end
     local open = {}
-    for _, name in ipairs(WH.order) do if WH.windows[name].open then table.insert(open, name) end end
-    local fit = math.max(1, math.floor(((H.list:GetHeight() or 0) - 12) / (TABH + 1)))
+    -- (a channel's page has no tab of its own: its button in the row below is its tab)
+    for _, name in ipairs(WH.order) do
+      local c = WH.windows[name]
+      if c.open and not c.chan then table.insert(open, name) end
+    end
+    local below = WH.ChanRow()
+    H.list.more:ClearAllPoints()
+    H.list.more:SetPoint("BOTTOM", H.list, "BOTTOM", 0, below)
+    local fit = math.max(1, math.floor(((H.list:GetHeight() or 0) - 12 - 20 - below) / (TABH + 1)))
     if table.getn(open) <= fit then fit = table.getn(open) end
     WH.fit = fit
     local most = math.max(0, table.getn(open) - fit)
     if WH.scroll > most then WH.scroll = most end
     if WH.scroll < 0 then WH.scroll = 0 end
-    local y = 0
+    local y = 20
     for i, name in ipairs(open) do
       local tab = WH.windows[name].tab
       tab:ClearAllPoints()
@@ -371,6 +494,25 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   -- a tab's look, and the bar when it is the picked one
   function WH.Paint(c)
     if not c then return end
+    if c.chan then
+      -- a channel's page: its name in its colour, how far back it goes; the person buttons stand aside
+      local font, size = Font()
+      if c.msg.SetFont then c.msg:SetFont(font, size, "") end
+      if WH.active ~= c.who then return end
+      H.icon:Hide()
+      local k = c.chan
+      local hex = string.format("|cff%02x%02x%02x", math.floor(k.color[1] * 255), math.floor(k.color[2] * 255), math.floor(k.color[3] * 255))
+      local CHH = pfUI.chatHistory
+      local n = CHH and table.getn(CHH.Lines(k.key)) or 0
+      H.title:SetText(hex .. k.name .. "|r |cff888888history - " .. n .. " lines, " .. (C.chat.history.days or 30) .. " days|r")
+      H.invite:Hide() H.target:Hide() H.whob:Hide()
+      H:SetBackdropColor(.06, .06, .08, .94)
+      H.bar.bg:SetVertexColor(.12, .12, .15, 1)
+      if H.edit.SetFont then H.edit:SetFont(font, size, "") end
+      WH.PaintChans()
+      return
+    end
+    if WH.active == c.who then H.invite:Show() H.target:Show() H.whob:Show() WH.PaintChans() end
     local class, level, guild = Who(c.who)
     local hex = Hex(class)
     local active = WH.active == c.who
@@ -431,15 +573,66 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     while table.getn(s[name]) > keep do table.remove(s[name], 1) end
   end
 
-  -- someone's tab: made (with the kept lines) and in the list
-  local function Ensure(name)
+  -- a dividing line when a new day starts in a page ("- Monday 23 November -")
+  local function DayLine(c, t)
+    local d = date("%Y-%m-%d", t or time())
+    if c.day ~= d then
+      c.day = d
+      c.msg:AddMessage("|cff8a7a55--  " .. date("%A %d %B", t or time()) .. "  --|r")
+    end
+  end
+  WH.DayLine = DayLine
+  -- one channel line: "12:04 Name: text" in the channel's colour, the name in its class colour
+  local function ChanLine(c, sender, text, t)
+    DayLine(c, t)
+    local k = c.chan
+    local hex = Hex(Who(sender)) or "|cffffffff"
+    c.msg:AddMessage(Stamp(t) .. hex .. (sender or "?") .. ":|r " .. (text or ""), k.color[1], k.color[2], k.color[3])
+  end
+  -- the lines kept by the chat history (chat-history.lua), or the window's own last lines before it existed;
+  -- skip = the line that is arriving right now (it is added by WH.Add after this)
+  local function Fill(c, skip)
+    local CHH = pfUI.chatHistory
+    local lines
+    if CHH then lines = c.chan and CHH.Lines(c.chan.key) or CHH.Lines("whisper", c.who) end
+    if lines and table.getn(lines) > 0 then
+      local n = table.getn(lines)
+      if skip then
+        local lt, _, text = CHH.Unpack(lines[n])
+        if text == skip and lt and lt >= time() - 2 then n = n - 1 end
+      end
+      -- (the page holds the newest ones: its message frame keeps MAXLINES)
+      local from = math.max(1, n - WH.MAXLINES + 20)
+      for i = from, n do
+        local t, who, text = CHH.Unpack(lines[i])
+        if t then
+          if c.chan then
+            ChanLine(c, who, text, t)
+          else
+            DayLine(c, t)
+            Line(c, string.sub(who or "", 1, 1) == ">" and "out" or "in", text, t)
+          end
+        end
+      end
+      if n > 0 then c.msg:AddMessage("|cff666666- earlier -|r") end
+      return
+    end
+    for _, e in ipairs(Store()[c.who] or {}) do Line(c, e.dir, e.msg, e.t) end
+    if table.getn(Store()[c.who] or {}) > 0 then c.msg:AddMessage("|cff666666- earlier -|r") end
+  end
+  WH.MAXLINES = 1500
+
+  -- someone's tab: made (with the kept lines) and in the list; name "#guild" etc. = a channel's page
+  local function Ensure(name, skip)
     local c = WH.windows[name]
     if not c then
       c = Make(name)
       WH.windows[name] = c
       table.insert(WH.order, name)
-      for _, e in ipairs(Store()[name] or {}) do Line(c, e.dir, e.msg, e.t) end
-      if table.getn(Store()[name] or {}) > 0 then c.msg:AddMessage("|cff666666- earlier -|r") end
+      local CHH = pfUI.chatHistory
+      if string.sub(name, 1, 1) == "#" and CHH then c.chan = CHH.BYKEY[string.sub(name, 2)] end
+      if c.msg.SetMaxLines then c.msg:SetMaxLines(WH.MAXLINES) end
+      Fill(c, skip)
     end
     if not c.open then
       c.open = true
@@ -454,7 +647,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       H:SetHeight(H.folded and 24 or (tonumber(S().hubheight) or 230))
       Place()
       H:Show()
-      WH.Layout()
+      WH.ApplyList()
     end
   end
 
@@ -470,9 +663,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     -- scrolled away? bring its tab into view
     local i = 0
     for _, n in ipairs(WH.order) do
-      if WH.windows[n].open then i = i + 1 end
+      if WH.windows[n].open and not WH.windows[n].chan then i = i + 1 end
       if n == name then break end
     end
+    if c.chan then i = WH.scroll + 1 end
     if i <= WH.scroll then WH.scroll = i - 1 WH.Layout()
     elseif i > WH.scroll + (WH.fit or 1) then WH.scroll = i - (WH.fit or 1) WH.Layout() end
     WH.Seen(c)
@@ -504,8 +698,8 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       return
     end
     local fresh = not c
-    c = Ensure(name)
-    -- (a new tab showed the kept lines, this one among them)
+    -- (a new tab: the kept lines go in first, without this one - it follows below)
+    c = Ensure(name, text)
     local wasHidden = not H:IsShown()
     -- (20 Nov 2026, user: "it shows on this bar with green +1 ... when you open it will go to the new message. Or start
     -- in order of oldest new message to newest") unread unless it is the conversation you are looking at
@@ -513,8 +707,9 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local unread = dir == "in" and not viewing
     -- a "new" line where the unread part starts
     if not fresh and unread and (c.unread or 0) == 0 then c.msg:AddMessage("|cff33ff33--------  new  --------|r") end
-    -- (a new tab showed the kept lines, this one among them)
-    if not fresh then Line(c, dir, text, t) end
+    if fresh and dir == "in" and unread then c.msg:AddMessage("|cff33ff33--------  new  --------|r") end
+    DayLine(c, t)
+    Line(c, dir, text, t)
     if wasHidden then
       if UnitAffectingCombat("player") and S().combat == "fold" then H.folded = true H.combatFolded = true WH.ApplyFold() end
       ShowHub()
@@ -555,14 +750,14 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local best
     for _, n in ipairs(WH.order) do
       local c = WH.windows[n]
-      if c.open and n ~= skip and (c.unread or 0) > 0 and (not best or (c.since or 0) < (WH.windows[best].since or 0)) then best = n end
+      if c.open and not c.chan and n ~= skip and (c.unread or 0) > 0 and (not best or (c.since or 0) < (WH.windows[best].since or 0)) then best = n end
     end
     return best
   end
   function WH.Unread()
     local total, people = 0, 0
     for _, c in pairs(WH.windows) do
-      if c.open and (c.unread or 0) > 0 then total = total + c.unread people = people + 1 end
+      if c.open and not c.chan and (c.unread or 0) > 0 then total = total + c.unread people = people + 1 end
     end
     return total, people
   end
@@ -576,7 +771,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local open = {}
     local at = 1
     for _, n in ipairs(WH.order) do
-      if WH.windows[n].open then
+      if WH.windows[n].open and not WH.windows[n].chan then
         table.insert(open, n)
         if n == WH.active then at = table.getn(open) end
       end
@@ -606,7 +801,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       -- the newest of the new lines
       local newest
       for _, c in pairs(WH.windows) do
-        if c.open and (c.unread or 0) > 0 and (not newest or (c.since or 0) > (newest.since or 0)) then newest = c end
+        if c.open and not c.chan and (c.unread or 0) > 0 and (not newest or (c.since or 0) > (newest.since or 0)) then newest = c end
       end
       if newest then
         SetIcon(H.icon, (Who(newest.who)))
@@ -631,11 +826,58 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       H.list:Hide() H.page:Hide() H.edit:Hide() H.grip:Hide()
     else
       H:SetHeight(tonumber(S().hubheight) or 230)
-      H.list:Show() H.page:Show() H.edit:Show() H.grip:Show()
+      H.page:Show() H.edit:Show() H.grip:Show()
       local c = WH.active and WH.windows[WH.active]
       if c then c.msg:Show() end
-      WH.Layout()
     end
+    -- (the list, its dividing line and arrow as the arrow left them)
+    WH.ApplyList()
+  end
+
+  -- a channel's history page (guild, officer, party, raid, bg, say); the box below talks there
+  function WH.OpenChannel(key)
+    local CHH = pfUI.chatHistory
+    if not (CHH and CHH.BYKEY[key]) then return end
+    local name = "#" .. key
+    local c = Ensure(name)
+    c.unread = 0
+    ShowHub()
+    if H.folded then H.folded = false WH.ApplyFold() end
+    WH.Select(name)
+    WH.Paint(c)
+    return c
+  end
+  -- a new channel line while its page is made: added (counted, never pulsing, when you look elsewhere)
+  function WH.ChannelLine(key, sender, text, t)
+    local c = WH.windows["#" .. key]
+    if not c then return end
+    ChanLine(c, sender, text, t or time())
+    if WH.active ~= c.who then c.unread = (c.unread or 0) + 1 end
+  end
+
+  -- old whispers: everyone in the kept days, newest first; picking one opens the whole conversation
+  function WH.HistoryMenu(anchor)
+    local CHH = pfUI.chatHistory
+    local W = pfUI.octoui and pfUI.octoui.W
+    if not CHH then return end
+    local opts = {}
+    for _, p in ipairs(CHH.People()) do
+      local hex = Hex(Who(p.name)) or "|cffffffff"
+      table.insert(opts, { key = p.name, label = hex .. p.name .. "|r  |cff888888" .. date("%d %b %H:%M", p.t) .. "  -  " .. p.n .. " lines|r" })
+    end
+    if table.getn(opts) == 0 then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: no old whispers kept yet.")
+      return
+    end
+    local function Pick(name) if name then WH.Open(name, true) end end
+    if W and W.LongMenu then
+      if WH.menu then WH.menu:Hide() end
+      WH.menu = W.LongMenu(anchor, opts, 260, Pick)
+      if WH.menu then WH.menu:Show() end
+    else
+      Pick(opts[1].key)
+    end
+    return opts
   end
   -- fold (true), unfold (false) or flip (nil) the window
   function WH.Fold(_, fold)
@@ -677,6 +919,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   -- send from the window (the test conversation only talks to itself)
   function WH.Send(name, text)
     local c = WH.windows[name]
+    if c and c.chan then
+      SendChatMessage(text, c.chan.send)
+      return
+    end
     if c and c.test then
       WH.Add(name, "out", text)
       WH.Add(name, "in", "(test) You said: " .. text)
@@ -765,6 +1011,23 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     end
   end
   ev:SetScript("OnEvent", function() WH.OnEvent(event, arg1, arg2) end)
+
+  -- live channel lines into an open channel page (chat-history.lua calls this for every line it keeps)
+  if pfUI.chatHistory then
+    pfUI.chatHistory.onAdd = function(kind, who, text, t)
+      if kind ~= "whisper" then WH.ChannelLine(kind, who, text, t) end
+    end
+  end
+  -- /chathistory [guild|officer|party|raid|bg|say]: the window on a channel's history (guild when none is named)
+  _G.SLASH_OCTOCHATHISTORY1 = "/chathistory"
+  _G.SLASH_OCTOCHATHISTORY2 = "/chist"
+  _G.SlashCmdList.OCTOCHATHISTORY = function(msg)
+    local key = string.lower(msg or "")
+    if key == "" then key = "guild" end
+    if not WH.OpenChannel(key) then
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: /chathistory guild | officer | party | raid | bg | say")
+    end
+  end
 
   _G.SLASH_OCTOWHISPERS1 = "/whispers"
   _G.SlashCmdList.OCTOWHISPERS = function(msg)

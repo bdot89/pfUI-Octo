@@ -27,6 +27,7 @@
   <Include file="..\modules\whisperproxy.lua"/>
   <Include file="..\modules\chatcopy.lua"/>
   <Include file="..\modules\chat-plus.lua"/>
+  <Include file="..\modules\chat-history.lua"/>
   <Include file="..\modules\chat-whispers.lua"/>
   <Include file="..\modules\chat-raid.lua"/>
   <Include file="..\modules\bubbles.lua"/>

@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.39", {
+    { "Chat history, 30 days", "whispers (both ways, per person), guild, officer, party, raid (raid warnings marked) and battleground chat are kept per character for 30 days (say and yell too if you switch them on). Kept small: one short string a line, at most 4 000 lines a channel." },
+    { "In the whisper window", "History at the top of the list opens a menu of everyone you whispered with, newest first, with a filter - pick one for the whole conversation. The G O P R B S row at the bottom opens Guild, Officer, Party, Raid, Battleground or Say history, new lines come in live, and the box below talks in that channel. Days are split by \"-- Monday 23 November --\" lines. A small arrow on the dividing line hides the list and brings it back." },
+    { "/chathistory (or /chist) opens guild history; /chathistory raid, pa...", "/chathistory (or /chist) opens guild history; /chathistory raid, party... the others. Options: Chat > Whispers > Chat history." },
+    { "New file: restart the game, not just /reload", "" },
+  } },
   { "1.2.38", {
     { "Honor tab rebuilt, battle-worn", "your PvP tab now has the battleground scene behind it, worn and burnt, with a big faction crest and your rank badge. A big rank progress bar (0 / 25 / 50 / 75 / 100 with glowing marks, today's gain lit) shows your exact rank %, and under it about how much honor the next rank still takes, learnt from your own kills at your rank. This week shows your honor against the 20 000 cap with the reset countdown and your session's honor per hour. Kills and honor for today / yesterday / this week / last week, and your last days in one tidy table: honor, kills, battlegrounds won-lost and rank % gained (hover a day for where the honor came from)." },
     { "Honor history built in (HonorSpy merged)", "every honor gain, battleground win / loss and step of rank % is kept per character. If you use TurtleHonorSpyEnhanced, its history is copied in once so your past days show straight away. /honor opens the tab. Options: Quality of Life > Honor." },
@@ -169,10 +175,5 @@ pfUI.octoNotes = {
     { "OctoRinse looks", "pfUI Octo, Bars (rows filled with the debuff school's colour), Bright (strong colour, a border and bigger words), Compact and Icons. Plus a school-colour border, an out-of-range fade setting and a pulsing top row." },
     { "OctoProcs", "big pulsing alerts round your character the moment a proc is up, with the spell icon, a glow, a countdown and stacks, an optional screen-edge glow and a sound. Under CoolDownManager, /procs." },
     { "Every nampower setting", "Settings > nampower has all of nampower's own options (spell queue, channels, safety, chat bubbles and more), each with its default and a reset." },
-  } },
-  { "1.1.99", {
-    { "SuperCleveRoidMacros built in", "the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over." },
-    { "Takes over your separate copy", "if you had SuperCleveRoidMacros installed, pfUI switches it off for your next login and says so in chat. Tick it again in the add-on list to keep yours - pfUI leaves it alone after that." },
-    { "Conditional macros show right on the bars", "pfUI's action bars now leave macros to SuperCleveRoidMacros, so a button shows the spell, icon and cooldown it will really cast instead of the macro's first spell." },
   } },
 }
