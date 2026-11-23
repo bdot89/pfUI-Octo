@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.36", {
+    { "Installer once per character", "the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install." },
+    { "Minimap button in the addon bar", "with the addon button bar switched on, the pfUI Octo minimap button goes into it like every other add-on's button." },
+  } },
   { "1.2.35", {
     { "pfUI Octo minimap button", "click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips." },
     { "pfUI button stays in the Esc menu", "with the Game Menu skin switched off, the \"pfUI Config\" button used to vanish too. It is now always there." },
@@ -173,12 +177,5 @@ pfUI.octoNotes = {
     { "Healer mana after a fight", "every healer's mana, lowest first, with the raid average." },
     { "Loot", "the master looter's links tagged [ML] and epic loot the raid receives. Links and names click as in any chat, and a box at the bottom talks to the raid." },
     { "Quiet chat in raids", "no General / Trade / LFG / World in your other chat windows while you raid, back the moment you leave or click Q. Chat & Panels > Raid chat, /raidchat test to try it." },
-  } },
-  { "1.1.96", {
-    { "The demo uses your whole action bar", "every spell, item and macro on your bars gets used in turn with its own cooldown sweep, every slot shows the global cooldown, and your trinkets go on cooldown too." },
-    { "Resses like a real raid", "after a wipe nobody stands up at once. Ressers get up first, each res has its cast bar and the res icon shows on the one being ressed, and the next pull waits until everyone is up." },
-    { "The boss turns for real", "after an overthreat (yours or a raider's), target of target shows whoever has aggro, and the boss hits them until the tank taunts it back." },
-    { "A live threat meter all demo long", "a threat cycle runs on its own (a DoT player's countdown, your overthreat, a melee pull), and the meter keeps the last fight between pulls." },
-    { "Meter windows never stay stuck small", "a window saved while fitted to its lines grows back to show everyone." },
   } },
 }

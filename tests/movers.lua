@@ -170,13 +170,33 @@ do
   local fr = pfUI.firstrun
   if fr and fr.GetScript then
     local seen = 0
-    local real = fr.NextStep
+    local real, realInit = fr.NextStep, _G.pfUI_init
     fr.NextStep = function() seen = seen + 1 end
+    _G.pfUI_init = {}
     _G.this = fr
     local h = fr:GetScript("OnEvent")
-    if h then h() h() end
-    fr.NextStep = real
-    ok(seen >= 1, "the installer looks at the first loading screen")
+    if h then h() end
+    ok(seen == 1, "a new character: the installer opens at the first loading screen (" .. seen .. ")")
     ok(fr.IsEventRegistered == nil or not fr:IsEventRegistered("PLAYER_ENTERING_WORLD"), "and stops listening after it")
+    -- closed / skipped / finished: never by itself again, also with a step added later
+    fr:Done()
+    pfUI_init.somenewstep = nil
+    table.insert(fr.steps, { name = "octotestnew", func = function() end })
+    seen = 0
+    fr:Start()
+    ok(seen == 0 and pfUI_init.octotestnew == true, "done once: a later login does not open it, a new step is marked done")
+    table.remove(fr.steps)
+    -- a character that did steps before the flag existed counts as done
+    _G.pfUI_init = { init = true }
+    seen = 0
+    fr:Start()
+    ok(seen == 0 and pfUI_init.wizarddone, "an older character that started it before is not asked again")
+    -- a profile pick reloads mid-way: it carries on
+    _G.pfUI_init = { wizardv2 = true, init = true, profile = true }
+    seen = 0
+    fr:Start()
+    ok(seen == 1, "mid-way through (profile reload): it carries on")
+    fr.NextStep = real
+    _G.pfUI_init = realInit
   end
 end

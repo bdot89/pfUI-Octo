@@ -3139,6 +3139,9 @@ do
       local ownSpot
       for _, n in ipairs(pfUI.addonbuttons:List()) do if string.find(n, "^pf") and n ~= "pfGearMinimapButton" and n ~= "pfUIMinimapButton" then ownSpot = n end end
       ok(not ownSpot, "pfUI's own parts are left alone (" .. tostring(ownSpot) .. ")")
+      local takenOcto
+      for _, n in ipairs(pfUI.addonbuttons:List()) do if n == "pfUIMinimapButton" then takenOcto = true end end
+      ok(takenOcto, "the pfUI Octo minimap button goes into the addon button bar like the rest")
       -- a lit button row: on while its check says so
       local litOn = false
       local litPage = { items = {}, cur = { parent = UIParent, x0 = 0, y0 = 0, lastX = 0, width = 600 } }

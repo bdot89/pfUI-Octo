@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.36
+
+- 🛠️ **Installer once per character:** the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install.
+- 🧭 **Minimap button in the addon bar:** with the addon button bar switched on, the pfUI Octo minimap button goes into it like every other add-on's button.
+
 ## 📜 New in 1.2.35
 
 - 🧭 **pfUI Octo minimap button:** click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips.

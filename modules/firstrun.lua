@@ -11,10 +11,40 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
   pfUI.firstrun:RegisterEvent("PLAYER_ENTERING_WORLD")
   -- (23 Nov 2026, Barbeque_Squirrel: the installer came back at every loading screen after its X was used)
   -- PLAYER_ENTERING_WORLD fires at every zone change: only the first one, at login / reload, may open it
+  -- (23 Nov 2026, user: "only show once ... once people have done it they don't have to do it again ... only when
+  -- logging in a new character for the first time") pfUI_init is per character. pfUI_init.wizarddone = finished,
+  -- skipped or closed: it never opens by itself again (only /pfui install or a settings reset). Steps added by a
+  -- later update are marked done for those characters without showing.
   pfUI.firstrun:SetScript("OnEvent", function()
     this:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    pfUI.firstrun:NextStep()
+    pfUI.firstrun:Start()
   end)
+
+  -- a character that went through the installer before the flag existed (any step done, at the first login
+  -- with this version): done
+  function pfUI.firstrun:Migrate()
+    if pfUI_init.wizardv2 then return end
+    pfUI_init.wizardv2 = true
+    for _, step in ipairs(pfUI.firstrun.steps) do
+      if pfUI_init[step.name] then pfUI_init.wizarddone = true return end
+    end
+  end
+
+  function pfUI.firstrun:Done()
+    for _, step in ipairs(pfUI.firstrun.steps) do pfUI_init[step.name] = true end
+    pfUI_init.wizarddone = true
+    pfUI_init.wizardv2 = true
+  end
+
+  -- at login: only on a character that has not been through it
+  function pfUI.firstrun:Start()
+    pfUI.firstrun:Migrate()
+    if pfUI_init.wizarddone then
+      pfUI.firstrun:Done()
+      return
+    end
+    pfUI.firstrun:NextStep()
+  end
 
   local accent -- "|cffrrggbb" of the accent colour, set when a page is built
 
@@ -40,11 +70,16 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
         return
       end
     end
+    -- every step done: finished
+    pfUI_init.wizarddone = true
+    pfUI_init.wizardv2 = true
   end
 
   -- starts over from the first step
   function pfUI.firstrun:Restart()
     for _, step in ipairs(pfUI.firstrun.steps) do pfUI_init[step.name] = nil end
+    pfUI_init.wizarddone = nil
+    pfUI_init.wizardv2 = true
     pfUI.firstrun:NextStep()
   end
 
@@ -87,7 +122,8 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
     f.close.texture:SetAllPoints()
     f.close.texture:SetVertexColor(1, .25, .25, 1)
     SkinButton(f.close, 1, .5, .5)
-    f.close:SetScript("OnClick", function() f:Hide() current = nil end)
+    -- closing it counts as done (it used to come back at the next login): /pfui install runs it again
+    f.close:SetScript("OnClick", function() pfUI.firstrun:Done() f:Hide() current = nil end)
 
     -- step list
     f.side = CreateFrame("Frame", nil, f)
@@ -184,7 +220,7 @@ pfUI:RegisterModule("firstrun", "vanilla:tbc", function ()
     f.skip:SetPoint("RIGHT", f.close, "LEFT", -10, 0)
     f.skip:SetText(T["Skip"])
     f.skip:SetScript("OnClick", function()
-      for _, step in ipairs(pfUI.firstrun.steps) do pfUI_init[step.name] = true end
+      pfUI.firstrun:Done()
       f:Hide()
       current = nil
     end)
