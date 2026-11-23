@@ -57,11 +57,39 @@ pfUIOctoSCRMSkip = pfUIOctoSCRMWhy ~= nil
 pfUIOctoSCRM = not pfUIOctoSCRMSkip
 -- (20 Nov 2026, STAB: one of its files stopped part way while loading) the first error from these files while
 -- they load is noted for scrm\check.lua, which puts the game's own error handler back afterwards
+-- (23 Nov 2026, DaddyWeeds: "Second error ... none seen") only these files run between here and check.lua, so ANY error
+-- counts: Lua 5.0 cuts long file names to "...ns\Tooltip\Generic.lua:12:", which dropped the "scrm" this looked for.
 if pfUIOctoSCRM and type(geterrorhandler) == "function" and type(seterrorhandler) == "function" then
   pfUIOctoSCRMHandler = geterrorhandler() or false
   pfUIOctoSCRMCatch = function(msg)
-    if not pfUIOctoSCRMLoadErr and type(msg) == "string" and string.find(msg, "scrm", 1, true) then pfUIOctoSCRMLoadErr = msg end
+    if not pfUIOctoSCRMLoadErr and type(msg) == "string" then pfUIOctoSCRMLoadErr = msg end
     if pfUIOctoSCRMHandler then return pfUIOctoSCRMHandler(msg) end
   end
   seterrorhandler(pfUIOctoSCRMCatch)
+end
+-- (23 Nov 2026, DaddyWeeds: "I cant move the spells on the action bar") a copy switched off by check.lua left its
+-- replacements in place: its PickupAction calls CleveRoids.ClearSlot from the file that had not loaded, so every drag
+-- off a bar errored before the game's own PickupAction. Noted here, before any of its files: the game's functions and
+-- slash commands, and every frame its files make (CreateFrame is wrapped until check.lua), so a broken copy can be
+-- taken out completely (check.lua pfUIOctoSCRMUndo).
+if pfUIOctoSCRM then
+  pfUIOctoSCRMBefore = {}
+  for k, v in pairs(_G) do
+    if type(v) == "function" then pfUIOctoSCRMBefore[k] = v end
+  end
+  pfUIOctoSCRMSlashBefore = {}
+  if type(SlashCmdList) == "table" then
+    for k, v in pairs(SlashCmdList) do pfUIOctoSCRMSlashBefore[k] = v end
+  end
+  pfUIOctoSCRMFrames = {}
+  -- (wrapped once: run again, it keeps the game's own)
+  if type(CreateFrame) == "function" and CreateFrame ~= pfUIOctoSCRMWrap then
+    pfUIOctoSCRMCreateFrame = CreateFrame
+    pfUIOctoSCRMWrap = function(a, b, c, d)
+      local f = pfUIOctoSCRMCreateFrame(a, b, c, d)
+      if pfUIOctoSCRMFrames and f then table.insert(pfUIOctoSCRMFrames, f) end
+      return f
+    end
+    CreateFrame = pfUIOctoSCRMWrap
+  end
 end

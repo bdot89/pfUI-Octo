@@ -7016,6 +7016,16 @@ do
     ok(names["pfQuest-master"] and names["ShaguDPS"] and not names["pfQuest-turtle"] and not names["ItemRack"]
       and not names["BigWigs"] and not names["pfUI"], "doubled: pfQuest-master and ShaguDPS, not switched-off, "
       .. "pfQuest's add-ons or unrelated ones")
+    -- (23 Nov 2026, Wolfahrt) aux, Bagshui, TurtleMail and swing timers are flagged too; SCRM hands over by itself
+    local list2 = { { "aux-addon", 1 }, { "Bagshui", 1 }, { "TurtleMail", 1 }, { "SP_SwingTimer", 1 }, { "Postal", 1 },
+                    { "SuperCleveRoidMacros", 1 } }
+    local keepList = list
+    list = list2
+    local n2 = {}
+    for _, e in ipairs(AC.Doubled()) do n2[e[1]] = true end
+    ok(n2["aux-addon"] and n2["Bagshui"] and n2["TurtleMail"] and n2["SP_SwingTimer"] and n2["Postal"]
+      and not n2["SuperCleveRoidMacros"], "doubled: aux, Bagshui, TurtleMail, swing timer, Postal (not SCRM)")
+    list = keepList
     local asked, disabled = {}, {}
     pfUI.env.CreateQuestionDialog = function(text, yes, no, _, after)
       table.insert(asked, text)

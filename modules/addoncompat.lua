@@ -83,6 +83,24 @@ pfUI:RegisterModule("addoncompat", function ()
     ["bettercharacterstats"] = { always, nil, "Character stats in the character window" },
     ["evenbettercharacterstats"] = { always, nil, "Character stats in the character window" },
     ["pfuicustommedia"] = { always, nil, "Bar textures, fonts and gryphon pictures (pfUI-CustomMedia is built in)" },
+    -- (23 Nov 2026, Wolfahrt still ran aux, Bagshui, TurtleMail and swing timers next to ours) the rest of the About
+    -- page's "Built in" list. SuperCleveRoidMacros is not here: thirdparty-vanilla's pfUI.scrm.Login hands over itself.
+    ["aux"] = { has("auction"), nil, "Auctions (search, deals, selling, ledger, shopping lists)" },
+    ["auxaddon"] = { has("auction"), nil, "Auctions (search, deals, selling, ledger, shopping lists)" },
+    ["auctionator"] = { has("auction"), nil, "Auctions (search, deals, selling, ledger, shopping lists)" },
+    ["turtlemail"] = { has("mail"), nil, "Mail (collect all, send many items at once)" },
+    ["postal"] = { has("mail"), nil, "Mail (collect all, send many items at once)" },
+    ["ctmailmod"] = { has("mail"), nil, "Mail (collect all, send many items at once)" },
+    ["lazypig"] = { has("octolazy"), nil, "OctoLazy (LazyPig built in)" },
+    ["dpsmate"] = { has("meters"), nil, "Meters (damage, healing and more)" },
+    ["details"] = { has("meters"), nil, "Meters (damage, healing and more)" },
+    ["klhthreatmeter"] = { has("meters"), nil, "Threat meter and threat label" },
+    ["mikscrollingbattletext"] = { has("sct"), nil, "Combat Text" },
+    ["onebag"] = { has("bagsOcto"), nil, "Bags (one window for all bags)" },
+    ["onebag3"] = { has("bagsOcto"), nil, "Bags (one window for all bags)" },
+    ["swingtimer"] = { has("swing"), nil, "Swing Timer" },
+    ["consumesmanager"] = { has("consumes"), nil, "Consumables tracker" },
+    ["consumetracker"] = { has("consumes"), nil, "Consumables tracker" },
   }
 
   -- (15 Nov 2026, Barbeque_Squirrel: turning pfQuest off also turned off add-ons that need it, such as an

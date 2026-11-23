@@ -14,13 +14,44 @@ function pfUIOctoSCRMCheck(CR)
   return table.concat(missing, ", ")
 end
 pfUIOctoSCRMBroken = pfUIOctoSCRMCheck(rawget(_G, "CleveRoids"))
--- the error catcher put on by guard.lua is not needed any more
+-- the error catcher and the CreateFrame wrapper put on by guard.lua are not needed any more
 if pfUIOctoSCRMHandler ~= nil and type(seterrorhandler) == "function" and geterrorhandler() == pfUIOctoSCRMCatch then
   seterrorhandler(pfUIOctoSCRMHandler)
+end
+if pfUIOctoSCRMCreateFrame then CreateFrame = pfUIOctoSCRMCreateFrame end
+-- (23 Nov 2026, DaddyWeeds) a broken copy is taken out completely: every game function and slash command its files
+-- replaced goes back to the game's own (its PickupAction stopped spells being dragged off the bars), and every frame
+-- its files made stops listening. Its own new globals (CleveRoids, its slash commands' SLASH_ names) stay harmless.
+function pfUIOctoSCRMUndo()
+  local before, put = pfUIOctoSCRMBefore, 0
+  if type(before) == "table" then
+    for k, v in pairs(before) do
+      if rawget(_G, k) ~= v then _G[k] = v put = put + 1 end
+    end
+  end
+  local slash = pfUIOctoSCRMSlashBefore
+  if type(slash) == "table" and type(SlashCmdList) == "table" then
+    local now = {}
+    for k, v in pairs(SlashCmdList) do now[k] = v end
+    for k, v in pairs(now) do
+      if slash[k] ~= v then SlashCmdList[k] = slash[k] put = put + 1 end
+    end
+  end
+  for _, f in ipairs(pfUIOctoSCRMFrames or {}) do
+    if type(f) == "table" then
+      if f.UnregisterAllEvents then f:UnregisterAllEvents() end
+      if f.SetScript then pcall(f.SetScript, f, "OnUpdate", nil) end
+      if f.Hide then f:Hide() end
+    end
+  end
+  return put
 end
 if pfUIOctoSCRMBroken then
   local CR = rawget(_G, "CleveRoids")
   if type(CR) == "table" and type(CR.Frame) == "table" and CR.Frame.UnregisterAllEvents then CR.Frame:UnregisterAllEvents() end
+  pfUIOctoSCRMUndo()
+  -- (its "loaded" flag off: pfUI's bars read macros again and macrotweak comes back)
+  SRCM_LOADED = nil
   pfUIOctoSCRM, pfUIOctoSCRMSkip = false, true
   local what, first = pfUIOctoSCRMBroken, pfUIOctoSCRMLoadErr
   local f = CreateFrame("Frame")
@@ -32,3 +63,5 @@ if pfUIOctoSCRMBroken then
       .. ". Please send this line to the pfUI Octo Discord.")
   end)
 end
+-- what guard.lua noted is only needed above
+pfUIOctoSCRMBefore, pfUIOctoSCRMSlashBefore, pfUIOctoSCRMFrames = nil, nil, nil

@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.32", {
+    { "Spells drag off your bars again", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!" },
+    { "\"Already built in\" check knows more add-ons", "at login pfUI Octo now also offers to switch off aux, Auctionator, TurtleMail, Postal, CT_MailMod, LazyPig, DPSMate, Details, KLHThreatMeter, MikScrollingBattleText, OneBag, SwingTimer and consume trackers - all built in already. Thanks Wolfahrt!" },
+  } },
   { "1.2.31", {
     { "Map ping in the right place", "after using the world map zoom, the ping that marks you when the map opens could show up somewhere else. It now always lands on your arrow, zoomed in or not. Thanks mechanism for the report!" },
   } },
@@ -185,8 +189,5 @@ pfUI.octoNotes = {
     { "Steadier raid threat", "between the server's answers nobody jumps above the tank on a guess. Only the server's own numbers can put someone past the tank." },
     { "Demo events", "an Events menu on the demo bar and buttons on the Demo mode page: Overthreat, DoTs pull aggro, Tank dies, Raid-wide damage, Big cast, Debuffs to cure, Enrage, Healers out of mana, Someone dies, Battle res, Res everyone, Wipe, Kill the boss." },
     { "Whispers in one window", "a tab per person instead of a window each." },
-  } },
-  { "1.1.92", {
-    { "Demo mode never gets stuck", "if a demo can't start, everything is put back at once and chat says why. Stop always finishes, so you can start again without a reload. Before, a demo that failed to start could leave Stop doing nothing until you reloaded." },
   } },
 }

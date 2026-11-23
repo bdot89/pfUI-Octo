@@ -5,7 +5,9 @@ pfUI:RegisterModule("macrotweak", "vanilla", function ()
   -- through two SendChatMessage hooks, two /use handlers and pfUI's history hook. pfUI loads before it, so the check
   -- waits for PLAYER_LOGIN (every add-on loaded by then); SRCM_LOADED is its own flag, set whatever its folder is named.
   local function Other()
-    return _G.SRCM_LOADED or type(_G.CleveRoids) == "table" or (IsAddOnLoaded and IsAddOnLoaded("SuperCleveRoidMacros"))
+    -- (23 Nov 2026) a built-in copy switched off by scrm\check.lua leaves its CleveRoids table: not counted
+    return _G.SRCM_LOADED or (type(_G.CleveRoids) == "table" and not _G.pfUIOctoSCRMBroken)
+      or (IsAddOnLoaded and IsAddOnLoaded("SuperCleveRoidMacros"))
       or _G.SuperMacroFrame or (IsAddOnLoaded and IsAddOnLoaded("UltimaMacros"))
   end
   pfUI.macrotweak = { Other = Other }

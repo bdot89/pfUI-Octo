@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.32
+
+- 🖱️ **Spells drag off your bars again:** if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!
+- 🧹 **"Already built in" check knows more add-ons:** at login pfUI Octo now also offers to switch off aux, Auctionator, TurtleMail, Postal, CT_MailMod, LazyPig, DPSMate, Details, KLHThreatMeter, MikScrollingBattleText, OneBag, SwingTimer and consume trackers - all built in already. Thanks Wolfahrt!
+
 ## 📜 New in 1.2.31
 
 - 📍 **Map ping in the right place:** after using the world map zoom, the ping that marks you when the map opens could show up somewhere else. It now always lands on your arrow, zoomed in or not. Thanks mechanism for the report!

@@ -23,11 +23,25 @@ do
   local list = {}
   _G.GetNumAddOns = function() return table.getn(list) end
   _G.GetAddOnInfo = function(i) local a = list[i] return a[1], a[1], "", a[2], a[3] end
-  local function Run() assert(loadstring(guard))() end
+  -- (check.lua puts CreateFrame and the error handler back in the game; here each run does)
+  local wrapped
+  local function Run()
+    local cf, eh = CreateFrame, geterrorhandler and geterrorhandler()
+    assert(loadstring(guard))()
+    wrapped = CreateFrame ~= cf
+    if wrapped and pfUIOctoSCRMFrames then
+      local f = CreateFrame("Frame")
+      wrapped = pfUIOctoSCRMFrames[1] == f
+    end
+    CreateFrame, pfUIOctoSCRMWrap = cf, nil
+    if eh and seterrorhandler then seterrorhandler(eh) end
+  end
   rawset(_G, "CLASSIC_API_VERSION", 11508)
   list = { { "pfUI", 1, 1 }, { "Cursive", 1, 1 } }
   Run()
   ok(pfUIOctoSCRM and not pfUIOctoSCRMSkip, "ClassicAPI 1.15.8 and no other copy: ours runs")
+  ok(wrapped and type(pfUIOctoSCRMBefore) == "table" and pfUIOctoSCRMBefore.GetNumAddOns == _G.GetNumAddOns,
+    "and the game's functions are noted first, and the frames its files make")
   list = { { "pfUI", 1, 1 }, { "SuperCleveRoidMacros-main", 1, 1 } }
   Run()
   ok(pfUIOctoSCRMSkip and pfUIOctoSCRMStandalone == "SuperCleveRoidMacros-main", "a separate copy (any folder name) is on: ours steps aside")
@@ -86,9 +100,35 @@ do
     rawset(_G, "pfUIOctoSCRMSkip", false)
     rawset(_G, "pfUIOctoSCRM", true)
     rawset(_G, "CleveRoids", { Frame = { UnregisterAllEvents = function() unreg = unreg + 1 end } })
+    -- (23 Nov 2026, DaddyWeeds: "I cant move the spells on the action bar") what guard.lua noted before its files ran
+    -- is put back: its PickupAction (which called a function from the file that did not load), slash commands, frames
+    local keepPick, keepSlash = rawget(_G, "PickupAction"), {}
+    SlashCmdList = SlashCmdList or {}
+    for k, v in pairs(SlashCmdList) do keepSlash[k] = v end
+    local gamePick, gameCast = function() return "game" end, function() return "game cast" end
+    local fr = { ev = 1, shown = 1 }
+    function fr:UnregisterAllEvents() self.ev = nil end
+    function fr:SetScript() end
+    function fr:Hide() self.shown = nil end
+    local before = {}
+    for k, v in pairs(_G) do if type(v) == "function" then before[k] = v end end
+    before.PickupAction = gamePick
+    pfUIOctoSCRMBefore = before
+    pfUIOctoSCRMSlashBefore = { CAST = gameCast }
+    pfUIOctoSCRMFrames = { fr }
+    _G.PickupAction = function() error("CleveRoids.ClearSlot is nil") end
+    SlashCmdList.CAST, SlashCmdList.CLEVEROID = function() end, function() end
+    rawset(_G, "SRCM_LOADED", true)
     assert(loadfile("scrm/check.lua"))()
     ok(string.find(tostring(pfUIOctoSCRMBroken), "IndexActionSlot", 1, true) and unreg == 1 and pfUIOctoSCRMSkip == true,
       "half loaded: switched off, its events stopped, the missing parts named (" .. tostring(pfUIOctoSCRMBroken) .. ")")
+    ok(_G.PickupAction == gamePick and SlashCmdList.CAST == gameCast and SlashCmdList.CLEVEROID == nil,
+      "half loaded: the game's PickupAction and /cast are back, its own /cleveroid gone")
+    ok(fr.ev == nil and fr.shown == nil and rawget(_G, "SRCM_LOADED") == nil and pfUIOctoSCRMBefore == nil,
+      "half loaded: its frames stop listening, its loaded flag is off, the notes are freed")
+    _G.PickupAction = keepPick
+    for k in pairs(SlashCmdList) do SlashCmdList[k] = nil end
+    for k, v in pairs(keepSlash) do SlashCmdList[k] = v end
     local full = {}
     for _, n in ipairs(pfUIOctoSCRMNEED) do full[n] = function() end end
     ok(pfUIOctoSCRMCheck(full) == nil, "fully loaded: nothing missing")

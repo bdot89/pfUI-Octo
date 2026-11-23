@@ -933,7 +933,8 @@ pfUI:RegisterModule("thirdparty-vanilla", "vanilla", function()
   -- forks do the same); ours went on scanning, so the bars showed the macro's first spell over its choice.
   pfUI.scrm = pfUI.scrm or {}
   function pfUI.scrm.Apply()
-    local on = _G.SRCM_LOADED == true or type(rawget(_G, "CleveRoids")) == "table"
+    -- (23 Nov 2026) a built-in copy that did not load fully (scrm\check.lua) is off: the bars go on reading macros
+    local on = not _G.pfUIOctoSCRMBroken and (_G.SRCM_LOADED == true or type(rawget(_G, "CleveRoids")) == "table")
     pfUI.scrm.on = on and true or false
     if not (on and pfUI.bars) or pfUI.bars.skip_macro then return end
     pfUI.bars.skip_macro = true
