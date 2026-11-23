@@ -140,6 +140,34 @@ ok(type(pfUI.api.SetButtonFontColor) == "function" and pfUI.api.round() ~= "stan
   "helpers only pfQuest's stand-in had go to the real pfUI; its own stay")
 if hadSBFC then realPfUI.api.SetButtonFontColor = hadSBFC end
 
+-- (23 Nov 2026, Mr_Rosh: tracker.lua:260 DoLayout spam, the error that started it never seen) errors while
+-- pfQuest's files load are caught and told; a half-loaded tracker is stopped; the old error handler goes back
+do
+  local realSet, realGet = rawget(_G, "seterrorhandler"), rawget(_G, "geterrorhandler")
+  local game = function() end
+  local current = game
+  _G.seterrorhandler = function(f) current = f end
+  _G.geterrorhandler = function() return current end
+  _G.pfDB = nil
+  run("guard.lua")
+  ok(current ~= game, "guard.lua catches errors while pfQuest's files load")
+  current("Interface\\AddOns\\pfUI\\pfquest\\config.lua:12: something broke")
+  local tr = CreateFrame("Frame", "pfQuestMapTracker", UIParent)
+  _G.pfQuestMapTracker = tr
+  tr:SetScript("OnUpdate", function() end)
+  tr:Show()
+  local hadMap = rawget(_G, "pfMap")
+  _G.pfMap = nil
+  pfUI = nil
+  run("restore.lua")
+  ok(current == game, "restore.lua puts the game's error handler back")
+  ok(tr:GetScript("OnUpdate") == nil and not tr:IsShown(), "a tracker that stopped loading half way is stopped and hidden")
+  ok(pfQuestOctoLoadError and string.find(pfQuestOctoLoadError, "config.lua:12", 1, true), "the first error is kept to tell")
+  _G.pfMap, _G.pfQuestMapTracker, _G.pfQuestOctoLoadError, _G.pfQuestOctoNoMap = hadMap, nil, nil, nil
+  _G.seterrorhandler, _G.geterrorhandler = realSet, realGet
+  pfUI, pfUI_config = realPfUI, realConfig
+end
+
 -- the off switch (9 Nov 2026): guard / restore note what pfQuest's files change,
 -- modules\questing.lua puts it back
 do

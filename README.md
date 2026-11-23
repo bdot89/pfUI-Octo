@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.37
+
+- ✨ **Minimap glow, even all the way round:** a new **Glow** card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. **New pictures: restart the game, not just /reload.**
+- 🧭 **pfQuest load errors are caught:** if part of pfQuest fails while the game loads, chat says so at login with the first error in red (also saved for bug reports), and a half-loaded quest tracker is switched off instead of spamming `tracker.lua` errors.
+
 ## 📜 New in 1.2.36
 
 - 🛠️ **Installer once per character:** the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install.

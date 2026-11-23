@@ -344,6 +344,20 @@ if not pfQuestOctoSkip then
     table.insert(frames, f)
     return f
   end
+
+  -- (23 Nov 2026, Mr_Rosh: "map could not load" + tracker.lua:260 DoLayout, but the error that started it was
+  -- never seen - it comes during the loading screen, before chat.) The first errors raised while pfQuest's
+  -- files load are noted; restore.lua puts the old handler back and says the first one in chat at login.
+  if type(seterrorhandler) == "function" and type(geterrorhandler) == "function" then
+    local prev = geterrorhandler()
+    local seen = { prev = prev }
+    seen.handler = function(msg)
+      if table.getn(seen) < 3 then table.insert(seen, tostring(msg)) end
+      if prev then return prev(msg) end
+    end
+    pfQuestOctoErrors = seen
+    seterrorhandler(seen.handler)
+  end
 end
 "@
 $restore = @"
@@ -381,18 +395,46 @@ if pfQuestOcto and pfQuestOcto.make then
   pfQuestOcto.changed, pfQuestOcto.slash, pfQuestOcto.before = changed, newslash, nil
 end
 
+-- the error catcher from guard.lua: the handler it found goes back (unless another add-on set its own since)
+local loadErrors = pfQuestOctoErrors
+pfQuestOctoErrors = nil
+if loadErrors and loadErrors.handler and type(seterrorhandler) == "function" and type(geterrorhandler) == "function"
+  and geterrorhandler() == loadErrors.handler then
+  seterrorhandler(loadErrors.prev)
+end
+
 -- (16 Nov 2026) If pfQuest's map still failed to load, its control-key ticker would error twice a second
 -- for the whole session. It is stopped, and one chat line at login says so instead.
-if not pfQuestOctoSkip and pfMap == nil then
-  if pfQuestControlKey and pfQuestControlKey.SetScript then pfQuestControlKey:SetScript("OnUpdate", nil) end
-  pfQuestOctoNoMap = true
+-- (23 Nov 2026, Mr_Rosh) The same for the quest tracker: a tracker.lua that stopped half way has no DoLayout and
+-- its OnUpdate errored ten times a second (tracker.lua:260, before that :282). It is stopped and hidden.
+local brokenTracker = type(pfQuestMapTracker) == "table" and rawget(pfQuestMapTracker, "DoLayout") == nil and true or nil
+if not pfQuestOctoSkip and brokenTracker and pfQuestMapTracker.SetScript then
+  pfQuestMapTracker:SetScript("OnUpdate", nil)
+  pfQuestMapTracker:SetScript("OnEvent", nil)
+  pfQuestMapTracker:UnregisterAllEvents()
+  pfQuestMapTracker:Hide()
+end
+if not pfQuestOctoSkip and (pfMap == nil or brokenTracker or (loadErrors and loadErrors[1])) then
+  if pfMap == nil then
+    if pfQuestControlKey and pfQuestControlKey.SetScript then pfQuestControlKey:SetScript("OnUpdate", nil) end
+    pfQuestOctoNoMap = true
+  end
+  local first = loadErrors and loadErrors[1]
+  pfQuestOctoLoadError = first
   local tell = CreateFrame("Frame")
   tell:RegisterEvent("PLAYER_ENTERING_WORLD")
   tell:SetScript("OnEvent", function()
     this:UnregisterAllEvents()
+    -- kept in pfUI's saved file (WTF\...\SavedVariables\pfUI.lua) so it can be sent in
+    if type(pfUI_cache) == "table" then
+      pfUI_cache.pfquesterror = first and (date("%Y-%m-%d %H:%M") .. " " .. first) or nil
+    end
     if DEFAULT_CHAT_FRAME then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: pfQuest's map could not load, so quest pins are off. "
-        .. "Please report the FIRST red error shown right after logging in.")
+      local what = (pfMap == nil or brokenTracker) and "pfQuest could not fully load, so quest pins or the quest tracker are off."
+        or "pfQuest had an error while loading."
+      DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: " .. what .. (first
+        and (" Please report this first error: |cffff6666" .. first .. "|r")
+        or " Please report the FIRST red error shown right after logging in."))
     end
   end)
 end

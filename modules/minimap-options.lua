@@ -244,6 +244,10 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
       for i = 1, 3 do
         art[i] = { up = over:CreateTexture(nil, "ARTWORK"), down = under:CreateTexture(nil, "BACKGROUND"), angle = 0 }
       end
+      -- the glow, drawn by the same code as the real map's (map.GlowLayout / GlowPaint)
+      local glowDown, glowUp = under:CreateTexture(nil, "BORDER"), over:CreateTexture(nil, "BORDER")
+      local glowSweep = over:CreateTexture(nil, "OVERLAY")
+      local glowTex
 
       -- one spot per part
       local hots = {}
@@ -326,6 +330,13 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
             t:Show()
             l.tex, l.speed = t, tonumber(s["art" .. i .. "speed"]) or 0
           end
+        end
+        glowDown:Hide()
+        glowUp:Hide()
+        glowTex = nil
+        if map.GlowLayout then
+          local t = map.GlowAbove(s) and glowUp or glowDown
+          if map.GlowLayout(t, glowSweep, mock, MAPPX, s) then glowTex = t end
         end
         -- every part where it sits, as big as it is; Never = left out
         for _, part in ipairs(map.PARTS or {}) do
@@ -541,6 +552,12 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
             Turn(l.tex, math.rad(l.angle))
           end
         end
+        -- the glow's colour and animation, as on the real map (the test button pretends combat / a ping)
+        if glowTex and map.GlowPaint then
+          local now = GetTime()
+          local flash = (MO.glowFlash or 0) > now and (MO.glowFlash - now) / 1.2 or 0
+          map.GlowPaint(glowTex, glowSweep, S(), now, (MO.glowCombat or 0) > now, flash)
+        end
         if (this.tick or 0) > GetTime() then return end
         this.tick = GetTime() + .2
 
@@ -683,6 +700,53 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     Sld(p, "Line size", "On the square map.", 1, 6, 1, S, "bordersize", Px)
     Color(p, "Your own colour", "Used when the colour is \"Your own colour\".", function() return "outlinecolor" end)
 
+    -- (23 Nov 2026, Javelin + user: "more glows and options ... clean and pixel perfect ... colour changing
+    -- options animation options") our own glows, even all the way round every shape (minimap-style.lua map.GLOWS)
+    W.Card(p, "Glow", { tip = "A glow round the map, made for its exact shape so it sits evenly all the way round. "
+      .. "Colours can follow your class or accent, shift between two colours or run through the rainbow, and it can pulse, "
+      .. "breathe, beat, flicker or send a light running round a round map." })
+    local GLOWLIST = { { key = "none", label = "None" } }
+    for _, g in ipairs(map.GLOWS or {}) do table.insert(GLOWLIST, { key = g[1], label = g[2], tip = g[4] }) end
+    W.Dropdown(p, "Glow", "Soft hugs the edge; Tight stays close; Wide reaches far; Neon is a bright line on the edge; Halo "
+      .. "is a ring with a gap; Double is two thin lines; Inner glows inside the map's edge.", GLOWLIST,
+      function() return S().glow or "none" end, function(v) S().glow = v Live() end)
+    W.Dropdown(p, "Colour", "Your colour: the swatch below. Shifting: fades between your colour and the second one. "
+      .. "Rainbow: runs through every colour (one round every four cycles).", {
+        { key = "custom", label = "Your colour" }, { key = "class", label = "Class colour" }, { key = "accent", label = "Accent colour" },
+        { key = "shift", label = "Shifting between two" }, { key = "rainbow", label = "Rainbow" },
+      }, function() return S().glowcolormode or "custom" end, function(v) S().glowcolormode = v U() end)
+    Color(p, "Glow colour", "Its colour, and with the slider in the picker how strong it is (the strength counts in every colour mode).",
+      function() return "glowcolor" end)
+    Color(p, "Second colour", "The colour it shifts to with \"Shifting between two\".", function() return "glowcolor2" end)
+    W.Check(p, "Over the map", "Off: under the map, so only the part outside the edge shows. On: over it too (Neon looks "
+      .. "sharper on). Inner glow is always over the map.", function() return S().glowabove == "1" end,
+      function(v) S().glowabove = v and "1" or "0" U() end)
+    W.Dropdown(p, "Blend", "Glow brightens what is under it. Normal paints over it - with a dark colour that makes a shadow.",
+      { { key = "ADD", label = "Glow (add)" }, { key = "BLEND", label = "Normal (shadow)" } },
+      function() return S().glowblend or "ADD" end, function(v) S().glowblend = v U() end)
+    W.Dropdown(p, "Animation", "Pulse: smooth up and down. Breathe: slow and calm. Heartbeat: two quick beats. "
+      .. "Flicker: a living flame. Running light: a bright arc runs round the map (round map only).", {
+        { key = "none", label = "None" }, { key = "pulse", label = "Pulse" }, { key = "breathe", label = "Breathe" },
+        { key = "heartbeat", label = "Heartbeat" }, { key = "flicker", label = "Flicker" }, { key = "sweep", label = "Running light" },
+      }, function() return S().glowanim or "none" end, function(v) S().glowanim = v U() end)
+    W.Slider(p, "Speed", "Seconds for one pulse, beat, colour shift or one run round the map.", .5, 10, .5,
+      function() return tonumber(S().glowspeed) or 3 end, function(v) S().glowspeed = tostring(v) U() end,
+      function(v) return v .. " s" end)
+    W.Slider(p, "Dimmest", "How far a pulse, breath, beat or flicker dims: 0% = out, 100% = no change.", 0, 100, 5,
+      function() return tonumber(S().glowmin) or 35 end, function(v) S().glowmin = tostring(v) U() end, Pct)
+    W.Dropdown(p, "Show", nil, {
+        { key = "always", label = "Always" }, { key = "combat", label = "Only in combat" }, { key = "ooc", label = "Only out of combat" },
+      }, function() return S().glowwhen or "always" end, function(v) S().glowwhen = v U() end)
+    W.Check(p, "Own colour in combat", "The glow takes the combat colour while you fight.",
+      function() return S().glowcombat == "1" end, function(v) S().glowcombat = v and "1" or "0" U() end)
+    Color(p, "Combat colour", nil, function() return "glowcombatcolor" end)
+    W.Check(p, "Flash when pinged", "The glow flashes bright when someone pings the map.",
+      function() return S().glowping == "1" end, function(v) S().glowping = v and "1" or "0" U() end)
+    W.Buttons(p, {
+      { "Try combat", function() MO.glowCombat = GetTime() + 5 end, 110, "The preview shows the glow as in combat for 5 seconds." },
+      { "Try a ping", function() MO.glowFlash = GetTime() + 1.2 end, 110, "The preview's glow flashes as when the map is pinged." },
+    })
+
     W.Card(p, "Buttons", { tip = "Where the map's buttons go. Each button's own settings are on Buttons and text." })
     W.Dropdown(p, "Side bar", "The map's buttons in a row of boxes along one side, each the same size. Off: each on the map.",
       { { key = "0", label = "Off" }, { key = "left", label = "Left" }, { key = "right", label = "Right" },
@@ -693,7 +757,8 @@ pfUI:RegisterModule("minimap-options", "vanilla:tbc", function ()
     W.Buttons(p, { { "More button settings", function() if MO.OpenDock then MO.OpenDock() else O:Open("mmparts") end end, 170,
       "Which buttons, gaps, the strip, mouse-over - and every button and text round the map." } })
 
-    W.Card(p, "Spell art", { tip = "Up to three layers of the game's spell art round the map (the spell-art looks set these)." })
+    W.Card(p, "Spell art", { tip = "Up to three layers of the game's spell art round the map (the spell-art looks set these). "
+      .. "The game's glow pictures are not quite centred - for an even glow use the Glow card above." })
     local LAYERS = {}
     for i = 1, 3 do table.insert(LAYERS, { key = i, label = "Layer " .. i }) end
     W.Dropdown(p, "Layer", "Pick a layer, then its art below. None switches a layer off.", LAYERS,

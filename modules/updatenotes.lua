@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.37", {
+    { "Minimap glow, even all the way round", "a new Glow card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. New pictures: restart the game, not just /reload." },
+    { "pfQuest load errors are caught", "if part of pfQuest fails while the game loads, chat says so at login with the first error in red (also saved for bug reports), and a half-loaded quest tracker is switched off instead of spamming tracker.lua errors." },
+  } },
   { "1.2.36", {
     { "Installer once per character", "the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install." },
     { "Minimap button in the addon bar", "with the addon button bar switched on, the pfUI Octo minimap button goes into it like every other add-on's button." },
@@ -170,12 +174,5 @@ pfUI.octoNotes = {
     { "Frame cap", "1.12 has no frame cap of its own, so the page copies the DXVK line for you: a Steam / Lutris launch option, or one line for dxvk.conf. G-Sync / FreeSync screens get a cap 3 under the Hz." },
     { "Playing on Linux", "one switch for Wine / Proton / Lutris players: no forced wait for the graphics card (more frames), a smooth hardware mouse pointer, lighter effects in dungeons too and the memory ceiling on. Your own settings come back when you switch it off. It also shows which DLLs really loaded." },
     { "Fewer far-away players (PerfBoost)", "with the PerfBoost DLL, set how far players, pets and trash are drawn, in and out of combat. Three ready looks, and PvP-flagged or raid-marked players can always stay drawn. The biggest FPS gain in raids and cities." },
-  } },
-  { "1.1.97", {
-    { "Raid chat window", "opens by itself when you join a raid and shows only what matters in a fight: raid chat and raid warnings, with the leader's and assists' calls standing out and the \"+\" answers gathered under each call as one line of names." },
-    { "Taunts and overaggro", "who taunted what (SuperWoW), resisted / missed / dodged / parried taunts in red, and a red OVERAGGRO line when a boss turns to someone who isn't tanking it." },
-    { "Healer mana after a fight", "every healer's mana, lowest first, with the raid average." },
-    { "Loot", "the master looter's links tagged [ML] and epic loot the raid receives. Links and names click as in any chat, and a box at the bottom talks to the raid." },
-    { "Quiet chat in raids", "no General / Trade / LFG / World in your other chat windows while you raid, back the moment you leave or click Q. Chat & Panels > Raid chat, /raidchat test to try it." },
   } },
 }

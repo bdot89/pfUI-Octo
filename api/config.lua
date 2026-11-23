@@ -512,6 +512,20 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("mapstyle",   nil,           "outlineaccent",    "0")
   pfUI:UpdateConfig("mapstyle",   nil,           "bordercolor",      "black")  -- black | class | accent | custom (outlinecolor)
   pfUI:UpdateConfig("mapstyle",   nil,           "bordersize",       "1")      -- the solid line on the square map, px
+  -- the map's own glow (23 Nov 2026, minimap-style.lua map.GLOWS; img\minimap\glow from tools\MakeMinimapGlows.ps1)
+  pfUI:UpdateConfig("mapstyle",   nil,           "glow",             "none")   -- none | tight | soft | wide | neon | halo | double | inner
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowcolormode",    "custom") -- custom | class | accent | shift | rainbow
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowcolor",        "0.45,1,0.5,0.85")
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowcolor2",       "0.3,0.6,1,0.85")
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowblend",        "ADD")    -- ADD | BLEND (a dark colour = a shadow)
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowabove",        "0")      -- over the map (inner glow always is)
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowanim",         "none")   -- none | pulse | breathe | heartbeat | flicker | sweep
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowspeed",        "3")      -- seconds a cycle (animation and colour change)
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowmin",          "35")     -- % brightness at the bottom of a pulse
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowwhen",         "always") -- always | combat | ooc
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowcombat",       "0")      -- another colour in combat
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowcombatcolor",  "1,0.25,0.2,0.9")
+  pfUI:UpdateConfig("mapstyle",   nil,           "glowping",         "1")      -- flash when someone pings the map
   for i = 1, 3 do
     pfUI:UpdateConfig("mapstyle", nil,           "art" .. i,         "none")
     pfUI:UpdateConfig("mapstyle", nil,           "art" .. i .. "size",  "140")

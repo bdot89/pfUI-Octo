@@ -83,4 +83,18 @@ if not pfQuestOctoSkip then
     table.insert(frames, f)
     return f
   end
+
+  -- (23 Nov 2026, Mr_Rosh: "map could not load" + tracker.lua:260 DoLayout, but the error that started it was
+  -- never seen - it comes during the loading screen, before chat.) The first errors raised while pfQuest's
+  -- files load are noted; restore.lua puts the old handler back and says the first one in chat at login.
+  if type(seterrorhandler) == "function" and type(geterrorhandler) == "function" then
+    local prev = geterrorhandler()
+    local seen = { prev = prev }
+    seen.handler = function(msg)
+      if table.getn(seen) < 3 then table.insert(seen, tostring(msg)) end
+      if prev then return prev(msg) end
+    end
+    pfQuestOctoErrors = seen
+    seterrorhandler(seen.handler)
+  end
 end

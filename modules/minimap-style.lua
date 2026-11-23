@@ -188,6 +188,205 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
     return tonumber(r) or 1, tonumber(g) or 1, tonumber(b) or 1, tonumber(a) or 1
   end
 
+  -- ---------------------------------------------------------------- glow
+
+  -- (23 Nov 2026, Javelin: a gentle glow made from the spell art sat further from the round map at the top
+  -- right than at the bottom left - the game's glow pictures are not centred in their files. The user: "more
+  -- glows and options ... clean and pixel perfect ... colour changing ... animation".) Our own glows,
+  -- img\minimap\glow\<style>-<shape>.tga, made by tools\MakeMinimapGlows.ps1 from the very shape that masks
+  -- the map: each pixel's true distance to the shape's edge, so the glow is even all the way round. A glow
+  -- picture spans F map half-widths each way: drawn at the map's size * F, centred on the map, its edge
+  -- lands on the map's edge. F MUST match the generator's numbers.
+  -- { key, name, F, tip }
+  map.GLOWS = {
+    { "soft",   "Soft",        1.24, "A gentle glow hugging the edge." },
+    { "tight",  "Tight",       1.13, "A short, close glow." },
+    { "wide",   "Wide",        1.45, "A big soft glow far out from the edge." },
+    { "neon",   "Neon line",   1.20, "A bright line right on the edge with a soft glow round it." },
+    { "halo",   "Halo ring",   1.32, "A glowing ring with a dark gap between it and the map." },
+    { "double", "Double ring", 1.12, "Two thin lines round the map." },
+    { "inner",  "Inner glow",  1.04, "Glow inside the map, along its edge (always over the map)." },
+  }
+  map.GLOWSWEEP = { tex = "img:minimap\\glow\\sweep-round", F = 1.24 }
+  local GLOWSHAPES = { square = true, round = true, rounded = true, rounder = true, squircle = true, octagon = true,
+    diamond = true, ["corner-tl"] = true, ["corner-tr"] = true, ["corner-bl"] = true, ["corner-br"] = true }
+  function map.GlowSpec(key)
+    for _, g in ipairs(map.GLOWS) do if g[1] == key then return g end end
+  end
+  function map.GlowTex(style, shape)
+    if not GLOWSHAPES[shape or ""] then shape = "square" end
+    return pfUI.media["img:minimap\\glow\\" .. style .. "-" .. shape]
+  end
+  -- over the map or under it (under: only the part outside the map shows)
+  function map.GlowAbove(s)
+    return s.glow == "inner" or s.glowabove == "1"
+  end
+  -- seconds a cycle, never 0
+  local function Period(s) return math.max(.3, tonumber(s.glowspeed) or 3) end
+  local TAU = 2 * math.pi
+  -- hue 0..1 -> r, g, b at full strength
+  local function Hue(h)
+    h = math.mod(h, 1) * 6
+    local i = floor(h)
+    local f = h - i
+    if i == 0 then return 1, f, 0 elseif i == 1 then return 1 - f, 1, 0 elseif i == 2 then return 0, 1, f
+    elseif i == 3 then return 0, 1 - f, 1 elseif i == 4 then return f, 0, 1 end
+    return 1, 0, 1 - f
+  end
+  map.GlowHue = Hue
+  -- does the glow show at all now (in / out of combat)
+  function map.GlowWanted(s, combat)
+    if not map.GlowSpec(s.glow) then return false end
+    if s.glowwhen == "combat" then return combat and true or false end
+    if s.glowwhen == "ooc" then return not combat end
+    return true
+  end
+  -- its colour and strength at time `now`: colour mode, combat colour, animation, a ping flash
+  function map.GlowColor(s, now, combat, flash)
+    local r, g, b, a = Color(s.glowcolor)
+    local per = Period(s)
+    local mode = s.glowcolormode or "custom"
+    if combat and s.glowcombat == "1" then
+      r, g, b = Color(s.glowcombatcolor)
+    elseif mode == "class" then
+      local _, class = UnitClass("player")
+      local c = class and RAID_CLASS_COLORS[class]
+      if c then r, g, b = c.r, c.g, c.b end
+    elseif mode == "accent" and GetAccentColor then
+      r, g, b = GetAccentColor()
+    elseif mode == "shift" then
+      local r2, g2, b2 = Color(s.glowcolor2)
+      local k = .5 - .5 * cos(now * TAU / per)
+      r, g, b = r + (r2 - r) * k, g + (g2 - g) * k, b + (b2 - b) * k
+    elseif mode == "rainbow" then
+      r, g, b = Hue(now / (per * 4))
+    end
+    -- brightness from the animation, between glowmin % and full
+    local lo = math.min(1, math.max(0, (tonumber(s.glowmin) or 35) / 100))
+    local anim, m = s.glowanim or "none", 1
+    local ph = math.mod(now / per, 1)
+    if anim == "pulse" then
+      m = lo + (1 - lo) * (.5 + .5 * sin(ph * TAU))
+    elseif anim == "breathe" then
+      -- slow in, slow out, a little longer bright than dim
+      m = lo + (1 - lo) * math.pow(.5 - .5 * cos(ph * TAU), .7)
+    elseif anim == "heartbeat" then
+      local function Beat(c) local x = (ph - c) / .045 return math.exp(-x * x) end
+      m = lo + (1 - lo) * math.max(Beat(.1), .65 * Beat(.3))
+    elseif anim == "flicker" then
+      -- three slow waves out of step: a living flame, never a strobe
+      local w = .5 * sin(now * 7.1) + .3 * sin(now * 3.3 + 1.3) + .2 * sin(now * 13.7 + .4)
+      m = lo + (1 - lo) * (.5 + .5 * w)
+    end
+    if flash and flash > 0 then
+      m = math.max(m, flash)
+      r, g, b = r + (1 - r) * flash * .6, g + (1 - g) * flash * .6, b + (1 - b) * flash * .6
+    end
+    return r, g, b, a * m
+  end
+  -- size and texture of a glow on `anchor` (a map `size` px wide): t = the glow, sw = the sweep's arc
+  function map.GlowLayout(t, sw, anchor, size, s)
+    local g = map.GlowSpec(s.glow)
+    t:Hide()
+    if sw then sw:Hide() end
+    if not g then return false end
+    local shape = s.shape or "square"
+    t:SetTexture(map.GlowTex(g[1], shape))
+    t:ClearAllPoints()
+    t:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+    t:SetWidth(size * g[3])
+    t:SetHeight(size * g[3])
+    t:SetBlendMode(s.glowblend == "BLEND" and "BLEND" or "ADD")
+    t:Show()
+    -- the sweep: a bright arc running round the round map, on top of the glow
+    if sw and s.glowanim == "sweep" and shape == "round" then
+      sw:SetTexture(pfUI.media[map.GLOWSWEEP.tex])
+      sw:ClearAllPoints()
+      sw:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+      sw:SetWidth(size * map.GLOWSWEEP.F)
+      sw:SetHeight(size * map.GLOWSWEEP.F)
+      sw:SetBlendMode("ADD")
+      sw:Show()
+    end
+    return true
+  end
+  -- colour (and the sweep's turn) at `now`
+  function map.GlowPaint(t, sw, s, now, combat, flash)
+    local r, g, b, a = map.GlowColor(s, now, combat, flash)
+    if not map.GlowWanted(s, combat) then a = 0 end
+    t:SetVertexColor(r, g, b, a)
+    if sw and sw:IsShown() then
+      -- (with Sweep the glow keeps full strength: the running arc is the animation)
+      sw:SetVertexColor(r, g, b, a)
+      -- one turn a cycle, clockwise
+      local ang = -math.mod(now / Period(s), 1) * TAU
+      local c, n = cos(ang), sin(ang)
+      local function P(x, y) return .5 + (x - .5) * c - (y - .5) * n, .5 + (x - .5) * n + (y - .5) * c end
+      local ulx, uly = P(0, 0)
+      local llx, lly = P(0, 1)
+      local urx, ury = P(1, 0)
+      local lrx, lry = P(1, 1)
+      sw:SetTexCoord(ulx, uly, llx, lly, urx, ury, lrx, lry)
+    end
+  end
+  -- does the glow change by itself over time (so it needs a ticker)
+  function map.GlowMoves(s)
+    if not map.GlowSpec(s.glow) then return false end
+    local anim = s.glowanim or "none"
+    if anim ~= "none" then return true end
+    local mode = s.glowcolormode or "custom"
+    return mode == "shift" or mode == "rainbow"
+  end
+
+  -- the real map's glow: under the map (only round its edge) or over it, and the sweep's arc above both
+  local glow = {
+    down = below:CreateTexture(nil, "BORDER"), up = above:CreateTexture(nil, "BORDER"),
+    sweep = above:CreateTexture(nil, "OVERLAY"), flashUntil = 0,
+  }
+  map.glow = glow
+  local function InCombat() return UnitAffectingCombat("player") and true or false end
+  function map.GlowTick()
+    local now = GetTime()
+    local flash = glow.flashUntil > now and (glow.flashUntil - now) / 1.2 or 0
+    if glow.tex then map.GlowPaint(glow.tex, glow.sweep, S, now, InCombat(), flash) end
+  end
+  -- 30 times a second, only while the glow changes by itself or a ping flash fades
+  glow.ticker = CreateFrame("Frame", nil, map)
+  local function Ticker()
+    this.t = (this.t or 0) + (arg1 or 0)
+    if this.t < .033 then return end
+    this.t = 0
+    map.GlowTick()
+    if not glow.moves and glow.flashUntil <= GetTime() then this:SetScript("OnUpdate", nil) end
+  end
+  function map.GlowCheck()
+    glow.moves = glow.tex and map.GlowMoves(S) or false
+    glow.ticker:SetScript("OnUpdate", (glow.moves or glow.flashUntil > GetTime()) and Ticker or nil)
+  end
+  function map.ApplyGlow()
+    glow.down:Hide()
+    glow.up:Hide()
+    glow.tex = nil
+    local t = map.GlowAbove(S) and glow.up or glow.down
+    if map.GlowLayout(t, glow.sweep, Minimap, Minimap:GetWidth(), S) then glow.tex = t end
+    map.GlowTick()
+    map.GlowCheck()
+  end
+  -- someone pinged the map: the glow flashes bright and fades in 1.2 s
+  glow.ticker:RegisterEvent("MINIMAP_PING")
+  glow.ticker:RegisterEvent("PLAYER_REGEN_DISABLED")
+  glow.ticker:RegisterEvent("PLAYER_REGEN_ENABLED")
+  glow.ticker:SetScript("OnEvent", function()
+    if event == "MINIMAP_PING" then
+      if S.glowping ~= "1" or not glow.tex then return end
+      glow.flashUntil = GetTime() + 1.2
+      map.GlowCheck()
+    else
+      -- (into / out of combat: its combat colour, or shown only in / out of combat)
+      map.GlowTick()
+    end
+  end)
+
   -- ---------------------------------------------------------------- clock and ping
 
   local clock = CreateFrame("Button", "pfMinimapClock", map)
@@ -959,6 +1158,8 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
         l.speed = tonumber(S["art" .. i .. "speed"]) or 0
       end
     end
+    -- our own glow (pcall: a missing picture never stops the rest of the look)
+    if map.ApplyGlow then pcall(map.ApplyGlow) end
 
     -- every part in its place (clock and ping lines too)
     HookButtons()
@@ -1056,6 +1257,29 @@ pfUI:RegisterModule("minimap-style", "vanilla:tbc", function ()
         art2 = "Spells\\FireRing128", art2size = "125", art2color = "1,0.4,0.1,0.7", art2blend = "ADD", art2speed = "-6", art2above = "0",
         art3 = "none" } },
   }
+  -- (23 Nov 2026) looks with our own glow, after the plain ones; every other look switches the glow off
+  local NOART = { art1 = "none", art2 = "none", art3 = "none" }
+  local function GlowLook(key, name, set)
+    for k, v in pairs(NOART) do if set[k] == nil then set[k] = v end end
+    set.glowanim = set.glowanim or "none"
+    set.glowabove = set.glowabove or "0"
+    set.glowblend = set.glowblend or "ADD"
+    table.insert(PRESETS, 5, { key, name, set })
+  end
+  for _, p in ipairs(PRESETS) do if p[3].glow == nil then p[3].glow = "none" end end
+  -- (inserted at 5 each, so they read in reverse here: Soft glow first)
+  GlowLook("shadow", T["Square, soft shadow"], { shape = "square", border = "solid", bordercolor = "black", bordersize = "1",
+    outlineaccent = "0", glow = "wide", glowcolormode = "custom", glowcolor = "0,0,0,0.75", glowblend = "BLEND" })
+  GlowLook("rainbow", T["Rainbow neon"], { shape = "round", border = "solid", bordercolor = "black", outlineaccent = "0",
+    glow = "neon", glowcolormode = "rainbow", glowcolor = "1,1,1,0.9", glowabove = "1", glowspeed = "3" })
+  GlowLook("sweep", T["Running light"], { shape = "round", border = "solid", bordercolor = "black", outlineaccent = "0",
+    glow = "soft", glowcolormode = "accent", glowcolor = "1,1,1,0.6", glowanim = "sweep", glowspeed = "4" })
+  GlowLook("halo", T["Halo, breathing"], { shape = "round", border = "solid", bordercolor = "black", outlineaccent = "0",
+    glow = "halo", glowcolormode = "class", glowcolor = "1,1,1,0.9", glowanim = "breathe", glowspeed = "4", glowmin = "45" })
+  GlowLook("neon", T["Neon accent"], { shape = "round", border = "none", outlineaccent = "0",
+    glow = "neon", glowcolormode = "accent", glowcolor = "1,1,1,1", glowabove = "1" })
+  GlowLook("softglow", T["Soft glow"], { shape = "round", border = "solid", bordercolor = "black", outlineaccent = "0",
+    glow = "soft", glowcolormode = "custom", glowcolor = "0.45,1,0.5,0.85" })
   map.PRESETS = PRESETS
 
   function map.ApplyPreset(key)
