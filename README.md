@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.38
+
+- ⚔️ **Honor tab rebuilt, battle-worn:** your PvP tab now has the battleground scene behind it, worn and burnt, with a big faction crest and your rank badge. A big **rank progress bar** (0 / 25 / 50 / 75 / 100 with glowing marks, today's gain lit) shows your exact rank %, and under it **about how much honor the next rank still takes**, learnt from your own kills at your rank. **This week** shows your honor against the 20 000 cap with the reset countdown and your session's honor per hour. Kills and honor for today / yesterday / this week / last week, and your **last days** in one tidy table: honor, kills, battlegrounds won-lost and rank % gained (hover a day for where the honor came from).
+- 📜 **Honor history built in (HonorSpy merged):** every honor gain, battleground win / loss and step of rank % is kept per character. If you use TurtleHonorSpyEnhanced, its history is copied in once so your past days show straight away. `/honor` opens the tab. Options: Quality of Life > Honor.
+- 🛡️ **Character window in the same look:** worn and burnt edges on every tab, your faction's crest glowing behind your character, your name in gold with your rank badge, a soft glow round rare and better gear, and worn panels under the stats. All of it can be switched off (Quality of Life > Honor > Character window).
+- **New pictures and files: restart the game, not just /reload.**
+
 ## 📜 New in 1.2.37
 
 - ✨ **Minimap glow, even all the way round:** a new **Glow** card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. **New pictures: restart the game, not just /reload.**

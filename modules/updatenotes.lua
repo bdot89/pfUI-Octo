@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.38", {
+    { "Honor tab rebuilt, battle-worn", "your PvP tab now has the battleground scene behind it, worn and burnt, with a big faction crest and your rank badge. A big rank progress bar (0 / 25 / 50 / 75 / 100 with glowing marks, today's gain lit) shows your exact rank %, and under it about how much honor the next rank still takes, learnt from your own kills at your rank. This week shows your honor against the 20 000 cap with the reset countdown and your session's honor per hour. Kills and honor for today / yesterday / this week / last week, and your last days in one tidy table: honor, kills, battlegrounds won-lost and rank % gained (hover a day for where the honor came from)." },
+    { "Honor history built in (HonorSpy merged)", "every honor gain, battleground win / loss and step of rank % is kept per character. If you use TurtleHonorSpyEnhanced, its history is copied in once so your past days show straight away. /honor opens the tab. Options: Quality of Life > Honor." },
+    { "Character window in the same look", "worn and burnt edges on every tab, your faction's crest glowing behind your character, your name in gold with your rank badge, a soft glow round rare and better gear, and worn panels under the stats. All of it can be switched off (Quality of Life > Honor > Character window)." },
+    { "New pictures and files: restart the game, not just /reload", "" },
+  } },
   { "1.2.37", {
     { "Minimap glow, even all the way round", "a new Glow card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. New pictures: restart the game, not just /reload." },
     { "pfQuest load errors are caught", "if part of pfQuest fails while the game loads, chat says so at login with the first error in red (also saved for bug reports), and a half-loaded quest tracker is switched off instead of spamming tracker.lua errors." },
@@ -168,11 +174,5 @@ pfUI.octoNotes = {
     { "SuperCleveRoidMacros built in", "the newest SuperCleveRoidMacros now comes inside pfUI, nothing else to install. It needs ClassicAPI 1.15.8 or newer (the Octo DLL Installer puts it in). Your SCRM settings carry over." },
     { "Takes over your separate copy", "if you had SuperCleveRoidMacros installed, pfUI switches it off for your next login and says so in chat. Tick it again in the add-on list to keep yours - pfUI leaves it alone after that." },
     { "Conditional macros show right on the bars", "pfUI's action bars now leave macros to SuperCleveRoidMacros, so a button shows the spell, icon and cooldown it will really cast instead of the macro's first spell." },
-  } },
-  { "1.1.98", {
-    { "Your monitor's Hz", "pick your refresh rate (only the ones your screen offers), vsync and triple buffering in Settings > Performance. Many games stay at 60 Hz on a faster screen until this is set. Apply restarts the graphics for a second and puts everything back by itself in 15 s unless you keep it." },
-    { "Frame cap", "1.12 has no frame cap of its own, so the page copies the DXVK line for you: a Steam / Lutris launch option, or one line for dxvk.conf. G-Sync / FreeSync screens get a cap 3 under the Hz." },
-    { "Playing on Linux", "one switch for Wine / Proton / Lutris players: no forced wait for the graphics card (more frames), a smooth hardware mouse pointer, lighter effects in dungeons too and the memory ceiling on. Your own settings come back when you switch it off. It also shows which DLLs really loaded." },
-    { "Fewer far-away players (PerfBoost)", "with the PerfBoost DLL, set how far players, pets and trash are drawn, in and out of combat. Three ready looks, and PvP-flagged or raid-marked players can always stay drawn. The biggest FPS gain in raids and cities." },
   } },
 }

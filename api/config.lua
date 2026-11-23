@@ -850,6 +850,22 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("worldbuffs", nil,           "popup",            "1")
   pfUI:UpdateConfig("worldbuffs", nil,           "sound",            "1")
   pfUI:UpdateConfig("worldbuffs", nil,           "share",            "1")
+  -- honor tab + honor records (23 Nov 2026, modules/honor.lua)
+  pfUI:UpdateConfig("honor",      nil,           "page",             "1")      -- our page over the game's Honor tab
+  pfUI:UpdateConfig("honor",      nil,           "art",              "1")      -- the battle scene, grime and burnt edges
+  pfUI:UpdateConfig("honor",      nil,           "artdark",          "0.8")    -- how dark the scene is (0..1)
+  pfUI:UpdateConfig("honor",      nil,           "barcolor",         "faction") -- faction | class | accent | custom
+  pfUI:UpdateConfig("honor",      nil,           "barcustom",        "0.7,0.1,0.08,1")
+  pfUI:UpdateConfig("honor",      nil,           "cap",              "20000")  -- honor a week can hold
+  pfUI:UpdateConfig("honor",      nil,           "estimate",         "1")      -- honor still needed for the next rank
+  pfUI:UpdateConfig("honor",      nil,           "keepdays",         "60")     -- days of records kept
+  pfUI:UpdateConfig("honor",      nil,           "import",           "1")      -- copy HonorSpy's records once
+  -- the character window in the same battle look (modules/charframe.lua)
+  pfUI:UpdateConfig("charframe",  nil,           "enable",           "1")
+  pfUI:UpdateConfig("charframe",  nil,           "dark",             "0.55")   -- how dark the window is under the grime
+  pfUI:UpdateConfig("charframe",  nil,           "crest",            "1")      -- faction crest behind your character
+  pfUI:UpdateConfig("charframe",  nil,           "badge",            "1")      -- rank badge beside your name
+  pfUI:UpdateConfig("charframe",  nil,           "glow",             "1")      -- quality glow round rare+ gear
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")
   pfUI:UpdateConfig("flight",     nil,           "thick",            "2")

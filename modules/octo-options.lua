@@ -44,7 +44,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "OctoLazy", { "OctoLazy" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
     -- in here") qol-options.lua's pages, then Auto Loot's
-    { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer" } },
+    { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer", "Honor" } },
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     -- (16 Nov 2026, user: "Call Questing pfQuest")
