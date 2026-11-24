@@ -335,6 +335,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
           return
         end
         l.sel = this.d
+        -- a folded line opens / closes (a left click with no keys held)
+        if l.fold and arg1 ~= "RightButton" and not IsAltKeyDown() and (l.foldN[this.d] or 0) > 1 then
+          local id = l.foldOf[this.d]
+          l.open[id] = not l.open[id] or nil
+          l.Refold()
+        end
         l.Paint()
         if onPick then onPick(this.d, arg1) end
       end)
@@ -355,10 +361,46 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     l.count = Text(l, 10, "RIGHT")
     l.count:SetPoint("BOTTOMRIGHT", l, "BOTTOMRIGHT", -6, 3)
     l.count:SetTextColor(.5, .5, .55)
+    -- (24 Nov 2026, Wolfahrt: "concatenate in one line all the items sold by the same person, like aux, and that line
+    -- can be expanded") lists with l.fold: auctions of the same item, seller, stack size and prices are one line
+    -- ("9x" in front); a click on it opens / closes the rest under it. The line IS the first of them, so picking and
+    -- buying work on it as before (one auction at a time). l.all = every row, l.data = what is shown.
+    l.open, l.foldN, l.foldKid = {}, {}, {}
+    function l.FoldId(d)
+      return (d.key or d.name or "?") .. "^" .. (d.owner or "?") .. "^" .. (d.count or 1) .. "^" .. (d.buyout or 0) .. "^" .. (d.next or d.bidunit or 0)
+    end
+    function l.Refold()
+      local groups, order = {}, {}
+      for _, d in ipairs(l.all or {}) do
+        local id = l.FoldId(d)
+        if not groups[id] then groups[id] = {} table.insert(order, id) end
+        table.insert(groups[id], d)
+      end
+      local out = {}
+      l.foldN, l.foldKid, l.foldOf, l.foldAll = {}, {}, {}, {}
+      for _, id in ipairs(order) do
+        local g = groups[id]
+        local head = g[1]
+        table.insert(out, head)
+        l.foldN[head] = table.getn(g)
+        l.foldOf[head] = id
+        l.foldAll[head] = g
+        if l.open[id] then
+          for i = 2, table.getn(g) do
+            table.insert(out, g[i])
+            l.foldKid[g[i]] = true
+          end
+        end
+      end
+      l.data = out
+    end
     function l.Sort()
       local key, desc = l.sortBy, l.desc
-      if not key then return end
-      table.sort(l.data, function(a, b)
+      if not key then
+        if l.fold then l.Refold() end
+        return
+      end
+      table.sort(l.fold and l.all or l.data, function(a, b)
         local va, vb = a[key], b[key]
         if va == vb then
           -- (17 Nov 2026, Lobo: after a buyout "it jumps around to different auctions a bit eratic" - rows
@@ -375,6 +417,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         if desc then return va > vb end
         return va < vb
       end)
+      if l.fold then l.Refold() end
     end
     function l.Paint()
       local n = table.getn(l.data)
@@ -385,6 +428,16 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         r.d = d
         if d then
           draw(r, d)
+          -- a folded line: how many, and "+" / "-" for closed / open; the ones opened under it indented
+          if l.fold then
+            local fn = l.foldN[d]
+            if fn and fn > 1 then
+              local open = l.open[l.foldOf[d]]
+              r.cell[1]:SetText("|cffffd24d" .. (open and "- " or "+ ") .. fn .. "x|r  " .. (r.cell[1]:GetText() or ""))
+            elseif l.foldKid[d] then
+              r.cell[1]:SetText("      " .. (r.cell[1]:GetText() or ""))
+            end
+          end
           if l.sel == d then r.pick:SetTexture(ar, ag, ab, .28) r.pick:Show()
           elseif l.picks[d] then r.pick:SetTexture(ar, ag, ab, .17) r.pick:Show()
           else r.pick:Hide() end
@@ -424,6 +477,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     end
     function l.Set(data, keep)
       l.data = data or {}
+      if l.fold then l.all = l.data end
       if not keep then l.offset = 0 end
       -- (the picked one stays picked while it is still listed; lists read afresh each time - My auctions -
       -- find it again by what it is, l.same)
@@ -472,7 +526,17 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     -- the picked rows in the list's order: the Shift picks, or else the one picked row
     function l.Picked()
       local out = {}
-      for _, d in ipairs(l.data) do if l.picks[d] then table.insert(out, d) end end
+      for _, d in ipairs(l.data) do
+        if l.picks[d] then
+          -- (a closed folded line Shift-picked with others = every auction in it)
+          local g = l.fold and l.foldAll and l.foldAll[d]
+          if g and not l.open[l.foldOf[d]] then
+            for _, m in ipairs(g) do table.insert(out, m) end
+          else
+            table.insert(out, d)
+          end
+        end
+      end
       if table.getn(out) == 0 and l.sel then table.insert(out, l.sel) end
       return out
     end
@@ -828,6 +892,8 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     else DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI|r auctions: " .. line) end
   end
   B.list.sortBy = "unit"
+  -- (24 Nov 2026, Wolfahrt) the same seller's same auctions on one line (C.auction.fold)
+  B.list.fold = S().fold ~= "0"
 
   -- Categories on the left, the game's own way to browse (16 Nov 2026, user: "a menu like this so people can
   -- browse the oldschool way"): kinds (gold), their sorts, armour's slots. Picking one searches at once
@@ -1474,6 +1540,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   P.rivals:SetPoint("TOPLEFT", P.box, "TOPLEFT", 0, -292)
   P.rivals:SetPoint("RIGHT", P.box, "RIGHT", 0, 0)
   P.rivals.sortBy = "unit"
+  P.rivals.fold = S().fold ~= "0"
   UI.hours = 24
   UI.lists.sell = P.items
   local function SetMoney(e, copper) e:SetText(copper and copper > 0 and AH.Money(copper, true) or "") end
@@ -1954,6 +2021,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if button == "RightButton" then UI.PriceLine(d) elseif IsAltKeyDown() and UI.QuickBuy() then UI.Buy("buyout") end
   end)
   K.list:SetPoint("TOPLEFT", K, "TOPLEFT", 0, -28)
+  K.list.fold = S().fold ~= "0"
   K.list:SetPoint("RIGHT", K, "RIGHT", 0, 0)
   K.list.sortBy, K.list.desc = "profit", true
   K.status = Text(K, 11)

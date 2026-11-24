@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.45", {
+    { "Auction house, one line per seller's batch (thanks Wolfahrt)", "the same item from the same seller at the same stack and price is one line with how many (\"9x\"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings (\"One line for the same auctions\")." },
+  } },
   { "1.2.44", {
     { "OctoRanks on WhoDidIt 1.30.2", "a character below the server's chat level no longer gets \"You are unable to speak yet.\" - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn)." },
   } },
@@ -175,8 +178,5 @@ pfUI.octoNotes = {
   { "1.2.6", {
     { "Built-in SuperCleveRoidMacros and pfQuest step aside properly", "with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload." },
     { "A folded whisper window stays folded", "it no longer pops open by itself when a fight ends. Only a window that folded itself for the fight opens again." },
-  } },
-  { "1.2.5", {
-    { "No more \"IndexActionSlot\" error flood", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good." },
   } },
 }

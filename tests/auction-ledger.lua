@@ -447,3 +447,45 @@ do
   AH.open = false
   getglobal("pfAuction"):Hide()
 end
+
+-- (24 Nov 2026, Wolfahrt: "concatenate in one line all the items sold by the same person, like aux ... can be expanded")
+do
+  local AH = pfUI.auction
+  local UI = AH.ui
+  local function Row(owner, unit)
+    return { key = "20373", name = "Scorpok Pincer", unit = unit, count = 1, quality = 1, level = 0, left = 4, owner = owner, buyout = unit,
+      bid = 0, minBid = unit, next = unit, bidunit = unit, kind = "list", page = 0, index = 1, tex = "t" }
+  end
+  local moneyWas = rawget(_G, "GetMoney")
+  _G.GetMoney = function() return 1e7 end
+  AH.rows = {}
+  for i = 1, 9 do table.insert(AH.rows, Row("Craftingbank", 4298)) end
+  table.insert(AH.rows, Row("Other", 4100))
+  AH.open = true
+  AH.Show()
+  UI.Open("browse")
+  local l = UI.lists.browse
+  l.sortBy, l.desc = "unit", false
+  UI.Refresh()
+  ok(l.fold and table.getn(l.data) == 2 and table.getn(l.all) == 10, "nine of the same from one seller are one line (" .. table.getn(l.data) .. " lines)")
+  local head = l.data[2]
+  ok(l.foldN[head] == 9 and l.data[1].owner == "Other", "the line knows how many it holds, and sorts by its price")
+  local r
+  for i = 1, l.shown do if l.rows[i].d == head then r = l.rows[i] end end
+  ok(r and string.find(r.cell[1]:GetText() or "", "9x", 1, true), "it shows \"9x\" in front of the name")
+  local thisWas, argWas = rawget(_G, "this"), rawget(_G, "arg1")
+  _G.this, _G.arg1 = r, "LeftButton"
+  r:GetScript("OnClick")()
+  ok(table.getn(l.data) == 10 and l.sel == head and l.foldKid[l.data[3]], "a click opens the other eight under it")
+  _G.this = r
+  r:GetScript("OnClick")()
+  _G.this, _G.arg1 = thisWas, argWas
+  ok(table.getn(l.data) == 2, "a second click closes it")
+  l.picks = { [head] = true, [l.data[1]] = true }
+  ok(table.getn(l.Picked()) == 10, "Shift-picking a closed line takes every auction in it")
+  l.picks = {}
+  _G.GetMoney = moneyWas
+  AH.rows = {}
+  AH.open = false
+  getglobal("pfAuction"):Hide()
+end

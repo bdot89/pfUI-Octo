@@ -379,6 +379,9 @@ do
   -- (17 Nov 2026, Lobo) after a buyout, picks, several at once, colours
   do
     local dataWas, selWas = l.data, l.sel
+    -- (these check the plain list, one line per auction; folding is checked in auction-ledger.lua)
+    local foldWas = l.fold
+    l.fold = nil
     local function R(seq, unit, count, owner) return { name = "Dense Blasting Powder", key = "15992", unit = unit, count = count, buyout = unit * count,
       next = unit * count, bidunit = unit, minBid = unit, bid = 0, owner = owner, seq = seq, kind = "list", level = 1, left = 2, quality = 1, inc = 0, index = seq, page = 0 } end
     local a, b, c, d, e = R(1, 1996, 10, "Claank"), R(2, 1998, 6, "Nyxthra"), R(3, 1996, 10, "Claank"), R(4, 2400, 5, "Bob"), R(5, 1996, 10, "Claank")
@@ -438,6 +441,7 @@ do
     ok(UI.HEADTIPS.ofusual and UI.HEADTIPS.unit, "column heads explain themselves")
     l.Set(dataWas)
     l.sel = selWas
+    l.fold = foldWas
   end
   bags[0] = { { 2589, 20 }, { 2589, 20 } }
   AH.bagsDirty = true

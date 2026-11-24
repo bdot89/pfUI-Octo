@@ -59,6 +59,7 @@ pfUI:RegisterModule("auction-options", "vanilla", function ()
     O.PfChk(p, "Offer item names while I type", "A list of matching item names under the search box: click one, or Tab / arrow keys and Enter. Items seen on the auction house come first.", G, "suggest")
     O.PfChk(p, "Alt + click a row buys it out", "In the auction lists, Alt + click buys the auction out at once, with no Buyout button press. "
       .. "Off: only the Buyout button buys. (Ctrl + click always tries the item on.)", G, "altbuy")
+    O.PfChk(p, "One line for the same auctions", "Auctions of the same item from the same seller at the same stack size and price are one line with how many there are (\"9x\"). Click the line to open the rest under it. Takes a reload.", G, "fold")
     O.PfChk(p, "Right-click a bag item to sell it", "While the auction window is up, right-clicking an item in your bags puts it on the Sell tab.", G, "bagclick")
     O.PfChk(p, "Auction price in item tooltips", "An item's usual auction price (each, and for the stack) in its tooltip, everywhere.", G, "tooltip")
     W.Buttons(p, { { "Back to its first place", function() G().x, G().y = "", "" end, 170, "Forget where you dragged the window." } })

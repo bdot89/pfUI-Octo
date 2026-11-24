@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.45
+
+- 💰 **Auction house, one line per seller's batch (thanks Wolfahrt):** the same item from the same seller at the same stack and price is one line with how many ("9x"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings ("One line for the same auctions").
+
 ## 📜 New in 1.2.44
 
 - 🏆 **OctoRanks on WhoDidIt 1.30.2:** a character below the server's chat level no longer gets "You are unable to speak yet." - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn).
