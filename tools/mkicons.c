@@ -98,5 +98,18 @@ int main(void) {
   line(17, 10, 17, 22); line(11, 16, 23, 16);
   line(53, 38, 53, 46); line(49, 42, 57, 42);
   save("qol.tga");
+  /* OctoRanks: a trophy cup - rim, bowl, handles, stem and base (24 Nov 2026) */
+  line(16, 10, 48, 10);
+  for (int y = 0; y < N; y++) for (int x = 0; x < N; x++) {
+    float dx = x + .5f - 32, dy = y + .5f - 10;
+    if (dy < 0) continue;
+    float d = fabsf(sqrtf(dx * dx + dy * dy) - 16);
+    put(x, y, clamp01(W / 2 + .5f - d));
+  }
+  line(16, 14, 8, 14); line(8, 14, 10, 23); line(10, 23, 18, 26);
+  line(48, 14, 56, 14); line(56, 14, 54, 23); line(54, 23, 46, 26);
+  line(32, 26, 32, 44);
+  line(24, 44, 40, 44); line(19, 54, 45, 54); line(24, 44, 21, 54); line(40, 44, 43, 54);
+  save("rank.tga");
   return 0;
 }

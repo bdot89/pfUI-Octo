@@ -131,7 +131,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 -- modules that must start cleanly (the octo ones, as they are added)
 local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "minigames", "minigames-options", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
-  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
+  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "octorank", "octorank-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
   "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
@@ -185,6 +185,14 @@ setmetatable(_G, { __index = function(t, k)
   return w
 end })
 getmetatable(Mock.New("Frame")).__call = function() return nil end
+-- (24 Nov 2026) CreateFont for octorank\UI.lua (OctoRank's window builds its fonts at load)
+if not rawget(_G, "CreateFont") then
+  rawset(_G, "CreateFont", function(name)
+    local f = Mock.New("Frame", name)
+    if name then rawset(_G, name, f) end
+    return f
+  end)
+end
 function geterrorhandler() return Mock.errorhandler or print end
 
 -- (18 Nov 2026) PFUI_MEMPROF=1: memory each file and each module start keeps (after a full collect), the
@@ -4464,8 +4472,8 @@ do
       for _, k in ipairs({ O.navFrame:GetChildren() }) do
         if k.pic and string.find(k.pic.texture or "", "octo\\icons\\", 1, true) then glyphs = glyphs + 1 end
       end
-      -- (16 Nov 2026) five: Quality of Life under Install
-      ok(glyphs == 5, "the five big entries wear our white glyphs (" .. glyphs .. ")")
+      -- (16 Nov 2026) five: Quality of Life under Install; (24 Nov 2026) six: OctoRanks above Move Frames
+      ok(glyphs == 6, "the six big entries wear our white glyphs (" .. glyphs .. ")")
       -- the faint Octo mark: the page panel's own BACKGROUND texture (under every card and preview), can be hidden
       local mk = O.mark
       -- (the mock keeps no draw layers: the texture belonging to the page panel is what it can check)
@@ -6958,6 +6966,7 @@ dofile(DIR .. "/tests/honor.lua")
 dofile(DIR .. "/tests/chathistory.lua")
 dofile(DIR .. "/tests/combo.lua")
 dofile(DIR .. "/tests/professions.lua")
+dofile(DIR .. "/tests/octorank.lua")
 dofile(DIR .. "/tests/challenges.lua")
 dofile(DIR .. "/tests/rinse.lua")
 dofile(DIR .. "/tests/movers.lua")

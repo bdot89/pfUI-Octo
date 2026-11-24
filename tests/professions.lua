@@ -42,9 +42,18 @@ ok(good and f.octoProf, "the Enchanting window takes the new layout" .. (good an
 local sp = _G[k.search].points and _G[k.search].points[1]
 ok(sp and sp[2] == f and sp[5] == -56, "(Wolfahrt) the search box sits above the list, not on it")
 local lp = _G[k.list].points and _G[k.list].points[1]
-ok(lp and lp[5] == -88 and sp[5] > lp[5], "the list starts under the search box")
+ok(lp and lp[5] == -104 and sp[5] > lp[5], "the list starts under the search box")
+-- (24 Nov 2026, in game: on Engineering the ticks ran into the filter menus) the ticks sit in the list's column
+local mp = _G[k.mats].points and _G[k.mats].points[1]
+ok(mp and mp[2] == f and mp[3] == "TOPLEFT" and mp[4] * .8 < 318 and mp[5] * .8 < sp[5] and mp[5] * .8 > lp[5],
+  "the Have materials tick sits between the search box and the list, left of the menus")
 ok(_G.CRAFTS_DISPLAYED >= 20 and _G[k.row .. _G.CRAFTS_DISPLAYED], "the list fills the window's height with rows")
 PO.Paint(k)
+-- (24 Nov 2026, in game: the Enchant button was gone) pinned to the window's bottom edge, above the art
+local cr = _G[k.create]
+local cp = cr.points and cr.points[1]
+ok(cp and cp[2] == f and cp[3] == "BOTTOMRIGHT" and cr:IsShown() and cr:GetFrameLevel() > f.octoArt:GetFrameLevel(),
+  "the Enchant button sits on the window's bottom edge, above the art")
 local b1, b2 = _G[k.row .. 1], _G[k.row .. 2]
 ok(b1.octoBar and b1.octoBar:IsShown() and not b2.octoBar:IsShown(), "categories are gold bars, recipes are plain")
 ok(f.octoArt and f.octoArt.mark.texture == "Interface\\Icons\\Trade_Engraving", "Enchanting's picture behind the recipe")

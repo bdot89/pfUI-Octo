@@ -1,0 +1,29 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <!-- made by tools\Sync-OctoRank.ps1: OctoRank in its own load order -->
+  <Script file="Guard.lua"/>
+  <Script file="Core.lua"/>
+  <Script file="Locale.lua"/>
+  <Script file="Locales\Rank.lua"/>
+  <Script file="Data.lua"/>
+  <Script file="ChronicleLoader.lua"/>
+  <Script file="Chronicle\wdi_version.lua"/>
+  <Script file="Chronicle\util.lua"/>
+  <Script file="Chronicle\file.lua"/>
+  <Script file="Chronicle\minimap.lua"/>
+  <Script file="Chronicle\advancedlogging\core.lua"/>
+  <Script file="Chronicle\advancedlogging\units.lua"/>
+  <Script file="Chronicle\advancedlogging\combatant.lua"/>
+  <Script file="Chronicle\advancedlogging\talents.lua"/>
+  <Script file="Chronicle\advancedlogging\config.lua"/>
+  <Script file="Chronicle\core.lua"/>
+  <Script file="Chronicle\debug.lua"/>
+  <Script file="Chronicle\slash.lua"/>
+  <Script file="Chronicle\init.lua"/>
+  <Script file="RaidTimes.lua"/>
+  <Script file="Board.lua"/>
+  <Script file="Dungeons.lua"/>
+  <Script file="Logs.lua"/>
+  <Script file="RunTimer.lua"/>
+  <Script file="Tweaks.lua"/>
+  <Script file="UI.lua"/>
+</Ui>

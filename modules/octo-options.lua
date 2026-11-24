@@ -85,6 +85,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Tooltip", { "Tooltip" } },
     -- (19 Nov 2026, user: "add a demo button on the UI at the bottom on the top of addons make it stand out like the rest")
     { "Demo Mode", { "Demo Mode" } },
+    -- (24 Nov 2026) octorank-options.lua; opened from its big entry at the sidebar's top (O.TOPENTRY), not a row here
+    { "OctoRanks", { "OctoRanks" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
   }
@@ -95,7 +97,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- the sidebar (under the name and the big entries), where the page tabs
   -- sit, and the footer's height
   -- (16 Nov 2026: a fifth big entry - Quality of Life - under Install; the entries 22 px apart, was 26)
-  local NAV_TOP, TAB_TOP, FOOT = 174, 88, 34
+  -- (24 Nov 2026: a sixth - OctoRanks - above Move Frames; the entries 20 px apart)
+  local NAV_TOP, TAB_TOP, FOOT = 184, 88, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
@@ -113,7 +116,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ["OctoRinse"] = true, ["OctoDoTs"] = true, ["OctoTotems"] = true, ["Meters"] = true, ["ItemRack"] = true, ["pfQuest"] = true, ["UI layouts"] = true, ["CoolDownManager"] = true, ["OctoProcs"] = true, ["Demo Mode"] = true }
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
-  O.TOPENTRY = { ["Quality of Life"] = true }
+  -- (24 Nov 2026, user: OctoRank "a big feature ... put above move frames under pfUI in its own section saying OctoRanks")
+  O.TOPENTRY = { ["Quality of Life"] = true, ["OctoRanks"] = true }
   function O.NavColor(name)
     if O.FEATURED[name] then return 1, 1, 1 end
     return .6, .62, .66
@@ -1232,7 +1236,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local y = -58
     local function Entry(text, icon, tip, fn)
       local b = CreateFrame("Button", nil, nav)
-      b:SetHeight(21)
+      b:SetHeight(20)
       b:SetPoint("TOPLEFT", nav, "TOPLEFT", 6, y)
       b:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, y)
       local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
@@ -1249,9 +1253,24 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       b.text:SetText(text)
       b:SetScript("OnClick", function() GameTooltip:Hide() fn() end)
       QuickTip(b, text, tip)
-      y = y - 22
+      y = y - 20
       return b
     end
+    -- a section opened from a big entry: the page last seen there, else its first
+    local function OpenGroup(name)
+      for _, grp in ipairs(O.groups or {}) do
+        if grp.name == (T[name] or name) or grp.name == name then
+          local key = grp.lastKey and O.nav[grp.lastKey] and grp.lastKey or (grp.buttons[1] and grp.buttons[1].key)
+          if key then O:Select(key) end
+          return
+        end
+      end
+    end
+    -- (24 Nov 2026, user: "a big feature ... above move frames ... in its own section saying OctoRanks") gold, first
+    local rk = Entry("OctoRanks", "rank", "Your 5-man runs timed and ranked by themselves - from the first pull to the last boss - "
+      .. "and shared with the realm, plus every guild's raid times. Works as one with WhoDidIt.", function() OpenGroup("OctoRanks") end)
+    rk.pic:SetVertexColor(1, .82, .2, 1)
+    rk.text:SetTextColor(1, .82, .2)
     Entry(T["Move Frames"], "move", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
       .. "Alt-click two boxes to give the second the first one's size; right-click a box for its options.", function()
       -- layout mode closes this window and opens it again when done
@@ -1293,13 +1312,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       end
     end)
     Entry(T["Quality of Life"], "qol", "Small helpers in one place: vendor, loot, raid tools, screenshots, auto loot, gathering, flight times and frame fade.", function()
-      for _, grp in ipairs(O.groups or {}) do
-        if grp.name == (T["Quality of Life"] or "Quality of Life") then
-          local key = grp.lastKey and O.nav[grp.lastKey] and grp.lastKey or (grp.buttons[1] and grp.buttons[1].key)
-          if key then O:Select(key) end
-          return
-        end
-      end
+      OpenGroup("Quality of Life")
     end)
     Rule(y - 2)
   end

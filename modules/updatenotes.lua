@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.43", {
+    { "OctoRanks built in", "your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold OctoRanks entry at the top of the options (/ranks). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart." },
+    { "Profession windows fixed", "the Enchant / Create button is back, the \"have materials\" / \"skill-up\" ticks no longer run into the Engineering filter menus, and the open filter list is solid." },
+  } },
   { "1.2.42", {
     { "NEW STYLE chat, working and looking right", "the lines in Guild, Raid, Whispers and the rest were drawn under the view's own dark background (faint, \"nothing shows\") - now full brightness; your chat no longer shows through an open conversation, and a conversation opens at its newest line." },
     { "The chat bar rebuilt", "no more overlapping text, every channel shows from the first load (no folding needed), icons on Chat / Whispers / History, a coloured orb per channel - each its own colour now (Battleground red, Officer teal) - dividers and a glowing underline. Invite / target / who sit in the conversation, so the bar never jumps." },
@@ -176,8 +180,5 @@ pfUI.octoNotes = {
     { "st_timer for your macros", "the swing timer fills st_timer and st_timerOff (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them." },
     { "Resistances as numbers", "enemy tooltips show \"Fire 75 (20%)\" - the resistance and the share of your spells it takes. QoL > Tooltips > \"Resists shown as\" picks numbers only or % only." },
     { "Line up with the market, like Aux", "on the Sell tab, click an auction under \"On the auction house now\" and your price goes just under it (the same as your own). A picked item now starts under the cheapest price on the auction house; Auctions > \"A picked item's price\" keeps your last price instead." },
-  } },
-  { "1.2.3", {
-    { "Kill Command and other procs in combat text", "the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > \"Reactive skills and procs\"." },
   } },
 }

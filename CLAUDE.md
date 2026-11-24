@@ -1614,3 +1614,18 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   by the .toc path, so sub-folder files can be patched; checked against HEAD's files: output identical to scrm\).
   Also C.unitframes.clickcasttarget ("Left-click spells also target", Click casting page > Targeting): a spell / macro on a
   left click also targets the unit (SuperWoW: TargetUnit after the cast; plain: no TargetLastTarget). Tests: tests\clickcast.lua.
+- OctoRanks (24 Nov 2026, NOT seen in game; NEW FILES + NEW SAVED VARIABLES = full client restart; user: OctoRank "merge this
+  into our pfUI making it very light ... above move frames ... its own section saying OctoRanks ... NEVER clash with WDI ... if
+  both are installed they work as 1 ... nothing ever lost ... make sure people know the ranking is done automatically").
+  octorank\ = the OctoRank add-on copied by tools\Sync-OctoRank.ps1 (never edit it: fix WhoDidIt, sync OctoRank from it, then
+  run the tool). EVERY NAME KEPT (OctoRank table, OctoRankFrame, /orank, OctoRankDB / OctoRankChronDB / OctoRankChronCharDB in
+  pfUI.toc): the add-on and pfUI are one save. Guard: ORANK_SKIP = WhoDidIt or the OctoRank add-on loaded (pfUI.toc
+  OptionalDeps WhoDidIt, OctoRank, ChronicleCompanion load them first) - then nothing of the copy runs. ORANK_SKIP is false,
+  never nil (the test mock reads an unset ALL_CAPS global as a string). Changes in the copy: ADDON_LOADED waits for "pfUI",
+  C.disabled.octorank silences its event frame, minimap buttons start hidden, Fira fonts from pfUI\fonts.
+  modules\octorank.lua (pfUI.octorank = OR): OR.Engine() wdi | addon | pfui; with WhoDidIt, OR.Sync merges the 5-man runs
+  (faster time wins, withdrawals win, myRuns once, newest group name) both ways at PLAYER_LOGIN and WhoDidIt -> ours at
+  logout; offers once to switch the OctoRank add-on off; one welcome line + one line the first time in each 5-man zone at 60;
+  /ranks (/orank when only WhoDidIt is there). modules\octorank-options.lua: page "orank" (section OctoRanks, O.TOPENTRY),
+  gold big entry with img\octo\icons\rank (tools\mkicons.c) above Move Frames (entries 20 px apart, NAV_TOP 184).
+  Other realm's runs come in RaidTimes.lua (R5 lines) with each update. Tests: tests\octorank.lua (run.lua stubs CreateFont).

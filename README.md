@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.43
+
+- 🏆 **OctoRanks built in:** your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold **OctoRanks** entry at the top of the options (`/ranks`). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart.
+- ⚒️ **Profession windows fixed:** the Enchant / Create button is back, the "have materials" / "skill-up" ticks no longer run into the Engineering filter menus, and the open filter list is solid.
+
 ## 📜 New in 1.2.42
 
 - 💬 **NEW STYLE chat, working and looking right:** the lines in Guild, Raid, Whispers and the rest were drawn under the view's own dark background (faint, "nothing shows") - now full brightness; your chat no longer shows through an open conversation, and a conversation opens at its newest line.

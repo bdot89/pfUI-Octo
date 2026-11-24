@@ -92,7 +92,7 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
       line:SetGradientAlpha("HORIZONTAL", .86, .68, .38, .6, .86, .68, .38, .1)
       return t
     end
-    art.left = Well(10, -84, LEFTW, H0 - 84 - 12)
+    art.left = Well(10, -100, LEFTW, H0 - 100 - 12)
     art.right = Well(LEFTW + 22, -84, W0 - LEFTW - 34, H0 - 84 - 46)
 
     -- the skill bar across the top
@@ -114,16 +114,20 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
       search:SetHeight(20)
       if search:GetFrameLevel() < f:GetFrameLevel() + 3 then search:SetFrameLevel(f:GetFrameLevel() + 3) end
     end
+    -- (24 Nov 2026, in game: on Engineering the ticks ran into "All Subclasses" / "All Slots") the ticks get a row of
+    -- their own under the search box, in the list's column; the menus keep the top right to themselves.
+    -- (offsets in the ticks' own scale: divided by it)
     local mats, skill = _G[k.mats], _G[k.skill]
+    local TS = .8
     if mats then
+      mats:SetScale(TS)
       mats:ClearAllPoints()
-      mats:SetPoint("TOPLEFT", f, "TOPLEFT", LEFTW + 22, -54)
-      mats:SetScale(.85)
+      mats:SetPoint("TOPLEFT", f, "TOPLEFT", 10 / TS, -78 / TS)
     end
     if skill and mats then
+      skill:SetScale(TS)
       skill:ClearAllPoints()
-      skill:SetPoint("LEFT", mats, "RIGHT", 110, 0)
-      skill:SetScale(1)
+      skill:SetPoint("TOPLEFT", f, "TOPLEFT", 160 / TS, -78 / TS)
     end
     -- the old filter menus (trade skills): at the right end of the top row
     local sub, inv = k.subclass and _G[k.subclass], k.invslot and _G[k.invslot]
@@ -132,11 +136,11 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
 
     -- the recipe list, filling its well
     local list = _G[k.list]
-    local rows = math.floor((H0 - 84 - 12 - 8) / ROWH)
+    local rows = math.floor((H0 - 100 - 12 - 8) / ROWH)
     _G[k.displayed] = rows
     if list then
       list:ClearAllPoints()
-      list:SetPoint("TOPLEFT", f, "TOPLEFT", 14, -88)
+      list:SetPoint("TOPLEFT", f, "TOPLEFT", 14, -104)
       list:SetWidth(LEFTW - 30)
       list:SetHeight(rows * ROWH)
       if list.backdrop then list.backdrop:SetAlpha(0) end
@@ -162,11 +166,8 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
       detail:SetHeight(H0 - 90 - 54)
       if detail.backdrop then detail.backdrop:SetAlpha(0) end
     end
-    -- the buttons along the bottom right
-    local cancel, create, createall = _G[k.cancel], _G[k.create], k.createall and _G[k.createall]
-    if cancel then Place(cancel, "BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 14) end
-    if create and cancel then Place(create, "RIGHT", cancel, "LEFT", -6, 0) end
-    if createall then Place(createall, "BOTTOMLEFT", f, "BOTTOMLEFT", LEFTW + 26, 14) end
+    -- the buttons along the bottom right (each pinned to the window itself; PO.Paint keeps them above the art)
+    PO.Buttons(k)
 
     -- the picked recipe's light: a gold bar fading to the right
     local hl = _G[k.highlight]
@@ -179,6 +180,70 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
       hooksecurefunc(k.update, function() PO.Paint(k) end)
     end
     PO.Paint(k)
+    PO.SolidMenus()
+  end
+
+  -- (24 Nov 2026, in game: the open "All Subclasses" list let the recipe text show through) while a profession window
+  -- is up, the drop-down lists get a near-solid fill; pfUI's .8 comes back for every other menu
+  function PO.SolidMenus()
+    if PO.menusDone then return end
+    PO.menusDone = true
+    for i = 1, (tonumber(UIDROPDOWNMENU_MAXLEVELS) or 2) do
+      local list = _G["DropDownList" .. i]
+      if list and list.HookScript then
+        list:HookScript("OnShow", function() PO.MenuFill(list) end)
+      end
+    end
+  end
+
+  function PO.MenuFill(list)
+    local name = list and list.GetName and list:GetName()
+    if not name then return end
+    local solid
+    for _, kk in pairs(PO.KINDS) do
+      local f = _G[kk.frame]
+      if f and f.IsShown and f:IsShown() then solid = true end
+    end
+    for _, part in ipairs({ name .. "MenuBackdrop", name .. "Backdrop" }) do
+      local b = _G[part]
+      if b and b.SetBackdropColor then
+        if solid then
+          if not b.octoOldFill and b.GetBackdropColor then b.octoOldFill = { b:GetBackdropColor() } end
+          b:SetBackdropColor(.06, .05, .04, .97)
+        elseif b.octoOldFill then
+          local o = b.octoOldFill
+          b:SetBackdropColor(o[1] or 0, o[2] or 0, o[3] or 0, o[4] or .8)
+        end
+      end
+    end
+  end
+
+  -- (24 Nov 2026, user in game: "where" - the Enchant button was gone, only Exit showed) Exit, Create / Enchant and
+  -- Create all each pinned straight to the window's bottom edge and lifted above the art layer and its panels
+  function PO.Buttons(k)
+    local f = _G[k.frame]
+    if not f then return end
+    local lvl = (f:GetFrameLevel() or 1) + 6
+    local cancel, create, createall = _G[k.cancel], _G[k.create], k.createall and _G[k.createall]
+    if cancel then
+      Place(cancel, "BOTTOMRIGHT", f, "BOTTOMRIGHT", -14, 14)
+      cancel:SetFrameLevel(lvl)
+    end
+    if create then
+      Place(create, "BOTTOMRIGHT", f, "BOTTOMRIGHT", -14 - (cancel and cancel:GetWidth() or 80) - 6, 14)
+      if (create:GetWidth() or 0) < 90 then create:SetWidth(96) end
+      create:SetFrameLevel(lvl)
+      create:Show()
+    end
+    if createall then
+      Place(createall, "BOTTOMLEFT", f, "BOTTOMLEFT", LEFTW + 26, 14)
+      createall:SetFrameLevel(lvl)
+    end
+    -- (the filter ticks and the search box above the art too)
+    for _, n in ipairs({ k.mats, k.skill, k.search }) do
+      local b = _G[n]
+      if b and b.SetFrameLevel then b:SetFrameLevel(lvl) end
+    end
   end
 
   -- each shown row: a category = a gold bar with its name in gold, a recipe = plain
@@ -187,6 +252,14 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
     if not f or not f.octoProf then return end
     local name = k.line()
     if f.octoArt then f.octoArt.mark:SetTexture(PO.Icon(name)) end
+    PO.Buttons(k)
+    -- the skill bar: the client paints it dark blue on every update - gold here, after it
+    local rank = _G[k.rank]
+    if rank and rank.SetStatusBarColor then
+      rank:SetStatusBarColor(.85, .6, .15, 1)
+      local bg = _G[k.rank .. "Background"]
+      if bg and bg.SetVertexColor then bg:SetVertexColor(.08, .06, .03, .9) end
+    end
     for i = 1, (_G[k.displayed] or 0) do
       local b = _G[k.row .. i]
       if b then
