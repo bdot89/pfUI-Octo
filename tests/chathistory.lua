@@ -96,6 +96,8 @@ if WH and WH.OpenChannel then
   end
   local H = WH.hub
   if H then
+    -- (on a whisper's page: a channel's page has no people list at all)
+    WH.Open("Bidwell", true)
     pfUI_config.chat.whisper.listhidden = "1"
     WH.ApplyList()
     ok(not H.list:IsShown(), "the arrow hides the list")
@@ -131,21 +133,68 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
   if started and CB then
     CB.Apply()
     ok(CB.bar:IsShown() and WH.embedded, "NEW STYLE: the bar is on the chat and the whisper window sits inside it")
+    -- (24 Nov 2026, user: "when the bar first loads up you have to minimize it and bring it back out to show the channels")
+    -- straight after it loads, with no size from the game yet, every kept channel is there
+    -- (at login the game has not laid the bar out: no edges yet - the room comes from the chat panel's set width.
+    -- The mock counts colour codes as letters, so its labels measure far wider than in game: a wide chat here.)
+    local barLeft, chatLeft, widthWas = CB.bar.GetLeft, left.GetLeft, pfUI_config.chat.left.width
+    CB.bar.GetLeft = function() return nil end
+    left.GetLeft = function() return nil end
+    pfUI_config.chat.left.width = "1400"
+    ok(CB.Width() == 1396, "no size from the game yet: the room is the chat panel's set width (" .. tostring(CB.Width()) .. ")")
+    CB.Paint()
+    local shownCh = 0
+    for _, b in ipairs(CB.chanBtns) do if b:IsShown() then shownCh = shownCh + 1 end end
+    ok(shownCh >= 5, "every kept channel shows on the first layout, no folding needed (" .. shownCh .. ")")
+    CB.bar.GetLeft, left.GetLeft, pfUI_config.chat.left.width = barLeft, chatLeft, widthWas
+    -- ("the text is overlapping") each button hangs on the one before it, so a longer name pushes the rest along
+    local wp = CB.btns.whispers.points and CB.btns.whispers.points[1]
+    ok(wp and wp[2] == CB.btns.chat and wp[3] == "RIGHT", "Whispers hangs on the chat button's right edge")
+    CB.btns.chat:SetLabel("Loot & Spam  v")
+    ok(CB.btns.chat:GetWidth() > 60, "a longer chat name makes its button wider")
     left.panelTop:Show()
     ok(not left.panelTop:IsShown(), "the mouse-over tab strip stays away under the bar")
     -- (24 Nov 2026, in game: the view opened under the chat's text) above the chat windows, pinned over the panel
     local p1 = WH.hub.points and WH.hub.points[1]
     local p2 = WH.hub.points and WH.hub.points[2]
-    ok(WH.hub:GetFrameStrata() == "MEDIUM" and p1 and (p1[2] == left.panelTop or p1[2] == left) and p2 and p2[2] == left
+    ok(WH.hub:GetFrameStrata() == "MEDIUM" and p1 and (p1[2] == CB.bar or p1[2] == left.panelTop or p1[2] == left) and p2 and p2[2] == left
       and not WH.hub:IsShown(), "the view sits above the chat windows, over the chat panel, closed until you open it")
     -- a whisper while you look at your chat: counted on the bar, the chat stays in view
     WH.Add("Quietguy", "in", "psst")
     ok(not WH.hub:IsShown() and WH.windows.Quietguy and WH.windows.Quietguy.unread == 1, "a new whisper waits on the bar (no pop-up)")
     CB.Paint()
-    ok(string.find(CB.btns.whispers.text:GetText() or "", "+1", 1, true), "the Whispers button counts it")
+    ok(string.find(CB.btns.whispers.text:GetText() or "", "66ff661", 1, true), "the Whispers button counts it")
     -- Whispers: the oldest new one opens in the chat; Chat: back; Chat again: the same conversation (quick toggle)
     CB.btns.whispers:GetScript("OnClick")()
     ok(WH.hub:IsShown() and WH.active == "Quietguy", "Whispers opens the new one inside the chat")
+    -- (24 Nov 2026, in game: every line faint) the view's own backdrop never above its text: what is in it sits higher
+    local hl = WH.hub:GetFrameLevel() or 0
+    local ml = WH.windows.Quietguy.msg:GetFrameLevel() or 0
+    ok((WH.hub.page:GetFrameLevel() or 0) > hl and ml > hl and (WH.hub.list:GetFrameLevel() or 0) > hl,
+      "the conversation's lines and list sit above its own backdrop (" .. hl .. " / " .. ml .. ")")
+    -- (24 Nov 2026, in game: the chat's own lines showed through the conversation) a chat window of the panel goes
+    -- invisible while a conversation shows, and comes back after
+    local keepCF7 = rawget(_G, "ChatFrame7")
+    local cf7 = CreateFrame("Frame", nil, left)
+    _G.ChatFrame7 = cf7
+    WH.CoverChat(true)
+    ok(cf7:GetAlpha() == 0, "the chat under an open conversation is out of sight")
+    -- (opening Whispers kept every channel on the bar: the person buttons are in the conversation now)
+    CB.Paint()
+    local stillCh = 0
+    for _, b in ipairs(CB.chanBtns) do if b:IsShown() then stillCh = stillCh + 1 end end
+    ok(not CB.btns.invite:IsShown() and WH.hub.invite:GetParent() == WH.hub, "invite / target / who sit in the conversation, not on the bar")
+    WH.CoverChat(false)
+    ok(cf7:GetAlpha() == 1, "and back when you return to chat")
+    _G.ChatFrame7 = keepCF7
+    -- each channel its own colour (B and R were both orange)
+    local seenCol, clash = {}, nil
+    for _, k in ipairs(pfUI.chatHistory.KINDS) do
+      local id = k.color[1] .. "," .. k.color[2] .. "," .. k.color[3]
+      if seenCol[id] then clash = k.short .. " = " .. seenCol[id] end
+      seenCol[id] = k.short
+    end
+    ok(not clash, "every channel has its own colour" .. (clash and (" (" .. clash .. ")") or ""))
     _G.this, _G.arg1 = CB.btns.chat, "LeftButton"
     CB.btns.chat:GetScript("OnClick")()
     ok(not WH.hub:IsShown(), "Chat goes back to your chat")
@@ -154,6 +203,30 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
     -- a channel button
     CB.btns["#guild"]:GetScript("OnClick")()
     ok(WH.Showing() == "#guild", "G opens guild history in the chat")
+    -- (24 Nov 2026, user: "what is this side bar for in guild chat") no people list on a channel's page
+    ok(not WH.hub.list:IsShown(), "a channel's page has no people list")
+    -- the day picker: Now, then each day the page has, newest first; a day scrolls back to its divider
+    local gc = WH.windows["#guild"]
+    ok(gc.days and table.getn(gc.days) >= 1 and gc.count and gc.count > 0, "the guild page knows its days (" .. table.getn(gc.days or {}) .. ")")
+    local opts = WH.DaysMenu(WH.hub.days)
+    ok(opts and opts[1].key == 0 and table.getn(opts) == table.getn(gc.days) + 1, "Days: Now, then every day")
+    if WH.dmenu then WH.dmenu:Hide() end
+    local ups, bottom = 0, false
+    local keepUp, keepBottom = gc.msg.ScrollUp, gc.msg.ScrollToBottom
+    gc.msg.ScrollUp = function() ups = ups + 1 end
+    gc.msg.ScrollToBottom = function() bottom = true end
+    local first = gc.days[1]
+    WH.JumpDay(gc, first)
+    ok(bottom and ups == gc.count - first.at, "picking a day scrolls back to its first line (" .. ups .. ")")
+    -- Shift + wheel down: the newest line
+    bottom = false
+    local keepShift = rawget(_G, "IsShiftKeyDown")
+    _G.IsShiftKeyDown = function() return true end
+    _G.this, _G.arg1 = gc.msg, -1
+    gc.msg:GetScript("OnMouseWheel")()
+    ok(bottom, "Shift + wheel down jumps to the newest line")
+    _G.IsShiftKeyDown = keepShift
+    gc.msg.ScrollUp, gc.msg.ScrollToBottom = keepUp, keepBottom
     CB.btns["#guild"]:GetScript("OnClick")()
     ok(not WH.hub:IsShown(), "G again: back to chat")
     -- the chat panel hidden (the panel arrow, Blizzard's chat): the view goes with it

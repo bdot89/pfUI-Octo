@@ -1603,3 +1603,14 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   combo / raid mark / cast bar / aura / special / quest / elite / class icon nudges and fine sizes behind "...", "My own
   colour" + swatch on one line, combat state switch + colour on one line), unit frames (text nudges, power bar place,
   buff / debuff nudges, own font). Tests: tests\inline.lua. Next candidates: the same on cast bars, meters, action bars.
+- Puppeteer + click casting (24 Nov 2026, NOT seen in game; Khijazi: pfUI "interfering with Puppeteer", his Gemini-patched
+  Puppeteer 1.1.3 changed only core\Bindings.lua RunBinding_Macro to cast "/cast X" lines itself with CastSpellByName(X, unit)).
+  Cause found in SCRM: Puppeteer sets the game's mouseover with SuperWoW SetMouseoverUnit on hover, but SCRM had no source for
+  it, so it only counted as "native" (priority 2); any GameTooltip Hide / FadeOut cleared "native" and SCRM pushed
+  SetMouseoverUnit("") while the mouse was still on the Puppeteer frame (and a non-unit tooltip cleared it directly) -
+  [@mouseover] macros in Puppeteer bindings missed. scrm\Utility.lua CleveRoids.PuppeteerHover() (Puppeteer.MouseoverFrame
+  .hovered + GetResolvedUnit; hovered goes false before its OnLeave clears the mouseover) is a priority 3 source in getBest;
+  GameTooltip.lua OnNonUnitTooltip skips the clear while it is set. Both are patches in tools\Sync-SCRM.ps1 (patches now keyed
+  by the .toc path, so sub-folder files can be patched; checked against HEAD's files: output identical to scrm\).
+  Also C.unitframes.clickcasttarget ("Left-click spells also target", Click casting page > Targeting): a spell / macro on a
+  left click also targets the unit (SuperWoW: TargetUnit after the cast; plain: no TargetLastTarget). Tests: tests\clickcast.lua.

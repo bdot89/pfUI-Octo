@@ -866,6 +866,8 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("charframe",  nil,           "crest",            "1")      -- faction crest behind your character
   pfUI:UpdateConfig("charframe",  nil,           "badge",            "1")      -- rank badge beside your name
   pfUI:UpdateConfig("charframe",  nil,           "glow",             "1")      -- quality glow round rare+ gear
+  pfUI:UpdateConfig("charframe",  nil,           "others",           "1")      -- the same look on spellbook, talents, quests, professions
+  pfUI:UpdateConfig("charframe",  nil,           "prof",             "1")      -- the new professions window (professions-octo.lua)
   -- Frame fade (24 Nov 2026, modules/framefade.lua): parts of the screen fade away while nothing is going on
   pfUI:UpdateConfig("framefade",  nil,           "enable",           "0")
   pfUI:UpdateConfig("framefade",  nil,           "g_player",         "1")
@@ -1072,6 +1074,8 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("unitframes", nil,           "clickcast_alt",    "")
   pfUI:UpdateConfig("unitframes", nil,           "clickcast_ctrl",   "")
 
+  -- (24 Nov 2026, Khijazi) a spell on a left click also targets the unit
+  pfUI:UpdateConfig("unitframes", nil,           "clickcasttarget",  "0")
   pfUI:UpdateConfig("unitframes", nil,           "clickcast2",        "menu")
   pfUI:UpdateConfig("unitframes", nil,           "clickcast2_shift",  "")
   pfUI:UpdateConfig("unitframes", nil,           "clickcast2_alt",    "")

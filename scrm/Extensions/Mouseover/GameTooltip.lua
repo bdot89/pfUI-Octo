@@ -57,7 +57,7 @@ function Extension.OnNonUnitTooltip()
 
   -- Also explicitly clear the game's mouseover to ensure UnitIsPlayer returns false.
   -- This is defensive - the main fix is in Utility.lua:apply() using "" instead of nil.
-  if _G.SetMouseoverUnit then
+  if _G.SetMouseoverUnit and not (CleveRoids.PuppeteerHover and CleveRoids.PuppeteerHover()) then -- pfUI Octo: Puppeteer (Khijazi)
     CleveRoids.__mo.selfTriggered = true
     _G.SetMouseoverUnit("")
   end

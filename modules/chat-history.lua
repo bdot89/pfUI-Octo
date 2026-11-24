@@ -13,14 +13,16 @@ pfUI:RegisterModule("chat-history", "vanilla:tbc", function ()
   local ME = UnitName("player")
 
   -- the kinds kept: key, name, the events that feed it, the chat type to answer in, a colour
+  -- (24 Nov 2026, user: "the B and R are same colour") each its own: guild green, officer teal, party blue, raid orange,
+  -- battleground red, say white
   CH.KINDS = {
     { key = "guild",   name = "Guild",        short = "G", events = { "CHAT_MSG_GUILD" }, send = "GUILD", color = { .25, 1, .25 } },
-    { key = "officer", name = "Officer",      short = "O", events = { "CHAT_MSG_OFFICER" }, send = "OFFICER", color = { .25, .75, .25 } },
-    { key = "party",   name = "Party",        short = "P", events = { "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER" }, send = "PARTY", color = { .67, .67, 1 } },
+    { key = "officer", name = "Officer",      short = "O", events = { "CHAT_MSG_OFFICER" }, send = "OFFICER", color = { .2, .85, .8 } },
+    { key = "party",   name = "Party",        short = "P", events = { "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER" }, send = "PARTY", color = { .6, .65, 1 } },
     { key = "raid",    name = "Raid",         short = "R", events = { "CHAT_MSG_RAID", "CHAT_MSG_RAID_LEADER", "CHAT_MSG_RAID_WARNING" },
-      send = "RAID", color = { 1, .5, 0 } },
+      send = "RAID", color = { 1, .55, .05 } },
     { key = "bg",      name = "Battleground", short = "B", events = { "CHAT_MSG_BATTLEGROUND", "CHAT_MSG_BATTLEGROUND_LEADER" },
-      send = "BATTLEGROUND", color = { 1, .5, 0 } },
+      send = "BATTLEGROUND", color = { 1, .28, .25 } },
     { key = "say",     name = "Say and yell", short = "S", events = { "CHAT_MSG_SAY", "CHAT_MSG_YELL" }, send = "SAY", color = { 1, 1, 1 } },
   }
   CH.BYKEY, CH.BYEVENT = {}, {}

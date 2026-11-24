@@ -2000,6 +2000,13 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       local key = u[1]
       PfChk(p, u[2], nil, function() return C.unitframes[key] end, "clickcast", function() UF.Apply(key) end)
     end
+    -- (24 Nov 2026, Khijazi: "if you set up the click casting, it no longer targets them") a spell on a left click
+    -- can target the player as well
+    W.Card(p, "Targeting")
+    PfChk(p, "Left-click spells also target", "A spell (or macro) on any left click - plain, Shift, Alt or Ctrl - also makes that "
+      .. "player your target, so you can click-heal and still have them targeted. Off: the spell goes on them and your "
+      .. "target stays as it was. Plain left click with nothing set (\"target\") always targets.",
+      function() return C.unitframes end, "clickcasttarget")
     local BUTTONS = { { "", "Left button" }, { "2", "Right button" }, { "3", "Middle button" }, { "4", "Button 4" }, { "5", "Button 5" } }
     for _, bt in ipairs(BUTTONS) do
       W.Card(p, bt[2])

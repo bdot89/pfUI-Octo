@@ -2,6 +2,14 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.42", {
+    { "NEW STYLE chat, working and looking right", "the lines in Guild, Raid, Whispers and the rest were drawn under the view's own dark background (faint, \"nothing shows\") - now full brightness; your chat no longer shows through an open conversation, and a conversation opens at its newest line." },
+    { "The chat bar rebuilt", "no more overlapping text, every channel shows from the first load (no folding needed), icons on Chat / Whispers / History, a coloured orb per channel - each its own colour now (Battleground red, Officer teal) - dividers and a glowing underline. Invite / target / who sit in the conversation, so the bar never jumps." },
+    { "Look back in time", "a Days picker on every page jumps to any day; Shift + mouse wheel down = the newest line, up = the oldest. Channel pages use the full width (the people list is only for whispers)." },
+    { "New profession windows (trade skills and Enchanting)", "the search box and the \"have materials\" / \"skill-up\" ticks sit above the list instead of on it (thanks Wolfahrt), categories as gold bars, the picked recipe lit, the profession's picture behind the recipe, the skill bar across the top." },
+    { "The worn look on every character window", "spellbook, talents, quest log and the profession windows too (Quality of Life > Honor > Character window)." },
+    { "Click casting", "pfUI's built-in SCRM no longer wipes Puppeteer's mouse-over, and a new \"Left-click spells also target\" option." },
+  } },
   { "1.2.41", {
     { "NEW STYLE chat fix", "clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back." },
     { "Chat options, calmer", "\"Style: Old chat / New style\" sits in the strip at the top beside Chat and Panels; the big preview is gone from the chat pages (\"Show test lines in my chat\" fills your real chat instead), and its switches are a plain Windows card." },
@@ -171,8 +179,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.3", {
     { "Kill Command and other procs in combat text", "the moment a reactive spell can be cast it pops over you like a crit, with the flash - Kill Command, Arcane Surge, Surprise Attack, Baited Shot, Lacerate and Hammer of Wrath now, as well as Overpower, Revenge, Riposte, Counterattack and Mongoose Bite. No bar needed with ClassicAPI or nampower. Gold for new setups; set your own in Combat Text > Messages and sounds > \"Reactive skills and procs\"." },
-  } },
-  { "1.2.2", {
-    { "No more target frame error", "\"TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'\" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing." },
   } },
 }

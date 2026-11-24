@@ -57,6 +57,10 @@ pfUI:RegisterModule("honor-options", "vanilla", function ()
     O.PfChk(p, "Faction crest behind you", nil, CG, "crest", CPaint)
     O.PfChk(p, "Rank badge by your name", nil, CG, "badge", CPaint)
     O.PfChk(p, "Glow round rare+ gear", "A soft glow in the item's quality colour round each worn item of rare or better.", CG, "glow", CPaint)
+    O.PfChk(p, "Same look on the other windows", "Spellbook, talents, quest log and the profession windows get the worn finish too.",
+      CG, "others", CPaint)
+    O.PfChk(p, "New profession windows", "Trade skills and Enchanting laid out anew: search and filters above the list, "
+      .. "categories as gold bars, the profession's picture behind the recipe. Off: pfUI's own skin (needs a reload).", CG, "prof")
 
     W.Card(p, "Your records", { tip = "Every honor gain, battleground result and step of rank %, per character." })
     W.Live(p, function()

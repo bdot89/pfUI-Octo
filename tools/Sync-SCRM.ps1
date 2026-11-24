@@ -41,7 +41,39 @@ function Must([string]$text, [string]$old, [string]$new, [string]$file) {
   if (-not $text.Contains($old)) { throw "SuperCleveRoidMacros changed: '$old' not found in $file" }
   return $text.Replace($old, $new)
 }
+# (24 Nov 2026, Khijazi: Puppeteer's macro bindings missed the unit under the mouse) Puppeteer's hover counts as a
+# unit frame mouseover source, and a non-unit tooltip no longer wipes the mouseover while it lasts
+$ptHover = @'
+  -- (pfUI Octo, 24 Nov 2026) the unit of the Puppeteer frame under the mouse, or nil
+  function CleveRoids.PuppeteerHover()
+    local PT = _G.Puppeteer
+    local f = type(PT) == "table" and PT.MouseoverFrame
+    if type(f) ~= "table" or not f.hovered or type(f.GetResolvedUnit) ~= "function" then return nil end
+    if type(f.button) == "table" and f.button.IsVisible and not f.button:IsVisible() then return nil end
+    local ok, u = pcall(f.GetResolvedUnit, f)
+    if ok and type(u) == "string" and u ~= "" and UnitExists(u) then return u end
+    return nil
+  end
+
+  local function getBest()
+'@
+$ptBest = @'
+    -- (pfUI Octo, 24 Nov 2026, Khijazi) Puppeteer's live hover is a unit frame source (see PuppeteerHover)
+    if bestP < 3 then
+      local u = CleveRoids.PuppeteerHover and CleveRoids.PuppeteerHover()
+      if u then bestP, bestSource, bestUnit = 3, "puppeteer", u end
+    end
+    return bestSource, bestUnit
+'@
 $patches = @{
+  "Utility.lua" = @(
+    @("  local function getBest()`r`n", ($ptHover.Replace("`r`n", "`n").Replace("`n", "`r`n") + "`r`n")),
+    @("    return bestSource, bestUnit`r`n", ($ptBest.Replace("`r`n", "`n").Replace("`n", "`r`n") + "`r`n"))
+  );
+  "Extensions\Mouseover\GameTooltip.lua" = @(
+    ,@("  if _G.SetMouseoverUnit then`r`n    CleveRoids.__mo.selfTriggered = true",
+      "  if _G.SetMouseoverUnit and not (CleveRoids.PuppeteerHover and CleveRoids.PuppeteerHover()) then -- pfUI Octo: Puppeteer (Khijazi)`r`n    CleveRoids.__mo.selfTriggered = true")
+  );
   "Core.lua" = @(
     @('if arg1 ~= "SuperCleveRoidMacros" then return end',
       'if arg1 ~= "SuperCleveRoidMacros" and not (pfUIOctoSCRM and arg1 == "pfUI") then return end -- pfUI Octo: built in'),
@@ -67,8 +99,9 @@ foreach ($line in [IO.File]::ReadAllLines($toc)) {
   $t = [IO.File]::ReadAllText($from)
   if ($t.Length -gt 0 -and $t[0] -eq [char]0xFEFF) { $t = $t.Substring(1) }
   $name = Split-Path -Leaf $l
-  if ($patches.ContainsKey($name) -and ($l -eq $name)) {
-    foreach ($p in $patches[$name]) { $t = Must $t $p[0] $p[1] $l }
+  # (24 Nov 2026) patches keyed by the .toc path, so files in sub-folders can be patched too
+  if ($patches.ContainsKey($l)) {
+    foreach ($p in $patches[$l]) { $t = Must $t $p[0] $p[1] $l }
   }
   [IO.File]::WriteAllText($to, $guard + $t, $utf8)
   [void]$load.Add($l)

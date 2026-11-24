@@ -122,6 +122,15 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.42
+
+- 💬 **NEW STYLE chat, working and looking right:** the lines in Guild, Raid, Whispers and the rest were drawn under the view's own dark background (faint, "nothing shows") - now full brightness; your chat no longer shows through an open conversation, and a conversation opens at its newest line.
+- ✨ **The chat bar rebuilt:** no more overlapping text, every channel shows from the first load (no folding needed), icons on Chat / Whispers / History, a coloured orb per channel - each its own colour now (Battleground red, Officer teal) - dividers and a glowing underline. Invite / target / who sit in the conversation, so the bar never jumps.
+- 📅 **Look back in time:** a **Days** picker on every page jumps to any day; **Shift + mouse wheel** down = the newest line, up = the oldest. Channel pages use the full width (the people list is only for whispers).
+- ⚒️ **New profession windows (trade skills and Enchanting):** the search box and the "have materials" / "skill-up" ticks sit above the list instead of on it (thanks Wolfahrt), categories as gold bars, the picked recipe lit, the profession's picture behind the recipe, the skill bar across the top.
+- 🛡️ **The worn look on every character window:** spellbook, talents, quest log and the profession windows too (Quality of Life > Honor > Character window).
+- 🖱️ **Click casting:** pfUI's built-in SCRM no longer wipes Puppeteer's mouse-over, and a new "Left-click spells also target" option.
+
 ## 📜 New in 1.2.41
 
 - 💬 **NEW STYLE chat fix:** clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back.

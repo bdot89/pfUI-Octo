@@ -131,6 +131,11 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     H.target:SetPoint("RIGHT", H.whob, "LEFT", -2, 0)
     H.invite = Btn(bar, "+", "Invite to your group", function() if Who_() then InviteByName(Who_()) end end)
     H.invite:SetPoint("RIGHT", H.target, "LEFT", -2, 0)
+    -- (24 Nov 2026, user: "add date picker also to make it easier to look back in time") the days this page has lines
+    -- for, newest first: pick one and the page scrolls to it (Shift + wheel down: back to now)
+    H.days = Btn(H, "Days  v", "Jump to a day", function() WH.DaysMenu(this) end)
+    H.days:SetWidth(56)
+    H.days:Hide()
     -- the green "+3": new messages waiting; click it to go to the oldest one
     local badge = CreateFrame("Button", nil, bar)
     badge:SetHeight(18)
@@ -382,9 +387,23 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if msg.SetMaxLines then msg:SetMaxLines(200) end
     if msg.SetJustifyH then msg:SetJustifyH("LEFT") end
     msg:EnableMouseWheel(true)
+    -- (24 Nov 2026, user: "shift scroll down will take you to the current time of chat no matter how far you have
+    -- scrolled") Shift + wheel: down = the newest line, up = the oldest kept
     msg:SetScript("OnMouseWheel", function()
+      if IsShiftKeyDown() then
+        if arg1 > 0 then if this.ScrollToTop then this:ScrollToTop() end
+        elseif this.ScrollToBottom then this:ScrollToBottom() end
+        return
+      end
       if arg1 > 0 then if this.ScrollUp then this:ScrollUp() end elseif this.ScrollDown then this:ScrollDown() end
     end)
+    -- every line counted, so the day picker knows how far back a day starts
+    c.count, c.days = 0, {}
+    local add = msg.AddMessage
+    msg.AddMessage = function(self, text, r, g, b, id, hold)
+      c.count = c.count + 1
+      return add(self, text, r, g, b, id, hold)
+    end
     msg:SetScript("OnMouseDown", function() WH.Seen(WH.windows[WH.active]) end)
     msg:Hide()
     c.msg = msg
@@ -434,7 +453,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   -- the list shown, or folded to nothing by the arrow on the dividing line
   function WH.ApplyList()
     if not H then return end
-    local hide = S().listhidden == "1" or H.folded
+    -- (24 Nov 2026, user: "what is this side bar for in guild chat") the list is the people you whisper with: on a
+    -- channel's page (guild, raid ...) it has no use and goes, the page takes the whole width
+    local chanPage = WH.active and WH.windows[WH.active] and WH.windows[WH.active].chan
+    local hide = S().listhidden == "1" or H.folded or chanPage
     if hide then
       H.list:Hide()
       H.list:SetWidth(1)
@@ -442,7 +464,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       H.list:SetWidth(tonumber(S().tabwidth) or 120)
       if not H.folded then H.list:Show() end
     end
-    if H.folded then H.line:Hide() H.arrow:Hide() else H.line:Show() H.arrow:Show() end
+    if H.folded or chanPage then H.line:Hide() H.arrow:Hide() else H.line:Show() H.arrow:Show() end
     H.arrow.text:SetText(S().listhidden == "1" and ">" or "<")
     WH.Layout()
   end
@@ -581,6 +603,8 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local d = date("%Y-%m-%d", t or time())
     if c.day ~= d then
       c.day = d
+      -- (where this day starts, for the day picker)
+      if c.days then table.insert(c.days, { d = d, t = t or time(), at = (c.count or 0) + 1 }) end
       c.msg:AddMessage("|cff8a7a55--  " .. date("%A %d %B", t or time()) .. "  --|r")
     end
   end
@@ -636,6 +660,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       if string.sub(name, 1, 1) == "#" and CHH then c.chan = CHH.BYKEY[string.sub(name, 2)] end
       if c.msg.SetMaxLines then c.msg:SetMaxLines(WH.MAXLINES) end
       Fill(c, skip)
+      if WH.Lift then WH.Lift() end
     end
     if not c.open then
       c.open = true
@@ -658,15 +683,17 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       -- the MEDIUM layer, above every chat window, pinned over the chat panel's area; it goes when the chat panel goes.
       H:SetParent(UIParent)
       H:SetFrameStrata("MEDIUM")
-      H:SetFrameLevel(10)
+      -- (24 Nov 2026, in game: every line faint - "nothing shows") NO SetFrameLevel here: on 1.12 it raises the window
+      -- but not what is in it, so its own dark backdrop covered its text, list and lines. MEDIUM alone is above the chat.
       if not chat.pfWhisperHook and HookScript then
         chat.pfWhisperHook = true
         HookScript(chat, "OnHide", function() if WH.embedded and H then H:Hide() if WH.onChange then WH.onChange() end end end)
       end
       H:ClearAllPoints()
-      local top = chat.panelTop
+      -- (under the chat bar when NEW STYLE has one: chat-bar.lua sets WH.embedTop)
+      local top = WH.embedTop or chat.panelTop
       if top then
-        H:SetPoint("TOPLEFT", top, "BOTTOMLEFT", 0, -2)
+        H:SetPoint("TOPLEFT", top, "BOTTOMLEFT", 0, -1)
       else
         H:SetPoint("TOPLEFT", chat, "TOPLEFT", 3, -24)
       end
@@ -677,12 +704,34 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       H:SetMovable(false)
       H:SetBackdropBorderColor(0, 0, 0, 0)
       H.folded = nil
+      -- (24 Nov 2026, user: opening Whispers "bumps off the R and B and brings up group invite etc") invite / target /
+      -- who sit in the conversation's top-right corner, not on the chat bar
+      for i, b in ipairs({ H.whob, H.target, H.invite }) do
+        b:SetParent(H)
+        b:SetFrameLevel(H:GetFrameLevel() + 20)
+        b:ClearAllPoints()
+        b:SetPoint("TOPRIGHT", H, "TOPRIGHT", -4 - (i - 1) * 20, -4)
+      end
+      -- (24 Nov 2026, user: "they are hiding under everything its impossible to see") the chat's own lines drew through
+      -- an open conversation: while one shows, the chat windows of the left panel are made invisible (they still
+      -- take every message) and come back when you return to chat
+      if not H.pfCoverHooks and HookScript then
+        H.pfCoverHooks = true
+        HookScript(H, "OnShow", function() if WH.embedded then WH.CoverChat(true) end end)
+        HookScript(H, "OnHide", function() WH.CoverChat(false) end)
+      end
       H:Hide()
     elseif WH.embedded then
       WH.embedded = nil
       H:Hide()
+      WH.CoverChat(false)
       H:SetParent(UIParent)
       H:SetFrameStrata("MEDIUM")
+      -- (the person buttons back on the window's own bar)
+      for _, b in ipairs({ H.whob, H.target, H.invite }) do b:SetParent(H.bar) b:ClearAllPoints() end
+      H.whob:SetPoint("RIGHT", H.fold, "LEFT", -8, 0)
+      H.target:SetPoint("RIGHT", H.whob, "LEFT", -2, 0)
+      H.invite:SetPoint("RIGHT", H.target, "LEFT", -2, 0)
       H.bar:SetHeight(22)
       H.bar:Show()
       H.grip:Show()
@@ -694,6 +743,37 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     WH.ApplyList()
     if WH.onChange then WH.onChange() end
   end
+  -- what is in the window always above its own backdrop: list and page one level up, the lines and tabs two
+  function WH.Lift()
+    if not H then return end
+    local base = H:GetFrameLevel() or 1
+    H.list:SetFrameLevel(base + 1)
+    H.page:SetFrameLevel(base + 1)
+    if H.edit then H.edit:SetFrameLevel(base + 2) end
+    for _, c in pairs(WH.windows) do
+      if c.msg then c.msg:SetFrameLevel(base + 2) end
+      if c.tab then c.tab:SetFrameLevel(base + 2) end
+    end
+    if H.arrow then H.arrow:SetFrameLevel(base + 5) end
+  end
+  -- the left chat's windows invisible (true) or back (false); they keep every message meanwhile
+  function WH.CoverChat(on)
+    local chat = pfUI.chat and pfUI.chat.left
+    if not chat then return end
+    for i = 1, (_G.NUM_CHAT_WINDOWS or 7) do
+      local f = _G["ChatFrame" .. i]
+      if f and f.GetParent and f:GetParent() == chat then
+        if on then
+          if not f.pfCovered then f.pfCovered = f:GetAlpha() or 1 end
+          f:SetAlpha(0)
+        elseif f.pfCovered then
+          f:SetAlpha(f.pfCovered)
+          f.pfCovered = nil
+        end
+      end
+    end
+    WH.covered = on and true or nil
+  end
   -- the embedded window's colour: the chat's own, solid enough to cover the chat under it
   local function EmbedLook()
     H:SetBackdropColor(.05, .05, .06, .97)
@@ -704,6 +784,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if WH.embedded then
       if not H:IsShown() then H:Show() WH.ApplyList() end
       EmbedLook()
+      WH.Lift()
       if WH.onChange then WH.onChange() end
       return
     end
@@ -725,7 +806,17 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if not c.chan then WH.lastPerson = name end
     WH.lastView = name
     for _, o in pairs(WH.windows) do if o ~= c then o.msg:Hide() end end
-    if not H.folded then c.msg:Show() end
+    -- (the people list only on a whisper's page; the day picker on every page)
+    if WH.listChan ~= (c.chan and true or false) then
+      WH.listChan = c.chan and true or false
+      WH.ApplyList()
+    end
+    if WH.PaintDays then WH.PaintDays() end
+    -- (24 Nov 2026, user: "like a conversation just carrying on from the last time you spoke") always at its newest line
+    if not H.folded then
+      c.msg:Show()
+      if c.msg.ScrollToBottom then c.msg:ScrollToBottom() end
+    end
     if old and old ~= c then WH.Paint(old) end
     -- scrolled away? bring its tab into view
     local i = 0
@@ -905,6 +996,55 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     end
     -- (the list, its dividing line and arrow as the arrow left them)
     WH.ApplyList()
+  end
+
+  -- ---------------------------------------------------------------- the day picker
+
+  -- a day's name in the menu: Today, Yesterday, else "Mon 22 Nov"
+  function WH.DayName(t)
+    local d = date("%Y-%m-%d", t)
+    if d == date("%Y-%m-%d", time()) then return "Today" end
+    if d == date("%Y-%m-%d", time() - 86400) then return "Yesterday" end
+    return date("%a %d %b", t)
+  end
+  -- scroll page c so that day entry e (its divider line) is at the top
+  function WH.JumpDay(c, e)
+    if not (c and c.msg) then return end
+    c.msg:ScrollToBottom()
+    if not e then return end
+    local up = (c.count or 0) - (e.at or 0)
+    for _ = 1, math.min(up, WH.MAXLINES) do c.msg:ScrollUp() end
+  end
+  -- the menu: "Now" first, then every day of the page, newest first
+  function WH.DaysMenu(anchor)
+    local c = WH.active and WH.windows[WH.active]
+    local W = pfUI.octoui and pfUI.octoui.W
+    if not (c and W and W.Menu) then return end
+    if WH.dmenu and WH.dmenu:IsShown() then WH.dmenu:Hide() return end
+    local opts = { { key = 0, label = "|cff66ff66Now|r  (the newest line)" } }
+    for i = table.getn(c.days or {}), 1, -1 do
+      table.insert(opts, { key = i, label = WH.DayName(c.days[i].t) })
+    end
+    WH.dmenu = W.Menu(anchor, opts, 150, function(i)
+      if WH.dmenu then WH.dmenu:Hide() end
+      WH.JumpDay(c, i and i > 0 and c.days[i] or nil)
+    end)
+    if WH.dmenu then WH.dmenu:Show() end
+    return opts
+  end
+  -- the button: at the top right of the page, left of + T ? on a whisper's page; only with more than one day
+  function WH.PaintDays()
+    if not H or not H.days then return end
+    local c = WH.active and WH.windows[WH.active]
+    if not c or H.folded or table.getn(c.days or {}) < 1 then H.days:Hide() return end
+    H.days:ClearAllPoints()
+    H.days:SetFrameLevel((H:GetFrameLevel() or 1) + 20)
+    if c.chan or not WH.embedded then
+      H.days:SetPoint("TOPRIGHT", H, "TOPRIGHT", c.chan and -4 or -4, WH.embedded and -4 or -28)
+    else
+      H.days:SetPoint("TOPRIGHT", H, "TOPRIGHT", -4 - 3 * 20 - 4, -4)
+    end
+    H.days:Show()
   end
 
   -- the chat's top bar: is a conversation showing, and which

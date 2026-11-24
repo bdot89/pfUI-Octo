@@ -354,6 +354,17 @@ do
     return 0
   end
 
+  -- (pfUI Octo, 24 Nov 2026) the unit of the Puppeteer frame under the mouse, or nil
+  function CleveRoids.PuppeteerHover()
+    local PT = _G.Puppeteer
+    local f = type(PT) == "table" and PT.MouseoverFrame
+    if type(f) ~= "table" or not f.hovered or type(f.GetResolvedUnit) ~= "function" then return nil end
+    if type(f.button) == "table" and f.button.IsVisible and not f.button:IsVisible() then return nil end
+    local ok, u = pcall(f.GetResolvedUnit, f)
+    if ok and type(u) == "string" and u ~= "" and UnitExists(u) then return u end
+    return nil
+  end
+
   local function getBest()
     local bestSource, bestUnit, bestP = nil, nil, -1
     for source, unit in pairs(CleveRoids.__mo.sources) do
@@ -363,6 +374,11 @@ do
           bestP, bestSource, bestUnit = p, source, unit
         end
       end
+    end
+    -- (pfUI Octo, 24 Nov 2026, Khijazi) Puppeteer's live hover is a unit frame source (see PuppeteerHover)
+    if bestP < 3 then
+      local u = CleveRoids.PuppeteerHover and CleveRoids.PuppeteerHover()
+      if u then bestP, bestSource, bestUnit = 3, "puppeteer", u end
     end
     return bestSource, bestUnit
   end

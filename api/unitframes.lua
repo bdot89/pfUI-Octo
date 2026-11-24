@@ -2390,9 +2390,13 @@ function pfUI.uf:ClickAction(button)
     else
       -- run click cast action
       local is_macro = string.find(this.clickactions[modstring], "^%/(.+)")
+      -- (pfUI Octo, 24 Nov 2026, Khijazi: "if you set up the click casting, it no longer targets them")
+      -- "Left-click spells also target": a left-click spell leaves the unit targeted
+      local keep = button == "LeftButton" and pfUI_config.unitframes.clickcasttarget == "1"
 
       if superwow_active and not is_macro then
         CastSpellByName(this.clickactions[modstring], unitstr)
+        if keep and not UnitIsUnit(unitstr, "target") then TargetUnit(unitstr) end
       else
         local tswitch = UnitIsUnit(unitstr, "target")
         TargetUnit(unitstr)
@@ -2403,7 +2407,7 @@ function pfUI.uf:ClickAction(button)
           CastSpellByName(this.clickactions[modstring])
         end
 
-        if not tswitch then TargetLastTarget() end
+        if not tswitch and not keep then TargetLastTarget() end
       end
 
       return

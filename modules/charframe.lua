@@ -202,6 +202,62 @@ pfUI:RegisterModule("charframe", "vanilla", function ()
       CF.Paint()
     end)
   end
+  -- ---------------------------------------------------------------- the other windows
+
+  -- (24 Nov 2026, user: "make sure this styling is on all character windows") the same worn finish - grime, scratches,
+  -- burnt edges, a bronze line - on any window pfUI has skinned (its backdrop frame lies under the window's own parts).
+  -- C.charframe.others = "0" leaves them plain.
+  function CF.DressFrame(f)
+    local bd = f and f.backdrop
+    if not bd then return nil end
+    if f.pfWorn then return f.pfWorn end
+    local w = { lines = {} }
+    f.pfWorn = w
+    w.shade = Tex(bd, "BORDER", "Interface\\Buttons\\WHITE8X8", .03, .02, .015, .5)
+    w.shade:SetAllPoints(bd)
+    w.grime = Tex(bd, "ARTWORK", pfUI.media[ART .. "grime"], 1, 1, 1, .8)
+    w.grime:SetAllPoints(bd)
+    w.scratch = Tex(bd, "ARTWORK", pfUI.media[ART .. "scratch"], 1, 1, 1, .16)
+    w.scratch:SetAllPoints(bd)
+    w.scratch:SetBlendMode("ADD")
+    w.burn = Tex(bd, "OVERLAY", pfUI.media[ART .. "burn"], 1, 1, 1, .85)
+    w.burn:SetAllPoints(bd)
+    for _, e in ipairs({ { "TOPLEFT", "TOPRIGHT", true }, { "BOTTOMLEFT", "BOTTOMRIGHT", true },
+      { "TOPLEFT", "BOTTOMLEFT", false }, { "TOPRIGHT", "BOTTOMRIGHT", false } }) do
+      local t = Tex(bd, "OVERLAY", "Interface\\Buttons\\WHITE8X8", BRONZE[1], BRONZE[2], BRONZE[3], .3)
+      t:SetPoint(e[1], bd, e[1], (string.find(e[1], "LEFT") and 3) or -3, (string.find(e[1], "TOP") and -3) or 3)
+      t:SetPoint(e[2], bd, e[2], (string.find(e[2], "LEFT") and 3) or -3, (string.find(e[2], "TOP") and -3) or 3)
+      if e[3] then t:SetHeight(1) else t:SetWidth(1) end
+      table.insert(w.lines, t)
+    end
+    return w
+  end
+  function CF.PaintFrame(f)
+    local w = f and f.pfWorn
+    if not w then return end
+    local on = G().enable ~= "0" and G().others ~= "0"
+    for _, t in ipairs({ w.shade, w.grime, w.scratch, w.burn }) do if on then t:Show() else t:Hide() end end
+    for _, t in ipairs(w.lines) do if on then t:Show() else t:Hide() end end
+    w.shade:SetVertexColor(.03, .02, .015, tonumber(G().dark) or .55)
+  end
+  -- the windows: name, and the add-on that brings it (nil = always there)
+  CF.OTHERS = { { "SpellBookFrame" }, { "QuestLogFrame" }, { "TalentFrame", "Blizzard_TalentUI" },
+    { "TradeSkillFrame", "Blizzard_TradeSkillUI" }, { "CraftFrame", "Blizzard_CraftUI" } }
+  local function Watch(name)
+    local f = _G[name]
+    if not f or f.pfWornHook or not HookScript then return end
+    f.pfWornHook = true
+    HookScript(f, "OnShow", function()
+      if G().enable == "0" or G().others == "0" then if this.pfWorn then CF.PaintFrame(this) end return end
+      CF.DressFrame(this)
+      CF.PaintFrame(this)
+    end)
+  end
+  for _, e in ipairs(CF.OTHERS) do
+    local name = e[1]
+    if e[2] and HookAddonOrVariable then HookAddonOrVariable(e[2], function() Watch(name) end) else Watch(name) end
+  end
+
   local ev = CreateFrame("Frame")
   ev:RegisterEvent("UNIT_INVENTORY_CHANGED")
   ev:RegisterEvent("PLAYER_PVP_RANK_CHANGED")
