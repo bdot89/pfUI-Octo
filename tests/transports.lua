@@ -265,5 +265,5 @@ if PL and PL.Filtered then
   ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == false, "world: no filtering by default")
   pfUI.context.Zone = oldZone
   local O2 = pfUI.octoui and pfUI.octoui.Options
-  ok(O2 and O2.BUILD and O2.BUILD.npbg, "Battlegrounds nameplate page registered")
+  ok(O2 and O2.BUILD and O2.ALIAS and O2.ALIAS.npbg == "npquest" and O2.BUILD.npquest, "Battlegrounds nameplate cards on Extras (old key kept)")
 end

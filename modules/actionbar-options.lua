@@ -190,10 +190,8 @@ pfUI:RegisterModule("actionbar-options", "vanilla:tbc", function ()
     scr:SetWidth(VW)
     scr:SetHeight(VH)
     scr:SetPoint("LEFT", box, "LEFT", 6, 0)
-    local bg = scr:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints(scr)
-    bg:SetTexture("Interface\\Buttons\\WHITE8X8")
-    bg:SetGradient("VERTICAL", .05, .07, .09, .12, .15, .19)
+    -- (24 Nov 2026, user: EllesmereUI's preview "is more just the frames on top rather than a big box like we have
+    -- on our actionbars") no screen-coloured panel behind the bars any more: they stand on the page
     -- a line between the bars and the sample
     local split = box:CreateTexture(nil, "ARTWORK")
     split:SetTexture("Interface\\Buttons\\WHITE8X8")

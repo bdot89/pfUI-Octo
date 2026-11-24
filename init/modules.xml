@@ -29,6 +29,7 @@
   <Include file="..\modules\chat-plus.lua"/>
   <Include file="..\modules\chat-history.lua"/>
   <Include file="..\modules\chat-whispers.lua"/>
+  <Include file="..\modules\chat-bar.lua"/>
   <Include file="..\modules\chat-raid.lua"/>
   <Include file="..\modules\bubbles.lua"/>
   <Include file="..\modules\addons.lua"/>
@@ -88,7 +89,9 @@
   <Include file="..\modules\plates-auras.lua"/>
   <Include file="..\modules\plates-lists.lua"/>
   <Include file="..\modules\plates-fx.lua"/>
+  <Include file="..\modules\combo.lua"/>
   <Include file="..\modules\plates-options.lua"/>
+  <Include file="..\modules\combo-options.lua"/>
   <Include file="..\modules\unitframes-options.lua"/>
   <Include file="..\modules\castbar-options.lua"/>
   <Include file="..\modules\swing.lua"/>
@@ -174,6 +177,8 @@
   <Include file="..\modules\bulwark-options.lua"/>
   <Include file="..\modules\flight.lua"/>
   <Include file="..\modules\flight-options.lua"/>
+  <Include file="..\modules\framefade.lua"/>
+  <Include file="..\modules\framefade-options.lua"/>
   <Include file="..\modules\honor.lua"/>
   <Include file="..\modules\charframe.lua"/>
   <Include file="..\modules\honor-options.lua"/>

@@ -44,7 +44,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "OctoLazy", { "OctoLazy" } },
     -- (8 Nov 2026, user: "a QoL section ... raid markers auto loot everything
     -- in here") qol-options.lua's pages, then Auto Loot's
-    { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer", "Honor" } },
+    { "Quality of Life", { "Quality of Life", "Auto Loot", "Loot Filter", "Gathering", "Flight Timer", "Frame Fade", "Honor" } },
     -- (9 Nov 2026, user: "a tab at the side for questing and pfquest should be in
     -- there with an option to turn it off") questing-options.lua
     -- (16 Nov 2026, user: "Call Questing pfQuest")
@@ -1292,7 +1292,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         pfUI.firstrun:Restart()
       end
     end)
-    Entry(T["Quality of Life"], "qol", "Small helpers in one place: vendor, loot, raid tools, screenshots, auto loot, gathering and flight times.", function()
+    Entry(T["Quality of Life"], "qol", "Small helpers in one place: vendor, loot, raid tools, screenshots, auto loot, gathering, flight times and frame fade.", function()
       for _, grp in ipairs(O.groups or {}) do
         if grp.name == (T["Quality of Life"] or "Quality of Life") then
           local key = grp.lastKey and O.nav[grp.lastKey] and grp.lastKey or (grp.buttons[1] and grp.buttons[1].key)
@@ -2173,6 +2173,10 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   end
 
   function O:Select(key)
+    -- (24 Nov 2026) a page merged into another (O.ALIAS, e.g. the old nameplate tabs) opens that one
+    if key and self.ALIAS and string.sub(key, 1, 2) == "o:" and self.ALIAS[string.sub(key, 3)] then
+      key = "o:" .. self.ALIAS[string.sub(key, 3)]
+    end
     if not key or not (self.nav[key]) then key = self.first end
     if not key then return end
     self.current = key
@@ -2248,6 +2252,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- Opens the window on a page: an Octo page key ("ctgeneral"), or a pfUI
   -- category (and page) by their shown names.
   function O:Open(key, page)
+    if key and self.ALIAS and self.ALIAS[key] then key = self.ALIAS[key] end
     if not g:IsShown() then
       self.opening = true
       g:Show()
@@ -2672,32 +2677,55 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       for _, title in ipairs(s[4]) do t.of[title] = s[1] end
     end
     p.tabs = t
-    local row = W.Row(p, 24, 0, 6)
-    local n = table.getn(sections)
-    local w = math.floor((W.CW - (n - 1) * 4) / n)
-    local btns = {}
+    -- (24 Nov 2026, user with EllesmereUI's pages: "more simple and better on the eye") plain words in a centred
+    -- row, the open one white with an accent line under it, a faint line under the row; they were a row of boxed
+    -- buttons with pictures
+    local row = W.Row(p, 26, 0, 6)
+    local base = row:CreateTexture(nil, "BACKGROUND")
+    base:SetTexture("Interface\\Buttons\\WHITE8X8")
+    base:SetVertexColor(W.C.line[1], W.C.line[2], W.C.line[3], .6)
+    base:SetHeight(1)
+    base:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
+    base:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
+    local btns, total = {}, 0
     for i, s in ipairs(sections) do
-      local b = W.Button(row, s[2], w, 22)
-      b:SetPoint("LEFT", row, "LEFT", (i - 1) * (w + 4), 0)
+      local b = CreateFrame("Button", nil, row)
+      b:SetHeight(24)
       b.key = s[1]
-      local pic = b:CreateTexture(nil, "OVERLAY")
-      pic:SetTexture("Interface\\Icons\\" .. s[3])
-      pic:SetTexCoord(.08, .92, .08, .92)
-      pic:SetWidth(16)
-      pic:SetHeight(16)
-      pic:SetPoint("LEFT", b, "LEFT", 5, 0)
-      if b.label then
-        b.label:ClearAllPoints()
-        b.label:SetPoint("LEFT", pic, "RIGHT", 5, 0)
-        b.label:SetPoint("RIGHT", b, "RIGHT", -4, 0)
-        b.label:SetJustifyH("LEFT")
-      end
+      b.t = W.Font(b:CreateFontString(nil, "OVERLAY"), 12, W.C.dim[1], W.C.dim[2], W.C.dim[3])
+      b.t:SetPoint("CENTER", b, "CENTER", 0, 1)
+      b.t:SetText(W.T and W.T(s[2]) or s[2])
+      local tw = math.floor((b.t:GetStringWidth() or 60) + 22)
+      if tw < 50 then tw = 50 end
+      b:SetWidth(tw)
+      b.mark = b:CreateTexture(nil, "OVERLAY")
+      b.mark:SetTexture("Interface\\Buttons\\WHITE8X8")
+      b.mark:SetHeight(2)
+      b.mark:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 6, -1)
+      b.mark:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, -1)
+      b.label = b.t
       W.Tip(b, s[2], "Shows: " .. table.concat(s[4], ", ") .. ".")
+      local tipIn, tipOut = b:GetScript("OnEnter"), b:GetScript("OnLeave")
+      b:SetScript("OnEnter", function() if this.key ~= p.tabs.cur then this.t:SetTextColor(1, 1, 1) end if tipIn then tipIn() end end)
+      b:SetScript("OnLeave", function() if this.key ~= p.tabs.cur then this.t:SetTextColor(W.C.dim[1], W.C.dim[2], W.C.dim[3]) end if tipOut then tipOut() end end)
       b:SetScript("OnClick", function() O.TabSet(p, this.key) end)
       btns[i] = b
+      total = total + tw
+    end
+    -- centred under the preview
+    local x = math.max(0, math.floor(((row:GetWidth() or W.CW) - total) / 2))
+    for _, b in ipairs(btns) do
+      b:SetPoint("LEFT", row, "LEFT", x, 0)
+      x = x + b:GetWidth()
     end
     table.insert(p.items, { Refresh = function()
-      for _, b in ipairs(btns) do W.Pick(b, b.key == p.tabs.cur) end
+      local ar, ag, ab = W.C.accent[1], W.C.accent[2], W.C.accent[3]
+      if GetAccentColor then ar, ag, ab = GetAccentColor() end
+      for _, b in ipairs(btns) do
+        local on = b.key == p.tabs.cur
+        if on then b.t:SetTextColor(1, 1, 1) b.mark:SetVertexColor(ar, ag, ab, 1) b.mark:Show()
+        else b.t:SetTextColor(W.C.dim[1], W.C.dim[2], W.C.dim[3]) b.mark:Hide() end
+      end
       O.TabFilter(p)
     end })
     p.tabFirst = p.last

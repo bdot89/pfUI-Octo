@@ -62,6 +62,7 @@ local COL2 = 390   -- where the right-hand column starts
 local CTRL = 196   -- whole-row controls start here, after their label
 local CARD_HEAD = 22 -- the card's capitals label line
 local CARD_TOP = 28 -- card top to its first control
+local PIN_HEAD = 16 -- (24 Nov 2026) the pinned preview's top line: only a quiet "Hide preview" at the right
 local ROW = 32      -- (8 Nov 2026) every setting row: label left, control right (32: more air, EllesmereUI-like)
 
 local MEDIA = "Interface\\AddOns\\pfUI\\img\\octo\\"
@@ -502,46 +503,42 @@ function W.Pin(p, title, tip, build)
   pin.octoPinned = true
   pin:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8)
   pin:SetWidth(W.WIDTH)
-  pin:SetHeight(CARD_HEAD)
-  -- (8 Nov 2026) the same capitals label as a card, the preview on a soft panel under it
-  local back = W.Panel(pin, CARD_HEAD)
+  pin:SetHeight(PIN_HEAD)
+  -- (24 Nov 2026, user with EllesmereUI's nameplate page: "his preview box is ... just the frames on top rather
+  -- than a big box") No label bar, no panel and no box: the sample frames stand on the page itself, a quiet
+  -- "Hide preview" word at the top right and one thin line under the strip. (8 Nov - 24 Nov it was a capitals
+  -- label + soft panel, with a framed box inside.)
   local head = CreateFrame("Button", nil, pin)
-  head:SetPoint("TOPLEFT", pin, "TOPLEFT", 0, 0)
   head:SetPoint("TOPRIGHT", pin, "TOPRIGHT", 0, 0)
-  head:SetHeight(CARD_HEAD)
-  local arrow = W.Arrow(head, 8, "down")
-  arrow:SetPoint("LEFT", head, "LEFT", 2, 0)
-  local t = W.Font(head:CreateFontString(nil, "OVERLAY"), 11, C.label[1], C.label[2], C.label[3])
-  t:SetPoint("LEFT", arrow, "RIGHT", 6, 0)
-  t:SetText(W.Caps(title))
+  head:SetWidth(130)
+  head:SetHeight(PIN_HEAD)
   -- (17 Nov 2026, user: "all preview boxes should be collapsable also with easy to see collapse menu")
-  -- a plain button at the right end of the label line: "Hide preview" / "Show preview"
   local fold = CreateFrame("Button", nil, head)
-  fold:SetWidth(112)
-  fold:SetHeight(18)
+  fold:SetWidth(120)
+  fold:SetHeight(PIN_HEAD)
   fold:SetPoint("RIGHT", head, "RIGHT", -2, 0)
-  W.Flat(fold, C.field, 1, C.accent)
-  fold.arrow = W.Arrow(fold, 8, "up", C.accent)
-  fold.arrow:SetPoint("LEFT", fold, "LEFT", 8, 0)
-  fold.t = W.Font(fold:CreateFontString(nil, "OVERLAY"), 11, C.accent[1], C.accent[2], C.accent[3])
-  fold.t:SetPoint("LEFT", fold.arrow, "RIGHT", 6, 0)
-  fold:SetScript("OnEnter", function() this.t:SetTextColor(1, 1, 1) end)
-  fold:SetScript("OnLeave", function() this.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) end)
+  fold.arrow = W.Arrow(fold, 7, "up", C.dim)
+  fold.arrow:SetPoint("RIGHT", fold, "RIGHT", -2, 0)
+  fold.t = W.Font(fold:CreateFontString(nil, "OVERLAY"), 10, C.dim[1], C.dim[2], C.dim[3])
+  fold.t:SetPoint("RIGHT", fold.arrow, "LEFT", -5, 0)
+  fold:SetScript("OnEnter", function() this.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) end)
+  fold:SetScript("OnLeave", function() this.t:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) end)
   pin.fold = fold
-  local rule = W.Fill(head, C.cardLine, 1, "ARTWORK")
+  W.Tip(fold, title, (tip and (tip .. "\n\n") or "") .. "Stays here while the page scrolls. Click to fold it away.")
+  local tipEnter, tipLeave = fold:GetScript("OnEnter"), fold:GetScript("OnLeave")
+  fold:SetScript("OnEnter", function() this.t:SetTextColor(C.accent[1], C.accent[2], C.accent[3]) tipEnter() end)
+  fold:SetScript("OnLeave", function() this.t:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) tipLeave() end)
+  -- the one thin line under the strip
+  local rule = W.Fill(pin, C.cardLine, 1, "ARTWORK")
   rule:SetHeight(1)
-  rule:SetPoint("LEFT", t, "RIGHT", 10, 0)
-  rule:SetPoint("RIGHT", fold, "LEFT", -8, 0)
-  W.Tip(head, title, (tip and (tip .. "\n\n") or "") .. "Stays here while the page scrolls. Click to fold it away.")
-  local tipEnter, tipLeave = head:GetScript("OnEnter"), head:GetScript("OnLeave")
-  head:SetScript("OnEnter", function() t:SetTextColor(C.text[1], C.text[2], C.text[3]) tipEnter() end)
-  head:SetScript("OnLeave", function() t:SetTextColor(C.label[1], C.label[2], C.label[3]) tipLeave() end)
+  rule:SetPoint("BOTTOMLEFT", pin, "BOTTOMLEFT", 0, 0)
+  rule:SetPoint("BOTTOMRIGHT", pin, "BOTTOMRIGHT", 0, 0)
   local inner = CreateFrame("Frame", nil, pin)
-  inner:SetPoint("TOPLEFT", pin, "TOPLEFT", 10, -CARD_HEAD - 6)
+  inner:SetPoint("TOPLEFT", pin, "TOPLEFT", 10, -PIN_HEAD + 4)
   inner:SetWidth(W.CW)
   inner:SetHeight(1)
-  -- the widgets go into the strip while build runs
-  local c = { parent = inner, x0 = 0, y0 = 0, lastX = 0, width = W.CW }
+  -- the widgets go into the strip while build runs; inPin: boxes there draw no frame of their own
+  local c = { parent = inner, x0 = 0, y0 = 0, lastX = 0, width = W.CW, inPin = true }
   local was = p.cur
   p.cur = c
   build(p)
@@ -550,20 +547,17 @@ function W.Pin(p, title, tip, build)
   local function Store() local s = B.Store() s.pins = s.pins or {} return s.pins end
   local function Layout()
     local open = not Store()[key]
-    local h = CARD_HEAD
-    if open then back:Show() else back:Hide() end
+    local h = PIN_HEAD
     if open then
       inner:Show()
       local top, bottom = inner:GetTop(), c.last and c.last:GetBottom()
       local content = (top and bottom) and (top - bottom) or (pin.contentH or 200)
       pin.contentH = content
-      h = CARD_HEAD + content + 14
-      W.Turn(arrow, "down")
+      h = PIN_HEAD - 4 + content + 10
       W.Turn(fold.arrow, "up")
       fold.t:SetText("Hide " .. string.lower(title))
     else
       inner:Hide()
-      W.Turn(arrow, "right")
       W.Turn(fold.arrow, "down")
       fold.t:SetText("Show " .. string.lower(title))
     end
@@ -573,11 +567,10 @@ function W.Pin(p, title, tip, build)
     sf:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -8 - h - 6)
     sf:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -24, 8)
   end
-  head:SetScript("OnClick", function()
+  fold:SetScript("OnClick", function()
     Store()[key] = not Store()[key] or nil
     Layout()
   end)
-  fold:SetScript("OnClick", function() head:GetScript("OnClick")() end)
   -- measured once it is drawn (sizes come a frame late), and on every show
   pin:SetScript("OnShow", function() this.measure = 2 end)
   pin:SetScript("OnUpdate", function()
@@ -613,6 +606,8 @@ end
 -- A cell of the two-column grid: left on a new line, or right of the cell
 -- waiting there. The taller of the two carries the line on.
 local function PutHalf(c, cell, gap)
+  -- (24 Nov 2026) a "..." panel holds one column
+  if c.single then return Put(c, cell, 0, gap) end
   local left = c.half
   if left then
     cell:ClearAllPoints()
@@ -715,7 +710,8 @@ function W.Box(p, h)
   local f = CreateFrame("Frame", nil, c.parent)
   f:SetWidth(c.width)
   f:SetHeight(h)
-  W.Flat(f, C.field, 0.9, C.line)
+  -- (24 Nov 2026) in a pinned preview the samples stand on the page: no fill, no frame
+  if not c.inPin then W.Flat(f, C.field, 0.9, C.line) end
   return Put(c, f, 0, 6)
 end
 
@@ -1179,6 +1175,7 @@ function W.Check(p, label, desc, get, set, full)
     Click()
   end)
   W.Tip(cb, label, desc)
+  c.lastRow, row.ctrlW = row, 32
   if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = function() cb:SetChecked(get() and 1 or nil) end })
@@ -1304,6 +1301,7 @@ function W.Slider(p, label, desc, min, max, step, get, set, fmt)
   end)
   W.Tip(s, label, desc)
   RowHit(row, lab, label, desc)
+  c.lastRow, row.ctrlW = row, sw + 60
   if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = function()
@@ -1758,6 +1756,7 @@ function W.Dropdown(p, label, desc, options, get, set)
   local f, Refresh, hit = W.MiniDrop(row, dw, options, get, set, math.max(dw, 200))
   f:SetPoint("RIGHT", row, "RIGHT", -10, 0)
   W.Tip(hit, label, desc)
+  c.lastRow, row.ctrlW = row, dw
   if full then Put(c, row, 0, 1) else PutHalf(c, row, 1) end
   Index(p, label, desc, row)
   Track(p, { Refresh = Refresh })
@@ -1915,11 +1914,8 @@ pcall(W.PickerExtras)
 
 -- def (optional): the default colour - a function returning a "r,g,b,a" string or r, g, b, a, or such a value.
 -- Right-click the swatch = back to the default at once.
-function W.Color(p, label, desc, get, set, def)
-  -- (8 Nov 2026) label left, the swatch right; the whole row picks
-  local row, c, fs = SettingRow(p, label)
-  local sw = W.Swatch(row, 18)
-  sw:SetPoint("RIGHT", row, "RIGHT", -10, 0)
+-- the swatch's clicks: left = the colour wheel, right = the default; returns Apply (repaint) and the tooltip text
+local function BindSwatch(sw, label, desc, get, set, def)
   local function Apply() sw.fill:SetVertexColor(get()) end
   local function Def()
     if type(def) == "function" then return W.ColorOf(def()) end
@@ -1927,7 +1923,6 @@ function W.Color(p, label, desc, get, set, def)
   end
   local tip = desc or "Click to pick a colour."
   if def then tip = tip .. "\n|cff999999Right-click: back to the default.|r" end
-  RowHit(row, fs, label, tip, function() sw:Click() end)
   sw:RegisterForClicks("LeftButtonUp", "RightButtonUp")
   sw:SetScript("OnClick", function()
     if arg1 == "RightButton" then
@@ -1957,6 +1952,144 @@ function W.Color(p, label, desc, get, set, def)
     ShowUIPanel(ColorPickerFrame)
   end)
   W.Tip(sw, label, tip)
+  return Apply, tip
+end
+
+-- ---------------------------------------------------------------- inline extras (24 Nov 2026)
+-- EllesmereUI-like rows (user: "keep all our options but make stuff just more simple"): a row can carry more than
+-- its own control. W.AddColor puts a colour swatch on the row just made, left of its control ("My own colour
+-- [swatch] [switch]" on one line instead of two rows); W.More puts a "..." there that opens a small panel with the
+-- row's lesser settings (positions, offsets, fine tuning), built with the usual widgets. Both go on Cur(p).lastRow.
+local function Inline(c, w)
+  local row = c.lastRow
+  if not row then return end
+  local x = 10 + (row.ctrlW or 0) + 8 + (row.inlineW or 0)
+  row.inlineW = (row.inlineW or 0) + w + 6
+  return row, x
+end
+
+function W.AddColor(p, label, desc, get, set, def)
+  local c = Cur(p)
+  local row, x = Inline(c, 18)
+  if not row then return end
+  local sw = W.Swatch(row, 18)
+  sw:SetPoint("RIGHT", row, "RIGHT", -x, 0)
+  local Apply = BindSwatch(sw, label, desc, get, set, def)
+  if W.ColorMade then W.ColorMade(label, get) end
+  Index(p, label, desc, row)
+  Track(p, { Refresh = Apply })
+  return sw
+end
+
+-- The "..." panel: build(q) adds widgets to q as to a page (one column). They are made at once (Find a setting finds
+-- them, as part of the row they hang on), the panel shows under the row on a click. One panel open at a time.
+function W.More(p, title, build, tip)
+  local c = Cur(p)
+  local row, x = Inline(c, 14)
+  if not row then return end
+  local b = CreateFrame("Button", nil, row)
+  b:SetWidth(14)
+  b:SetHeight(24)
+  b:SetPoint("RIGHT", row, "RIGHT", -x, 0)
+  local dots = {}
+  for i = 1, 3 do
+    local d = b:CreateTexture(nil, "ARTWORK")
+    d:SetTexture(U.WHITE)
+    d:SetWidth(3)
+    d:SetHeight(3)
+    d:SetPoint("CENTER", b, "CENTER", 0, (2 - i) * 5)
+    dots[i] = d
+  end
+  local function Paint(hot)
+    local col = hot and C.accent or C.dim
+    for i = 1, 3 do dots[i]:SetVertexColor(col[1], col[2], col[3], 1) end
+  end
+  Paint()
+
+  local pop = CreateFrame("Frame", nil, UIParent)
+  pop:Hide()
+  pop:SetFrameStrata("FULLSCREEN")
+  pop:SetFrameLevel(40)
+  pop:SetWidth(HALF + 20)
+  pop:SetHeight(60)
+  pop:SetClampedToScreen(true)
+  pop:EnableMouse(true)
+  W.Flat(pop, C.panel, .98, C.lineHi)
+  local head = W.Font(pop:CreateFontString(nil, "OVERLAY"), 10, C.label[1], C.label[2], C.label[3])
+  head:SetPoint("TOPLEFT", pop, "TOPLEFT", 10, -8)
+  head:SetText(W.Caps(title))
+  local x2 = CreateFrame("Button", nil, pop)
+  x2:SetWidth(18)
+  x2:SetHeight(18)
+  x2:SetPoint("TOPRIGHT", pop, "TOPRIGHT", -4, -3)
+  local xt = W.Font(x2:CreateFontString(nil, "OVERLAY"), 12, C.dim[1], C.dim[2], C.dim[3])
+  xt:SetPoint("CENTER", x2, "CENTER", 0, 0)
+  xt:SetText("x")
+  x2:SetScript("OnEnter", function() xt:SetTextColor(1, 1, 1) end)
+  x2:SetScript("OnLeave", function() xt:SetTextColor(C.dim[1], C.dim[2], C.dim[3]) end)
+  x2:SetScript("OnClick", function() pop:Hide() end)
+  local inner = CreateFrame("Frame", nil, pop)
+  inner:SetPoint("TOPLEFT", pop, "TOPLEFT", 10, -20)
+  inner:SetWidth(HALF)
+  inner:SetHeight(1)
+  local q = { body = pop, frame = pop, parent = inner, items = {}, cards = {}, x0 = 0, y0 = 0, lastX = 0,
+              width = HALF, single = true, key = p.key, popup = true }
+  local from = table.getn(W.index)
+  build(q)
+  -- what it holds belongs to the row it hangs on (Find a setting opens the page there)
+  for i = from + 1, table.getn(W.index) do
+    local e = W.index[i]
+    if e.page == q then
+      e.page, e.card, e.region = p, p.cur, row
+      e.desc = (e.desc and (e.desc .. "\n") or "") .. "(behind the \"...\" on " .. W.T(row.label and row.label:GetText() or title) .. ")"
+    end
+  end
+  local function RefreshAll() for i = 1, table.getn(q.items) do q.items[i].Refresh() end end
+  pop:SetScript("OnShow", function() RefreshAll() this.measure = 2 end)
+  pop:SetScript("OnUpdate", function()
+    if not this.measure then return end
+    this.measure = this.measure - 1
+    local top, bottom = inner:GetTop(), q.last and q.last:GetBottom()
+    if top and bottom then this:SetHeight(math.max(40, top - bottom + 30)) end
+    if this.measure <= 0 then this.measure = nil end
+  end)
+  Track(p, { Refresh = function() if pop:IsShown() then RefreshAll() end end })
+  -- the page (or the card) closing takes the panel with it
+  if not row:GetScript("OnHide") then
+    row:SetScript("OnHide", function() if this.pops then for _, f in ipairs(this.pops) do f:Hide() end end end)
+  end
+  row.pops = row.pops or {}
+  table.insert(row.pops, pop)
+
+  b:SetScript("OnEnter", function()
+    Paint(true)
+    GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
+    GameTooltip:AddLine(W.T(title))
+    GameTooltip:AddLine(W.T(tip or "More settings for this line."), 1, 1, 1, 1)
+    GameTooltip:Show()
+  end)
+  b:SetScript("OnLeave", function() Paint() GameTooltip:Hide() end)
+  b:SetScript("OnClick", function()
+    if pop:IsShown() then pop:Hide() return end
+    if W.openMore and W.openMore ~= pop then W.openMore:Hide() end
+    pop:ClearAllPoints()
+    pop:SetPoint("TOPRIGHT", row, "BOTTOMRIGHT", 0, -2)
+    pop:Show()
+    W.openMore = pop
+  end)
+  b.pop, b.q = pop, q
+  row.more = b
+  return b
+end
+
+function W.Color(p, label, desc, get, set, def)
+  -- (8 Nov 2026) label left, the swatch right; the whole row picks
+  local row, c, fs = SettingRow(p, label)
+  local sw = W.Swatch(row, 18)
+  sw:SetPoint("RIGHT", row, "RIGHT", -10, 0)
+  local Apply, tip = BindSwatch(sw, label, desc, get, set, def)
+  RowHit(row, fs, label, tip, function() sw:Click() end)
+  c.lastRow, row.ctrlW = row, 18
   PutHalf(c, row, 1)
   Index(p, label, desc, row)
   Track(p, { Refresh = Apply })

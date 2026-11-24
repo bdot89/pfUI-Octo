@@ -676,8 +676,19 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     end
     o.state = state
     if P.Lists then o.quest = P.Lists.QuestFor(plate) end
+    -- (24 Nov 2026, Simpson: "i set the targets that don't attack me to be orange and they are all red ... casting and
+    -- stunned targets also don't have their correct colors ... they do in the old pfui") pfUI's combat state colours
+    -- (Nameplates > Colours: "Combat state on the bar") are your own choice: when one applies it wins over the threat
+    -- colours when you pick them (C.plates.barby = "combat"; "threat" = ours, the default). SuperWoW gives the GUID.
+    if not col and enemy and not pv and S.barby == "combat" and C.nameplates.barcombatstate == "1" and superwow_active
+      and pfUI.nameplatesCombatColor then
+      local guid = plate.parent and plate.parent.GetName and plate.parent:GetName(1)
+      local cs = guid and guid ~= "" and pfUI.nameplatesCombatColor(guid)
+      if cs then col = { cs.r, cs.g, cs.b, cs.a or 1 } end
+    end
     if not col then
-      col = P.ThreatColor(state)
+      -- (pfUI's combat state picked: its colours stay on the bar when none of ours applies)
+      col = S.barby ~= "combat" and P.ThreatColor(state) or nil
       -- NPC colours (threat wins unless set otherwise), then quest units
       if P.Lists then col = P.Lists.QuestColor(o, P.Lists.BarColor(plate, state, col)) end
     end

@@ -306,4 +306,48 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     end)
     HookScript(WorldMapFrame, "OnHide", function() Z.drag = nil end)
   end)
+
+  -- (24 Nov 2026, Simpson: "there is a ping on the map whenever i open it ... it's offset from the player arrow. how do i
+  -- get rid of it?") The 1.2.31 fix above only ran with the map zoom on. The ping is a Model, and on 1.12 a model does
+  -- not follow its parent's scale - pfUI's resized map puts it beside you. Now it is pinned on your arrow whatever the
+  -- zoom, and C.appearance.worldmap.ping = "0" (Quality of Life > Map) hides it.
+  -- (24 Nov 2026, Simpson: pfQuest's "Current Zone Only" button on the map "does not work anymore") pfQuest levels its
+  -- menu against WorldMapButton when it loads; the zoom then moves WorldMapButton into the zoomed picture, and the map's
+  -- click layer ended up over the menu's arrow (Level Range, set 10 higher, kept working). Every map menu goes above
+  -- the map each time it opens, in the order they stack.
+  Z.MENUS = { "pfQuestMapDropdown", "pfQuestMapLevelDropdown", "ModernMapMarkersFilter_Blizz", "ModernMapMarkersFind_Blizz",
+    "pfMapMarksButton" }
+  function Z.RaiseMenus()
+    local top = 0
+    for _, f in ipairs({ _G.WorldMapButton, _G.WorldMapDetailFrame, Z.scroll, Z.canvas }) do
+      if f and f.GetFrameLevel then top = math.max(top, f:GetFrameLevel() or 0) end
+    end
+    for i, name in ipairs(Z.MENUS) do
+      local m = rawget(_G, name)
+      if m and m.SetFrameLevel then
+        local lvl = top + 20 + i * 4
+        if (m:GetFrameLevel() or 0) < lvl then m:SetFrameLevel(lvl) end
+        local arrow = rawget(_G, name .. "Button")
+        if arrow and arrow.SetFrameLevel then arrow:SetFrameLevel(m:GetFrameLevel() + 2) end
+        -- (our marks list hangs under its button)
+        local list = name == "pfMapMarksButton" and rawget(_G, "pfMapMarks")
+        if list then list:SetFrameLevel(m:GetFrameLevel() + 2) end
+      end
+    end
+  end
+  if _G.WorldMapFrame then HookScript(WorldMapFrame, "OnShow", Z.RaiseMenus) end
+
+  function Z.PingCheck()
+    local ping, me = _G.WorldMapPing, _G.WorldMapPlayer
+    if not ping or not ping:IsVisible() then return end
+    if C.appearance.worldmap.ping == "0" then ping:Hide() return end
+    if me then
+      ping:ClearAllPoints()
+      ping:SetPoint("CENTER", me, "CENTER", -7, -9)
+    end
+  end
+  if _G.WorldMapFrame then
+    local pw = CreateFrame("Frame", nil, WorldMapFrame)
+    pw:SetScript("OnUpdate", Z.PingCheck)
+  end
 end)

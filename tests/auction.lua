@@ -486,6 +486,24 @@ do
     P.size:SetText("5") P.stacks:SetText("4")
     UI.FitLeft({ name = "Bronze Bar", total = 16, slots = {} })
     ok(P.size:GetText() == "5" and P.stacks:GetText() == "3", "or fewer stacks of the same size when they still fit")
+    -- (24 Nov 2026, Wolfahrt: 24 in stacks of 20, the 4 left needed "Full stacks" again) the bags changed while the
+    -- post was still running; once it ends the next refresh fits the 4, with no new bag change
+    if UI.Refresh and UI.Open then
+      local keepSell, keepJob, keepTab = UI.sell, AH.job, UI.tab
+      UI.tab = "sell"
+      UI.sell = { name = "Dream Dust", key = "dd", total = 4, slots = {} }
+      P.size:SetText("20") P.stacks:SetText("1")
+      AH.bagsDirty = nil
+      AH.job = nil
+      local wasShown = UI.frame:IsShown()
+      UI.frame:Show()
+      UI.bagList = UI.bagList or {}
+      local good, err = pcall(UI.Refresh)
+      ok(good and P.size:GetText() == "4" and P.stacks:GetText() == "1",
+        "after the post ends the 4 left go in the stack size [" .. tostring(P.size:GetText()) .. (good and "" or (": " .. tostring(err))) .. "]")
+      if not wasShown then UI.frame:Hide() end
+      UI.sell, AH.job, UI.tab = keepSell, keepJob, keepTab
+    end
   end
   -- saved searches
   UI.pages.browse.name:SetText("linen cloth/exact")

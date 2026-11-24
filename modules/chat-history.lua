@@ -29,13 +29,21 @@ pfUI:RegisterModule("chat-history", "vanilla:tbc", function ()
     for _, e in ipairs(k.events) do CH.BYEVENT[e] = k end
   end
 
+  -- (its own table: pfUI's chat keeps its last lines in pfUI_cache.chathistory[realm][player], where 1.2.39 also
+  -- put this under "name-realm" - no clash, but moved out on first use so the two never share a table)
   function CH.Store()
-    pfUI_cache.chathistory = pfUI_cache.chathistory or {}
+    pfUI_cache.octochat = pfUI_cache.octochat or {}
     local key = (ME or "?") .. "-" .. (GetRealmName and GetRealmName() or "")
-    local s = pfUI_cache.chathistory[key]
+    local s = pfUI_cache.octochat[key]
+    local old = pfUI_cache.chathistory and pfUI_cache.chathistory[key]
+    if not s and type(old) == "table" and old.w then
+      s = old
+      pfUI_cache.chathistory[key] = nil
+      pfUI_cache.octochat[key] = s
+    end
     if not s then
       s = { w = {} }
-      pfUI_cache.chathistory[key] = s
+      pfUI_cache.octochat[key] = s
     end
     s.w = s.w or {}
     return s

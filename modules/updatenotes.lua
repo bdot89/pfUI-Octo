@@ -2,6 +2,16 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.40", {
+    { "NEW STYLE chat (optional)", "Chat > Windows starts with a clear choice, OLD CHAT or NEW STYLE. New style puts a bar across the top of your chat: your chat (right-click to pick a window), Whispers with a green count, G O P R B S for guild / officer / party / raid / battleground / say history (talk there from the box), History for old whispers and a small arrow to fold the bar. Whispers open inside the chat instead of a window on top; click Chat to flip back and forth. Old chat stays the default. History's menu now shuts on a second click." },
+    { "Combo points, rebuilt", "their own tab, Nameplates > Combo points, with a live preview. 16 styles (12 new chrome shapes: diamond, hexagon, star, blood drop, flame, blade, rune, crescent, skull, chevron, heart, shard), a row or an arc, colours by count / class / one colour / each point, all one colour at five, animations when a point comes (pop, flash, bounce, drop), at five (glow, burst, shake) and when spent (fade, shatter), the count as a number, a sound at five, and a bar on the screen you can move." },
+    { "Frame Fade", "Quality of Life > Frame Fade (off by default). Player and pet frames, action bars, buffs, minimap, chat, panels and meters fade away while nothing is going on and come back for combat, a target, low health or mana, casting, groups and more - hover or hold a key to peek." },
+    { "Calmer options", "previews float on the page with no box, Nameplates sits in fewer tabs with plain underlined section tabs, and on the nameplate and unit frame pages the small settings (nudges, gaps, fine sizes) sit behind a \"\" on their row, with colours on the same line as their switch. Every setting is kept." },
+    { "Nameplate colours", "Nameplates > Colours > \"Colour the bars by\": pick pfUI combat state and your own colours for attacking you / others / no one, casting and stunned show on the bars, as in the old pfUI (the threat colours used to paint over them)." },
+    { "Map fixes", "the ping on you when the map opens sits on your arrow at any zoom (and can be switched off: Quality of Life > Map); pfQuest's \"Current Zone Only\" button works again; mailbox, bank and auction house icons tracked with the old standalone pfQuest show their pictures again instead of plain dots." },
+    { "Auctions", "the Sell tab's list shows \"Of usual\" (% of the usual price), and after posting full stacks the leftover goes straight into the stack size." },
+    { "New files and pictures: restart the game, not just /reload", "" },
+  } },
   { "1.2.39", {
     { "Chat history, 30 days", "whispers (both ways, per person), guild, officer, party, raid (raid warnings marked) and battleground chat are kept per character for 30 days (say and yell too if you switch them on). Kept small: one short string a line, at most 4 000 lines a channel." },
     { "In the whisper window", "History at the top of the list opens a menu of everyone you whispered with, newest first, with a filter - pick one for the whole conversation. The G O P R B S row at the bottom opens Guild, Officer, Party, Raid, Battleground or Say history, new lines come in live, and the box below talks in that channel. Days are split by \"-- Monday 23 November --\" lines. A small arrow on the dividing line hides the list and brings it back." },
@@ -169,11 +179,5 @@ pfUI.octoNotes = {
     { "Minimap pins stay inside a round map,", "with the built-in or a separate pfQuest." },
     { "World map menus", "no more overlap with ModernMapMarkers, and the menus stay on screen when Magnify zooms in." },
     { "Demo mode", "Wipe, Enrage, Healers out of mana and the other lasting events light up while on and turn off with a second click; no more \"interval is empty\" error." },
-  } },
-  { "1.2.0", {
-    { "OctoRinse sees your talents", "with ClassicAPI the range check is the same one your action bar uses, so talents that lengthen your cures' range count. Without it, each cure's range comes from its spell, or you set it yourself." },
-    { "OctoRinse looks", "pfUI Octo, Bars (rows filled with the debuff school's colour), Bright (strong colour, a border and bigger words), Compact and Icons. Plus a school-colour border, an out-of-range fade setting and a pulsing top row." },
-    { "OctoProcs", "big pulsing alerts round your character the moment a proc is up, with the spell icon, a glow, a countdown and stacks, an optional screen-edge glow and a sound. Under CoolDownManager, /procs." },
-    { "Every nampower setting", "Settings > nampower has all of nampower's own options (spell queue, channels, safety, chat bubbles and more), each with its default and a reset." },
   } },
 }

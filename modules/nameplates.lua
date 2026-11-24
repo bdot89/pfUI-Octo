@@ -63,6 +63,9 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
     return color
   end
 
+  -- octo (24 Nov 2026): plates.lua asks this too - the combat state colours you set win over its threat colours
+  pfUI.nameplatesCombatColor = GetCombatStateColor
+
   local function DoNothing()
     return
   end

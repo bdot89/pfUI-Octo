@@ -131,8 +131,8 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 -- modules that must start cleanly (the octo ones, as they are added)
 local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "minigames", "minigames-options", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
-  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-raid", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
+  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
 
@@ -4226,6 +4226,10 @@ do
         and fp.health:GetFrameLevel() > box:GetFrameLevel(),
         "sample bar: above its box, its dark backdrop still under the fill")
       pfUI_config.nameplates.cpdisplay = "1"
+      -- (24 Nov 2026, combo.lua: an empty slot is the same shape dimmed - the mock keeps no colours, so empty slots off
+      -- while lit ones are counted)
+      local cpemptyWas, cpspendWas = pfUI_config.plates.cpempty, pfUI_config.plates.cpspend
+      pfUI_config.plates.cpempty, pfUI_config.plates.cpspend = "0", "none"
       local seen = {}
       for i = 1, 12 do
         Mock.now = Mock.now + .35
@@ -4240,6 +4244,7 @@ do
         if pf > 0 then seen.pfui = true end
       end
       ok(seen[0] and seen[3] and seen[5] and not seen.pfui, "our orbs roll on the sample target (pfUI's squares stay hidden)")
+      pfUI_config.plates.cpempty, pfUI_config.plates.cpspend = cpemptyWas, cpspendWas
       pfUI_config.nameplates.cpdisplay = "0"
       -- every part is clickable; parts with a place can be dragged
       local hot = fp.castbar.hots and fp.castbar.hots[first]
@@ -4364,7 +4369,8 @@ do
     pfUI.gui:Show()
     local sec
     for _, s in ipairs(O.octo) do if s[1] == "Nameplates" then sec = s end end
-    ok(sec and table.getn(sec[2]) == 9, "Nameplates section with its nine pages")
+    -- (24 Nov 2026: nine merged into five, EllesmereUI-like; then Combo points got a tab of its own, combo-options.lua)
+    ok(sec and table.getn(sec[2]) == 6, "Nameplates section with its six tabs (five + Combo points)")
     -- the topic list: most used first, small categories grouped
     local heads = {}
     for _, grp in ipairs(O.groups) do table.insert(heads, grp.header.text.text) end
@@ -4524,7 +4530,7 @@ do
     O.quickFind:SetText("")
     -- the preview is pinned above the page's scrolling part, and can fold
     O:Select("o:nplook")
-    local pl = O.pages.nplook
+    local pl = O.pages.npgeneral
     ok(pl and pl.pin and pl.pin.octoPinned and pl.pin:GetParent() == pl.frame, "the preview is pinned at the top of the page")
     local top = pl.frame.points and pl.frame.points[1]
     ok(top and top[1] == "TOPLEFT" and top[5] < -40, "the options scroll below it (" .. tostring(top and top[5]) .. ")")
@@ -4543,7 +4549,7 @@ do
       ok(c.card.octoFlash and c.card.octoFlash:IsShown() and c.card.octoFlash:GetParent() == c.card, "the card itself lights up")
     end
     -- the looks live on Look and size, not General; sizes sit right under them
-    ok(pfUI.plates.OpenSection("nplook", "Looks") and not pfUI.plates.OpenSection("npgeneral", "Looks"), "Looks card is on Look and size")
+    ok(pfUI.plates.OpenSection("nplook", "Looks") and O.pages.npgeneral.tabs.cur == "look", "Looks card is on the Look tab of Look (the old Look and size key still finds it)")
     local cp = pfUI_config.plates
     local was = { cp.size_enemynpc, cp.size_enemyplayer, cp.size_friendlynpc, cp.size_friendlyplayer, cp.sizematch }
     cp.size_friendlynpc = "125"
@@ -5368,10 +5374,10 @@ end
 do
   local O = pfUI.octoui and pfUI.octoui.Options
   local P = pfUI.plates
-  if O and O.CardTabs and O.BUILD.nplook and P and P.OpenSection then
+  if O and O.CardTabs and O.BUILD.npgeneral and P and P.OpenSection then
     pfUI.gui:Show()
     pcall(function() O:Select("o:nplook") end)
-    local p = O.pages.nplook
+    local p = O.pages.npgeneral
     ok(p and p.tabs and p.tabs.cur == "look", "Look and size starts on its Look tab")
     local function Shown()
       local out = {}
@@ -6950,6 +6956,7 @@ dofile(DIR .. "/tests/mapcolors.lua")
 dofile(DIR .. "/tests/mapglow.lua")
 dofile(DIR .. "/tests/honor.lua")
 dofile(DIR .. "/tests/chathistory.lua")
+dofile(DIR .. "/tests/combo.lua")
 dofile(DIR .. "/tests/challenges.lua")
 dofile(DIR .. "/tests/rinse.lua")
 dofile(DIR .. "/tests/movers.lua")
@@ -6957,6 +6964,8 @@ dofile(DIR .. "/tests/mapmarks.lua")
 dofile(DIR .. "/tests/minigames.lua")
 dofile(DIR .. "/tests/meterscapi.lua")
 dofile(DIR .. "/tests/flight.lua")
+dofile(DIR .. "/tests/framefade.lua")
+dofile(DIR .. "/tests/inline.lua")
 dofile(DIR .. "/tests/worldbuffs.lua")
 dofile(DIR .. "/tests/demo.lua")
 dofile(DIR .. "/tests/bulwark.lua")

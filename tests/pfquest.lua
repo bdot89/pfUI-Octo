@@ -361,3 +361,29 @@ if pfQuestOcto and pfQuestOcto.make then CreateFrame = pfQuestOcto.make end
 pfQuestOctoHidden, pfQuestOcto = nil, nil
 _G.GetAddOnInfo = realInfo
 _G.pfDB, pfQuestOctoSkip = realDB, nil
+
+-- (24 Nov 2026, Simpson: town icons only coloured dots) tracked services saved with an icon path into another pfQuest
+-- folder are pointed at pfUI's copy
+do
+  local Q = pfUI.questing
+  ok(Q and Q.FixTrackIcons, "questing: FixTrackIcons")
+  if Q and Q.FixTrackIcons then
+    local keepTrack, keepCfg, keepOcto, keepSkip = rawget(_G, "pfQuest_track"), rawget(_G, "pfQuestConfig"), rawget(_G, "pfQuestOcto"), rawget(_G, "pfQuestOctoSkip")
+    local keepOff = Q.off
+    Q.off = nil
+    _G.pfQuestOcto, _G.pfQuestOctoSkip = {}, nil
+    _G.pfQuestConfig = { path = "Interface\\AddOns\\pfUI\\pfquest" }
+    _G.pfQuest_track = {
+      mailbox = { { name = "mailbox" }, { addon = "TRACK_MAILBOX", icon = "Interface\\AddOns\\pfQuest\\img\\tracking\\mailbox" } },
+      banker = { { name = "banker" }, { addon = "TRACK_BANKER", icon = "Interface\\AddOns\\pfQuest-master\\img\\tracking\\banker" } },
+      trees = { { name = "trees" }, { addon = "TRACK_TREES", icon = "Interface\\AddOns\\pfUI\\pfquest\\turtle-img\\tracking\\trees" } },
+    }
+    local n = Q.FixTrackIcons()
+    ok(n == 2 and pfQuest_track.mailbox[2].icon == "Interface\\AddOns\\pfUI\\pfquest\\img\\tracking\\mailbox"
+      and pfQuest_track.banker[2].icon == "Interface\\AddOns\\pfUI\\pfquest\\img\\tracking\\banker",
+      "old standalone icon paths point at pfUI's copy (" .. tostring(n) .. ")")
+    ok(pfQuest_track.trees[2].icon == "Interface\\AddOns\\pfUI\\pfquest\\turtle-img\\tracking\\trees", "our own paths are left alone")
+    _G.pfQuest_track, _G.pfQuestConfig, _G.pfQuestOcto, _G.pfQuestOctoSkip = keepTrack, keepCfg, keepOcto, keepSkip
+    Q.off = keepOff
+  end
+end

@@ -123,8 +123,32 @@ if Z then
       Z.FixPing()
       local pp = ping.points and ping.points[1]
       ok(pp and pp[1] == "CENTER" and pp[2] == me and pp[4] == -7 and pp[5] == -9, "zoomed in: the ping sits on your marker")
+      -- (24 Nov 2026, Simpson) pinned on you at 1x too (the old fix ran only with zoom), and it can be switched off
+      Z.Reset()
+      ping:ClearAllPoints()
+      ping:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 50, 50)
+      ping:Show()
+      Z.PingCheck()
+      pp = ping.points and ping.points[1]
+      ok(pp and pp[1] == "CENTER" and pp[2] == me, "not zoomed: the ping sits on your marker too")
+      pfUI_config.appearance.worldmap.ping = "0"
+      Z.PingCheck()
+      ok(not ping:IsShown(), "ping switched off: hidden")
+      pfUI_config.appearance.worldmap.ping = "1"
       _G.WorldMapPing, _G.WorldMapPlayer = keepPing, keepMe
       Z.Reset()
+    end
+    -- (24 Nov 2026, Simpson: pfQuest's "Current Zone Only" stopped working) every map menu above the map's click layer
+    if Z.RaiseMenus then
+      local keepDD, keepDDB = rawget(_G, "pfQuestMapDropdown"), rawget(_G, "pfQuestMapDropdownButton")
+      local dd = CreateFrame("Frame", nil, UIParent)
+      local ddb = CreateFrame("Button", nil, dd)
+      dd:SetFrameLevel(2)
+      _G.pfQuestMapDropdown, _G.pfQuestMapDropdownButton = dd, ddb
+      WorldMapButton:SetFrameLevel(30)
+      Z.RaiseMenus()
+      ok(dd:GetFrameLevel() > 30 and ddb:GetFrameLevel() > dd:GetFrameLevel(), "pfQuest's quest menu and its arrow sit above the map")
+      _G.pfQuestMapDropdown, _G.pfQuestMapDropdownButton = keepDD, keepDDB
     end
   end
   pfUI_config.appearance.worldmap.zoom = "0"

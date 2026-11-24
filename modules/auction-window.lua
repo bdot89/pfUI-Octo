@@ -1460,12 +1460,15 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   P.sum:SetWidth(580)
   P.post = Role(Btn(P.box, "Post", 160, function() UI.Post() end), "go")
   P.post:SetPoint("TOPLEFT", P.box, "TOPLEFT", 4, -262)
-  P.rivals = NewList(P.box, { { "On the auction house now", 250, "LEFT", "name", "count" }, { "Seller", 110, "LEFT", "owner" }, { "Time left", 86, "LEFT", "left" },
-    { "Buyout each", 110, "RIGHT", "unit" } }, 9, function(r, d)
+  -- (24 Nov 2026, Wolfahrt: "Can't see the % of value") the Sell tab's list shows each price against the usual one too,
+  -- as Browse does
+  P.rivals = NewList(P.box, { { "On the auction house now", 236, "LEFT", "name", "count" }, { "Seller", 104, "LEFT", "owner" }, { "Time left", 80, "LEFT", "left" },
+    { "Buyout each", 104, "RIGHT", "unit" }, { "Of usual", 70, "RIGHT", "ofusual" } }, 9, function(r, d)
     ItemCell(r, d, d.count)
     r.cell[2]:SetText(UI.Seller(d.owner))
     r.cell[3]:SetText(UI.Left(d.left))
     r.cell[4]:SetText(d.unit and AH.Money(d.unit) or "|cff808080-|r")
+    r.cell[5]:SetText(PctCell(d))
     if d.owner == UnitName("player") then r.cell[2]:SetTextColor(.4, .9, .5) else r.cell[2]:SetTextColor(.8, .8, .84) end
   end, function(d) UI.MatchPrice(d) end)
   P.rivals:SetPoint("TOPLEFT", P.box, "TOPLEFT", 0, -292)
@@ -2124,8 +2127,12 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         P.items.sel = keep
         P.items.Paint()
         if not keep then P.head:SetText("Pick an item on the left") end
-        if keep and not AH.job then UI.FitLeft(keep) end
       end
+      -- (24 Nov 2026, Wolfahrt: 24 to sell in stacks of 20 - after the 20 went up the 4 left could not be posted until
+      -- "Full stacks" was clicked again) the bags' update for the last stack came while the post was still running, so
+      -- the fit waited on a change that had already been used up. Now the numbers are fitted to what is left whenever
+      -- no post is running (FitLeft changes nothing while they still fit).
+      if UI.sell and not AH.job then UI.FitLeft(UI.sell) end
       UI.PaintSell()
     elseif UI.tab == "owner" then
       local rows = AH.Owned()

@@ -566,6 +566,28 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   local function BuildWindows(p)
     W.Heading(p, "Chat", { on = O.ModuleSwitch("chat", "Chat"), about = "Your chat panels, their tabs and windows. The preview shows a line of every kind with "
       .. "your settings; the switches over it turn real windows on and off." })
+    -- (23 Nov 2026, user: "keep this optional in chat options make it clear at the top OLD CHAT OR NEW STYLE")
+    local function Style() return C.chat.style == "new" and "new" or "old" end
+    local function SetStyle(v)
+      if pfUI.chatBar and pfUI.chatBar.SetStyle then pfUI.chatBar.SetStyle(v) else C.chat.style = v end
+      O:Refresh()
+    end
+    W.Card(p, "Chat style", { tip = "OLD CHAT: pfUI's chat with its tabs, whispers in their own floating window. NEW STYLE: a bar across "
+      .. "the top of your chat - your chat, Whispers, Guild, Officer, Party, Raid, Battleground and Say history and old whispers, all "
+      .. "in the same panel, one click apart. Switch any time, no reload." })
+    W.Buttons(p, {
+      { "OLD CHAT", function() SetStyle("old") end, 150, "pfUI's chat as it was: tabs over the chat on mouse-over, whispers in "
+        .. "their own window.", on = function() return Style() == "old" end },
+      { "NEW STYLE", function() SetStyle("new") end, 150, "A top bar on the chat: your chat, whispers and every channel's history "
+        .. "in one panel. Click Chat to flip back to the last conversation.", on = function() return Style() == "new" end },
+    })
+    W.Live(p, function()
+      if Style() == "new" then
+        return "|cff66ff66NEW STYLE|r - the bar on top of your chat: |cffffd100General|r (right-click: pick a window), "
+          .. "|cffffd100Whispers|r, |cffffd100G O P R B S|r channel history, |cffffd100History|r old whispers, |cffffd100<|r folds it."
+      end
+      return "|cffffd100OLD CHAT|r - pfUI's chat with tabs on mouse-over; whispers open in their own window."
+    end)
     Preview(p)
     W.Card(p, "Looks", { tip = "Timestamps, channel names, colours, background and dock in one click. Some parts take a reload." })
     Looks(p)

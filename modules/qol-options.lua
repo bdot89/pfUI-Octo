@@ -39,13 +39,17 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     W.Heading(p, "Quality of life", { about = "The small helpers in one place: vendor and loot, the map, tooltips, "
       .. "screen glows, error messages, and helpers that are whole modules. The same settings are also on their own pages." })
     -- (19 Nov 2026) Demo mode has its own row in the sidebar (More); a way there from here too
-    if W.Tiles and pfUI.demo then
-      W.Tiles(p, {
-        { "Raid demo", "A pretend raid with your settings", "Interface\\Icons\\INV_Misc_Head_Dragon_01", function() pfUI.demo.Start("raid") end, "go" },
-        { "Target dummy demo", "Every rank and crest in turn", "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", function() pfUI.demo.Start("dummy") end, "go" },
-        { "Demo mode page", "All demos and their settings", "Interface\\Icons\\INV_Misc_Spyglass_03", function() O:Open("demo") end, "open" },
-      })
+    -- (24 Nov 2026) Frame fade, its own tab (framefade-options.lua): a way there from the top of this page
+    local tiles = {}
+    if pfUI.demo then
+      table.insert(tiles, { "Raid demo", "A pretend raid with your settings", "Interface\\Icons\\INV_Misc_Head_Dragon_01", function() pfUI.demo.Start("raid") end, "go" })
+      table.insert(tiles, { "Target dummy demo", "Every rank and crest in turn", "Interface\\Icons\\INV_Misc_Bone_HumanSkull_01", function() pfUI.demo.Start("dummy") end, "go" })
+      table.insert(tiles, { "Demo mode page", "All demos and their settings", "Interface\\Icons\\INV_Misc_Spyglass_03", function() O:Open("demo") end, "open" })
     end
+    if pfUI.framefade then
+      table.insert(tiles, { "Frame fade", "A clean screen while nothing is going on", "Interface\\Icons\\Spell_Nature_Invisibilty", function() O:Open("framefade") end, "open" })
+    end
+    if W.Tiles and table.getn(tiles) > 0 then W.Tiles(p, tiles) end
     -- (21 Nov 2026, Bread: "keeps track of when world buffs are going to go off and what buff it is")
     if C.worldbuffs then
       W.Card(p, "World buffs", { icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01", tip = "When a head is handed in (Onyxia, Nefarian, "
@@ -87,6 +91,9 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Chk(p, "Zoom into the world map", "Mouse wheel over the map zooms in where the cursor is (up to 4x), drag moves the "
       .. "view, a new zone starts whole again (Magnify built in). Shift + wheel: map opacity, Ctrl + wheel: window size. "
       .. "Steps aside when Magnify, Cartographer or MetaMap is loaded. Takes a reload.", "appearance", "worldmap", "zoom")
+    -- (24 Nov 2026, Simpson)
+    Chk(p, "Ping on you when the map opens", "The game's ring that marks you each time the world map opens. Off: no ring.",
+      "appearance", "worldmap", "ping", function() end)
     Chk(p, "Boats and zeppelins on the map", "Where each boat and zeppelin is right now, worked out from its route. "
       .. "It gets exact once you or a guild / group member with pfUI Octo sees one move (ClassicAPI).", "appearance", "worldmap", "transports", function() end)
     Chk(p, "Never open the battle map", "The game's small zone map (Shift-M) pops up by itself whenever the server "

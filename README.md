@@ -122,6 +122,17 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.40
+
+- 💬 **NEW STYLE chat (optional):** Chat > Windows starts with a clear choice, **OLD CHAT** or **NEW STYLE**. New style puts a bar across the top of your chat: your chat (right-click to pick a window), **Whispers** with a green count, **G O P R B S** for guild / officer / party / raid / battleground / say history (talk there from the box), **History** for old whispers and a small arrow to fold the bar. Whispers open inside the chat instead of a window on top; click Chat to flip back and forth. Old chat stays the default. History's menu now shuts on a second click.
+- ✨ **Combo points, rebuilt:** their own tab, Nameplates > Combo points, with a live preview. 16 styles (12 new chrome shapes: diamond, hexagon, star, blood drop, flame, blade, rune, crescent, skull, chevron, heart, shard), a row or an arc, colours by count / class / one colour / each point, all one colour at five, animations when a point comes (pop, flash, bounce, drop), at five (glow, burst, shake) and when spent (fade, shatter), the count as a number, a sound at five, and a **bar on the screen** you can move.
+- 🌙 **Frame Fade:** Quality of Life > Frame Fade (off by default). Player and pet frames, action bars, buffs, minimap, chat, panels and meters fade away while nothing is going on and come back for combat, a target, low health or mana, casting, groups and more - hover or hold a key to peek.
+- 🧭 **Calmer options:** previews float on the page with no box, Nameplates sits in fewer tabs with plain underlined section tabs, and on the nameplate and unit frame pages the small settings (nudges, gaps, fine sizes) sit behind a "⋮" on their row, with colours on the same line as their switch. Every setting is kept.
+- 🎨 **Nameplate colours:** Nameplates > Colours > "Colour the bars by": pick **pfUI combat state** and your own colours for attacking you / others / no one, casting and stunned show on the bars, as in the old pfUI (the threat colours used to paint over them).
+- 🗺️ **Map fixes:** the ping on you when the map opens sits on your arrow at any zoom (and can be switched off: Quality of Life > Map); pfQuest's "Current Zone Only" button works again; mailbox, bank and auction house icons tracked with the old standalone pfQuest show their pictures again instead of plain dots.
+- 💰 **Auctions:** the Sell tab's list shows "Of usual" (% of the usual price), and after posting full stacks the leftover goes straight into the stack size.
+- **New files and pictures: restart the game, not just /reload.**
+
 ## 📜 New in 1.2.39
 
 - 💬 **Chat history, 30 days:** whispers (both ways, per person), guild, officer, party, raid (raid warnings marked) and battleground chat are kept per character for 30 days (say and yell too if you switch them on). Kept small: one short string a line, at most 4 000 lines a channel.

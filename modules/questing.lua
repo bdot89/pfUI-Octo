@@ -115,4 +115,29 @@ pfUI:RegisterModule("questing", "vanilla:tbc", function ()
       Q.Notice()
     end)
   end
+
+  -- (24 Nov 2026, Simpson: "the mailbox, bank, auction house icons. they are just colored dots for me in octo pfui ...
+  -- work correctly with the standalone pfquest") pfQuest saves each tracked service with its search - the icon's path
+  -- too - in pfQuest_track. Tracked while the standalone pfQuest was installed, the paths point at
+  -- Interface\AddOns\pfQuest\img\...: with that folder gone there is no picture, only the coloured dot under it. The
+  -- same pictures are in pfUI's copy: any path into another pfQuest folder is pointed at ours, before pfQuest restores
+  -- the tracking at login.
+  function Q.FixTrackIcons()
+    local track = _G.pfQuest_track
+    local here = _G.pfQuestConfig and _G.pfQuestConfig.path
+    if type(track) ~= "table" or not here or Q.State() ~= "builtin" then return 0 end
+    local fixed = 0
+    for _, data in pairs(track) do
+      local meta = type(data) == "table" and data[2]
+      if type(meta) == "table" and type(meta.icon) == "string" then
+        local _, _, rest = string.find(meta.icon, "^[Ii]nterface\\[Aa]dd[Oo]ns\\[Pp]f[Qq]uest[^\\]*\\(.+)$")
+        if rest and string.find(string.lower(meta.icon), string.lower(here), 1, true) ~= 1 then
+          meta.icon = here .. "\\" .. rest
+          fixed = fixed + 1
+        end
+      end
+    end
+    return fixed
+  end
+  Q.FixTrackIcons()
 end)

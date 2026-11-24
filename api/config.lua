@@ -866,6 +866,35 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("charframe",  nil,           "crest",            "1")      -- faction crest behind your character
   pfUI:UpdateConfig("charframe",  nil,           "badge",            "1")      -- rank badge beside your name
   pfUI:UpdateConfig("charframe",  nil,           "glow",             "1")      -- quality glow round rare+ gear
+  -- Frame fade (24 Nov 2026, modules/framefade.lua): parts of the screen fade away while nothing is going on
+  pfUI:UpdateConfig("framefade",  nil,           "enable",           "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_player",         "1")
+  pfUI:UpdateConfig("framefade",  nil,           "g_bars",           "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_buffs",          "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_minimap",        "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_chat",           "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_panels",         "0")
+  pfUI:UpdateConfig("framefade",  nil,           "g_meters",         "0")
+  pfUI:UpdateConfig("framefade",  nil,           "alpha",            "0")
+  pfUI:UpdateConfig("framefade",  nil,           "fadein",           "0.2")
+  pfUI:UpdateConfig("framefade",  nil,           "fadeout",          "0.8")
+  pfUI:UpdateConfig("framefade",  nil,           "delay",            "2")
+  pfUI:UpdateConfig("framefade",  nil,           "combat",           "1")
+  pfUI:UpdateConfig("framefade",  nil,           "target",           "1")
+  pfUI:UpdateConfig("framefade",  nil,           "hurt",             "1")
+  pfUI:UpdateConfig("framefade",  nil,           "hpbelow",          "100")
+  pfUI:UpdateConfig("framefade",  nil,           "power",            "1")
+  pfUI:UpdateConfig("framefade",  nil,           "powbelow",         "100")
+  pfUI:UpdateConfig("framefade",  nil,           "casting",          "1")
+  pfUI:UpdateConfig("framefade",  nil,           "pet",              "1")
+  pfUI:UpdateConfig("framefade",  nil,           "group",            "0")
+  pfUI:UpdateConfig("framefade",  nil,           "instance",         "0")
+  pfUI:UpdateConfig("framefade",  nil,           "resting",          "0")
+  pfUI:UpdateConfig("framefade",  nil,           "hover",            "1")
+  pfUI:UpdateConfig("framefade",  nil,           "hoverall",         "0")
+  pfUI:UpdateConfig("framefade",  nil,           "modkey",           "alt")
+  pfUI:UpdateConfig("framefade",  nil,           "taxi",             "0")
+  pfUI:UpdateConfig("framefade",  nil,           "chatshow",         "10")
   pfUI:UpdateConfig("flight",     nil,           "enable",           "1")
   pfUI:UpdateConfig("flight",     nil,           "width",            "420")
   pfUI:UpdateConfig("flight",     nil,           "thick",            "2")
@@ -988,6 +1017,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("appearance", "worldmap",    "mapexploration",   "0")
   pfUI:UpdateConfig("appearance", "worldmap",    "transports",       "1")
   pfUI:UpdateConfig("appearance", "worldmap",    "zoom",             "1")    -- wheel zooms inside the map (Magnify built in)
+  pfUI:UpdateConfig("appearance", "worldmap",    "ping",             "1")    -- the game's ping on you when the map opens
   pfUI:UpdateConfig("appearance", "worldmap",    "nobattlemap",      "1")
   pfUI:UpdateConfig("appearance", "worldmap",    "groupcircles",     "3")
   pfUI:UpdateConfig("appearance", "worldmap",    "colornames",       "1")
@@ -1702,6 +1732,10 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("chat",       "whisper",     "y",                "")
   pfUI:UpdateConfig("chat",       "whisper",     "listhidden",       "0")      -- the side list folded away by its arrow
   pfUI:UpdateConfig("chat",       "whisper",     "channels",         "1")      -- the guild / raid / ... row in the window
+  -- OLD CHAT or NEW STYLE (23 Nov 2026, modules/chat-bar.lua): "new" = a top bar on the left chat, whispers and channel
+  -- history inside the chat
+  pfUI:UpdateConfig("chat",       nil,           "style",            "old")
+  pfUI:UpdateConfig("chat",       nil,           "barfolded",        "0")
   -- chat history (23 Nov 2026, modules/chat-history.lua): what is kept, for how long
   pfUI:UpdateConfig("chat",       "history",     "enable",           "1")
   pfUI:UpdateConfig("chat",       "history",     "days",             "30")
@@ -1837,6 +1871,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("plates",     nil,           "size_target",      "110")
   pfUI:UpdateConfig("plates",     nil,           "sizematch",        "0")
   pfUI:UpdateConfig("plates",     nil,           "threat",           "1")
+  pfUI:UpdateConfig("plates",     nil,           "barby",            "threat") -- threat | combat (pfUI's combat state colours)
   pfUI:UpdateConfig("plates",     nil,           "role",             "auto")
   pfUI:UpdateConfig("plates",     nil,           "pullat",           "90")
   pfUI:UpdateConfig("plates",     nil,           "aggroglow",        "1")
@@ -1950,6 +1985,28 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("plates",     nil,           "cpcustom",         "1,.8,.2,1")
   pfUI:UpdateConfig("plates",     nil,           "cpempty",          "1")
   pfUI:UpdateConfig("plates",     nil,           "cpglow",           "1")
+  -- (24 Nov 2026) combo points, modules/combo.lua
+  pfUI:UpdateConfig("plates",     nil,           "cpplate",          "1")      -- on the target's plate
+  pfUI:UpdateConfig("plates",     nil,           "cplayout",         "row")    -- row | arc
+  pfUI:UpdateConfig("plates",     nil,           "cpemptyalpha",     "45")     -- % strength of an empty slot
+  pfUI:UpdateConfig("plates",     nil,           "cpfull",           "0")      -- all points one colour at 5
+  pfUI:UpdateConfig("plates",     nil,           "cpfullcolor",      "1,.15,.1,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpc1",             "1,.95,.3,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpc2",             "1,.8,.2,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpc3",             "1,.6,.1,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpc4",             "1,.4,.1,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpc5",             "1,.2,.1,1")
+  pfUI:UpdateConfig("plates",     nil,           "cpgain",           "pop")    -- none | pop | flash | bounce | drop
+  pfUI:UpdateConfig("plates",     nil,           "cpanim5",          "glow")   -- none | glow | burst | shake | all
+  pfUI:UpdateConfig("plates",     nil,           "cpspend",          "fade")   -- none | fade | shatter
+  pfUI:UpdateConfig("plates",     nil,           "cptext",           "0")      -- the count as a number beside them
+  pfUI:UpdateConfig("plates",     nil,           "cptextsize",       "12")
+  pfUI:UpdateConfig("plates",     nil,           "cpsound",          "none")
+  pfUI:UpdateConfig("plates",     nil,           "cpbar",            "0")      -- the bar on the screen
+  pfUI:UpdateConfig("plates",     nil,           "cpbarsize",        "26")
+  pfUI:UpdateConfig("plates",     nil,           "cpbargap",         "5")
+  pfUI:UpdateConfig("plates",     nil,           "cpbarshow",        "target") -- target | combat | always
+  pfUI:UpdateConfig("plates",     nil,           "cpbarfade",        "1")      -- fades away with no points
   pfUI:UpdateConfig("plates",     nil,           "namecustom",       "0")
   pfUI:UpdateConfig("plates",     nil,           "namecolor",        "1,1,1,1")
   pfUI:UpdateConfig("plates",     nil,           "levelcustom",      "0")

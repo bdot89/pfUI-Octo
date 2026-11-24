@@ -1570,3 +1570,36 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   "OctoArcade" (removed from every chat frame; a ChatFrame_OnEvent wrapper drops its lines and notices) and MG.SayRealm
   sends ONE "OA1 mode:score:acc ..." line ~25 s after the first login world entry (MG.realmSaid); MG.ReadRealm reads others'
   (max 8 pairs) into the board. C.minigames.realm "0" leaves it. Tests: pfUI.env.SendChatMessage shadows _G in the mock.
+- Frame fade (24 Nov 2026, NOT seen in game; NEW FILES modules\framefade.lua + framefade-options.lua = full client restart;
+  Lo5t1ncyb3r: FrameFade by Grylls, MIT, archive github.com/neimad-mp/FrameFade - it hid pfPlayer / pfPet at once by
+  stopping pfUI's frame OnUpdate). pfUI.framefade = FF, C.framefade (off by default). Parts FF.GROUPS (player, bars, buffs,
+  minimap, chat, panels, meters; g_<key>), each frame's SetAlpha / GetAlpha wrapped on first fade (ffBase = what pfUI asked,
+  shown x ffMul) so pfUI's range / bar fades keep working; a frame inside another of the same part is skipped; Minimap
+  itself hides at 0 (its ground ignores alpha); 3D portraits hidden at 0 and RefreshUnit(f, "portrait") after. Reasons
+  (FF.Reasons, each a switch): combat, target, health / mana under a mark (rage > 0), casting, pet hurt / unhappy, group,
+  instance (pfUI.context.Zone), resting; chat part back for chat messages (chatshow s) and while typing. Wait (delay), own
+  fade out / in times, faded opacity, hover (or hover one = all), modkey peek, taxi = fade at once, layout mode shows all.
+  FF.Try(8) works with the switch off. Stands aside when the FrameFade add-on is loaded. Page: Quality of Life > Frame Fade
+  (O.NAV) + a tile on the QoL page; /framefade [on|off|try]. Tests: tests\framefade.lua (feigndeath.lua's UnitHealth lives
+  in pfUI's env: stub both).
+- Calmer pages, EllesmereUI's nameplate page as the model (24 Nov 2026, NOT seen in game; user: "people are finding our UI
+  overwhelming and time consuming to setup i want to keep all our options but make stuff just more simple ... his preview
+  box is ... just the frames on top rather than a big box"). W.Pin: no capitals label bar, no panel; a quiet "Hide preview"
+  word top right (pin.fold) and one thin line under the strip (PIN_HEAD 16); containers inside a pin carry inPin and W.Box
+  there draws no fill or frame (so every W.Box / W.ZoomBox preview in a pin floats on the page). Action bars' mini screen lost
+  its gradient panel. O.CardTabs = plain 12 px words centred, open one white with an accent underline (were boxed buttons
+  with pictures; the icon field stays in the lists, unused). Nameplates: nine tabs -> five (Look, Colours, Target & casts,
+  Auras, Extras) via plates-options Merged(title, builds, sections): the first build's heading + preview stay, a later
+  build's heading with a switch becomes a card (Head), its Preview is skipped (p.pin), the merge's card tabs are made at its
+  first Card. Old keys nplook / npcast / npfx / npbg live on in O.ALIAS (O:Open, O:Select, P.OpenSection follow it).
+  Not done yet (next phase if wanted): EllesmereUI's inline rows (a tick + dropdown or colour + switch on one line, extra
+  settings behind a "..." menu) to shorten every page.
+  Inline rows (24 Nov 2026, same day, NOT seen in game; user: "Yes, build them"): octo-widgets W.AddColor(p, label, desc,
+  get, set, def) = a swatch on the row just made, left of its control (BindSwatch shared with W.Color; calls W.ColorMade so
+  the colour test sees it); W.More(p, title, build, tip) = a "..." there opening a one-column panel (q.single; FULLSCREEN
+  level 40, under the row, one open at a time via W.openMore, shut when the row hides) built at once so Find a setting
+  indexes it - those entries are moved to the page with region = the row. Rows record c.lastRow + row.ctrlW (Check 32,
+  Slider sw+60, Dropdown dw, Color 18); row.inlineW stacks extras leftwards. Used: nameplates (name / level / health text /
+  combo / raid mark / cast bar / aura / special / quest / elite / class icon nudges and fine sizes behind "...", "My own
+  colour" + swatch on one line, combat state switch + colour on one line), unit frames (text nudges, power bar place,
+  buff / debuff nudges, own font). Tests: tests\inline.lua. Next candidates: the same on cast bars, meters, action bars.

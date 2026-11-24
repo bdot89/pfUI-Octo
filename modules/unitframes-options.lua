@@ -85,6 +85,8 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
 
   local function Chk(p, label, desc, group, key, after) return PfChk(p, label, desc, group, key, after or Up) end
   local function Sld(p, label, desc, min, max, step, group, key, fmt, after) return PfSld(p, label, desc, min, max, step, group, key, after or Up, fmt) end
+  -- (24 Nov 2026, EllesmereUI-like rows) lesser settings behind a "..." on the row just made
+  local function More(p, title, build, tip) if W.More then return W.More(p, title, build, tip) end build(p) end
   local function Drop(p, label, desc, options, group, key, after)
     return W.Dropdown(p, label, desc, options, function() return group()[key] end, function(v)
       group()[key] = v
@@ -1734,14 +1736,17 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
       Up()
       O:Refresh()
     end)
-    W.Slider(p, "Across", "Or drag it in the preview.", -50, 50, 1, function() return tonumber(U()[TK("offx")]) or 0 end,
-      function(v) U()[TK("offx")] = tostring(v) Up() end, Px)
-    W.Slider(p, "Up / down", nil, -50, 50, 1, function() return tonumber(U()[TK("offy")]) or 0 end,
-      function(v) U()[TK("offy")] = tostring(v) Up() end, Px)
     -- (8 Nov 2026, Bread: health and power text could not have their own sizes)
     W.Slider(p, "Size", "This text's own font size. 0 = the same as the rest of its bar (Text colours and font).",
       0, 30, 1, function() return tonumber(U()[TK("size")]) or 0 end,
       function(v) U()[TK("size")] = tostring(v) Up() end, UF.SizeText)
+    -- (24 Nov 2026) the nudges behind the size's "..."
+    More(p, "Text: where it sits", function(q)
+      W.Slider(q, "Across", "Or drag it in the preview.", -50, 50, 1, function() return tonumber(U()[TK("offx")]) or 0 end,
+        function(v) U()[TK("offx")] = tostring(v) Up() end, Px)
+      W.Slider(q, "Up / down", nil, -50, 50, 1, function() return tonumber(U()[TK("offy")]) or 0 end,
+        function(v) U()[TK("offy")] = tostring(v) Up() end, Px)
+    end, "Move this text (or drag it in the preview).")
     W.Buttons(p, { { "Put it back", function()
       U()[TK("offx")], U()[TK("offy")], U()["o_tc_" .. UF.text], U()[TK("size")] = "0", "0", "", "0"
       Up()
@@ -1753,10 +1758,12 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Chk(p, "Power in its colour", nil, U, "powercolor")
     Chk(p, "Level in its colour", nil, U, "levelcolor")
     Chk(p, "Name in class colour", nil, U, "classcolor")
-    Chk(p, "Own font for this frame", nil, U, "customfont")
-    Drop(p, "Font", nil, DD("fonts", "font"), U, "customfont_name")
-    Sld(p, "Font size", nil, 6, 30, 1, U, "customfont_size", Px)
-    Drop(p, "Outline", nil, DD("fontstyle"), U, "customfont_style")
+    Chk(p, "Own font for this frame", "Its font, size and outline are behind the \"...\".", U, "customfont")
+    More(p, "This frame's own font", function(q)
+      Drop(q, "Font", nil, DD("fonts", "font"), U, "customfont_name")
+      Sld(q, "Font size", nil, 6, 30, 1, U, "customfont_size", Px)
+      Drop(q, "Outline", nil, DD("fontstyle"), U, "customfont_style")
+    end, "The font, size and outline used when \"Own font for this frame\" is on.")
     -- each bar's texts their own size (a text can still have its own on Texts)
     W.Slider(p, "Health text size", "The three texts on the health bar. 0 = the frame's font size.", 0, 30, 1,
       function() return tonumber(U().txthpsize) or 0 end, function(v) U().txthpsize = tostring(v) Up() end, UF.SizeText)
@@ -1767,9 +1774,11 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
     Sld(p, "Height", "0 or less hides it.", -1, 40, 1, U, "pheight", Px)
     Sld(p, "Width", "-1 = as wide as the health bar.", -1, 400, 1, U, "pwidth", Px)
     Drop(p, "Under the health bar at", nil, DD("uf_powerbar_position"), U, "panchor")
-    Sld(p, "Across", nil, -100, 100, 1, U, "poffx", Px)
-    Sld(p, "Up / down", nil, -50, 50, 1, U, "poffy", Px)
-    Sld(p, "Gap to the health bar", "Below 0 the bars overlap.", -10, 20, 1, U, "pspace", Px)
+    More(p, "Power bar: where it sits", function(q)
+      Sld(q, "Across", nil, -100, 100, 1, U, "poffx", Px)
+      Sld(q, "Up / down", nil, -50, 50, 1, U, "poffy", Px)
+      Sld(q, "Gap to the health bar", "Below 0 the bars overlap.", -10, 20, 1, U, "pspace", Px)
+    end, "Move the power bar, and the gap between it and the health bar.")
     Drop(p, "Texture", nil, DD("uf_bartexture", "texture"), U, "pbartexture")
 
     Card(p, "Portrait")
@@ -1779,8 +1788,10 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
 
     Card(p, "Buffs")
     Drop(p, "Where", "The corner they start from; drag them in the preview to move them from there.", DD("uf_buff_position"), U, "buffs")
-    Sld(p, "Across", "Or drag them in the preview.", -200, 200, 1, U, "o_buffx", Px)
-    Sld(p, "Up / down", nil, -200, 200, 1, U, "o_buffy", Px)
+    More(p, "Buffs: nudge", function(q)
+      Sld(q, "Across", "Or drag them in the preview.", -200, 200, 1, U, "o_buffx", Px)
+      Sld(q, "Up / down", nil, -200, 200, 1, U, "o_buffy", Px)
+    end, "Move the buffs from their corner (or drag them in the preview).")
     Sld(p, "Size", nil, 6, 50, 1, U, "buffsize", Px)
     Sld(p, "How many", nil, 0, 32, 1, U, "bufflimit")
     Sld(p, "Per row", nil, 1, 32, 1, U, "buffperrow")
@@ -1793,8 +1804,10 @@ pfUI:RegisterModule("unitframes-options", "vanilla:tbc", function ()
 
     Card(p, "Debuffs")
     Drop(p, "Where", "The corner they start from; drag them in the preview to move them from there.", DD("uf_buff_position"), U, "debuffs")
-    Sld(p, "Across", "Or drag them in the preview.", -200, 200, 1, U, "o_debuffx", Px)
-    Sld(p, "Up / down", nil, -200, 200, 1, U, "o_debuffy", Px)
+    More(p, "Debuffs: nudge", function(q)
+      Sld(q, "Across", "Or drag them in the preview.", -200, 200, 1, U, "o_debuffx", Px)
+      Sld(q, "Up / down", nil, -200, 200, 1, U, "o_debuffy", Px)
+    end, "Move the debuffs from their corner (or drag them in the preview).")
     Sld(p, "Size", nil, 6, 50, 1, U, "debuffsize", Px)
     Sld(p, "How many", nil, 0, 32, 1, U, "debufflimit")
     Sld(p, "Per row", nil, 1, 32, 1, U, "debuffperrow")

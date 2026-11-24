@@ -213,13 +213,13 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       local kind = k
       local b = Btn(list, k.short, k.name .. " history", function() WH.OpenChannel(kind.key) end)
       b.text:SetTextColor(k.color[1], k.color[2], k.color[3])
-      b.kind = k
+      b.histKind = k
       b:SetScript("OnEnter", function()
         local r, g, bb = Accent()
         this:SetBackdropBorderColor(r, g, bb, 1)
         GameTooltip:SetOwner(this, "ANCHOR_TOP")
-        GameTooltip:SetText(this.kind.name, this.kind.color[1], this.kind.color[2], this.kind.color[3])
-        local n = table.getn(CHH.Lines(this.kind.key))
+        GameTooltip:SetText(this.histKind.name, this.histKind.color[1], this.histKind.color[2], this.histKind.color[3])
+        local n = table.getn(CHH.Lines(this.histKind.key))
         GameTooltip:AddLine(n .. " lines kept. Click: read it, and talk there from the box.", .7, .7, .7, 1)
         GameTooltip:Show()
       end)
@@ -397,10 +397,12 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   -- the channel row along the bottom of the list (only the kept kinds), the picked one lit
   function WH.ChanRow()
     if not H then return 0 end
+    -- (inside the chat the top bar has these)
+    if WH.embedded then for _, b in ipairs(H.chans) do b:Hide() end return 0 end
     local shown = {}
     local CHH = pfUI.chatHistory
     for _, b in ipairs(H.chans) do
-      if S().channels ~= "0" and CHH and CHH.On(b.kind.key) then table.insert(shown, b) else b:Hide() end
+      if S().channels ~= "0" and CHH and CHH.On(b.histKind.key) then table.insert(shown, b) else b:Hide() end
     end
     local n = table.getn(shown)
     if n == 0 then return 0 end
@@ -420,7 +422,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if not H then return end
     local r, g, b = Accent()
     for _, btn in ipairs(H.chans) do
-      if WH.active == "#" .. btn.kind.key then
+      if WH.active == "#" .. btn.histKind.key then
         btn:SetBackdropColor(r * .35, g * .35, b * .35, 1)
         btn:SetBackdropBorderColor(r, g, b, 1)
       else
@@ -456,13 +458,14 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local below = WH.ChanRow()
     H.list.more:ClearAllPoints()
     H.list.more:SetPoint("BOTTOM", H.list, "BOTTOM", 0, below)
-    local fit = math.max(1, math.floor(((H.list:GetHeight() or 0) - 12 - 20 - below) / (TABH + 1)))
+    local fit = math.max(1, math.floor(((H.list:GetHeight() or 0) - 12 - (WH.embedded and 0 or 20) - below) / (TABH + 1)))
     if table.getn(open) <= fit then fit = table.getn(open) end
     WH.fit = fit
     local most = math.max(0, table.getn(open) - fit)
     if WH.scroll > most then WH.scroll = most end
     if WH.scroll < 0 then WH.scroll = 0 end
-    local y = 20
+    local y = WH.embedded and 0 or 20
+    if WH.embedded then H.hist:Hide() else H.hist:Show() end
     for i, name in ipairs(open) do
       local tab = WH.windows[name].tab
       tab:ClearAllPoints()
@@ -641,7 +644,63 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     return c
   end
 
+  -- (23 Nov 2026, user: "combine the chats so you can quick toggle between this window and the original window ... with
+  -- a new top bar on the chat", NEW STYLE in Chat options) the window can sit INSIDE the left chat, under the new top
+  -- bar (chat-bar.lua): no title bar of its own, not moved or sized, and a new whisper never covers your chat - it
+  -- counts on the top bar until you open it. WH.Embed(false) puts the floating window back.
+  function WH.Embed(on)
+    Hub()
+    local chat = pfUI.chat and pfUI.chat.left
+    if on and chat then
+      WH.embedded = true
+      local cf = _G.ChatFrame1
+      H:SetParent(chat)
+      H:SetFrameStrata(cf and cf:GetFrameStrata() or "LOW")
+      H:SetFrameLevel((cf and cf:GetFrameLevel() or chat:GetFrameLevel()) + 6)
+      H:ClearAllPoints()
+      local top = chat.panelTop
+      if top then
+        H:SetPoint("TOPLEFT", top, "BOTTOMLEFT", 0, -2)
+      else
+        H:SetPoint("TOPLEFT", chat, "TOPLEFT", 3, -24)
+      end
+      H:SetPoint("BOTTOMRIGHT", chat, "BOTTOMRIGHT", -3, 3)
+      H.bar:SetHeight(1)
+      H.bar:Hide()
+      H.grip:Hide()
+      H:SetMovable(false)
+      H:SetBackdropBorderColor(0, 0, 0, 0)
+      H.folded = nil
+      H:Hide()
+    elseif WH.embedded then
+      WH.embedded = nil
+      H:Hide()
+      H:SetParent(UIParent)
+      H:SetFrameStrata("MEDIUM")
+      H.bar:SetHeight(22)
+      H.bar:Show()
+      H.grip:Show()
+      H:SetMovable(true)
+      H:SetBackdropBorderColor(.2, .2, .24, 1)
+      H:SetWidth(tonumber(S().hubwidth) or 440)
+      H:SetHeight(tonumber(S().hubheight) or 230)
+    end
+    WH.ApplyList()
+    if WH.onChange then WH.onChange() end
+  end
+  -- the embedded window's colour: the chat's own, solid enough to cover the chat under it
+  local function EmbedLook()
+    H:SetBackdropColor(.05, .05, .06, .97)
+    H:SetBackdropBorderColor(0, 0, 0, 0)
+  end
+
   local function ShowHub()
+    if WH.embedded then
+      if not H:IsShown() then H:Show() WH.ApplyList() end
+      EmbedLook()
+      if WH.onChange then WH.onChange() end
+      return
+    end
     if not H:IsShown() then
       H:SetWidth(tonumber(S().hubwidth) or 440)
       H:SetHeight(H.folded and 24 or (tonumber(S().hubheight) or 230))
@@ -657,6 +716,8 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if not c then return end
     local old = WH.active and WH.windows[WH.active]
     WH.active = name
+    if not c.chan then WH.lastPerson = name end
+    WH.lastView = name
     for _, o in pairs(WH.windows) do if o ~= c then o.msg:Hide() end end
     if not H.folded then c.msg:Show() end
     if old and old ~= c then WH.Paint(old) end
@@ -710,12 +771,16 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if fresh and dir == "in" and unread then c.msg:AddMessage("|cff33ff33--------  new  --------|r") end
     DayLine(c, t)
     Line(c, dir, text, t)
-    if wasHidden then
+    -- (inside the chat - NEW STYLE - and not open: it waits on the top bar, your chat stays in view)
+    local quiet = WH.embedded and wasHidden
+    if wasHidden and not quiet then
       if UnitAffectingCombat("player") and S().combat == "fold" then H.folded = true H.combatFolded = true WH.ApplyFold() end
       ShowHub()
     end
     -- a new whisper never takes the tab you are on: it is picked only when nothing is, or the window was shut
-    if wasHidden or not WH.active or not WH.windows[WH.active].open then
+    if quiet then
+      -- (nothing picked: the bar's Whispers button goes to the oldest new one)
+    elseif wasHidden or not WH.active or not WH.windows[WH.active].open then
       WH.Select(name)
     elseif WH.active == name and dir == "out" then
       WH.Seen(c)
@@ -786,6 +851,8 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
   -- the green "+3" on the bar, and while folded the newest line in the title
   function WH.PaintBadge()
     if not H then return end
+    -- (the chat's top bar shows the same counts)
+    if WH.onChange then WH.onChange() end
     local total, people = WH.Unread()
     local b = H.badge
     if total == 0 then
@@ -834,6 +901,24 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     WH.ApplyList()
   end
 
+  -- the chat's top bar: is a conversation showing, and which
+  function WH.Showing() return H and H:IsShown() and WH.active or nil end
+  function WH.HideView() if H then H:Hide() end if WH.onChange then WH.onChange() end end
+  -- whispers: the oldest new one, else the last person you were talking to, else the first open tab
+  function WH.ShowWhispers()
+    local name = WH.Oldest()
+    if not name and WH.lastPerson and WH.windows[WH.lastPerson] then name = WH.lastPerson end
+    if not name then
+      for _, n in ipairs(WH.order) do
+        local c = WH.windows[n]
+        if c.open and not c.chan then name = n break end
+      end
+    end
+    if not name then return nil end
+    WH.Open(name, true)
+    return name
+  end
+
   -- a channel's history page (guild, officer, party, raid, bg, say); the box below talks there
   function WH.OpenChannel(key)
     local CHH = pfUI.chatHistory
@@ -860,6 +945,11 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local CHH = pfUI.chatHistory
     local W = pfUI.octoui and pfUI.octoui.W
     if not CHH then return end
+    -- (23 Nov 2026, user: "clicking on history again should hide" it) a second click shuts it
+    if WH.menu and WH.menu:IsShown() then
+      WH.menu:Hide()
+      return
+    end
     local opts = {}
     for _, p in ipairs(CHH.People()) do
       local hex = Hex(Who(p.name)) or "|cffffffff"
@@ -869,7 +959,10 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r: no old whispers kept yet.")
       return
     end
-    local function Pick(name) if name then WH.Open(name, true) end end
+    local function Pick(name)
+      if WH.menu then WH.menu:Hide() end
+      if name then WH.Open(name, true) end
+    end
     if W and W.LongMenu then
       if WH.menu then WH.menu:Hide() end
       WH.menu = W.LongMenu(anchor, opts, 260, Pick)
@@ -984,8 +1077,11 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
       -- the ones that waited for the fight to end
       for name in pairs(WH.queue) do
         local c = Ensure(name)
-        ShowHub()
-        if not WH.active or not WH.windows[WH.active].open then WH.Select(name) end
+        -- (inside the chat: they wait on the top bar instead of opening)
+        if not WH.embedded then
+          ShowHub()
+          if not WH.active or not WH.windows[WH.active].open then WH.Select(name) end
+        end
         WH.Paint(c)
       end
       WH.queue = {}

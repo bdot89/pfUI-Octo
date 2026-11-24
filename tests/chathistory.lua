@@ -11,8 +11,9 @@ local keep = { time = rawget(_G, "time"), date = rawget(_G, "date") }
 local wall = 1795564800 + 10 * 3600
 _G.time = function(t) if t then return keep.time(t) end return wall end
 _G.date = os.date
-local was = pfUI_cache.chathistory
+local was, was2 = pfUI_cache.chathistory, pfUI_cache.octochat
 pfUI_cache.chathistory = nil
+pfUI_cache.octochat = nil
 
 -- a line packs into one string and back, tabs in the text made safe
 local line = CH.Pack(wall, "Thrall", "hello\tthere")
@@ -88,6 +89,11 @@ if WH and WH.OpenChannel then
   ok(WH.Unread() == total, "channel lines never count as unread whispers (no pulsing)")
   local good2, err2 = pcall(WH.HistoryMenu, WH.hub and WH.hub.hist or UIParent)
   ok(good2, "the old whispers menu opens" .. (good2 and "" or (": " .. tostring(err2))))
+  if WH.menu then
+    local open1 = WH.menu:IsShown()
+    WH.HistoryMenu(WH.hub and WH.hub.hist or UIParent)
+    ok(open1 and not WH.menu:IsShown(), "clicking History again shuts the menu")
+  end
   local H = WH.hub
   if H then
     pfUI_config.chat.whisper.listhidden = "1"
@@ -104,5 +110,64 @@ if WH and WH.OpenChannel then
   WH.CloseAll()
 end
 
+-- NEW STYLE (chat-bar.lua): the chat does not start in the mock, so a stand-in left chat with its tab strip,
+-- and the bar's module started again on it
+if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
+  local hadChat = pfUI.chat
+  pfUI.chat = pfUI.chat or {}
+  local hadLeft = pfUI.chat.left
+  local left = CreateFrame("Frame", "pfChatLeftTest", UIParent)
+  left:SetWidth(400) left:SetHeight(180)
+  left.panelTop = CreateFrame("Frame", nil, left)
+  left.panelTop:SetHeight(18)
+  left.panelTop:SetPoint("TOPLEFT", left, "TOPLEFT", 2, -2)
+  left.panelTop:SetPoint("TOPRIGHT", left, "TOPRIGHT", -2, -2)
+  pfUI.chat.left = left
+  local styleWas = pfUI_config.chat.style
+  pfUI_config.chat.style = "new"
+  local started, serr = pcall(pfUI.module["chat-bar"])
+  ok(started and pfUI.chatBar and pfUI.chatBar.Apply, "the new chat bar starts" .. (started and "" or (": " .. tostring(serr))))
+  local CB = pfUI.chatBar
+  if started and CB then
+    CB.Apply()
+    ok(CB.bar:IsShown() and WH.embedded, "NEW STYLE: the bar is on the chat and the whisper window sits inside it")
+    left.panelTop:Show()
+    ok(not left.panelTop:IsShown(), "the mouse-over tab strip stays away under the bar")
+    ok(WH.hub:GetParent() == left and not WH.hub:IsShown(), "the window is part of the chat, closed until you open it")
+    -- a whisper while you look at your chat: counted on the bar, the chat stays in view
+    WH.Add("Quietguy", "in", "psst")
+    ok(not WH.hub:IsShown() and WH.windows.Quietguy and WH.windows.Quietguy.unread == 1, "a new whisper waits on the bar (no pop-up)")
+    CB.Paint()
+    ok(string.find(CB.btns.whispers.text:GetText() or "", "+1", 1, true), "the Whispers button counts it")
+    -- Whispers: the oldest new one opens in the chat; Chat: back; Chat again: the same conversation (quick toggle)
+    CB.btns.whispers:GetScript("OnClick")()
+    ok(WH.hub:IsShown() and WH.active == "Quietguy", "Whispers opens the new one inside the chat")
+    _G.this, _G.arg1 = CB.btns.chat, "LeftButton"
+    CB.btns.chat:GetScript("OnClick")()
+    ok(not WH.hub:IsShown(), "Chat goes back to your chat")
+    CB.btns.chat:GetScript("OnClick")()
+    ok(WH.hub:IsShown() and WH.active == "Quietguy", "Chat again flips back to the last conversation")
+    -- a channel button
+    CB.btns["#guild"]:GetScript("OnClick")()
+    ok(WH.Showing() == "#guild", "G opens guild history in the chat")
+    CB.btns["#guild"]:GetScript("OnClick")()
+    ok(not WH.hub:IsShown(), "G again: back to chat")
+    -- fold the bar
+    pfUI_config.chat.barfolded = "1"
+    CB.Layout()
+    ok(CB.btns.fold:IsShown() and not CB.btns.whispers:IsShown(), "< folds the bar to one small arrow")
+    pfUI_config.chat.barfolded = "0"
+    -- OLD CHAT: all of it back as it was
+    CB.SetStyle("old")
+    ok(not CB.bar:IsShown() and not WH.embedded and WH.hub:GetParent() ~= left, "OLD CHAT: the bar goes, the window floats again")
+    left.panelTop:Show()
+    ok(left.panelTop:IsShown(), "and the tab strip works as before")
+    WH.CloseAll()
+  end
+  pfUI_config.chat.style = styleWas
+  pfUI.chat.left = hadLeft
+  if not hadChat then pfUI.chat = nil end
+end
+
 _G.time, _G.date = keep.time, keep.date
-pfUI_cache.chathistory = was
+pfUI_cache.chathistory, pfUI_cache.octochat = was, was2
