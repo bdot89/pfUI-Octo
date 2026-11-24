@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.44
+
+- 🏆 **OctoRanks on WhoDidIt 1.30.2:** a character below the server's chat level no longer gets "You are unable to speak yet." - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn).
+
 ## 📜 New in 1.2.43
 
 - 🏆 **OctoRanks built in:** your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold **OctoRanks** entry at the top of the options (`/ranks`). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart.

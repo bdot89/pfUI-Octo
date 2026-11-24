@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.44", {
+    { "OctoRanks on WhoDidIt 1.30.2", "a character below the server's chat level no longer gets \"You are unable to speak yet.\" - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn)." },
+  } },
   { "1.2.43", {
     { "OctoRanks built in", "your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold OctoRanks entry at the top of the options (/ranks). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart." },
     { "Profession windows fixed", "the Enchant / Create button is back, the \"have materials\" / \"skill-up\" ticks no longer run into the Engineering filter menus, and the open filter list is solid." },
@@ -175,10 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.5", {
     { "No more \"IndexActionSlot\" error flood", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now switches itself off instead of erroring on every action bar change, and says once in chat what went wrong. Please send that line to the pfUI Octo Discord so it can be fixed for good." },
-  } },
-  { "1.2.4", {
-    { "st_timer for your macros", "the swing timer fills st_timer and st_timerOff (seconds left on each hand's swing) like SP_SwingTimer / ST_Swingtimer, so Slam macros work without them." },
-    { "Resistances as numbers", "enemy tooltips show \"Fire 75 (20%)\" - the resistance and the share of your spells it takes. QoL > Tooltips > \"Resists shown as\" picks numbers only or % only." },
-    { "Line up with the market, like Aux", "on the Sell tab, click an auction under \"On the auction house now\" and your price goes just under it (the same as your own). A picked item now starts under the cheapest price on the auction house; Auctions > \"A picked item's price\" keeps your last price instead." },
   } },
 }
