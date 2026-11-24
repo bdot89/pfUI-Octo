@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.41", {
+    { "NEW STYLE chat fix", "clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back." },
+    { "Chat options, calmer", "\"Style: Old chat / New style\" sits in the strip at the top beside Chat and Panels; the big preview is gone from the chat pages (\"Show test lines in my chat\" fills your real chat instead), and its switches are a plain Windows card." },
+  } },
   { "1.2.40", {
     { "NEW STYLE chat (optional)", "Chat > Windows starts with a clear choice, OLD CHAT or NEW STYLE. New style puts a bar across the top of your chat: your chat (right-click to pick a window), Whispers with a green count, G O P R B S for guild / officer / party / raid / battleground / say history (talk there from the box), History for old whispers and a small arrow to fold the bar. Whispers open inside the chat instead of a window on top; click Chat to flip back and forth. Old chat stays the default. History's menu now shuts on a second click." },
     { "Combo points, rebuilt", "their own tab, Nameplates > Combo points, with a live preview. 16 styles (12 new chrome shapes: diamond, hexagon, star, blood drop, flame, blade, rune, crescent, skull, chevron, heart, shard), a row or an arc, colours by count / class / one colour / each point, all one colour at five, animations when a point comes (pop, flash, bounce, drop), at five (glow, burst, shake) and when spent (fade, shatter), the count as a number, a sound at five, and a bar on the screen you can move." },
@@ -170,14 +174,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.2", {
     { "No more target frame error", "\"TargetFrame.lua:291: attempt to index global 'Turtle_ChallengesCache'\" over and over on every target change is gone. The game's challenge lookup now always finds its table, even when the game's own saved data for it is missing." },
-  } },
-  { "1.2.1", {
-    { "OctoProcs looks", "our own art - wings, a crown, a light beam, a ring and a glow - tinted in each proc's colour, with a burst as a proc starts. Pick a look for all or for each proc, plus its place and colour. ProcDoc's options are all there (least / most opacity and size, pulse speed, top and side offsets, mute, timers) and more: art size, countdown size, only in a fight, edge glow width. The hard light columns and solid screen bands are gone." },
-    { "Tanks are never told to hold off", "Meters > Threat > Label & warnings starts with \"I am a tank\" (Auto / Always / Never). Auto counts holding aggro, Defensive Stance, Bear Form, Righteous Fury, Rockbiter or a tank mark, and stance dancing in a fight no longer wakes the warnings." },
-    { "Threat label clears the auras", "on a nameplate it sits above the aura row instead of on it." },
-    { "Overpower / Revenge alerts back", "combat text switches on the nampower events they need itself." },
-    { "Minimap pins stay inside a round map,", "with the built-in or a separate pfQuest." },
-    { "World map menus", "no more overlap with ModernMapMarkers, and the menus stay on screen when Magnify zooms in." },
-    { "Demo mode", "Wipe, Enrage, Healers out of mana and the other lasting events light up while on and turn off with a second click; no more \"interval is empty\" error." },
   } },
 }

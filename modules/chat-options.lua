@@ -563,32 +563,34 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
   local BRACKETS = { { key = "[]", label = "[ ]" }, { key = "()", label = "( )" }, { key = "<>", label = "< >" },
     { key = "{}", label = "{ }" }, { key = "  ", label = "None" } }
 
+  -- (24 Nov 2026, user: "add our new bar selector at the top with the others make the options less overwhelming ... our
+  -- preview is far too big ... is it even needed for chat") OLD CHAT / NEW STYLE sits in the strip at the top beside
+  -- Chat and Panels (O.SWAPEXTRA); the big preview is gone from the chat pages - "Show test lines in my chat" puts a
+  -- line of every kind in your real chat instead - and its switches are a plain card.
+  local function Style() return C.chat.style == "new" and "new" or "old" end
+  local function SetStyle(v)
+    if pfUI.chatBar and pfUI.chatBar.SetStyle then pfUI.chatBar.SetStyle(v) else C.chat.style = v end
+  end
+  O.SWAPEXTRA = O.SWAPEXTRA or {}
+  O.SWAPEXTRA["Chat & Panels"] = { "Style", {
+    { "Old chat", function() SetStyle("old") end, function() return Style() == "old" end,
+      "pfUI's chat as it was: tabs over the chat on mouse-over, whispers in their own window." },
+    { "New style", function() SetStyle("new") end, function() return Style() == "new" end,
+      "A bar across the top of your chat: your chat, Whispers, G O P R B S channel history and old whispers in one panel - "
+        .. "click Chat to flip back to the last conversation." },
+  } }
+
   local function BuildWindows(p)
-    W.Heading(p, "Chat", { on = O.ModuleSwitch("chat", "Chat"), about = "Your chat panels, their tabs and windows. The preview shows a line of every kind with "
-      .. "your settings; the switches over it turn real windows on and off." })
-    -- (23 Nov 2026, user: "keep this optional in chat options make it clear at the top OLD CHAT OR NEW STYLE")
-    local function Style() return C.chat.style == "new" and "new" or "old" end
-    local function SetStyle(v)
-      if pfUI.chatBar and pfUI.chatBar.SetStyle then pfUI.chatBar.SetStyle(v) else C.chat.style = v end
-      O:Refresh()
+    W.Heading(p, "Chat", { on = O.ModuleSwitch("chat", "Chat"), about = "Your chat panels, their tabs and windows. Old chat or "
+      .. "New style: the switch at the top. \"Show test lines in my chat\" puts a line of every kind in your real chat." })
+    W.Card(p, "Windows", { tip = "Which chat windows and tabs you have, and the quickest look settings. \"Show test lines\" "
+      .. "fills your real chat with a line of every kind so you see each change." })
+    for _, t in ipairs(CH.TOGGLES) do
+      local tog = t
+      W.Check(p, tog.label, tog.tip, function() return tog.on() end, function(v) pcall(tog.set, v) Up() end)
     end
-    W.Card(p, "Chat style", { tip = "OLD CHAT: pfUI's chat with its tabs, whispers in their own floating window. NEW STYLE: a bar across "
-      .. "the top of your chat - your chat, Whispers, Guild, Officer, Party, Raid, Battleground and Say history and old whispers, all "
-      .. "in the same panel, one click apart. Switch any time, no reload." })
-    W.Buttons(p, {
-      { "OLD CHAT", function() SetStyle("old") end, 150, "pfUI's chat as it was: tabs over the chat on mouse-over, whispers in "
-        .. "their own window.", on = function() return Style() == "old" end },
-      { "NEW STYLE", function() SetStyle("new") end, 150, "A top bar on the chat: your chat, whispers and every channel's history "
-        .. "in one panel. Click Chat to flip back to the last conversation.", on = function() return Style() == "new" end },
-    })
-    W.Live(p, function()
-      if Style() == "new" then
-        return "|cff66ff66NEW STYLE|r - the bar on top of your chat: |cffffd100General|r (right-click: pick a window), "
-          .. "|cffffd100Whispers|r, |cffffd100G O P R B S|r channel history, |cffffd100History|r old whispers, |cffffd100<|r folds it."
-      end
-      return "|cffffd100OLD CHAT|r - pfUI's chat with tabs on mouse-over; whispers open in their own window."
-    end)
-    Preview(p)
+    W.Buttons(p, { { "Show test lines in my chat", CH.TestLines, 200, "A line of every kind in your real chat, so you see "
+      .. "the real thing. Only you see them." } })
     W.Card(p, "Looks", { tip = "Timestamps, channel names, colours, background and dock in one click. Some parts take a reload." })
     Looks(p)
     W.Card(p, "Left window", { tip = "The main chat panel. Move it with Move frames." })
@@ -621,7 +623,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
 
   local function BuildMessages(p)
     W.Heading(p, "Messages", { about = "How every line reads: the time in front, channel tags, names, links and whispers." })
-    Preview(p)
+    -- (24 Nov 2026: no big preview on the chat pages - "Show test lines in my chat" on Windows)
     O.CardTabs(p, {
       { "lines", "How lines read", "INV_Scroll_03", { "Timestamps", "Channel names", "Names", "Links", "Text" } },
       { "alerts", "Whispers and alerts", "INV_Misc_Bell_01", { "Whispers", "Highlights", "Sounds" } },
@@ -692,7 +694,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
     W.Heading(p, "Whispers", { on = O.ModuleSwitch("chat-whispers", "Whisper window"), about = "One whisper window: a tab per person down the left, "
       .. "their conversation and a box to answer in, one bar on top for invite, target, who, fold and close - or a tab in the left chat. "
       .. "A new whisper never takes the tab you are on: its tab lights up and counts. Tab in the answer box jumps to the next unread one." })
-    Preview(p)
+    -- (24 Nov 2026: no big preview)
     local WHm = pfUI.whispers
     W.Card(p, "Whisper windows", { tip = "How whispers show up." })
     Drop(p, "Whispers go", nil, { { key = "window", label = "In the whisper window" }, { key = "tab", label = "In a Whispers tab" },
@@ -796,7 +798,7 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
 
   local function BuildInput(p)
     W.Heading(p, "Typing and tools", { about = "The box you type in, speech bubbles, invites, scrolling, searching and commands." })
-    Preview(p)
+    -- (24 Nov 2026: no big preview)
     W.Card(p, "Typing box")
     Sld(p, "Width", "0 = as wide as the bar it sits on. Takes a reload.", 0, 1000, 1, TX, "input_width", Px, Reload)
     Sld(p, "Height", "0 = 22. Takes a reload.", 0, 40, 1, TX, "input_height", Px, Reload)

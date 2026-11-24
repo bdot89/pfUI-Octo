@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.41
+
+- 💬 **NEW STYLE chat fix:** clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back.
+- 🧭 **Chat options, calmer:** "Style: Old chat / New style" sits in the strip at the top beside Chat and Panels; the big preview is gone from the chat pages ("Show test lines in my chat" fills your real chat instead), and its switches are a plain Windows card.
+
 ## 📜 New in 1.2.40
 
 - 💬 **NEW STYLE chat (optional):** Chat > Windows starts with a clear choice, **OLD CHAT** or **NEW STYLE**. New style puts a bar across the top of your chat: your chat (right-click to pick a window), **Whispers** with a green count, **G O P R B S** for guild / officer / party / raid / battleground / say history (talk there from the box), **History** for old whispers and a small arrow to fold the bar. Whispers open inside the chat instead of a window on top; click Chat to flip back and forth. Old chat stays the default. History's menu now shuts on a second click.

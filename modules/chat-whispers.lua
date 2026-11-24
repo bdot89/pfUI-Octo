@@ -653,10 +653,16 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     local chat = pfUI.chat and pfUI.chat.left
     if on and chat then
       WH.embedded = true
-      local cf = _G.ChatFrame1
-      H:SetParent(chat)
-      H:SetFrameStrata(cf and cf:GetFrameStrata() or "LOW")
-      H:SetFrameLevel((cf and cf:GetFrameLevel() or chat:GetFrameLevel()) + 6)
+      -- (24 Nov 2026, user in game: clicking G O P R B "does not filter them down or bring up only that chat" - the view
+      -- opened UNDER the chat's own text: parented into the chat panel, its layer was a guess.) It stays on UIParent in
+      -- the MEDIUM layer, above every chat window, pinned over the chat panel's area; it goes when the chat panel goes.
+      H:SetParent(UIParent)
+      H:SetFrameStrata("MEDIUM")
+      H:SetFrameLevel(10)
+      if not chat.pfWhisperHook and HookScript then
+        chat.pfWhisperHook = true
+        HookScript(chat, "OnHide", function() if WH.embedded and H then H:Hide() if WH.onChange then WH.onChange() end end end)
+      end
       H:ClearAllPoints()
       local top = chat.panelTop
       if top then

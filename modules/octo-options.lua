@@ -2152,8 +2152,54 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         part.label:Hide() part.octo:Hide() part.blizz:Hide() part.third:Hide()
       end
     end
-    -- (three sections fill the strip: no room for the note)
-    if ids[3] then swap.note:Hide() else swap.note:Show() end
+    -- (24 Nov 2026, user: "add our new bar selector at the top with the others") a section may add its own choice to
+    -- the strip: O.SWAPEXTRA[section name] = { label, { { text, pick(), on(), tip }, ... } } (Chat: Old chat / New style)
+    local ex = self.SWAPEXTRA and grp and self.SWAPEXTRA[grp.name]
+    swap.extra = swap.extra or { label = W.Font(swap:CreateFontString(nil, "OVERLAY"), 12, K.text[1], K.text[2], K.text[3]), btns = {} }
+    local E = swap.extra
+    for _, b in ipairs(E.btns) do b:Hide() end
+    E.label:Hide()
+    E.def = ex
+    if ex then
+      E.label:ClearAllPoints()
+      E.label:SetPoint("LEFT", swap, "LEFT", x, 0)
+      E.label:SetText(ex[1])
+      E.label:Show()
+      local bx = x + math.max(40, (E.label:GetStringWidth() or 40) + 10)
+      for i, c in ipairs(ex[2]) do
+        local b = E.btns[i]
+        if not b then
+          b = W.Button(swap, "", 84, 22)
+          b.index = i
+          b:SetScript("OnClick", function()
+            local d = O.swap.extra.def
+            local choice = d and d[2][this.index]
+            if choice and choice[2] then pcall(choice[2]) end
+            O:PaintSwap()
+            if O.current then O:Refresh() end
+          end)
+          b:SetScript("OnEnter", function()
+            local d = O.swap.extra.def
+            local choice = d and d[2][this.index]
+            if not choice or not choice[4] then return end
+            GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+            GameTooltip:SetText(choice[1], 1, 1, 1)
+            GameTooltip:AddLine(choice[4], .8, .82, .86, 1)
+            GameTooltip:Show()
+          end)
+          b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+          E.btns[i] = b
+        end
+        if b.label then b.label:SetText(c[1]) end
+        b:ClearAllPoints()
+        b:SetPoint("LEFT", swap, "LEFT", bx, 0)
+        b:Show()
+        bx = bx + 86
+      end
+      x = bx + 20
+    end
+    -- (three sections, or two and a choice of their own, fill the strip: no room for the note)
+    if ids[3] or ex then swap.note:Hide() else swap.note:Show() end
     swap:Show()
     self:PaintSwap()
   end
@@ -2168,6 +2214,14 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         W.Lit(part.octo, not blizz and not thirdOn)
         W.Lit(part.blizz, blizz and not thirdOn)
         W.Lit(part.third, thirdOn and true or false)
+      end
+    end
+    -- the section's own choice (O.SWAPEXTRA)
+    local E = self.swap.extra
+    if E and E.def then
+      for i, b in ipairs(E.btns) do
+        local c = E.def[2][i]
+        if c and b:IsShown() then W.Lit(b, c[3] and c[3]() and true or false) end
       end
     end
   end

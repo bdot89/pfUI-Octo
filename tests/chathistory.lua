@@ -133,7 +133,11 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
     ok(CB.bar:IsShown() and WH.embedded, "NEW STYLE: the bar is on the chat and the whisper window sits inside it")
     left.panelTop:Show()
     ok(not left.panelTop:IsShown(), "the mouse-over tab strip stays away under the bar")
-    ok(WH.hub:GetParent() == left and not WH.hub:IsShown(), "the window is part of the chat, closed until you open it")
+    -- (24 Nov 2026, in game: the view opened under the chat's text) above the chat windows, pinned over the panel
+    local p1 = WH.hub.points and WH.hub.points[1]
+    local p2 = WH.hub.points and WH.hub.points[2]
+    ok(WH.hub:GetFrameStrata() == "MEDIUM" and p1 and (p1[2] == left.panelTop or p1[2] == left) and p2 and p2[2] == left
+      and not WH.hub:IsShown(), "the view sits above the chat windows, over the chat panel, closed until you open it")
     -- a whisper while you look at your chat: counted on the bar, the chat stays in view
     WH.Add("Quietguy", "in", "psst")
     ok(not WH.hub:IsShown() and WH.windows.Quietguy and WH.windows.Quietguy.unread == 1, "a new whisper waits on the bar (no pop-up)")
@@ -152,6 +156,13 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
     ok(WH.Showing() == "#guild", "G opens guild history in the chat")
     CB.btns["#guild"]:GetScript("OnClick")()
     ok(not WH.hub:IsShown(), "G again: back to chat")
+    -- the chat panel hidden (the panel arrow, Blizzard's chat): the view goes with it
+    CB.btns["#guild"]:GetScript("OnClick")()
+    left:Hide()
+    local hideScript = left:GetScript("OnHide")
+    if hideScript then hideScript() end
+    ok(not WH.hub:IsShown(), "the chat panel hidden: the view goes too")
+    left:Show()
     -- fold the bar
     pfUI_config.chat.barfolded = "1"
     CB.Layout()
@@ -167,6 +178,30 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
   pfUI_config.chat.style = styleWas
   pfUI.chat.left = hadLeft
   if not hadChat then pfUI.chat = nil end
+end
+
+-- (24 Nov 2026) Old chat / New style in the strip at the top of the Chat pages, beside Chat and Panels
+do
+  local O = pfUI.octoui and pfUI.octoui.Options
+  if O and O.frame and O.SWAPEXTRA and O.SWAPEXTRA["Chat & Panels"] then
+    local styleWas = pfUI_config.chat.style
+    pfUI.gui:Show()
+    local good, err = pcall(function() O:Open("chwindows") end)
+    local E = O.swap and O.swap.extra
+    ok(good and E and E.def and E.btns[1] and E.btns[1]:IsShown() and E.btns[2]:IsShown()
+      and E.btns[2].label:GetText() == "New style", "the Chat pages' strip offers Old chat / New style" .. (good and "" or (": " .. tostring(err))))
+    if E and E.btns[2] then
+      _G.this = E.btns[2]
+      E.btns[2]:GetScript("OnClick")()
+      ok(pfUI_config.chat.style == "new", "New style in the strip switches the chat")
+      _G.this = E.btns[1]
+      E.btns[1]:GetScript("OnClick")()
+      ok(pfUI_config.chat.style == "old", "and Old chat back")
+    end
+    pfUI_config.chat.style = styleWas
+    if pfUI.chatBar and pfUI.chatBar.Apply then pcall(pfUI.chatBar.Apply) end
+    pfUI.gui:Hide()
+  end
 end
 
 _G.time, _G.date = keep.time, keep.date
