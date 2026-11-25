@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.47
+
+- 🌍 **OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions.** The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them.
+
 ## 📜 New in 1.2.46
 
 - ⏱️ **OctoRanks run timer:** a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode.

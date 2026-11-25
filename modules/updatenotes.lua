@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.47", {
+    { "OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions", "The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them." },
+  } },
   { "1.2.46", {
     { "OctoRanks run timer", "a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode." },
     { "You'll know the clock is on", "entering a 5-man at 60 says \"the run timer starts at your first pull\", and the pull says it started." },
@@ -174,9 +177,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.8", {
     { "World map zoom fixed", "the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed." },
-  } },
-  { "1.2.7", {
-    { "Zoom into the world map (Magnify built in)", "the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work." },
-    { "World buff timers", "when a head is handed in (Onyxia, Nefarian, Rend, Hakkar), a bar counts down to the buff landing, with its name, where it lands and the seconds left, plus a popup and a sound. Shared with your guild and group so you see it anywhere. /wb lists the last drops. A new file: restart the game fully once." },
   } },
 }

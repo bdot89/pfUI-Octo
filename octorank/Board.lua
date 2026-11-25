@@ -1473,6 +1473,13 @@ function B:Receive(msg, sender)
 		if sender ~= UnitName("player") and (not lastAnswer or GetTime() - lastAnswer > 600) and not respondAt then
 			respondAt = GetTime() + 10 + math.random(30)
 		end
+		-- (a master: the runs it relayed a while ago go out again for them)
+		if sender ~= UnitName("player") and W.Runs and W.Runs.RelayAsked then W.Runs:RelayAsked() end
+		return
+	end
+	-- (1.31.0) another realm's or faction's run / withdrawal, passed on by a master (Dungeons.lua checks B.Trusted)
+	if kind == "M" or kind == "X" then
+		if W.Runs and W.Runs.ReceiveRelay then W.Runs:ReceiveRelay(p, sender) end
 		return
 	end
 	-- a 5-man run: only taken from someone in that group (Dungeons.lua checks it)
@@ -1628,13 +1635,15 @@ local function opts() return OctoRankDB and OctoRankDB.opts or {} end
 -- of the maintainer's accounts BLACKLEGEND1989 and BDOT898989 (and N'Zoth's Upsi),
 -- so whichever one is logged in feeds that realm. A deleted or renamed character
 -- must come off this list: someone else could take the name.
+-- (25 Nov 2026) Y'Shaarj's Pfuiocto (BLACKLEGEND1989): the maintainer's Alliance character there - Y'Shaarj
+-- splits the factions, so Alliance gets the feed and its 5-man runs reach the download.
 -- (tools\OctoRank-Sync.ps1 and AutoSync.ps1 read this table: keep "Name = true".)
 B.MASTERS = {
 	["Y'Shaarj"] = {
 		Able = true, Accidental = true, Agro = true, Clunge = true, Cornershop = true, Deified = true, Did = true,
 		Downsilon = true, Flexible = true, Girth = true, Ible = true, Invis = true, Ira = true, Ispeed = true,
 		Itscominhome = true, Iwin = true, Johnsnow = true, Jokes = true, Mclovin = true, Mybad = true, Nessingwary = true,
-		Purpose = true, Shiitake = true, Squirter = true, Stabyou = true, Themountain = true, Tush = true, Twogirls = true,
+		Pfuiocto = true, Purpose = true, Shiitake = true, Squirter = true, Stabyou = true, Themountain = true, Tush = true, Twogirls = true,
 		Upsi = true, Upsillon = true, Upsilon = true, Upsilonii = true, Upsirogue = true, Upsis = true, Upsy = true,
 		Wabbit = true, Youloose = true,
 	},
