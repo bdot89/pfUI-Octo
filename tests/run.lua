@@ -7073,6 +7073,7 @@ dofile(DIR .. "/tests/mail.lua")
 dofile(DIR .. "/tests/lft.lua")
 dofile(DIR .. "/tests/scrm.lua")
 -- dofile(DIR .. "/tests/procs.lua") -- OctoProcs parked 21 Nov 2026 (init\modules.xml)
+dofile(DIR .. "/tests/review.lua")
 dofile(DIR .. "/tests/challenges.lua")
 
 -- meter window preview never scaled past 1 (11 Nov 2026: a window under ~120 px high crashed the client)

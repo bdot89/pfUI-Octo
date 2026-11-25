@@ -188,7 +188,8 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
   end
 
   function BW.Paint(f, view)
-    local w, h = Num("width", 180), Num("height", 14)
+    -- (while stuck under the totem bars, their width; your own width setting stays yours)
+    local w, h = (BW.attached and BW.attachW) or Num("width", 180), Num("height", 14)
     f:SetWidth(w) f:SetHeight(h)
     local tex = S().texture
     if not tex or tex == "" then tex = "Interface\\AddOns\\pfUI\\img\\bar_elvui" end
@@ -278,11 +279,12 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
       holder:ClearAllPoints()
       holder:SetPoint("TOP", tot, "BOTTOM", 0, -Num("attachgap", 5) / (tot:GetScale() or 1))
       holder:SetScale(1)
-      S().width = tostring(math.floor(w + .5))
+      -- (25 Nov 2026, code review: this wrote over your saved width every tick) kept apart
+      BW.attachW = math.floor(w + .5)
       holder:SetWidth(w)
       BW.attached = true
     elseif BW.attached then
-      BW.attached = nil
+      BW.attached, BW.attachW = nil, nil
       holder:ClearAllPoints()
       holder:SetPoint("CENTER", UIParent, "CENTER", 0, -170)
       if UpdateMovable then UpdateMovable(holder) end

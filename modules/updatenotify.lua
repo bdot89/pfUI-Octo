@@ -47,13 +47,32 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
     pfUI_cache.octousers[realm] = pfUI_cache.octousers[realm] or {}
     return pfUI_cache.octousers[realm]
   end
+  U.KEEP_DAYS, U.MAX = 30, 2000
+  function U.Prune()
+    local s = U.Store()
+    local now, list = time(), {}
+    for name, e in pairs(s) do
+      if not e.t or now - e.t > U.KEEP_DAYS * 86400 then s[name] = nil else table.insert(list, { name, e.t }) end
+    end
+    if table.getn(list) > U.MAX then
+      table.sort(list, function(a, b) return a[2] > b[2] end)
+      for i = U.MAX + 1, table.getn(list) do s[list[i][1]] = nil end
+    end
+  end
   function U.Heard(name, version)
     if not name or name == "" then return end
     local _, _, short = string.find(name, "^([^%-]+)")
     name = short or name
     local s = U.Store()
-    local e = s[name] or {}
-    s[name] = e
+    local e = s[name]
+    if not e then
+      e = {}
+      s[name] = e
+      -- (25 Nov 2026, code review: one entry for every name ever heard, never pruned) now and then: names not heard for
+      -- U.KEEP_DAYS go, and the oldest beyond U.MAX
+      U.newN = (U.newN or 0) + 1
+      if U.newN >= 100 then U.newN = 0 U.Prune() end
+    end
     e.t = time()
     if version then e.v = version end
     U.session[name] = GetTime()

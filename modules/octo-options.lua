@@ -2910,8 +2910,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local keep = { layouts = C.layouts, rchat = C.chat and C.chat.right and C.chat.right.enable }
     _G.pfUI_config = CopyTable(src)
     pfUI_config.layouts = keep.layouts
-    pfUI:UpdateConfig("global", nil, "profile", name)
-    if keep.rchat then pfUI:UpdateConfig("chat", "right", "enable", keep.rchat) end
+    -- (25 Nov 2026, code review: UpdateConfig only fills a value that is missing, and the copy already holds the
+    -- profile's own name - so the old one stayed "current" and Save wrote to it) set them outright
+    pfUI_config.global = pfUI_config.global or {}
+    pfUI_config.global.profile = name
+    if keep.rchat then
+      pfUI_config.chat = pfUI_config.chat or {}
+      pfUI_config.chat.right = pfUI_config.chat.right or {}
+      pfUI_config.chat.right.enable = keep.rchat
+    end
     pfUI:LoadConfig()
     ReloadUI()
   end

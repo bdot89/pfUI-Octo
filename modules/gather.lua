@@ -920,6 +920,10 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     local p = Split(msg, "^")
     local kind, loc, key = p[1], p[2], p[3]
     if loc ~= Locale() or not key or not string.find(key, "^%d+:%d+$") then return end
+    -- (25 Nov 2026, code review: any made-up key became a new zone table, kept for good) continent:zone as the map gives
+    local _, _, kc, kz = string.find(key, "^(%d+):(%d+)$")
+    kc, kz = tonumber(kc), tonumber(kz)
+    if not (kc and kz) or kc < 1 or kc > 9 or kz < 1 or kz > 99 then return end
     if kind == "N" then
       GoodNode(key, p[4] or "", from)
     elseif kind == "D" then

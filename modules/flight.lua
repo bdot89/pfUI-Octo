@@ -340,6 +340,13 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     secs = tonumber(secs)
     if not key or not secs or secs < 8 or secs > 3600 or string.len(key) > 200 or not string.find(key, ">", 1, true) then return false end
     if Times()[key] then return false end
+    -- (25 Nov 2026, code review: any key with a ">" was kept for good) one route between two names, no codes, and a
+    -- limit to what others can add (your own flights are always kept)
+    if not string.find(key, "^[^>|%^]+>[^>|%^]+$") then return false end
+    FL.peerN = FL.peerN or 0
+    if FL.peerN == 0 then for _ in pairs(Times()) do FL.peerN = FL.peerN + 1 end end
+    if FL.peerN >= (FL.PEER_MAX or 800) then return false end
+    FL.peerN = FL.peerN + 1
     Times()[key] = secs
     FL.got = (FL.got or 0) + 1
     return true

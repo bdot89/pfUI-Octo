@@ -596,6 +596,24 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     table.insert(s[name], { t = t, dir = dir, msg = text })
     local keep = tonumber(S().history) or 50
     while table.getn(s[name]) > keep do table.remove(s[name], 1) end
+    -- (25 Nov 2026, code review: the lines per name were capped, the names never) now and then: names silent for
+    -- WH.KEEP_DAYS go, and the quietest beyond WH.MAXNAMES
+    WH.keepN = (WH.keepN or 0) + 1
+    if WH.keepN >= 50 then WH.keepN = 0 WH.Prune() end
+  end
+  WH.KEEP_DAYS, WH.MAXNAMES = 60, 300
+  function WH.Prune()
+    local s = Store()
+    local now, list = time(), {}
+    for who, lines in pairs(s) do
+      local last = lines[table.getn(lines)]
+      local t = last and last.t or 0
+      if now - t > WH.KEEP_DAYS * 86400 then s[who] = nil else table.insert(list, { who, t }) end
+    end
+    if table.getn(list) > WH.MAXNAMES then
+      table.sort(list, function(a, b) return a[2] > b[2] end)
+      for i = WH.MAXNAMES + 1, table.getn(list) do s[list[i][1]] = nil end
+    end
   end
 
   -- a dividing line when a new day starts in a page ("- Monday 23 November -")

@@ -277,7 +277,10 @@ pfUI:RegisterModule("unitframes-blizz", "vanilla:tbc", function ()
   local ev = CreateFrame("Frame")
   BZ.events = ev
   ev:RegisterEvent("UNIT_CASTEVENT")
+  -- (25 Nov 2026, code review: one entry per caster seen, all session) a loading screen starts it again
+  ev:RegisterEvent("PLAYER_ENTERING_WORLD")
   ev:SetScript("OnEvent", function()
+    if event == "PLAYER_ENTERING_WORLD" then BZ.seen = {} return end
     if arg3 ~= "CAST" or not arg1 then return end
     local id = tonumber(arg4)
     local tex = id and BZ.STANCESPELLS[id]

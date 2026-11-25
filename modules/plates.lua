@@ -1779,7 +1779,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
     if not UnitExists(unit) or UnitIsPlayer(unit) then return end
     if not (UnitPlayerControlled and UnitPlayerControlled(unit)) then return end
     local n = (UnitName(unit))
-    if n and n ~= "" then P.petNames[n] = true end
+    if n and n ~= "" then
+      -- (25 Nov 2026, code review: never emptied) a fresh list after 400 names
+      P.petN = (P.petN or 0) + (P.petNames[n] and 0 or 1)
+      if P.petN > 400 then P.petNames, P.petN = {}, 1 end
+      P.petNames[n] = true
+    end
   end
   function P.GroupPets()
     local now = GetTime()

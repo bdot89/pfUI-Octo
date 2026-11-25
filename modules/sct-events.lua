@@ -878,10 +878,14 @@ B:On("SPELL_ENERGIZE_ON_SELF", function(ev, target, caster, id, ptype, amount, p
 end)
 
 -- Regeneration ticks (energy, rage, mana) as power gains (SCT's "all power").
-local lastPower
+-- (25 Nov 2026, code review: one last value for every power kind, so bear -> caster form showed "+800 Mana") a form
+-- change starts the count again
+local lastPower, lastKind
 local function PowerTick(ev, unit)
   if unit ~= "player" then return end
   local p = UnitMana("player")
+  local pk = UnitPowerType("player")
+  if pk ~= lastKind then lastKind, lastPower = pk, nil end
   if lastPower and B.db.sct.regen and p > lastPower and GetTime() - justEnergized > 0.2 then
     local kind = POWER[UnitPowerType("player")] or "Mana"
     if B.db.sct.throttlePower > 0 then
