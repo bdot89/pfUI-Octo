@@ -126,7 +126,12 @@ pfUI:RegisterModule("mail-window", "vanilla", function ()
     end
   end)
   f.opts:SetPoint("RIGHT", f.game, "LEFT", -6, 0)
-  f.money:SetPoint("RIGHT", f.opts, "LEFT", -14, 0)
+  -- (25 Nov 2026, Javelin: pfUI has no bag buttons by default, and B typed a "b" into the subject or the letter)
+  f.bags = Btn(f.bar, "Open bags", 84, function()
+    if ToggleBackpack then ToggleBackpack() elseif OpenAllBags then OpenAllBags() end
+  end, "Open or close your bags (B types into the letter while you write).")
+  f.bags:SetPoint("RIGHT", f.opts, "LEFT", -6, 0)
+  f.money:SetPoint("RIGHT", f.bags, "LEFT", -14, 0)
   f.note = Text(f, 12)
   f.note:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 12, 10)
   f.note:SetWidth(560)

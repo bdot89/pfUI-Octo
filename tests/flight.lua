@@ -43,6 +43,17 @@ ok(FL.HasPaths(), "ClassicAPI's flight paths are seen")
 local plan = FL.Plan(3)
 ok(plan and table.getn(plan.names) == 3 and plan.names[2] == "Crossroads, The Barrens" and plan.key == "Orgrimmar, Durotar>Ratchet, The Barrens",
   "the route: three flight points by name")
+-- (25 Nov 2026, Javelin: "Flight point 2 ... Flight point 82") a node the map list lacks gets its name from GetAllTaxiNodes
+do
+  local forMap = _G.C_TaxiMap.GetTaxiNodesForMap
+  _G.C_TaxiMap.GetTaxiNodesForMap = function() return { { nodeID = 23, name = "Orgrimmar, Durotar" } } end
+  _G.C_TaxiMap.GetAllTaxiNodes = function() return { { nodeID = 25, name = "Crossroads, The Barrens" }, { nodeID = 80, name = "Ratchet, The Barrens" } } end
+  FL.nodes = nil
+  local p2 = FL.Plan(3)
+  ok(p2 and p2.names[2] == "Crossroads, The Barrens" and p2.names[3] == "Ratchet, The Barrens", "names from every node of the open flight map, not numbers")
+  _G.C_TaxiMap.GetTaxiNodesForMap, _G.C_TaxiMap.GetAllTaxiNodes = forMap, nil
+  FL.nodes = nil
+end
 ok(plan and plan.length == 2560 and math.abs(plan.fracs[2] - 1600 / 2560) < .001 and plan.fracs[3] == 1, "the path's length, the stop at its real place")
 ok(plan and plan.exact and math.abs(plan.est - 2560 / 32 * .97) < .01 and plan.total == plan.est, "its time before it was ever flown (32 yd/s, corners cut)")
 local one = FL.Plan(2)

@@ -905,7 +905,7 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
         function(v) C.plates.drawrange = tostring(v) P.SetPlateRange(v) end, Yd)
       W.Check(p, "Count it like spell range", "Spells reach from the edge of you to the edge of the target; the game measures plates "
         .. "from middle to middle, about 3 yd more. On: a plate set to 41 yd stays up as far as a 41 yd spell reaches.",
-        function() return C.plates.drawreach ~= "0" end,
+        function() return C.plates.drawreach == "1" end,
         function(v) C.plates.drawreach = v and "1" or "0" if tonumber(C.plates.drawrange) then P.SetPlateRange(C.plates.drawrange) end end)
       local names = {}
       for _, c in ipairs(have) do table.insert(names, c[1]) end

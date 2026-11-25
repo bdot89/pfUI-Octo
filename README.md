@@ -122,6 +122,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.49
+
+- 💰 **Craft profit (thanks Wolfahrt):** the profession windows show what the reagents cost against what the craft sells for - "Cost / Sells / Profit" under the picked recipe, and the profit (green / red) at the end of every recipe row. Auction house prices first, vendor prices for vendor reagents. Switch: "Craft cost and profit".
+- ✈️ **Flight timer names (thanks Javelin):** the bar showed "Flight point 2 ... Flight point 82" - now every flight point's real name.
+- 📬 **Mail: Open bags button (thanks Javelin):** pressing B in the mail window typed a "b" into the letter.
+- 📜 **Chronicle logger (thanks Javelin):** "Auto-enable in Raids" ticked in its own options no longer switches itself off at the next login (OctoRanks on WhoDidIt 1.31.1).
+- 🎯 **Nameplate distance back to the number you set:** the "cross mark at 38" came from a ClassicAPI build (its distance measured centre to centre; brues has put it back). The 1.2.48 "Count it like spell range" option is now off by default.
+
 ## 📜 New in 1.2.48
 
 - 📜 **Missing recipes (thanks Javelin):** a "Missing" button in the profession windows lists every recipe you don't know yet - easiest first, with where it comes from (trainer, vendor with zone, drop with chance) from the built-in pfQuest database. Hover for details, Shift-click to link. All 1,833 recipes come from the game's own files. Needs a full game restart.

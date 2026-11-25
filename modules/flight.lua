@@ -52,15 +52,25 @@ pfUI:RegisterModule("flight", "vanilla", function ()
       and type(t.GetTaxiPathWaypoints) == "function" and type(t.GetTaxiNodesForMap) == "function"
   end
   -- node id -> name
-  function FL.Nodes()
-    if FL.nodes then return FL.nodes end
-    local out = {}
-    local ok, list = pcall(Taxi().GetTaxiNodesForMap)
-    if ok and type(list) == "table" then
+  -- (25 Nov 2026, Javelin: the bar said "Flight point 2 ... Flight point 82") GetTaxiNodesForMap with no map gives only
+  -- some nodes; GetAllTaxiNodes (every node of the open flight map, with its name) fills the rest. Names are kept
+  -- across flights, and read again whenever a node of a route has none yet.
+  function FL.Nodes(fresh)
+    if FL.nodes and not fresh then return FL.nodes end
+    local out = FL.nodes or {}
+    local function Add(list)
+      if type(list) ~= "table" then return end
       for _, n in ipairs(list) do
-        if n.nodeID and n.name then out[n.nodeID] = n.name end
+        if type(n) == "table" and n.nodeID and n.name and n.name ~= "" then out[n.nodeID] = n.name end
       end
     end
+    local t = Taxi() or {}
+    if type(t.GetAllTaxiNodes) == "function" then
+      local ok, list = pcall(t.GetAllTaxiNodes)
+      if ok then Add(list) end
+    end
+    local ok2, list2 = pcall(t.GetTaxiNodesForMap)
+    if ok2 then Add(list2) end
     FL.nodes = out
     return out
   end
@@ -81,6 +91,9 @@ pfUI:RegisterModule("flight", "vanilla", function ()
   function FL.PlanFromRoute(route)
     if type(route) ~= "table" or table.getn(route) < 2 then return nil end
     local nodes, paths = FL.Nodes(), FL.Paths()
+    for _, id in ipairs(route) do
+      if not nodes[id] then nodes = FL.Nodes(true) break end
+    end
     local plan = { names = {}, fracs = {}, pts = {}, exact = true }
     local length = 0
     local marks = { 0 }

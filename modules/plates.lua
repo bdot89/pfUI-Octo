@@ -963,11 +963,17 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   -- (25 Nov 2026, Javelin: set to 41 yd, his hunter's range, plates went at about 38) spell range is counted from the
   -- edges of both units (each about 1.5 yd round), the plate distance from their middles: "like spell range" (on by
   -- default, C.plates.drawreach) adds the two together so a plate stays up as far as the spell reaches
+  -- (25 Nov 2026) the "cross at 38" came from ClassicAPI's distance (centre to centre in one build, put back by its
+  -- author), not from how far plates show: off by default since 1.2.49, and switched off once for those who got it on
   P.REACH = 3
+  if S.drawreachfix ~= "1" then
+    S.drawreach = "0"
+    S.drawreachfix = "1"
+  end
   function P.SetPlateRange(yd)
     yd = tonumber(yd)
     if not yd then return 0 end
-    if S.drawreach ~= "0" then yd = yd + P.REACH end
+    if S.drawreach == "1" then yd = yd + P.REACH end
     local n = 0
     for _, c in ipairs(P.PlateRangeCVars()) do
       if pcall(SetCVar, c[1], tostring(yd)) then n = n + 1 end

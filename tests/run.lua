@@ -131,7 +131,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 -- modules that must start cleanly (the octo ones, as they are added)
 local MUST_LOAD = { "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "minigames", "minigames-options", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
-  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "professions-missing", "octorank", "octorank-timer", "octorank-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
+  "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "professions-missing", "professions-profit", "octorank", "octorank-timer", "octorank-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
   "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
 
 -- ---------------------------------------------------------------- load
@@ -3916,11 +3916,11 @@ do
         _G.GetCVar, _G.SetCVar, pfUI.env.GetCVar, pfUI.env.SetCVar = G1, S1, G1, S1
         local now1, list = P.PlateRange()
         ok(now1 == 20 and table.getn(list) == 1, "SuperWoW's NameplateRange read (20), nampower's absent")
-        -- (25 Nov 2026, Javelin) counted like spell range: 41 yd from the edges = 44 from the middles
-        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "44", "a picked distance is set on it, like spell range (" .. tostring(cv.NameplateRange) .. ")")
-        pfUI_config.plates.drawreach = "0"
-        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "41", "switched off: the number as it is")
+        -- (off by default since 1.2.49: the number as it is; the option adds 3 yd, edges vs middles)
+        ok(pfUI_config.plates.drawreach == "0" and P.SetPlateRange(41) == 1 and cv.NameplateRange == "41", "a picked distance is set on it as it is")
         pfUI_config.plates.drawreach = "1"
+        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "44", "\"like spell range\" on: 3 yd more (" .. tostring(cv.NameplateRange) .. ")")
+        pfUI_config.plates.drawreach = "0"
         _G.GetCVar, _G.SetCVar, pfUI.env.GetCVar, pfUI.env.SetCVar = gcv, scv, egc, esc
       end
       -- cast bar: a stopped cast flashes red and says who did it
@@ -6971,6 +6971,7 @@ dofile(DIR .. "/tests/chathistory.lua")
 dofile(DIR .. "/tests/combo.lua")
 dofile(DIR .. "/tests/professions.lua")
 dofile(DIR .. "/tests/professions-missing.lua")
+dofile(DIR .. "/tests/professions-profit.lua")
 dofile(DIR .. "/tests/octorank.lua")
 dofile(DIR .. "/tests/challenges.lua")
 dofile(DIR .. "/tests/rinse.lua")

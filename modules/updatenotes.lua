@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.49", {
+    { "Craft profit (thanks Wolfahrt)", "the profession windows show what the reagents cost against what the craft sells for - \"Cost / Sells / Profit\" under the picked recipe, and the profit (green / red) at the end of every recipe row. Auction house prices first, vendor prices for vendor reagents. Switch: \"Craft cost and profit\"." },
+    { "Flight timer names (thanks Javelin)", "the bar showed \"Flight point 2 ... Flight point 82\" - now every flight point's real name." },
+    { "Mail: Open bags button (thanks Javelin)", "pressing B in the mail window typed a \"b\" into the letter." },
+    { "Chronicle logger (thanks Javelin)", "\"Auto-enable in Raids\" ticked in its own options no longer switches itself off at the next login (OctoRanks on WhoDidIt 1.31.1)." },
+    { "Nameplate distance back to the number you set", "the \"cross mark at 38\" came from a ClassicAPI build (its distance measured centre to centre; brues has put it back). The 1.2.48 \"Count it like spell range\" option is now off by default." },
+  } },
   { "1.2.48", {
     { "Missing recipes (thanks Javelin)", "a \"Missing\" button in the profession windows lists every recipe you don't know yet - easiest first, with where it comes from (trainer, vendor with zone, drop with chance) from the built-in pfQuest database. Hover for details, Shift-click to link. All 1,833 recipes come from the game's own files. Needs a full game restart." },
     { "Nameplate distance like spell range (thanks Javelin)", "a plate set to 41 yd now stays up as far as a 41 yd shot reaches (the game measured middle to middle, about 3 yd more). \"Count it like spell range\" in Nameplates." },
@@ -175,10 +182,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.10", {
     { "OctoProcs is taken out for now", "it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it." },
-  } },
-  { "1.2.9", {
-    { "Auction lengths are this server's", "the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest \"time left\" now reads \"over 8 h\"." },
-    { "Exact deposit", "the deposit shown when you post is now the same sum the game's own auction window uses, per stack." },
-    { "/db opens the database window again", "search items, mobs, objects and quests. /db help lists the commands." },
   } },
 }
