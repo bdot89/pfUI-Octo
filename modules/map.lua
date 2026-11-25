@@ -233,6 +233,49 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     Z.zoom = z
     WorldMapDetailFrame:SetScale(z)
     Z.Scroll(cx - fx / z, cy - fy / z)
+    Z.Markers()
+  end
+  -- (25 Nov 2026, mechanism: pfQuest's map dots changed size with the zoom - "extremely tiny" / out of proportion)
+  -- the markers ride inside the zoomed picture, so they grew and shrank with it. They keep their size on screen
+  -- now: sized 1 / zoom inside it (size, not scale: a point's offsets follow the frame's own scale and would move).
+  -- pfQuest's pins by their defsize (its animations size them from it; pfMap:UpdateNode sets it again, so that is
+  -- wrapped), the game's party / raid dots by the size they had at 1x. The player arrow is a model, which on 1.12
+  -- does not follow its parent's scale: it is left as it is.
+  local function FitFrame(f, zf)
+    if not f or not f.GetWidth then return end
+    if not f.octoW then f.octoW, f.octoH = f:GetWidth(), f:GetHeight() end
+    if f.octoW and f.octoW > 0 then f:SetWidth(f.octoW / zf) f:SetHeight((f.octoH or f.octoW) / zf) end
+  end
+  local function FitPin(pin, zf)
+    pin.octoDef = pin.octoDef or pin.defsize
+    if not pin.octoDef then return end
+    pin.defsize = pin.octoDef / zf
+    pin:SetWidth(pin.defsize)
+    pin:SetHeight(pin.defsize)
+  end
+  Z.FitPin = FitPin
+  function Z.Markers()
+    local zf = Z.zoom or 1
+    local pm = rawget(_G, "pfMap")
+    if pm and type(pm.pins) == "table" then
+      if not pm.octoZoomWrapped and type(pm.UpdateNode) == "function" then
+        pm.octoZoomWrapped = true
+        local orig = pm.UpdateNode
+        pm.UpdateNode = function(self, frame, a, b, c, d)
+          local r = orig(self, frame, a, b, c, d)
+          if frame and frame.defsize then
+            frame.octoDef = frame.defsize
+            local f2 = Z.zoom or 1
+            if f2 ~= 1 then FitPin(frame, f2) end
+          end
+          return r
+        end
+      end
+      for _, pin in pairs(pm.pins) do FitPin(pin, zf) end
+      pm.queue_update = true
+    end
+    for i = 1, 4 do FitFrame(rawget(_G, "WorldMapParty" .. i), zf) end
+    for i = 1, 40 do FitFrame(rawget(_G, "WorldMapRaid" .. i), zf) end
   end
   -- the cursor in the scroll frame's units from its top left, or nil when it is not over the map
   function Z.Cursor()
@@ -256,6 +299,7 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     Z.zoom = 1
     WorldMapDetailFrame:SetScale(1)
     Z.Scroll(0, 0)
+    Z.Markers()
   end
   function Z.Setup()
     if Z.scroll or not Z.Wanted() then return end

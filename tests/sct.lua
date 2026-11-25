@@ -175,8 +175,11 @@ do
 end
 Fire("SPELL_HEAL_ON_SELF", ME, "0x00000000000000D1", 2061, 1300, 1, 0)
 ok(LiveText("+1300"), "heal on you")
-Fire("SPELL_ENERGIZE_ON_SELF", ME, ME, 29131, 1, 20, 0)
-ok(LiveText("+20 Rage"), "rage gain")
+-- (25 Nov 2026, mechanism: Bloodrage's 1 rage a second showed as "10") nampower gives rage in tenths
+Fire("SPELL_ENERGIZE_ON_SELF", ME, ME, 29131, 1, 200, 0)
+ok(LiveText("+20 Rage") and not LiveText("+200"), "rage gain: 200 tenths = 20 rage")
+Fire("SPELL_ENERGIZE_ON_SELF", ME, ME, 29131, 1, 10, 1)
+ok(LiveText("+1 Rage") and not LiveText("+10 Rage"), "Bloodrage's tick: 1 rage, not 10")
 Fire("ENVIRONMENTAL_DMG_SELF", ME, 2, 220, 0, 0)
 ok(LiveText("Falling"), "falling damage")
 -- auras and procs

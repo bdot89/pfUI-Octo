@@ -112,6 +112,23 @@ if Z then
     ok(math.abs(Z.h - mh) < .01 and Z.v == 0, "the view never leaves the map")
     Z.Reset()
     ok(Z.zoom == 1 and Z.h == 0 and Z.v == 0, "back to the whole map")
+    -- (25 Nov 2026, mechanism: pfQuest's dots changed size with the zoom) the markers keep their size on screen
+    if Z.Markers then
+      local keepMap, keepParty = rawget(_G, "pfMap"), rawget(_G, "WorldMapParty1")
+      local pin = CreateFrame("Button")
+      pin.defsize = 14 pin:SetWidth(14) pin:SetHeight(14)
+      local fake = { pins = { pin }, UpdateNode = function(self, frame) frame.defsize = 18 frame:SetWidth(18) frame:SetHeight(18) end }
+      local party = CreateFrame("Button") party:SetWidth(16) party:SetHeight(16)
+      _G.pfMap, _G.WorldMapParty1 = fake, party
+      Z.SetZoom(2, 501, 334)
+      ok(pin.defsize == 7 and pin:GetWidth() == 7 and party:GetWidth() == 8,
+        "2x: a pfQuest dot and a party dot are half as big inside the map, so the same on screen (" .. tostring(pin.defsize) .. ")")
+      fake:UpdateNode(pin)
+      ok(pin.defsize == 9 and pin:GetWidth() == 9, "pfQuest sizing a dot again (18) at 2x: 9 inside (" .. tostring(pin.defsize) .. ")")
+      Z.Reset()
+      ok(pin.defsize == 18 and party:GetWidth() == 16, "back to 1x: their own sizes")
+      _G.pfMap, _G.WorldMapParty1 = keepMap, keepParty
+    end
     -- (25 Nov 2026, Lo5t1ncyb3r: no coordinates since the zoom) they sit on the map window, over the visible map:
     -- yours bottom left, the cursor's bottom right
     if not WorldMapButton.coords and pfUI.map.Coords then pfUI.map.Coords() end

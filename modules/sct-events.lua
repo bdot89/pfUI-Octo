@@ -467,7 +467,9 @@ function EV:Fire(key, info)
     if key == "outSpell" or key == "outDot" then r, g, b = 1, 1, 0
     elseif grp == "out" then r, g, b = 1, 1, 1
     elseif grp == "in" then r, g, b = 1, 0.15, 0.15
-    elseif key == "inPower" then r, g, b = 0.4, 0.6, 1
+    -- (25 Nov 2026, mechanism: power gains always blue, "i can't even figure out how to change the color") power keeps
+    -- the colour picked for it under Messages, as in the other looks
+    elseif key == "inPower" then r, g, b = ev.r, ev.g, ev.b
     else r, g, b = 0.2, 1, 0.2 end
   end
   local opts = { crit = crit, icon = (db.icons and not blizz) and info.icon or nil, heal = info.heal, small = small,
@@ -868,6 +870,9 @@ B:On("SPELL_ENERGIZE_ON_SELF", function(ev, target, caster, id, ptype, amount, p
   if ptype == -2 or ptype == 4294967294 then return end   -- health: a heal
   local kind = POWER[ptype or 0] or "Mana"
   justEnergized = GetTime()
+  -- (25 Nov 2026, mechanism: Bloodrage showed a "10" for every point of rage, "100" for 10) nampower gives rage in
+  -- the game's own tenths (a full bar is 1000 inside, 100 on screen): shown as the rage you see
+  if ptype == 1 and amount then amount = math.floor(amount / 10 + .5) if amount <= 0 then return end end
   if not db.fullPower and UnitMana("player") >= UnitManaMax("player") and UnitPowerType("player") == ptype then return end
   if db.throttlePower > 0 then
     EV.power[kind] = (EV.power[kind] or 0) + (amount or 0)
