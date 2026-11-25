@@ -283,6 +283,38 @@ ok(LZ.Split(0, 1, 5) == 3, "20 into stacks of 5: three new stacks")
 for _ = 1, 5 do LZ.SplitTick() end
 ok(table.getn(moves) == 3 and slots[0][1][1] == 5 and slots[0][4] and slots[0][4][1] == 5, "made one by one (" .. table.getn(moves) .. ")")
 ok(LZ.Split(0, 1, 5) == 0, "a stack that is the size already: nothing to do")
+-- (25 Nov 2026, code review) loot landing in a listed slot is never dropped onto (that swapped the items)
+slots = { [0] = { [1] = { 20, 9999 } } }
+moves = {}
+ok(LZ.Split(0, 1, 5) == 3, "20 into 5s again")
+slots[0][2] = { 1, 1234 } -- loot fills the first free slot before the first move
+for _ = 1, 6 do LZ.SplitTick() end
+ok(slots[0][2][2] == 1234 and slots[0][2][1] == 1, "the slot loot took is left alone")
+-- special bags are not free slots for normal items
+do
+  local keepFam = pfUI.api.GetBagFamily
+  pfUI.api.GetBagFamily = function(b) return b == 1 and "QUIVER" or "BAG" end
+  _G.GetContainerNumSlots = function(b) return (b == 0 or b == 1) and 6 or 0 end
+  slots = { [0] = { [1] = { 1, 1 }, [2] = { 1, 1 }, [3] = { 1, 1 }, [4] = { 1, 1 }, [5] = { 1, 1 }, [6] = { 1, 1 } }, [1] = {} }
+  local free = LZ.FreeSlots()
+  ok(table.getn(free) == 0, "a quiver's empty slots are not offered (" .. table.getn(free) .. ")")
+  pfUI.api.GetBagFamily = keepFam
+  _G.GetContainerNumSlots = function(b) return b == 0 and 6 or 0 end
+end
+-- only a click on a bag slot is "right-click in bags": the same call from a bar or a macro uses the item
+if not LZ.aside then
+  local asked = 0
+  local keepClick = LZ.BagClick
+  LZ.BagClick = function() asked = asked + 1 return true end
+  LZ.bagClick = nil
+  pcall(_G.UseContainerItem, 0, 1)
+  ok(asked == 0, "UseContainerItem from a bar or a macro: the bag shortcuts stay out of it")
+  LZ.bagClick = true
+  pcall(_G.UseContainerItem, 0, 1)
+  ok(asked == 1, "inside a bag slot click they act")
+  LZ.bagClick = nil
+  LZ.BagClick = keepClick
+end
 
 -- Salvation for a tank
 local gone

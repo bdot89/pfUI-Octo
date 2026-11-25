@@ -590,12 +590,17 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
   end
 
   -- make stacks of N: each split waits until the stack is free again
+  -- (25 Nov 2026, code review: quiver, soul and herb bag slots were listed, so a split stack bounced back onto the
+  -- cursor) normal bags only (pfUI.api.GetBagFamily: "BAG")
   function LZ.FreeSlots()
     local out = {}
+    local family = pfUI.api and pfUI.api.GetBagFamily
     for b = 0, 4 do
-      local kind = b > 0 and _G.GetBagName and _G.GetBagName(b)
-      for s = 1, (_G.GetContainerNumSlots(b) or 0) do
-        if not _G.GetContainerItemLink(b, s) then table.insert(out, { b, s, kind }) end
+      local kind = b > 0 and family and family(b) or "BAG"
+      if kind == "BAG" then
+        for s = 1, (_G.GetContainerNumSlots(b) or 0) do
+          if not _G.GetContainerItemLink(b, s) then table.insert(out, { b, s, kind }) end
+        end
       end
     end
     return out
@@ -617,10 +622,25 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
     if not m then LZ.splits = nil return end
     local _, _, locked = _G.GetContainerItemInfo(m[1], m[2])
     local _, _, dlocked = _G.GetContainerItemInfo(m[3], m[4])
-    if locked or dlocked or (_G.CursorHasItem and _G.CursorHasItem()) then return end
+    if locked or dlocked then return end
+    -- (25 Nov 2026, code review) something still on the cursor after our last move: it goes back to the stack and the
+    -- splitting stops (it used to wait for good, the queue never ending)
+    if _G.CursorHasItem and _G.CursorHasItem() then
+      if LZ.splitMoved then
+        _G.PickupContainerItem(m[1], m[2])
+        if _G.CursorHasItem() then _G.ClearCursor() end
+        LZ.splits, LZ.splitMoved = nil, nil
+        Note("OctoLazy: a stack would not go into that bag slot - splitting stopped")
+      end
+      return
+    end
+    LZ.splitMoved = nil
     local _, left = _G.GetContainerItemInfo(m[1], m[2])
     if not left or (tonumber(left) or 0) <= m[5] then LZ.splits = nil return end
     table.remove(LZ.splits, 1)
+    -- loot may have filled the slot meanwhile: never drop onto an item (that would swap them); try the next
+    if _G.GetContainerItemLink(m[3], m[4]) then return end
+    LZ.splitMoved = true
     if _G.C_Container and type(_G.C_Container.MoveItem) == "function" then
       _G.C_Container.MoveItem(m[1], m[2], m[3], m[4], m[5])
     else
@@ -835,8 +855,20 @@ pfUI:RegisterModule("octolazy", "vanilla", function ()
   -- right-click in bags
   local useItem = _G.UseContainerItem
   LZ.rawUse = useItem
+  -- (25 Nov 2026, code review: the consumables bar, the cooldown bars and macros also call UseContainerItem - with
+  -- Shift held they opened the split window, with trade / mail open the item went into it) only a click on a bag slot
+  -- (the game's ContainerFrameItemButton_OnClick, which pfUI's bag slots use too) is a "right-click in bags"
+  local rawClick = _G.ContainerFrameItemButton_OnClick
+  if type(rawClick) == "function" then
+    _G.ContainerFrameItemButton_OnClick = function(a1, a2, a3)
+      LZ.bagClick = true
+      local ok, err = pcall(rawClick, a1, a2, a3)
+      LZ.bagClick = nil
+      if not ok then error(err, 0) end
+    end
+  end
   _G.UseContainerItem = function(bag, slot, a, b)
-    if LZ.BagClick(bag, slot) then return end
+    if LZ.bagClick and LZ.BagClick(bag, slot) then return end
     return useItem(bag, slot, a, b)
   end
   -- chat lines

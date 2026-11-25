@@ -405,3 +405,22 @@ S.bars, S.removed, S.known = barsWas, removedWas, knownWas
 CDM.book, CDM.rt, CDM.buffs, CDM.names = {}, {}, {}, {}
 for k, v in pairs(keep) do _G[k] = v end
 for _, k in ipairs({ "C_UnitAuras", "GetPlayerBuffApplications" }) do if keep[k] == nil then _G[k] = nil end end
+
+-- (25 Nov 2026, code review) a bag item is never used from a cooldown button while a vendor window is open (it would sell)
+do
+  local used
+  local keepItems, keepUse = CDM.Items, rawget(_G, "UseContainerItem")
+  local keepFrames = {}
+  local shut = { IsVisible = function() return false end }
+  for _, f in ipairs(CDM.BUSY) do keepFrames[f[1]] = rawget(_G, f[1]) rawset(_G, f[1], shut) end
+  CDM.Items = function() return { ["hearthstone"] = { bag = 0, slot = 1 } } end
+  _G.UseContainerItem = function() used = true end
+  rawset(_G, "MerchantFrame", { IsVisible = function() return true end })
+  CDM.Use({ kind = "item", name = "Hearthstone" })
+  ok(not used, "with a vendor open, a cooldown button does not use (sell) a bag item")
+  rawset(_G, "MerchantFrame", shut)
+  CDM.Use({ kind = "item", name = "Hearthstone" })
+  ok(used, "with it shut, it does")
+  CDM.Items, _G.UseContainerItem = keepItems, keepUse
+  for k, v in pairs(keepFrames) do rawset(_G, k, v) end
+end

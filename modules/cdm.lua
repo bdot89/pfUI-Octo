@@ -787,11 +787,27 @@ pfUI:RegisterModule("cdm", "vanilla", function ()
     b:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return b
   end
+  -- (25 Nov 2026, code review) a bag item used while a vendor / bank / trade / mail / auction window is open goes there
+  -- instead (sold, banked...): never from a cooldown button then (the consumables bar already guards this)
+  CDM.BUSY = { { "MerchantFrame", "a vendor" }, { "BankFrame", "the bank" }, { "TradeFrame", "a trade" },
+               { "SendMailFrame", "the mail" }, { "AuctionFrame", "the auction house" } }
+  function CDM.Blocked()
+    for _, f in ipairs(CDM.BUSY) do
+      local fr = _G[f[1]]
+      if fr and fr.IsVisible and fr:IsVisible() then return "Close " .. f[2] .. " first: an item clicked now would go there." end
+    end
+  end
   function CDM.Use(e)
     if e.kind == "item" then
       local it = CDM.Items()[Lower(e.name)]
       if not it then return end
-      if it.inv then UseInventoryItem(it.inv) else UseContainerItem(it.bag, it.slot) end
+      if it.inv then UseInventoryItem(it.inv) return end
+      local why = CDM.Blocked()
+      if why then
+        if UIErrorsFrame then UIErrorsFrame:AddMessage(why, 1, .82, .2, 1, 4) end
+        return
+      end
+      UseContainerItem(it.bag, it.slot)
     elseif e.kind == "macro" then
       local m = CDM.Macro(e.name)
       if m then CDM.RunMacro(m) end
