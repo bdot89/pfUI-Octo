@@ -122,6 +122,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.54
+
+- 🎯 **Procs in the meters:** a new Procs display (Misc > Procs) counts every proc and says what set it off, like "Engulfing Shadows <- Shadow Bolt". For your own procs it also names the weapon or enchant when its tooltip names the proc ("Holy Strength <- Melee (Arcanite Reaper)").
+- 🏷️ **Shorter names on nameplates:** Nameplates > Name has "Longest name" (in letters, 0 = any length) and "Too long": cut with "..." or turn the first words into initials ("I. Riftweaver").
+- 😡 **Rage in combat text is right:** Bloodrage showed a "10" for every point of rage; it shows "+1 Rage" now. With the Blizzard numbers look, power gains use the colour you picked for them instead of always blue.
+- 🗺️ **Map dots stay the same size when you zoom the world map:** pfQuest's dots and your party and raid dots no longer grow and shrink with the zoom.
+- ⚡ **Smoother raids:** sorting the raid frames only redraws the frames whose player changed (it redrew all 40 twice), and bars you can't see skip their slide.
+
 ## 📜 New in 1.2.53
 
 - 🛡️ **Safer sharing (from Emp's code review):** auction prices shared by others count only when two players agree and never fill your sell price; the "new version" popup needs three players saying a sensible next version; fake threat lines from guild or whispers are ignored; broken boat messages throw no error.

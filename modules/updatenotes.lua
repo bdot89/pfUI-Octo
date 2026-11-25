@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.54", {
+    { "Procs in the meters", "a new Procs display (Misc > Procs) counts every proc and says what set it off, like \"Engulfing Shadows <- Shadow Bolt\". For your own procs it also names the weapon or enchant when its tooltip names the proc (\"Holy Strength <- Melee (Arcanite Reaper)\")." },
+    { "Shorter names on nameplates", "Nameplates > Name has \"Longest name\" (in letters, 0 = any length) and \"Too long\": cut with \"...\" or turn the first words into initials (\"I. Riftweaver\")." },
+    { "Rage in combat text is right", "Bloodrage showed a \"10\" for every point of rage; it shows \"+1 Rage\" now. With the Blizzard numbers look, power gains use the colour you picked for them instead of always blue." },
+    { "Map dots stay the same size when you zoom the world map", "pfQuest's dots and your party and raid dots no longer grow and shrink with the zoom." },
+    { "Smoother raids", "sorting the raid frames only redraws the frames whose player changed (it redrew all 40 twice), and bars you can't see skip their slide." },
+  } },
   { "1.2.53", {
     { "Safer sharing (from Emp's code review)", "auction prices shared by others count only when two players agree and never fill your sell price; the \"new version\" popup needs three players saying a sensible next version; fake threat lines from guild or whispers are ignored; broken boat messages throw no error." },
     { "Fixes", "overall DPS stays right past 10 fights and merged trash counts only fighting time; OctoLazy stack split never swaps items or skips into quivers; bag shortcuts only on real bag clicks; cooldown bars never use a bag item at a vendor; loading a profile makes it current; the Bulwark keeps your width; no false \"+800 Mana\" after a form change; a rule can no longer freeze the game." },
@@ -181,8 +188,5 @@ pfUI.octoNotes = {
     { "Classic quiz", "660 questions of our own on lore, characters, places, dungeons, raids, classes, professions, items, PvP and the world - 10 categories you can switch on or off, a short \"did you know\" after many answers, streaks, and an optional timer." },
     { "Aim trainer, six modes", "Gridshot, Hexakill, Reflex, Precision (centre hits score more), Tracking (keep the mouse on a moving target) and Kick! (click the casters before their cast bar fills). Targets wear the other faction's faces, creatures, class pictures, raid marks or spell icons; results show accuracy, reaction time and best combo." },
     { "Scores shared between players", "bests go to your guild, group and battleground, and boards fill from the players they have met too." },
-  } },
-  { "1.2.14", {
-    { "The Group Finder in pfUI's look", "OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the \"your group is ready\" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload)." },
   } },
 }
