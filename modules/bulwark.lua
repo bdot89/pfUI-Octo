@@ -193,22 +193,28 @@ pfUI:RegisterModule("bulwark", "vanilla", function ()
     f:SetWidth(w) f:SetHeight(h)
     local tex = S().texture
     if not tex or tex == "" then tex = "Interface\\AddOns\\pfUI\\img\\bar_elvui" end
-    f.bar:SetStatusBarTexture(tex)
-    f.timer:SetStatusBarTexture(tex)
-    f.bg:SetTexture(tex)
-    local br, bg, bb, ba = Col("bgcolor", .1, .08, .05, .8)
-    f.bg:SetVertexColor(br, bg, bb, ba)
+    local font = pfUI.font_unit or pfUI.font_default or STANDARD_TEXT_FONT
+    local size = Num("textsize", 11)
+    -- (25 Nov 2026, code review: three SetFont and three SetTexture calls ten times a second) the look only when a
+    -- setting of it changed
+    local look = tex .. "^" .. tostring(font) .. "^" .. size .. "^" .. tostring(S().bgcolor) .. "^" .. tostring(S().textcolor)
+    if f.look ~= look then
+      f.look = look
+      f.bar:SetStatusBarTexture(tex)
+      f.timer:SetStatusBarTexture(tex)
+      f.bg:SetTexture(tex)
+      local br, bg, bb, ba = Col("bgcolor", .1, .08, .05, .8)
+      f.bg:SetVertexColor(br, bg, bb, ba)
+      for _, fs in ipairs({ f.text, f.time, f.tag }) do fs:SetFont(font, size, "OUTLINE") end
+      local tr, tg, tb = Col("textcolor", 1, 1, 1, 1)
+      f.text:SetTextColor(tr, tg, tb)
+      f.time:SetTextColor(tr, tg, tb)
+    end
     local r, g, b, a
     if view.absorbing then r, g, b, a = Col("activecolor", 1, .82, .35, 1) else r, g, b, a = Col("color", .72, .52, .28, 1) end
     f.bar:SetStatusBarColor(r, g, b, a)
     f.bar:SetValue(math.max(0, math.min(100, view.pct or 0)))
 
-    local font = pfUI.font_unit or pfUI.font_default or STANDARD_TEXT_FONT
-    local size = Num("textsize", 11)
-    for _, fs in ipairs({ f.text, f.time, f.tag }) do fs:SetFont(font, size, "OUTLINE") end
-    local tr, tg, tb = Col("textcolor", 1, 1, 1, 1)
-    f.text:SetTextColor(tr, tg, tb)
-    f.time:SetTextColor(tr, tg, tb)
     f.text:SetText(On("text") and BW.Text(view) or "")
 
     local showTimer = On("timer") and view.absorbing and (view.left or 0) > 0

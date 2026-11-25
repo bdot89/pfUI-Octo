@@ -308,10 +308,26 @@ R.env = env
 
 -- ---------------------------------------------------------------- rules
 local cache = {}
+-- (25 Nov 2026, code review: the sandbox blocked the game's functions, not loops - a rule in a shared profile such as
+-- "(function() while 1 do end end)()" froze the client whenever loot or bags were checked) a rule is one expression:
+-- words that make loops or functions are refused (outside quoted text)
+R.REFUSED = { "function", "while", "repeat", "until", "for", "do", "goto", "return", "local", "end" }
+function R.Unsafe(text)
+  local bare = gsub(gsub(gsub(text, "%[%[.-%]%]", " "), '"[^"]*"', " "), "'[^']*'", " ")
+  bare = " " .. bare .. " "
+  for _, w in ipairs(R.REFUSED) do
+    if find(bare, "[^%w_]" .. w .. "[^%w_]") then return w end
+  end
+end
 function R.Compile(text)
   if type(text) ~= "string" or not find(text, "%S") then return nil, "empty rule" end
   local c = cache[text]
   if c then return c.fn, c.err end
+  local bad = R.Unsafe(text)
+  if bad then
+    cache[text] = { err = "\"" .. bad .. "\" is not allowed in a rule (one test, like Quality(4) and not Soulbound())" }
+    return nil, cache[text].err
+  end
   local fn, err = loadstring("return (" .. text .. "\n)", "rule")
   if fn then
     setfenv(fn, setmetatable({}, { __index = env }))

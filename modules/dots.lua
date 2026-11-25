@@ -215,6 +215,9 @@ pfUI:RegisterModule("dots", "vanilla", function ()
       D.n = math.max(0, D.n - 1)
     end
     D.cast[g], D.seen[g], D.maxarmor[g] = nil, nil, nil
+    -- (and its "expiring" sound marks: never emptied before, one per mob and DoT)
+    local n = string.len(g)
+    for k in pairs(D.played) do if string.sub(k, 1, n) == g then D.played[k] = nil end end
     if D.place then D.place[g] = nil end
     D.dirty = true
   end
@@ -1332,6 +1335,8 @@ pfUI:RegisterModule("dots", "vanilla", function ()
         local ok, hostile = pcall(UnitCanAttack, "player", target)
         if ok and hostile then D.Add(target) end
       end
+      -- (25 Nov 2026, code review: casts were kept for every target, tracked or not, all session) only for tracked ones
+      if not D.units[target] then D.cast[target], D.auraSeen[target] = nil, nil end
       if caster == me then D.dirty = true D.readAll = true end
     elseif e == "CHAT_MSG_SPELL_SELF_DAMAGE" then
       D.Failed(a1)

@@ -1035,6 +1035,7 @@ local function ScanBook()
     if i > 400 then break end
   end
   EV.bookSize = i - 1
+  EV.slotOf = {}
 end
 B:On("SPELLS_CHANGED", ScanBook)
 B:On("LEARNED_SPELL_IN_TAB", ScanBook)
@@ -1055,13 +1056,23 @@ function EV.Usable(name)
   end
   local tex = EV.knownIcon[name]
   if not tex or not HasAction then return nil end
-  for slot = 1, 120 do
-    if HasAction(slot) and not GetActionText(slot) and GetActionTexture(slot) == tex then
-      return IsUsableAction(slot) and true or false
+  -- (25 Nov 2026, code review: all 120 slots searched for every spell, several times a second) the slot is
+  -- remembered until the bars change (ACTIONBAR_SLOT_CHANGED / a new page)
+  local slot = EV.slotOf[name]
+  if slot == nil then
+    slot = false
+    for s = 1, 120 do
+      if HasAction(s) and not GetActionText(s) and GetActionTexture(s) == tex then slot = s break end
     end
+    EV.slotOf[name] = slot
   end
-  return nil
+  if not slot then return nil end
+  return IsUsableAction(slot) and true or false
 end
+EV.slotOf = {}
+B:On("ACTIONBAR_SLOT_CHANGED", function() EV.slotOf = {} end)
+B:On("ACTIONBAR_PAGE_CHANGED", function() EV.slotOf = {} end)
+B:On("UPDATE_BONUS_ACTIONBAR", function() EV.slotOf = {} end)
 -- off cooldown (the global cooldown counts as ready)
 local function SpellReady(i)
   local start, dur = GetSpellCooldown(i, BOOKTYPE_SPELL or "spell")

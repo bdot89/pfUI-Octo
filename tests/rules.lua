@@ -50,5 +50,14 @@ ok(R.Compile("") == nil, "an empty rule is refused")
 local hit, e = T('Name("x")', 123456)
 ok(not hit and e, "an item the client does not know yet is reported")
 ok(not T('os.exit()', 2770) and not T('print("x")', 2770), "rules only see the checks")
+-- (25 Nov 2026, code review) a rule cannot loop or make functions: it would freeze the client
+do
+  local f1, e1 = R.Compile("(function() while 1 do end end)()")
+  local f2 = R.Compile("Quality(4) or (function() repeat until false end)()")
+  local f3 = R.Compile('Name("Wand of the Forest")')
+  local f4 = R.Compile('Name("do not sell") and Quality(0)')
+  ok(not f1 and e1 and string.find(e1, "not allowed", 1, true) and not f2, "loops and functions in a rule are refused")
+  ok(f3 and f4, "words inside quotes are fine (" .. tostring(f3) .. ", " .. tostring(f4) .. ")")
+end
 
 _G.GetItemInfo = saved
