@@ -26,7 +26,8 @@ do -- statusbars
     stepsize = tonumber(pfUI_config.unitframes.animation_speed)
 
     for bar in pairs(animations) do
-      if not bar.val_ or abs(bar.val_ - bar.val) < stepsize or bar.instant then
+      -- (octo, 25 Nov 2026, /pfperf in the raid demo) a bar nobody can see goes straight to its value: no glide frames
+      if not bar.val_ or abs(bar.val_ - bar.val) < stepsize or bar.instant or not bar:IsVisible() then
         bar:DisplayValue(bar.val)
       elseif bar.val ~= bar.val_ then
         bar:DisplayValue(bar.val_ + min((bar.val-bar.val_) / stepsize, max(bar.val-bar.val_, 30 / GetFramerate())))

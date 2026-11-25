@@ -154,6 +154,8 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
       name = string.gsub(name, "(%S+) ", abbrevname)
     end
 
+    -- octo: the nameplates' own longest name (Nameplates > Name)
+    if name and pfUI.nameplates and pfUI.nameplates.ShortName then name = pfUI.nameplates.ShortName(name) end
     return name
   end
 
@@ -1219,4 +1221,45 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
   end
 
   pfUI.nameplates = nameplates
+
+  -- octo (25 Nov 2026, Wolfahrt: "a maximum number of characters ... to not take too much space with long names").
+  -- C.plates.namemax letters at most (0 = any length; letters, not bytes: names can have accents), shortened by
+  -- C.plates.nameshort: "dots" = cut with "...", "words" = the first words as initials ("Infinite Riftweaver" ->
+  -- "I. Riftweaver"), cut with "..." only if that is still too long. Remembered per name: plates redraw often.
+  local CHAR = "[%z\1-\127\194-\244][\128-\191]*"
+  local function Len(s) local n = 0 for _ in string.gfind(s, CHAR) do n = n + 1 end return n end
+  local function Cut(s, n)
+    local out, k = {}, 0
+    for ch in string.gfind(s, CHAR) do
+      k = k + 1
+      if k > n then break end
+      out[k] = ch
+    end
+    return table.concat(out)
+  end
+  local short, shortKey = {}, nil
+  function nameplates.ShortName(name)
+    local p = C.plates
+    local max = p and tonumber(p.namemax) or 0
+    if not name or max <= 0 then return name end
+    local key = max .. (p.nameshort or "dots")
+    if key ~= shortKey then short, shortKey = {}, key end
+    if short[name] then return short[name] end
+    local out = name
+    if Len(out) > max then
+      if p.nameshort == "words" then
+        -- initials for the first words, one by one from the front, while it is too long
+        local words = {}
+        for w in string.gfind(name, "%S+") do table.insert(words, w) end
+        for i = 1, table.getn(words) - 1 do
+          if Len(out) <= max then break end
+          words[i] = Cut(words[i], 1) .. "."
+          out = table.concat(words, " ")
+        end
+      end
+      if Len(out) > max then out = Cut(out, math.max(1, max - 1)) .. "..." end
+    end
+    short[name] = out
+    return out
+  end
 end)

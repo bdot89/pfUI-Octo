@@ -459,6 +459,12 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       Sld(q, "Left / right", "Or drag the name in the preview.", -80, 80, 1, S, "nameoffx", Px)
       Sld(q, "Up / down", nil, -40, 40, 1, S, "nameoffy", Px)
     end, "Move the name left, right, up or down (or drag it in the preview).")
+    -- (25 Nov 2026, Wolfahrt) long names take less room
+    Sld(p, "Longest name", "Letters at most; a longer name is shortened. 0 = any length.", 0, 40, 1, S, "namemax",
+      function(v) return v == 0 and "Any" or (v .. " letters") end)
+    Drop(p, "Too long", "How a longer name is shortened.", {
+      { key = "dots", label = "Cut, with ..." },
+      { key = "words", label = "First words as letters" } }, S, "nameshort")
     Chk(p, "My own colour", "Off: white, orange in a fight, class colours as set on Colours. The swatch is the colour.", S, "namecustom")
     InColor(p, "Name colour", nil, S, "namecolor")
     Card(p, "Level", { on = { function() return C.plates.levelshow ~= "0" end, function(v) C.plates.levelshow = v and "1" or "0"; U() end,

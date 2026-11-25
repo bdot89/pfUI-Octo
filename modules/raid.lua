@@ -102,23 +102,34 @@ pfUI:RegisterModule("raid", "vanilla:tbc", function ()
     if not UnitInRaid("player") then this:Hide() return end
     if InCombatLockdown and InCombatLockdown() then return end
 
-    -- clear all existing frames
-    for i=1, maxraid do SetRaidIndex(pfUI.uf.raid[i], 0) end
-
-    -- sort tanks into their groups
-    for i=1, GetNumRaidMembers() do
-      local name, _, subgroup  = GetRaidRosterInfo(i)
-      if name and pfUI.uf.raid.tankrole[name] then
-        pfUI.uf.raid:AddUnitToGroup(i, subgroup)
+    -- (octo, 25 Nov 2026, user's /pfperf in the raid demo: pfRaidUpdater 19.5 ms a second) every sort set all 40
+    -- frames to 0 and then filled them again: two full visibility updates per frame, even when nobody moved. The new
+    -- order is worked out first (the same rules: tanks first, then everyone, each to the first free visible slot of
+    -- their group); only frames whose member changed are touched.
+    local want = pfUI.uf.raid.want or {}
+    pfUI.uf.raid.want = want
+    for i = 1, maxraid do want[i] = 0 end
+    local function Place(index, group)
+      for subindex = 1, 5 do
+        local ids = subindex + 5 * (group - 1)
+        local f = pfUI.uf.raid[ids]
+        if f and want[ids] == 0 and f.config.visible == "1" then
+          want[ids] = index
+          return
+        end
       end
     end
-
-    -- sort players into roster
-    for i=1, GetNumRaidMembers() do
-      local name, _, subgroup  = GetRaidRosterInfo(i)
-      if name and not pfUI.uf.raid.tankrole[name] then
-        pfUI.uf.raid:AddUnitToGroup(i, subgroup)
+    local n = GetNumRaidMembers()
+    for pass = 1, 2 do
+      for i = 1, n do
+        local name, _, subgroup = GetRaidRosterInfo(i)
+        local tank = name and pfUI.uf.raid.tankrole[name] and true or false
+        if name and subgroup and tank == (pass == 1) then Place(i, subgroup) end
       end
+    end
+    for i = 1, maxraid do
+      local f = pfUI.uf.raid[i]
+      if f and (f.id ~= want[i] or f.label ~= "raid") then SetRaidIndex(f, want[i]) end
     end
 
     this:Hide()
