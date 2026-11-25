@@ -112,6 +112,26 @@ if Z then
     ok(math.abs(Z.h - mh) < .01 and Z.v == 0, "the view never leaves the map")
     Z.Reset()
     ok(Z.zoom == 1 and Z.h == 0 and Z.v == 0, "back to the whole map")
+    -- (25 Nov 2026, Lo5t1ncyb3r: no coordinates since the zoom) they sit on the map window, over the visible map:
+    -- yours bottom left, the cursor's bottom right
+    if not WorldMapButton.coords and pfUI.map.Coords then pfUI.map.Coords() end
+    local cf = WorldMapButton.coords
+    ok(cf and cf:GetParent() == WorldMapFrame, "the coordinates hang on the map window, not inside the zoomed map")
+    if cf and cf.Place then
+      cf.area = nil
+      cf.Place()
+      local tp, pp = cf.text.points and cf.text.points[1], cf.player.points and cf.player.points[1]
+      ok(tp and tp[2] == Z.scroll and tp[1] == "BOTTOMRIGHT" and pp and pp[2] == Z.scroll and pp[1] == "BOTTOMLEFT",
+        "over the visible map: yours bottom left, the cursor's bottom right")
+      local keepPos = rawget(_G, "GetPlayerMapPosition")
+      _G.GetPlayerMapPosition = function() return .452, .601 end
+      cf:GetScript("OnUpdate")()
+      ok(string.find(cf.player:GetText() or "", "45%.2 / 60%.1"), "your own coordinates (" .. tostring(cf.player:GetText()) .. ")")
+      _G.GetPlayerMapPosition = function() return 0, 0 end
+      cf:GetScript("OnUpdate")()
+      ok((cf.player:GetText() or "") == "", "not on the map shown: no coordinates of yours")
+      _G.GetPlayerMapPosition = keepPos
+    end
     -- (23 Nov 2026, mechanism: the ping on opening the map landed in the wrong place after zooming) the ping hangs on
     -- the player marker, which is right at every zoom
     if Z.FixPing then

@@ -121,34 +121,68 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     WorldMapZoneDropDown:SetPoint(point, anchor, anchorPoint, x+8, y)
 
     -- coordinates
-    if not WorldMapButton.coords then
-      WorldMapButton.coords = CreateFrame("Frame", "pfWorldMapButtonCoords", WorldMapButton)
-      WorldMapButton.coords.text = WorldMapButton.coords:CreateFontString(nil, "OVERLAY")
-      WorldMapButton.coords.text:SetPoint("BOTTOMRIGHT", WorldMapButton, "BOTTOMRIGHT", -10, 10)
-      WorldMapButton.coords.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
-      WorldMapButton.coords.text:SetTextColor(1, 1, 1)
-      WorldMapButton.coords.text:SetJustifyH("RIGHT")
-
-      WorldMapButton.coords:SetScript("OnUpdate", function()
-        local width  = WorldMapButton:GetWidth()
-        local height = WorldMapButton:GetHeight()
-        local mx, my = WorldMapButton:GetCenter()
-        local scale  = WorldMapButton:GetEffectiveScale()
-        local x, y   = GetCursorPosition()
-
-        if mx and my then
-          mx = (( x / scale ) - ( mx - width / 2)) / width * 100
-          my = (( my + height / 2 ) - ( y / scale )) / height * 100
-        end
-
-        if mx and my and MouseIsOver(WorldMapButton) then
-          WorldMapButton.coords.text:SetText(string.format('%.1f / %.1f', mx, my))
-        else
-          WorldMapButton.coords.text:SetText("")
-        end
-      end)
-    end
+    -- (25 Nov 2026, Lo5t1ncyb3r: "the world map doesn't show character cords in the lower left like it did before the
+    -- add in zoom feature") the coordinates lived on a frame inside WorldMapButton, which the zoom moves into its
+    -- scroll frame: that frame was no longer drawn or updated. They sit on the map window now, over the visible map
+    -- (the zoom's scroll frame, else WorldMapButton): your own position bottom left, the cursor's bottom right. The
+    -- cursor's are read from WorldMapButton, which is zoomed and moved with the picture, so they are right at any zoom.
+    pfUI.map.Coords()
   end)
+
+  function pfUI.map.Coords()
+      if WorldMapButton.coords then return end
+      local cf = CreateFrame("Frame", "pfWorldMapButtonCoords", WorldMapFrame)
+      WorldMapButton.coords = cf
+      cf:SetFrameStrata(WorldMapFrame:GetFrameStrata())
+      cf:SetFrameLevel((WorldMapFrame:GetFrameLevel() or 1) + 20)
+      cf:SetAllPoints(WorldMapFrame)
+      cf.text = cf:CreateFontString(nil, "OVERLAY")
+      cf.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+      cf.text:SetTextColor(1, 1, 1)
+      cf.text:SetJustifyH("RIGHT")
+      cf.player = cf:CreateFontString(nil, "OVERLAY")
+      cf.player:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+      cf.player:SetTextColor(1, .82, 0)
+      cf.player:SetJustifyH("LEFT")
+
+      -- where the map shows: the zoom's scroll frame when it is there, else the map itself
+      function cf.Area()
+        local z = pfUI.map and pfUI.map.zoom
+        return (z and z.scroll) or WorldMapButton
+      end
+      function cf.Place()
+        local area = cf.Area()
+        if cf.area == area then return end
+        cf.area = area
+        cf.text:ClearAllPoints()
+        cf.text:SetPoint("BOTTOMRIGHT", area, "BOTTOMRIGHT", -10, 10)
+        cf.player:ClearAllPoints()
+        cf.player:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", 10, 10)
+      end
+      -- the cursor's map coordinates (0 - 100), or nil when it is not over the visible map
+      function cf.Cursor()
+        local width, height = WorldMapButton:GetWidth(), WorldMapButton:GetHeight()
+        local mx, my = WorldMapButton:GetCenter()
+        local scale = WorldMapButton:GetEffectiveScale()
+        local x, y = GetCursorPosition()
+        if not (mx and my and width and height and width > 0 and height > 0) then return end
+        if not (MouseIsOver(WorldMapButton) and MouseIsOver(cf.Area())) then return end
+        return ((x / scale) - (mx - width / 2)) / width * 100, ((my + height / 2) - (y / scale)) / height * 100
+      end
+      -- yours, on the map being shown (0, 0 = you are not on it)
+      function cf.Player()
+        local px, py = GetPlayerMapPosition("player")
+        if not px or not py or (px == 0 and py == 0) then return end
+        return px * 100, py * 100
+      end
+      cf:SetScript("OnUpdate", function()
+        cf.Place()
+        local mx, my = cf.Cursor()
+        if mx then cf.text:SetText(string.format("%.1f / %.1f", mx, my)) else cf.text:SetText("") end
+        local px, py = cf.Player()
+        if px then cf.player:SetText(string.format("%s: %.1f / %.1f", UnitName("player") or "", px, py)) else cf.player:SetText("") end
+      end)
+  end
 
   pfUI.map.loader = pfMapLoader
 
