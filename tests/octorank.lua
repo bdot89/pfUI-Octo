@@ -93,3 +93,32 @@ do
     for k, v in pairs(was) do rawset(_G, k, v) end
   end
 end
+
+-- (25 Nov 2026, Javelin, on pfUI alone: "Auto-enable in Raids" was off again after a relog) pfUI's own logger copy keeps
+-- a setting switched on in Chronicle's window: it counts as yes, so the login's switch-off leaves it alone
+do
+  local CL = rawget(_G, "ChronicleLog")
+  local fr = rawget(_G, "OctoRankEventFrame")
+  ok(CL and CL.SetSetting and CL.GetSetting and fr and fr:GetScript("OnEvent"), "pfUI's Chronicle logger is there (no WhoDidIt)")
+  if CL and fr and fr:GetScript("OnEvent") then
+    local function Login()
+      local ev, a1 = rawget(_G, "event"), rawget(_G, "arg1")
+      _G.event, _G.arg1 = "ADDON_LOADED", "pfUI"
+      pcall(fr:GetScript("OnEvent"))
+      _G.event, _G.arg1 = ev, a1
+    end
+    local LG = OctoRank.Logs
+    ok(LG:Available() and LG:Source() == "builtin", "the built-in logger runs on pfUI alone")
+    local chronWas = rawget(_G, "OctoRankChronDB")
+    rawset(_G, "OctoRankChronDB", { advancedLog = {} })   -- (the saved table, as the game loads it)
+    OctoRankDB.opts.chronUse = nil
+    CL.wdiWatched = nil
+    Login()
+    CL:SetSetting("autoEnableInRaid", true)
+    ok(OctoRankDB.opts.chronUse == true, "ticking Auto-enable in Raids counts as saying yes")
+    Login()
+    ok(CL:GetSetting("autoEnableInRaid") == true, "after a relog it is still on")
+    rawset(_G, "OctoRankChronDB", chronWas)
+    OctoRankDB.opts.chronUse = nil
+  end
+end

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.50", {
+    { "Chronicle logger, checked on pfUI alone", "pfUI's built-in logger needs no other add-on; \"Auto-enable in Raids\" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself)." },
+  } },
   { "1.2.49", {
     { "Craft profit (thanks Wolfahrt)", "the profession windows show what the reagents cost against what the craft sells for - \"Cost / Sells / Profit\" under the picked recipe, and the profit (green / red) at the end of every recipe row. Auction house prices first, vendor prices for vendor reagents. Switch: \"Craft cost and profit\"." },
     { "Flight timer names (thanks Javelin)", "the bar showed \"Flight point 2 ... Flight point 82\" - now every flight point's real name." },
@@ -179,8 +182,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.11", {
     { "Meter windows stay where you put them", "windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them." },
-  } },
-  { "1.2.10", {
-    { "OctoProcs is taken out for now", "it no longer loads and its section is gone from the options, until it is ready. Your settings for it are kept, so it comes back as you left it." },
   } },
 }

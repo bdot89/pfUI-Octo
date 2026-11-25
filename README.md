@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.50
+
+- 📜 **Chronicle logger, checked on pfUI alone:** pfUI's built-in logger needs no other add-on; "Auto-enable in Raids" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself).
+
 ## 📜 New in 1.2.49
 
 - 💰 **Craft profit (thanks Wolfahrt):** the profession windows show what the reagents cost against what the craft sells for - "Cost / Sells / Profit" under the picked recipe, and the profit (green / red) at the end of every recipe row. Auction house prices first, vendor prices for vendor reagents. Switch: "Craft cost and profit".

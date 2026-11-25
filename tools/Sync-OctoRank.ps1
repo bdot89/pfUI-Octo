@@ -82,6 +82,10 @@ ORANK_PFUI = not ORANK_SKIP
         "`t`tW.off = true`r`n`t`tframe:SetScript(`"OnEvent`", nil)`r`n`t`tframe:SetScript(`"OnUpdate`", nil)`r`n" +
         "`t`tif ChronicleEventFrame then ChronicleEventFrame:UnregisterAllEvents() end`r`n`tend") $rel
     }
+    if ($rel -eq "ChronicleLoader.lua") {
+      # (false, not nil: the test mock reads an unset ALL_CAPS global as a string and skipped the whole logger)
+      $t = Must $t 'WDI_CHRON_SKIP = IsAddOnLoaded("ChronicleCompanion") and true or nil' 'WDI_CHRON_SKIP = IsAddOnLoaded("ChronicleCompanion") and true or false' $rel
+    }
     if ($rel -eq "Chronicle\core.lua") {
       $t = Must $t 'ChronicleMinimapButton:SetShown(ChronicleLog:GetSetting("showMinimapIcon") ~= false)' 'ChronicleMinimapButton:SetShown(ChronicleLog:GetSetting("showMinimapIcon") == true)' $rel
     }

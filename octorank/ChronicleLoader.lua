@@ -8,7 +8,7 @@ if ORANK_SKIP then return end
 	ChronicleCompanion that's running makes this copy stand down.
 ----------------------------------------------------------------------]]
 
-WDI_CHRON_SKIP = IsAddOnLoaded("ChronicleCompanion") and true or nil
+WDI_CHRON_SKIP = IsAddOnLoaded("ChronicleCompanion") and true or false
 
 -- the version Chronicle writes into its log header and shows in /chronicle
 function WDI_ChronVersion()
