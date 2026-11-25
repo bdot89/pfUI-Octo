@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.46", {
+    { "OctoRanks run timer", "a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode." },
+    { "You'll know the clock is on", "entering a 5-man at 60 says \"the run timer starts at your first pull\", and the pull says it started." },
+  } },
   { "1.2.45", {
     { "Auction house, one line per seller's batch (thanks Wolfahrt)", "the same item from the same seller at the same stack and price is one line with how many (\"9x\"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings (\"One line for the same auctions\")." },
   } },
@@ -174,9 +178,5 @@ pfUI.octoNotes = {
   { "1.2.7", {
     { "Zoom into the world map (Magnify built in)", "the mouse wheel zooms in where your cursor is (up to 4x), drag moves the view, and a new zone starts whole again. Quest pins, your arrow and your party zoom along. Steps aside if you run Magnify, Cartographer or MetaMap. Shift + wheel (opacity) and Ctrl + wheel (size) still work." },
     { "World buff timers", "when a head is handed in (Onyxia, Nefarian, Rend, Hakkar), a bar counts down to the buff landing, with its name, where it lands and the seconds left, plus a popup and a sound. Shared with your guild and group so you see it anywhere. /wb lists the last drops. A new file: restart the game fully once." },
-  } },
-  { "1.2.6", {
-    { "Built-in SuperCleveRoidMacros and pfQuest step aside properly", "with your own separate SuperCleveRoidMacros or pfQuest switched on, pfUI's built-in copy now reliably stays out of the way, so the two never run together (that broke loading for some). If both ever load anyway, the separate one is switched off and chat asks for a /reload." },
-    { "A folded whisper window stays folded", "it no longer pops open by itself when a fight ends. Only a window that folded itself for the fight opens again." },
   } },
 }

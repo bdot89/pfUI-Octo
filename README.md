@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.46
+
+- ⏱️ **OctoRanks run timer:** a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode.
+- 🚪 **You'll know the clock is on:** entering a 5-man at 60 says "the run timer starts at your first pull", and the pull says it started.
+
 ## 📜 New in 1.2.45
 
 - 💰 **Auction house, one line per seller's batch (thanks Wolfahrt):** the same item from the same seller at the same stack and price is one line with how many ("9x"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings ("One line for the same auctions").

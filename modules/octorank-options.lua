@@ -176,6 +176,66 @@ pfUI:RegisterModule("octorank-options", "vanilla:tbc", function ()
     Paint()
     if p.items then table.insert(p.items, { Refresh = Paint }) end
 
+    -- (25 Nov 2026, user: "People can enable or disable a timer to see their run time live. Make a tidy timer")
+    W.Card(p, "Run timer", { icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
+      tip = "Your run time live while you are in a 5-man, the way the boards count it." })
+    local box = W.Box(p, 150)
+    do
+      -- a still picture of it with a made-up Stratholme run (the live one: in a 5-man, and in layout mode)
+      local sample = CreateFrame("Frame", nil, box)
+      sample:SetWidth(250)
+      sample:SetHeight(140)
+      sample:SetPoint("CENTER", box, "CENTER", 0, 0)
+      if CreateBackdrop then CreateBackdrop(sample, nil, nil, .85) end
+      local function L(font, size, text, point, x, y, r, g, b)
+        local fs = sample:CreateFontString(nil, "OVERLAY")
+        fs:SetFont(font, size, "OUTLINE")
+        fs:SetPoint(point, sample, point, x, y)
+        fs:SetTextColor(r or 1, g or 1, b or 1)
+        fs:SetText(text)
+        return fs
+      end
+      local F, N = "Interface\\AddOns\\pfUI\\fonts\\FiraSansCondensed-SemiBold.ttf", "Interface\\AddOns\\pfUI\\fonts\\Expressway.ttf"
+      L(F, 12, "Stratholme (Undead)", "TOPLEFT", 26, -7, 1, .82, .2)
+      L(F, 12, "3/7", "TOPRIGHT", -8, -7)
+      L(N, 26, "12:34", "TOPLEFT", 8, -24)
+      L(F, 11, "|cff55ff559:00 ahead|r", "TOPLEFT", 92, -36)
+      local bar = sample:CreateTexture(nil, "ARTWORK")
+      bar:SetTexture(.3, .85, .4, 1)
+      bar:SetHeight(5)
+      bar:SetWidth(134)
+      bar:SetPoint("TOPLEFT", sample, "TOPLEFT", 8, -58)
+      local bg = sample:CreateTexture(nil, "BORDER")
+      bg:SetTexture(1, 1, 1, .08)
+      bg:SetHeight(5)
+      bg:SetPoint("TOPLEFT", sample, "TOPLEFT", 8, -58)
+      bg:SetPoint("TOPRIGHT", sample, "TOPRIGHT", -8, -58)
+      L(F, 11, "your best |cffffffff21:54|r   realm #1 |cffffffff21:54|r", "TOPLEFT", 8, -67, .7, .72, .76)
+      L(F, 11, "|cff55ff55+|r Magistrate Barthilas", "TOPLEFT", 10, -86, .86, .87, .9)
+      L(F, 11, "|cff55ff55+|r Stonespine", "TOPLEFT", 10, -100, .86, .87, .9)
+      L(F, 11, "|cff55ff55+|r Baroness Anastari", "TOPLEFT", 10, -114, .86, .87, .9)
+      L(N, 11, "3:18", "TOPRIGHT", -10, -86, .86, .87, .9)
+      L(N, 11, "6:42", "TOPRIGHT", -10, -100, .86, .87, .9)
+      L(N, 11, "11:30", "TOPRIGHT", -10, -114, .86, .87, .9)
+      local ic = sample:CreateTexture(nil, "ARTWORK")
+      ic:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\rank")
+      ic:SetVertexColor(1, .82, .2)
+      ic:SetWidth(14) ic:SetHeight(14)
+      ic:SetPoint("TOPLEFT", sample, "TOPLEFT", 7, -7)
+      local top = sample:CreateTexture(nil, "ARTWORK")
+      top:SetTexture("Interface\\Buttons\\WHITE8X8")
+      top:SetHeight(2)
+      top:SetPoint("TOPLEFT", sample, "TOPLEFT", 0, 0)
+      top:SetPoint("TOPRIGHT", sample, "TOPRIGHT", 0, 0)
+      top:SetGradientAlpha("HORIZONTAL", 1, .82, .2, .15, 1, .82, .2, .9)
+    end
+    local function TC() return C.octorank end
+    O.PfChk(p, "Show the run timer", "Your run time live in a 5-man: bosses down, ahead / behind your best, the realm's fastest. Off: the time is still taken and shared, you just do not see it.", TC, "timer")
+    O.PfChk(p, "Boss splits under it", "Each boss and the time it died, as you go.", TC, "splits")
+    O.PfChk(p, "\"Starts at your first pull\" at the door", "Inside a 5-man at 60, before the first pull: the timer shows waiting, and a line at the top of the screen says the clock starts when you pull.", TC, "waiting")
+    O.PfSld(p, "Size", "How big the timer is.", .6, 1.6, .05, TC, "scale", nil, function(v) return math.floor(v * 100 + .5) .. "%" end)
+    W.Buttons(p, { { "Move it", function() if pfUI.unlock then pfUI.unlock:Show() end end, 120, "Layout mode: drag the run timer where you want it." } })
+
     -- settings: the engine's own switches (WhoDidIt's and OctoRank's have the same names)
     W.Card(p, "Sharing and the timer", { icon = "Interface\\Icons\\Spell_Holy_PrayerOfSpirit",
       tip = "What goes out, what comes in and what shows on your screen." })
@@ -199,14 +259,6 @@ pfUI:RegisterModule("octorank-options", "vanilla:tbc", function ()
         if not o or not e or not e.Board then return end
         o.shareBoard = v and true or false
         if v then pcall(e.Board.Join, e.Board) else pcall(e.Board.Leave, e.Board) end
-      end)
-    W.Check(p, "Run timer on screen", "A small clock while a 5-man run is timed, with the boss splits. Drag it where you like.",
-      function()
-        local o = OR() and OR().Opts()
-        return o and o.runTimer ~= false or false
-      end, function(v)
-        local _, e = Eng()
-        if e and e.RunTimer and e.RunTimer.Slash then pcall(e.RunTimer.Slash, e.RunTimer, v and "on" or "off") end
       end)
     W.Check(p, "Raid times feed", "Newer raid times from the maintainer's feed on the channel, on top of the ones that come with updates.",
       Opt("noFeed", true), function(v)

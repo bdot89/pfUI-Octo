@@ -117,6 +117,7 @@
   <Include file="..\modules\gather-options.lua"/>
   <Include file="..\modules\qol-options.lua"/>
   <Include file="..\modules\octorank.lua"/>
+  <Include file="..\modules\octorank-timer.lua"/>
   <Include file="..\modules\octorank-options.lua"/>
   <Include file="..\modules\perf-options.lua"/>
   <Include file="..\modules\movers-options.lua"/>

@@ -67,3 +67,29 @@ if O and O.navFrame then
     and string.find(entries[2].pic.texture, "icons\\move", 1, true), "OctoRanks is the first big entry, above Move Frames")
   ok(O.TOPENTRY["OctoRanks"] and O.BUILD["orank"], "its page exists and opens from the big entry")
 end
+
+-- (25 Nov 2026) the run timer: waiting at the door, running against your best, done with its place
+do
+  local T = OR.timer
+  ok(T and T.State and T.Paint and getglobal("pfOctoRankTimer"), "the run timer is there (pfOctoRankTimer, a layout mode box)")
+  if T then
+    local was = { IsInInstance = rawget(_G, "IsInInstance"), GetRealZoneText = rawget(_G, "GetRealZoneText"), UnitLevel = rawget(_G, "UnitLevel") }
+    local R = OctoRank.Runs
+    local cur, best = R.Current, R.MyBest
+    _G.IsInInstance = function() return 1, "party" end
+    _G.GetRealZoneText = function() return "Stratholme" end
+    _G.UnitLevel = function() return 60 end
+    R.Current = function() return nil end
+    local s = T.State()
+    ok(s and s.state == "wait", "inside a 5-man before the pull: waiting (" .. tostring(s and s.state) .. ")")
+    local now = time()
+    R.Current = function() return { zone = "Stratholme", at = now - 600, k = { ["Stonespine"] = 300, ["Magistrate Barthilas"] = 120 } } end
+    R.MyBest = function() return { t = 900 } end
+    s = T.State(now)
+    ok(s and s.state == "run" and s.secs == 600 and s.n == 2 and s.splits[1][1] == "Magistrate Barthilas", "running: time, bosses down in order")
+    local good, err = pcall(T.Paint, s)
+    ok(good, "it draws " .. tostring(err or ""))
+    R.Current, R.MyBest = cur, best
+    for k, v in pairs(was) do rawset(_G, k, v) end
+  end
+end
