@@ -4,7 +4,11 @@ param(
   [switch]$Force,
   # (29 Oct 2026: the official weirdutils.dll stopped this client at a quarter of the loading bar;
   # the installer takes weirdutils_noperf.dll - every module but weirdperformance - instead)
-  [switch]$WeirdUtils   # (no longer needed: WeirdUtils installs by default again)
+  [switch]$WeirdUtils,  # (no longer needed: WeirdUtils installs by default again)
+  # (25 Nov 2026, code review) AuctionQueryThrottle lifts the client's 5 s wait between auction house searches: your
+  # call, so it is only installed when asked (or kept up to date when it is already in dlls.txt)
+  [switch]$AuctionQueryThrottle,
+  [switch]$Yes          # no "Install these?" question
 )
 # pfUI Octo: puts the newest client DLLs pfUI Octo uses into the game folder
 # (user, 26 Oct 2026: "an install bat that installs the newest version of
@@ -17,7 +21,15 @@ param(
 #   WeirdUtils    world markers, minimap icons, transmog fix, bigger cursor... (Codeberg)
 #   Interact      one key to right-click the nearest NPC, object, herb, vein or corpse
 #
-# Each comes from its author's GitHub (or Codeberg) releases (the newest one), is checked to
+#   AuctionQueryThrottle  no 5 s wait between auction house searches (only with -AuctionQueryThrottle)
+#
+# (25 Nov 2026, code review: "the latest release of six third-party DLLs, injected into the game, checked only for
+# MZ") Each is PINNED: one release tag and the SHA-256 of its DLL, both tested here. The installer fetches that release,
+# and a file whose hash differs is refused - a changed or replaced release never reaches the game. To move to a newer
+# release: test it in game, then change its Tag and Sha256 below in a commit (Get-FileHash <dll> -Algorithm SHA256).
+# It lists what it will install and asks first (-Yes skips the question).
+#
+# Each comes from its author's GitHub (or Codeberg) release, is checked to
 # be a Windows DLL, and is only copied when it differs from the one in the
 # game folder - the old one is kept in <game>\DLL-backups first. A DLL that
 # is not in dlls.txt yet is added (VanillaFixes, which OctoLauncher starts the
@@ -50,17 +62,24 @@ trap {
 
 # where each DLL comes from: GitHub owner/repo, the file in the game folder,
 # and the release file it is in (a .dll, or a .zip holding it)
+# (pins checked 25 Nov 2026: each is the release in the game here, byte for byte)
 $DLLS = @(
-  @{ Name = "ClassicAPI";  Repo = "brues-code/ClassicAPI";    File = "ClassicAPI.dll" },
-  @{ Name = "SuperWoW";    Repo = "balakethelock/SuperWoW";   File = "SuperWoWhook.dll" },
-  @{ Name = "nampower";    Repo = "brues-code/nampower";      File = "nampower.dll" },
-  @{ Name = "UnitXP_SP3";  Repo = "brues-code/UnitXP_SP3";    File = "UnitXP_SP3.dll" },
+  @{ Name = "ClassicAPI";  Repo = "brues-code/ClassicAPI";    File = "ClassicAPI.dll"; Tag = "v1.23.9"
+     Sha256 = "6E79A2862602CF9212319292EBFB9B6D555FB62ACD0F2EA5EE9F5ACC490AABC4" },
+  @{ Name = "SuperWoW";    Repo = "balakethelock/SuperWoW";   File = "SuperWoWhook.dll"; Tag = "Release"
+     Sha256 = "BD214B32C878649E94CE654835946BD05E0CE7710E8F01BAE10D8AB50A89351D" },
+  @{ Name = "nampower";    Repo = "brues-code/nampower";      File = "nampower.dll"; Tag = "v4.6.1"
+     Sha256 = "304BDB35BC00B18EE092B3BC01195319F717C37D9C6BABE6775E8FE278229D22" },
+  @{ Name = "UnitXP_SP3";  Repo = "brues-code/UnitXP_SP3";    File = "UnitXP_SP3.dll"; Tag = "v90"
+     Sha256 = "1D1A622FC4FD74864BDD5AA29D8C4ED2DD5CBB0340F978CBF4DACA815235D10A" },
   # (on Codeberg, whose release API answers like GitHub's. The noperf build: the full one hung this
   # client at the loading bar. v0.7.1 has no interact module; our build of newer source crashed, 29 Oct)
-  @{ Name = "WeirdUtils";  Repo = "MarcelineVQ/WeirdUtils";   File = "weirdutils_noperf.dll"; Api = "https://codeberg.org/api/v1/repos/"; Site = "codeberg.org/" },
+  @{ Name = "WeirdUtils";  Repo = "MarcelineVQ/WeirdUtils";   File = "weirdutils_noperf.dll"; Api = "https://codeberg.org/api/v1/repos/"; Site = "codeberg.org/"
+     Tag = "v0.7.1"; Sha256 = "29FB2573C899AC378A41FF52CD652AB26494D7911CE5C524EA1F49273F492E76" },
   # (15 Nov 2026, the auction house: lifts the client's 5 s wait between searches, so a search of
   # every page runs as fast as the server answers. GPL-3, taken from its author's release as it is)
-  @{ Name = "AuctionQueryThrottle"; Repo = "brues-code/AuctionQueryThrottle"; File = "AuctionQueryThrottle.dll" }
+  @{ Name = "AuctionQueryThrottle"; Repo = "brues-code/AuctionQueryThrottle"; File = "AuctionQueryThrottle.dll"; Tag = "v1.2.0"
+     Sha256 = "720B7AD72941206249DF23CB9D36ADDAFA2634F190081F7B33834B84AF184F5E"; Optional = "AuctionQueryThrottle" }
   # (the interact key: InteractNearest(), as OctoBG's Interact key calls it - MIT, github.com/lookino/Interact.
   # It extends UnitXP like UnitXP_SP3 does, so it loads after it: new lines go at the end of dlls.txt)
   # (29 Oct 2026: v1.0.4 crashed the game, #132 inside Interact.dll, on every key press here - left out)
@@ -131,16 +150,39 @@ foreach ($l in [IO.File]::ReadAllLines($list)) { [void]$lines.Add($l) }
 $listChanged = $false
 $changed = 0
 
-try {
-  foreach ($d in $DLLS) {
-    $name, $file = $d.Name, $d.File
-    if ($d.Optional -and -not $WeirdUtils -and @($lines | Where-Object { $_.Trim() -ieq $file }).Count -eq 0) {
-      "  {0}: not installed (optional - add -WeirdUtils to install it)." -f $name
+# the ones this run looks at: optional ones only when asked for, or already in dlls.txt (kept up to date)
+$want = @()
+foreach ($d in $DLLS) {
+  $inList = @($lines | Where-Object { $_.Trim() -ieq $d.File }).Count -gt 0
+  if ($d.Optional -and -not $inList) {
+    $asked = (Get-Variable -Name $d.Optional -ValueOnly -ErrorAction SilentlyContinue)
+    if (-not $asked) {
+      "  {0}: not installed (optional - run with -{1} to install it)." -f $d.Name, $d.Optional
       continue
     }
+  }
+  $want += $d
+}
+""
+"This will install or update, each from its author's release (checked against the SHA-256 pinned in this script):"
+foreach ($d in $want) {
+  $site = if ($d.Site) { $d.Site } else { "github.com/" }
+  "  {0,-22} {1,-9} {2}{3}" -f $d.Name, $d.Tag, $site, $d.Repo
+}
+"VanillaFixes loads every DLL in dlls.txt into the game."
+if (-not $Check -and -not $Yes) {
+  $answer = Read-Host "Install these? (Y/N)"
+  if ($answer -notmatch '^\s*[yY]') { "Nothing changed."; exit 0 }
+}
+""
+
+try {
+  foreach ($d in $want) {
+    $name, $file = $d.Name, $d.File
     try {
       $api = if ($d.Api) { $d.Api } else { "https://api.github.com/repos/" }
-      $rel = Invoke-RestMethod -Uri ($api + $d.Repo + "/releases/latest") -Headers $headers -TimeoutSec 30
+      # (the pinned release, by its tag - never "the newest")
+      $rel = Invoke-RestMethod -Uri ($api + $d.Repo + "/releases/tags/" + [Uri]::EscapeDataString($d.Tag)) -Headers $headers -TimeoutSec 30
     } catch {
       Write-Host ("  {0}: couldn't reach its download site ({1}) - left as it is." -f $name, $_.Exception.Message) -ForegroundColor Yellow
       continue
@@ -190,6 +232,12 @@ try {
       Write-Host ("  {0} {1}: the download is not a DLL - left as it is." -f $name, $tag) -ForegroundColor Yellow
       continue
     }
+    # (25 Nov 2026) the exact file that was tested, or nothing
+    $hash = (Get-FileHash $got -Algorithm SHA256).Hash
+    if ($hash -ne $d.Sha256) {
+      Write-Host ("  {0} {1}: REFUSED - the download is not the tested file (SHA-256 {2}, expected {3}). Left as it is." -f $name, $tag, $hash, $d.Sha256) -ForegroundColor Red
+      continue
+    }
     $target = Join-Path $GameDir $file
     $same = (Test-Path $target) -and ((Get-FileHash $got).Hash -eq (Get-FileHash $target).Hash)
     $listed = @($lines | Where-Object { $_.Trim() -ieq $file }).Count -gt 0
@@ -216,7 +264,7 @@ try {
     if ($mine -ne "") {
       "  {0} {1}: kept - {2}." -f $name, $tag, $mine
     } elseif ($same) {
-      "  {0} {1}: already the newest." -f $name, $tag
+      "  {0} {1}: already this version." -f $name, $tag
     } elseif ($Check) {
       "  {0} {1}: would be {2}." -f $name, $tag, $(if (Test-Path $target) { "updated" } else { "installed" })
     } else {
@@ -271,5 +319,5 @@ if ($Check) {
   "Done. Start the game from OctoLauncher as usual (if it's open, close it and start it again)."
   "If the game won't start: copy the old DLL back from DLL-backups, or restore dlls.txt from dlls.txt.pfui-backup."
 } else {
-  "Everything is already the newest - nothing to do."
+  "Everything is already on these versions - nothing to do."
 }
