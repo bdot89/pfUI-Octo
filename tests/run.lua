@@ -3917,10 +3917,11 @@ do
         local now1, list = P.PlateRange()
         ok(now1 == 20 and table.getn(list) == 1, "SuperWoW's NameplateRange read (20), nampower's absent")
         -- (off by default since 1.2.49: the number as it is; the option adds 3 yd, edges vs middles)
-        ok(pfUI_config.plates.drawreach == "0" and P.SetPlateRange(41) == 1 and cv.NameplateRange == "41", "a picked distance is set on it as it is")
-        pfUI_config.plates.drawreach = "1"
-        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "44", "\"like spell range\" on: 3 yd more (" .. tostring(cv.NameplateRange) .. ")")
-        pfUI_config.plates.drawreach = "0"
+        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "41", "a picked distance is set on it as it is")
+        -- (25 Nov 2026, Javelin: gone at 38.9 when set to 41) a margin of your own goes on top
+        pfUI_config.plates.drawmargin = "2"
+        ok(P.SetPlateRange(41) == 1 and cv.NameplateRange == "43", "a 2 yd margin: 43 (" .. tostring(cv.NameplateRange) .. ")")
+        pfUI_config.plates.drawmargin = "0"
         _G.GetCVar, _G.SetCVar, pfUI.env.GetCVar, pfUI.env.SetCVar = gcv, scv, egc, esc
       end
       -- cast bar: a stopped cast flashes red and says who did it

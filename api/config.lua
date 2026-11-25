@@ -1916,6 +1916,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("plates",     nil,           "rangeyards",       "40")
   pfUI:UpdateConfig("plates",     nil,           "drawrange",        "") -- how far plates show ("" = the game's; SuperWoW / nampower)
   pfUI:UpdateConfig("plates",     nil,           "drawreach",        "0") -- the distance counted like spell range (+3 yd); off since 1.2.49
+  pfUI:UpdateConfig("plates",     nil,           "drawmargin",       "0") -- yards added to how far plates show (spell range is edge to edge)
   pfUI:UpdateConfig("plates",     nil,           "rangealpha",       ".4")
   pfUI:UpdateConfig("plates",     nil,           "los",              "0")
   pfUI:UpdateConfig("plates",     nil,           "eliteicon",        "1")

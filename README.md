@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.52
+
+- 🎯 **Nameplate distance margin (thanks Javelin):** plates set to 41 yd went at 38.9 while his shots still reached 41. A "Margin" slider (0 - 6 yd) now goes on top of the distance, so plates stay up as far as your spells reach (Nameplates > Target & casts > How far away plates show).
+
 ## 📜 New in 1.2.51
 
 - 🪙 **Always sell / Never sell (thanks Лев):** items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), `/sell add | never | remove | list | purge`, or Quality of Life > Vendor and loot.

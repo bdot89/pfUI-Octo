@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.52", {
+    { "Nameplate distance margin (thanks Javelin)", "plates set to 41 yd went at 38.9 while his shots still reached 41. A \"Margin\" slider (0 - 6 yd) now goes on top of the distance, so plates stay up as far as your spells reach (Nameplates > Target & casts > How far away plates show)." },
+  } },
   { "1.2.51", {
     { "Always sell / Never sell (thanks )", "items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), /sell add | never | remove | list | purge, or Quality of Life > Vendor and loot." },
   } },
@@ -178,9 +181,5 @@ pfUI.octoNotes = {
   { "1.2.13", {
     { "Pick your parts when you install", "the installer has a new \"Which parts do you want?\" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run /pfui install to see it." },
     { "A tidier Send tab", "the money controls have their own panel, so nothing overlaps. A line under the amount says what will happen (\"They pay 5g for each of the 3 mails\"), and Clear and a bigger Send button sit in their own column." },
-  } },
-  { "1.2.12", {
-    { "Breakdown reports work from every tab", "reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error." },
-    { "The Report menu is on top", "it opens over the breakdown window instead of behind it." },
   } },
 }

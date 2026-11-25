@@ -973,7 +973,9 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
   function P.SetPlateRange(yd)
     yd = tonumber(yd)
     if not yd then return 0 end
-    if S.drawreach == "1" then yd = yd + P.REACH end
+    -- (the old on / off: 3 yd; since 1.2.52 a margin of your own, C.plates.drawmargin)
+    if S.drawreach == "1" and not tonumber(S.drawmargin) then S.drawmargin = tostring(P.REACH) S.drawreach = "0" end
+    yd = yd + (tonumber(S.drawmargin) or 0)
     local n = 0
     for _, c in ipairs(P.PlateRangeCVars()) do
       if pcall(SetCVar, c[1], tostring(yd)) then n = n + 1 end
