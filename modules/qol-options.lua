@@ -73,6 +73,52 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     end
     W.Card(p, "Vendor and loot")
     Chk(p, "Auto sell grey items", "Grey items are sold when you open a vendor.", "global", nil, "autosell")
+    -- (25 Nov 2026, Лев: Automaton's "Always sell" list) items sold with the greys, and greys you keep
+    W.Live(p, function()
+      local AV = pfUI.autovendor
+      if not AV then return "" end
+      local s = AV.Lists()
+      local a, nv = {}, {}
+      for _, n in pairs(s.always) do table.insert(a, n) end
+      for _, n in pairs(s.never) do table.insert(nv, n) end
+      table.sort(a) table.sort(nv)
+      return "|cffff6a55Always sell|r (" .. table.getn(a) .. "): " .. (table.getn(a) > 0 and table.concat(a, ", ") or "|cff888888nothing|r")
+        .. "\n|cff55ff55Never sell|r (" .. table.getn(nv) .. "): " .. (table.getn(nv) > 0 and table.concat(nv, ", ") or "|cff888888nothing|r")
+        .. "\n|cff888888Ctrl + Alt + right-click a bag item: Always sell on / off (Shift too: Never sell). /sell for the rest.|r"
+    end)
+    local function BagMenu(anchor, which)
+      local AV = pfUI.autovendor
+      if not AV then return end
+      local out, seen = {}, {}
+      for bag = 0, 4 do
+        for slot = 1, GetContainerNumSlots(bag) do
+          local link = GetContainerItemLink(bag, slot)
+          local id = AV.IdOf(link)
+          if id and not seen[id] then
+            seen[id] = true
+            local tex = GetContainerItemInfo(bag, slot)
+            local _, _, n = string.find(link, "%[(.-)%]")
+            table.insert(out, { key = link, label = n or ("item " .. id), icon = tex })
+          end
+        end
+      end
+      table.sort(out, function(x, y) return x.label < y.label end)
+      W.LongMenu(anchor, out, 280, function(link) AV.Toggle(link, which) O:Refresh() end):Show()
+    end
+    local function ListMenu(anchor)
+      local AV = pfUI.autovendor
+      if not AV then return end
+      local s, out = AV.Lists(), {}
+      for id, n in pairs(s.always) do table.insert(out, { key = id, label = "|cffff6a55Always|r  " .. n }) end
+      for id, n in pairs(s.never) do table.insert(out, { key = id, label = "|cff55ff55Never|r  " .. n }) end
+      if table.getn(out) == 0 then return end
+      W.LongMenu(anchor, out, 280, function(id) s.always[id], s.never[id] = nil, nil O:Refresh() end):Show()
+    end
+    W.Buttons(p, {
+      { "Always sell...", function() BagMenu(this, "always") end, 120, "Pick an item from your bags: it is sold at every vendor, with the greys." },
+      { "Never sell...", function() BagMenu(this, "never") end, 120, "Pick an item from your bags: it is never sold, even when it is grey." },
+      { "Take off a list...", function() ListMenu(this) end, 140, "Pick an item on either list to take it off." },
+    })
     Chk(p, "Auto repair", "Everything is repaired when you open a vendor that repairs.", "global", nil, "autorepair")
     Chk(p, "No loot confirmation (solo)", "Bind-on-pickup loot is taken without asking while you are not in a group.", "loot", nil, "autopickup")
     Chk(p, "Loot window at the mouse", "The loot window opens where your mouse is.", "loot", nil, "mousecursor")

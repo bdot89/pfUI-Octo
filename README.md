@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.51
+
+- 🪙 **Always sell / Never sell (thanks Лев):** items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), `/sell add | never | remove | list | purge`, or Quality of Life > Vendor and loot.
+
 ## 📜 New in 1.2.50
 
 - 📜 **Chronicle logger, checked on pfUI alone:** pfUI's built-in logger needs no other add-on; "Auto-enable in Raids" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself).

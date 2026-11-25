@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.51", {
+    { "Always sell / Never sell (thanks )", "items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), /sell add | never | remove | list | purge, or Quality of Life > Vendor and loot." },
+  } },
   { "1.2.50", {
     { "Chronicle logger, checked on pfUI alone", "pfUI's built-in logger needs no other add-on; \"Auto-enable in Raids\" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself)." },
   } },
@@ -179,8 +182,5 @@ pfUI.octoNotes = {
   { "1.2.12", {
     { "Breakdown reports work from every tab", "reporting the Summary or Deaths tab (a death log, for example) no longer gives a Lua error." },
     { "The Report menu is on top", "it opens over the breakdown window instead of behind it." },
-  } },
-  { "1.2.11", {
-    { "Meter windows stay where you put them", "windows placed side by side (Damage Done and Threat, for example) no longer drift apart after a reload or when a window grows or shrinks to fit its lines. Each window is now saved by its top-left corner however you moved it: dragging, snapping, layout mode or resizing. Windows snapped before this come back where you dropped them." },
   } },
 }
