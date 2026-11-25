@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.53", {
+    { "Safer sharing (from Emp's code review)", "auction prices shared by others count only when two players agree and never fill your sell price; the \"new version\" popup needs three players saying a sensible next version; fake threat lines from guild or whispers are ignored; broken boat messages throw no error." },
+    { "Fixes", "overall DPS stays right past 10 fights and merged trash counts only fighting time; OctoLazy stack split never swaps items or skips into quivers; bag shortcuts only on real bag clicks; cooldown bars never use a bag item at a vendor; loading a profile makes it current; the Bulwark keeps your width; no false \"+800 Mana\" after a form change; a rule can no longer freeze the game." },
+    { "Lighter", "meters, OctoDoTs, the Bulwark and combat text do less work, and saved data that grew for ever is pruned." },
+    { "DLL installer", "each DLL pinned to a tested version and checked by its SHA-256, a list and a question before anything changes, AuctionQueryThrottle optional." },
+    { "World map", "coordinates back with the map zoom, your own position bottom left." },
+  } },
   { "1.2.52", {
     { "Nameplate distance margin (thanks Javelin)", "plates set to 41 yd went at 38.9 while his shots still reached 41. A \"Margin\" slider (0 - 6 yd) now goes on top of the distance, so plates stay up as far as your spells reach (Nameplates > Target & casts > How far away plates show)." },
   } },
@@ -177,9 +184,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.14", {
     { "The Group Finder in pfUI's look", "OctoWoW's own group finder (Group Browser and Dungeon Finder), its role check, the \"your group is ready\" pop-up and the ready check window with the role circles now use pfUI's dark panels, buttons, tabs and bars instead of the game's wooden frames. The dungeon and role pictures stay. A new file, so restart the game fully (not just /reload)." },
-  } },
-  { "1.2.13", {
-    { "Pick your parts when you install", "the installer has a new \"Which parts do you want?\" step. Click tiles to turn Meters, Combat Text, OctoDoTs, OctoRinse, the Auction House and 17 more on or off, or use All on / All off. Already installed? Run /pfui install to see it." },
-    { "A tidier Send tab", "the money controls have their own panel, so nothing overlaps. A line under the amount says what will happen (\"They pay 5g for each of the 3 mails\"), and Clear and a bigger Send button sit in their own column." },
   } },
 }

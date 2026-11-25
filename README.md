@@ -122,6 +122,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.53
+
+- 🛡️ **Safer sharing (from Emp's code review):** auction prices shared by others count only when two players agree and never fill your sell price; the "new version" popup needs three players saying a sensible next version; fake threat lines from guild or whispers are ignored; broken boat messages throw no error.
+- 🔧 **Fixes:** overall DPS stays right past 10 fights and merged trash counts only fighting time; OctoLazy stack split never swaps items or skips into quivers; bag shortcuts only on real bag clicks; cooldown bars never use a bag item at a vendor; loading a profile makes it current; the Bulwark keeps your width; no false "+800 Mana" after a form change; a rule can no longer freeze the game.
+- ⚡ **Lighter:** meters, OctoDoTs, the Bulwark and combat text do less work, and saved data that grew for ever is pruned.
+- 🔌 **DLL installer:** each DLL pinned to a tested version and checked by its SHA-256, a list and a question before anything changes, AuctionQueryThrottle optional.
+- 🗺️ **World map:** coordinates back with the map zoom, your own position bottom left.
+
 ## 📜 New in 1.2.52
 
 - 🎯 **Nameplate distance margin (thanks Javelin):** plates set to 41 yd went at 38.9 while his shots still reached 41. A "Margin" slider (0 - 6 yd) now goes on top of the distance, so plates stay up as far as your spells reach (Nameplates > Target & casts > How far away plates show).
