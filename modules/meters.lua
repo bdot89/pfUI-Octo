@@ -708,9 +708,132 @@ pfUI:RegisterModule("meters", "vanilla", function ()
     return AvoidSet()[string.lower(r.spl)] and true or false
   end
 
+  -- ---------------------------------------------------------------- procs
+  -- (25 Nov 2026, Lobo: "is there a way to track procs on the dps meter? ... how often my Blade of Eternal Darkness
+  -- procs the Engulfing Shadows ... would be cool if it also said from where it got procced off") Each proc counted
+  -- per player, by name, with what set it off: that player's own last hit, heal or cast within 1.5 s before it
+  -- ("Melee", "Shadow Bolt"), and for your own procs the item or enchant that names it in its tooltip ("on Arcanite
+  -- Reaper" for Crusader). One proc hitting several targets at once counts once.
+  -- What is a proc (the 1.12 log does not say): for you, a hit, heal or buff of a spell not in your spell book; for
+  -- anyone, a name in M.PROCS. Buffs count from the second time they come up in a fight (a potion or elixir comes up
+  -- once), and never right after someone cast that spell (a Power Word: Fortitude from your priest is not a proc).
+  M.PROCS = {}
+  for _, n in ipairs({ "Holy Strength", "Fiery Weapon", "Life Steal", "Icy Chill", "Engulfing Shadows", "Unholy Curse",
+    "Flurry", "Enrage", "Blood Craze", "Clearcasting", "Shadow Trance", "Nature's Grace", "Vengeance", "Elemental Focus",
+    "Stormstrike", "Seal of Command", "Windfury Attack", "Thrash", "Sword Specialization", "Spell Vulnerability",
+    "Lightning Strike", "Strength of the Champion", "Shadowburst", "Crusader's Wrath", "Magic Absorption" }) do
+    M.PROCS[n] = true
+  end
+  local NOTPROC = { [MELEE] = true, ["Auto Shot"] = true, ["Shoot"] = true, ["Attack"] = true }
+  local book, bookAt = {}, -100
+  local function InBook(spell)
+    local t = GetTime()
+    if t - bookAt > 20 then
+      bookAt, book = t, {}
+      for i = 1, 500 do
+        local name = GetSpellName and GetSpellName(i, BOOKTYPE_SPELL or "spell")
+        if not name then break end
+        book[name] = true
+      end
+    end
+    return book[spell]
+  end
+  M.InBook = InBook
+  function M.ForgetBook() bookAt = -100 end
+  function M.IsProc(name, spell)
+    if not name or not spell or NOTPROC[spell] then return false end
+    if M.PROCS[spell] then return true end
+    return name == player and not InBook(spell)
+  end
+  -- for your own procs: the worn item or enchant whose tooltip names it (cached; worn gear changes reset it)
+  local procItem, procItemAt = {}, 0
+  local scan
+  function M.ProcItem(spell)
+    if procItem[spell] ~= nil then return procItem[spell] or nil end
+    procItem[spell] = false
+    if not scan then
+      scan = CreateFrame("GameTooltip", "pfMetersProcScan", nil, "GameTooltipTemplate")
+      if scan.SetOwner then scan:SetOwner(UIParent, "ANCHOR_NONE") end
+    end
+    local want = strlower(spell)
+    for slot = 1, 18 do
+      if GetInventoryItemLink and GetInventoryItemLink("player", slot) then
+        scan:ClearLines()
+        pcall(scan.SetInventoryItem, scan, "player", slot)
+        local first
+        for i = 1, 30 do
+          local line = _G["pfMetersProcScanTextLeft" .. i]
+          local text = line and line.GetText and line:GetText()
+          if not text then break end
+          if i == 1 then first = text end
+          if i > 1 and strfind(strlower(text), want, 1, true) then
+            procItem[spell] = first
+            return first
+          end
+        end
+      end
+    end
+    return nil
+  end
+  function M.ForgetProcItems() procItem = {} end
+  M.lastOwn = {}   -- name -> { spell, t }: the last of their own actions that was not a proc
+  local recentCast = {}
+  local procAt = {}
+  -- counts a proc for name (dmg = its damage or healing, if any)
+  function M.Proc(name, spell, now, dmg)
+    local key = name .. "\031" .. spell
+    local same = procAt[key] and now - procAt[key] < .3
+    local last = M.lastOwn[name]
+    local from = (last and now - last.t <= 1.5 and last.spell ~= spell) and last.spell or T["Unknown"]
+    local item = name == player and M.ProcItem(spell)
+    local label = spell .. " <- " .. from .. (item and ("  (" .. item .. ")") or "")
+    Each(function(seg)
+      local a = Actor(seg, name, Who(name))
+      if not same then
+        a.nprocs = (a.nprocs or 0) + 1
+        a.procs = a.procs or {}
+        a.procs[label] = (a.procs[label] or 0) + 1
+        a.procnames = a.procnames or {}
+        a.procnames[spell] = (a.procnames[spell] or 0) + 1
+      end
+      if dmg and dmg > 0 then
+        a.procdmg = a.procdmg or {}
+        a.procdmg[spell] = (a.procdmg[spell] or 0) + dmg
+      end
+    end)
+    procAt[key] = now
+  end
+  -- a buff on one of your group: a proc from its second time in a fight, not right after someone cast it
+  function M.ProcAura(name, aura, now)
+    if not M.IsProc(name, aura) then return end
+    if recentCast[aura] and now - recentCast[aura] < 3 then return end
+    local seg = M.current
+    if not seg then return end
+    seg.procseen = seg.procseen or {}
+    local key = name .. "\031" .. aura
+    local n = (seg.procseen[key] or 0) + 1
+    seg.procseen[key] = n
+    if n == 1 and not M.PROCS[aura] then return end
+    if n == 2 and not M.PROCS[aura] then M.Proc(name, aura, now - 1) end -- the first one, counted now
+    M.Proc(name, aura, now)
+  end
+
+  -- (procs) a hit, heal or cast by one of your group: a proc, or their own action (what the next proc came from)
+  local function ProcOrOwn(name, spell, now, amt, dot)
+    if M.IsProc(name, spell) then
+      if not dot then M.Proc(name, spell, now, amt) end
+      return
+    end
+    local lo = M.lastOwn[name]
+    if lo then lo.spell, lo.t = spell, now else M.lastOwn[name] = { spell = spell, t = now } end
+  end
+  M.ProcOrOwn = ProcOrOwn
+
   function M.Record(r)
     if not r or not r.kind then return end
     local now = GetTime()
+    -- (procs) a cast seen in the log: its buff is not a proc for a while
+    if r.kind == "cast" and r.spl then recentCast[r.spl] = now end
     -- (a cast that summons a totem / guardian: who it belongs to, before its first hit)
     if (r.kind == "cast" or r.kind == "start") and r.src and r.spl then M.SummonCast(r.src, r.spl) end
     local srcname, srcpet = Owner(r.src)
@@ -815,6 +938,7 @@ pfUI:RegisterModule("meters", "vanilla", function ()
           end
           if not tgtname and r.tgt then seg.enemies[r.tgt] = (seg.enemies[r.tgt] or 0) + r.amt end
         end)
+        if not srcpet then ProcOrOwn(srcname, r.spl or MELEE, now, r.amt, r.dot) end
         -- a direct hit of a spell that began casting counts as its cast
         if not r.dot and r.spl and r.spl ~= MELEE then
           local key = r.src .. "\031" .. r.spl
@@ -851,6 +975,7 @@ pfUI:RegisterModule("meters", "vanilla", function ()
       if unit then effective = min(r.amt, max(0, UnitHealthMax(unit) - UnitHealth(unit)))
       -- (the test fight says how much of a heal was too much)
       elseif r.over then effective = max(0, r.amt - r.over) end
+      if srcname and not srcpet and r.spl then ProcOrOwn(srcname, r.spl, now, effective, r.dot) end
       if srcname then
         Each(function(seg)
           local a = Actor(seg, srcname, Who(srcname))
@@ -936,6 +1061,7 @@ pfUI:RegisterModule("meters", "vanilla", function ()
 
     elseif r.kind == "cast" then
       if srcname then M.Cast(srcname, r.spl, r.tgt) end
+      if srcname and not srcpet and r.spl and not M.IsProc(srcname, r.spl) then ProcOrOwn(srcname, r.spl, now) end
       if r.spl and DISPELS[r.spl] and r.tgt then
         pendingDispel[r.tgt] = { src = srcname, spell = r.spl, t = now }
       end
@@ -999,6 +1125,8 @@ pfUI:RegisterModule("meters", "vanilla", function ()
       if not r.tgt or not r.aura then return end
       if r.up then
         M.AuraUp(r.tgt, r.aura, r.harm, now, r.src)
+        -- (procs) a buff that came up by itself (Crusader's Holy Strength, Flurry...)
+        if not r.harm and tgtname and tgtname == r.tgt then M.ProcAura(tgtname, r.aura, now) end
         -- a cooldown seen as its buff (cast by the one who has it)
         if not r.harm and tgtname and COOLDOWNS[r.aura] then M.Cooldown(tgtname, r.aura, r.tgt, now) end
       else
@@ -1193,9 +1321,15 @@ pfUI:RegisterModule("meters", "vanilla", function ()
     f:RegisterEvent("UNIT_CASTEVENT")
     M.castEvents = true
   end
+  f:RegisterEvent("UNIT_INVENTORY_CHANGED")
   f:SetScript("OnEvent", function()
     if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
       this.check = 0
+      return
+    end
+    -- (procs) other gear: which item names which proc is looked up again
+    if event == "UNIT_INVENTORY_CHANGED" then
+      if arg1 == "player" then M.ForgetProcItems() end
       return
     end
     if event == "UNIT_CASTEVENT" then

@@ -326,6 +326,9 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
     { key = "deaths", group = "Misc", name = T["Deaths"], value = function(a) return a.deaths end },
     { key = "ress", group = "Misc", name = T["Resurrects"], value = function(a) return a.ress or 0 end },
     { key = "cooldowns", group = "Misc", name = T["Cooldowns"], value = function(a) return a.cds or 0 end },
+    -- (25 Nov 2026, Lobo) how often each proc fired, and what set it off: "Engulfing Shadows <- Shadow Bolt"
+    { key = "procs", group = "Misc", name = T["Procs"], value = function(a) return a.nprocs or 0 end,
+      plain = function(a) return a.procs or {}, a.nprocs or 0 end },
     { key = "buffs", group = "Misc", name = T["Buff Uptime"], value = function(a) return a.buffsum or 0 end,
       text = Secs, plain = function(a) return a.buffs, a.buffsum end },
     { key = "debuffs", group = "Misc", name = T["Debuff Uptime"], value = function(a) return a.debuffsum or 0 end,
