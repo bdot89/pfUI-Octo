@@ -903,6 +903,10 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
       W.Slider(p, "Show plates up to", "Units further away than this get no nameplate.", 10, 80, 1,
         function() return tonumber(C.plates.drawrange) or (P.PlateRange()) or 41 end,
         function(v) C.plates.drawrange = tostring(v) P.SetPlateRange(v) end, Yd)
+      W.Check(p, "Count it like spell range", "Spells reach from the edge of you to the edge of the target; the game measures plates "
+        .. "from middle to middle, about 3 yd more. On: a plate set to 41 yd stays up as far as a 41 yd spell reaches.",
+        function() return C.plates.drawreach ~= "0" end,
+        function(v) C.plates.drawreach = v and "1" or "0" if tonumber(C.plates.drawrange) then P.SetPlateRange(C.plates.drawrange) end end)
       local names = {}
       for _, c in ipairs(have) do table.insert(names, c[1]) end
       W.Note(p, "Set through " .. table.concat(names, " and ") .. ". Plates already on screen update as units come and go.")

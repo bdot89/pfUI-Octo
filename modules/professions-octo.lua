@@ -190,8 +190,9 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
     PO.menusDone = true
     for i = 1, (tonumber(UIDROPDOWNMENU_MAXLEVELS) or 2) do
       local list = _G["DropDownList" .. i]
-      if list and list.HookScript then
-        list:HookScript("OnShow", function() PO.MenuFill(list) end)
+      -- (pfUI's HookScript: 1.12 frames have no :HookScript, so this never ran before 25 Nov 2026)
+      if list and HookScript then
+        HookScript(list, "OnShow", function() PO.MenuFill(this) end)
       end
     end
   end

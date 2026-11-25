@@ -258,3 +258,19 @@ end
 
 for k, v in pairs(savedG) do rawset(_G, k, v) end
 for k, v in pairs(saved) do S[k] = v end
+
+-- (25 Nov 2026, mechanism) hovering a bag lights its slots and fades the others
+do
+  local BO = pfUI.bagsOcto
+  if BO and BO.LightBag then
+    local was = pfUI.bags
+    local function Slot() return { frame = CreateFrame("Button", nil, UIParent) } end
+    pfUI.bags = { [0] = { slots = { Slot(), Slot() } }, [1] = { slots = { Slot() } } }
+    BO.LightBag(1)
+    local a, b = pfUI.bags[0].slots[1].frame, pfUI.bags[1].slots[1].frame
+    octo_ok(b.octoLight and b.octoLight:IsShown() and a:GetAlpha() < 1 and b:GetAlpha() == 1, "hovering bag 1: its slots lit, the others faded")
+    BO.LightBag(nil)
+    octo_ok(a:GetAlpha() == 1 and not b.octoLight:IsShown(), "leaving it puts them back")
+    pfUI.bags = was
+  end
+end

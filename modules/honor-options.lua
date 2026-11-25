@@ -61,6 +61,8 @@ pfUI:RegisterModule("honor-options", "vanilla", function ()
       CG, "others", CPaint)
     O.PfChk(p, "New profession windows", "Trade skills and Enchanting laid out anew: search and filters above the list, "
       .. "categories as gold bars, the profession's picture behind the recipe. Off: pfUI's own skin (needs a reload).", CG, "prof")
+    O.PfChk(p, "Missing recipes button", "In the new profession windows: a \"Missing\" button beside the search box lists every recipe "
+      .. "you do not know yet, easiest first, with where it comes from (trainer, vendor, drop).", CG, "missing")
 
     W.Card(p, "Your records", { tip = "Every honor gain, battleground result and step of rank %, per character." })
     W.Live(p, function()

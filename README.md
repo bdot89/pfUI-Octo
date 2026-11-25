@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.48
+
+- 📜 **Missing recipes (thanks Javelin):** a "Missing" button in the profession windows lists every recipe you don't know yet - easiest first, with where it comes from (trainer, vendor with zone, drop with chance) from the built-in pfQuest database. Hover for details, Shift-click to link. All 1,833 recipes come from the game's own files. Needs a full game restart.
+- 🎯 **Nameplate distance like spell range (thanks Javelin):** a plate set to 41 yd now stays up as far as a 41 yd shot reaches (the game measured middle to middle, about 3 yd more). "Count it like spell range" in Nameplates.
+- 👜 **Which bag is which (thanks mechanism):** hovering a bag lights its slots in gold and fades the rest - on the bag window's bag bar and the game's bag buttons.
+- 🧩 The profession windows' open filter menus are now really solid.
+
 ## 📜 New in 1.2.47
 
 - 🌍 **OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions.** The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them.

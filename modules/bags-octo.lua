@@ -226,8 +226,60 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
     return GetBagName(bag) or (bag >= 5 and ("Bank bag " .. (bag - 4)) or ("Bag " .. bag))
   end
 
+  -- (25 Nov 2026, mechanism: "you can't tell what item is in which bag ... highlights the squares that are from a bag when
+  -- you hover over an equipped bag") while the mouse is on a bag (this window's bag bar, or the game's bag buttons) its
+  -- slots get a gold edge and every other bag's slots fade; nil puts them all back
+  BO.lit = nil
+  function BO.LightBag(bag)
+    BO.lit = bag
+    for b, data in pairs(pfUI.bags or {}) do
+      if type(b) == "number" and type(data) == "table" and data.slots then
+        for _, s in pairs(data.slots) do
+          local f = type(s) == "table" and s.frame
+          if f then
+            if not f.octoLight then
+              f.octoLight = f:CreateTexture(nil, "OVERLAY")
+              f.octoLight:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+              f.octoLight:SetBlendMode("ADD")
+              f.octoLight:SetVertexColor(1, .82, .2, 1)
+              f.octoLight:SetPoint("CENTER", f, "CENTER", 0, 0)
+            end
+            local w = (f:GetWidth() or 30) * 1.8
+            f.octoLight:SetWidth(w)
+            f.octoLight:SetHeight(w)
+            if bag == nil then
+              f.octoLight:Hide()
+              f:SetAlpha(1)
+            elseif b == bag then
+              f.octoLight:Show()
+              f:SetAlpha(1)
+            else
+              f.octoLight:Hide()
+              f:SetAlpha(.3)
+            end
+          end
+        end
+      end
+    end
+  end
+  -- the game's own bag buttons (bottom right) light their bag too
+  function BO.HookGameBags()
+    local list = { { "MainMenuBarBackpackButton", 0 }, { "CharacterBag0Slot", 1 }, { "CharacterBag1Slot", 2 },
+      { "CharacterBag2Slot", 3 }, { "CharacterBag3Slot", 4 } }
+    for _, e in ipairs(list) do
+      local btn, bag = _G[e[1]], e[2]
+      if btn and not btn.octoBagLight then
+        btn.octoBagLight = true
+        -- (pfUI's HookScript: 1.12 frames have no :HookScript)
+        HookScript(btn, "OnEnter", function() if BO.On() then BO.LightBag(bag) end end)
+        HookScript(btn, "OnLeave", function() if BO.lit ~= nil then BO.LightBag(nil) end end)
+      end
+    end
+  end
+
   local function BagEnter()
     local bag = this.bag
+    if bag and not BO.Locked(bag) then BO.LightBag(bag) end
     GameTooltip:SetOwner(this, "ANCHOR_TOP")
     local inv = (bag >= 1) and InvSlot(bag)
     if BO.Locked(bag) then
@@ -289,7 +341,7 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
       if inv then PickupBagFromSlot(inv) end
     end)
     b:SetScript("OnEnter", BagEnter)
-    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() if BO.lit ~= nil then BO.LightBag(nil) end end)
     return b
   end
 
@@ -1212,4 +1264,5 @@ pfUI:RegisterModule("bags-octo", "vanilla:tbc", function ()
     if PB.right and PB.right:IsShown() then BO.Footer(PB.right) end
     if PB.left and PB.left:IsShown() then BO.Footer(PB.left) end
   end
+  BO.HookGameBags()
 end)

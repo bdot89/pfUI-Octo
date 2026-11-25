@@ -185,6 +185,8 @@
   <Include file="..\modules\honor.lua"/>
   <Include file="..\modules\charframe.lua"/>
   <Include file="..\modules\professions-octo.lua"/>
+  <Include file="..\modules\professions-data.lua"/>
+  <Include file="..\modules\professions-missing.lua"/>
   <Include file="..\modules\honor-options.lua"/>
   <Include file="..\modules\minigames-quiz1.lua"/>
   <Include file="..\modules\minigames-quiz2.lua"/>

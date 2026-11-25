@@ -868,6 +868,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("charframe",  nil,           "glow",             "1")      -- quality glow round rare+ gear
   pfUI:UpdateConfig("charframe",  nil,           "others",           "1")      -- the same look on spellbook, talents, quests, professions
   pfUI:UpdateConfig("charframe",  nil,           "prof",             "1")      -- the new professions window (professions-octo.lua)
+  pfUI:UpdateConfig("charframe",  nil,           "missing",          "1")      -- the Missing recipes button (professions-missing.lua)
   -- Frame fade (24 Nov 2026, modules/framefade.lua): parts of the screen fade away while nothing is going on
   pfUI:UpdateConfig("framefade",  nil,           "enable",           "0")
   pfUI:UpdateConfig("framefade",  nil,           "g_player",         "1")
@@ -1913,6 +1914,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("plates",     nil,           "range",            "1")
   pfUI:UpdateConfig("plates",     nil,           "rangeyards",       "40")
   pfUI:UpdateConfig("plates",     nil,           "drawrange",        "") -- how far plates show ("" = the game's; SuperWoW / nampower)
+  pfUI:UpdateConfig("plates",     nil,           "drawreach",        "1") -- the distance counted like spell range (+3 yd)
   pfUI:UpdateConfig("plates",     nil,           "rangealpha",       ".4")
   pfUI:UpdateConfig("plates",     nil,           "los",              "0")
   pfUI:UpdateConfig("plates",     nil,           "eliteicon",        "1")

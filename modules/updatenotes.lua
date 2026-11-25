@@ -2,6 +2,12 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.48", {
+    { "Missing recipes (thanks Javelin)", "a \"Missing\" button in the profession windows lists every recipe you don't know yet - easiest first, with where it comes from (trainer, vendor with zone, drop with chance) from the built-in pfQuest database. Hover for details, Shift-click to link. All 1,833 recipes come from the game's own files. Needs a full game restart." },
+    { "Nameplate distance like spell range (thanks Javelin)", "a plate set to 41 yd now stays up as far as a 41 yd shot reaches (the game measured middle to middle, about 3 yd more). \"Count it like spell range\" in Nameplates." },
+    { "Which bag is which (thanks mechanism)", "hovering a bag lights its slots in gold and fades the rest - on the bag window's bag bar and the game's bag buttons." },
+    { "The profession windows' open filter menus are now really solid.", "The profession windows' open filter menus are now really solid." },
+  } },
   { "1.2.47", {
     { "OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions", "The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them." },
   } },
@@ -174,8 +180,5 @@ pfUI.octoNotes = {
     { "Auction lengths are this server's", "the Sell tab and the Auctions options show 6 h / 24 h / 72 h, as OctoWoW's own auction window does (they said 2 / 8 / 24, but your auctions always lasted the right time). The longest \"time left\" now reads \"over 8 h\"." },
     { "Exact deposit", "the deposit shown when you post is now the same sum the game's own auction window uses, per stack." },
     { "/db opens the database window again", "search items, mobs, objects and quests. /db help lists the commands." },
-  } },
-  { "1.2.8", {
-    { "World map zoom fixed", "the spot under your cursor now stays put as you zoom in and out with the mouse wheel. Before, the map slid away from where you pointed." },
   } },
 }
