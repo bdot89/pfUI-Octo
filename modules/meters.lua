@@ -408,13 +408,18 @@ pfUI:RegisterModule("meters", "vanilla", function ()
   M.history = {}    -- finished and running fights, newest first
   M.current = nil   -- the running fight
 
+  -- (25 Nov 2026, code review: overall summed only the last C.meters.history fights while its damage kept them all, so
+  -- overall DPS grew past fight 10; erased trash left its damage but not its time; a merged "Trash (n)" ran from the
+  -- first pull's start, idle gaps included.) seg.dur = the seconds a fight really lasted, set for merged fights (the sum
+  -- of their parts); M.overall.dur = every ended fight's seconds, added in EndFight, plus the running one.
   function M.Duration(seg)
     if not seg then return 1 end
     if seg == M.overall then
-      local t = 0
-      for _, s in ipairs(M.history) do t = t + max(1, (s.last or s.start) - s.start) end
+      local t = seg.dur or 0
+      if M.current then t = t + M.Duration(M.current) end
       return max(1, t)
     end
+    if seg.dur then return max(1, seg.dur) end
     return max(1, (seg.last or seg.start) - seg.start)
   end
 
@@ -499,7 +504,7 @@ pfUI:RegisterModule("meters", "vanilla", function ()
   local LISTS = { ilist = true, dlist = true, deathlogs = true, fraglist = true, resslist = true, cdlist = true }
   -- (a merged fight keeps the first fight's chart: times count from each start)
   local SKIP = { start = true, last = true, lastact = true, name = true, class = true, boss = true, trash = true,
-                 timeline = true }
+                 timeline = true, dur = true }
   local function Merge(dst, src)
     for k, v in pairs(src) do
       local d = dst[k]
@@ -538,9 +543,12 @@ pfUI:RegisterModule("meters", "vanilla", function ()
     end
     seg.name = seg.boss or best or T["Fight"]
     seg.trash = not seg.boss
+    local took = M.Duration(seg)
+    M.overall.dur = (M.overall.dur or 0) + took
     -- trash fights in a row become one "Trash" fight (Details' "merge trash")
     local prev = M.history[2]
     if seg.trash and C.meters.mergetrash == "1" and prev and prev.trash and M.history[1] == seg then
+      prev.dur = M.Duration(prev) + took
       Merge(prev, seg)
       prev.last = seg.last
       prev.merged = (prev.merged or 1) + 1

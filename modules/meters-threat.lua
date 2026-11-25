@@ -727,6 +727,23 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   -- TH.DRAW seconds for hits and glides. Nothing is read while the threat is not wanted (no target in a fight).
   TH.inbox = {}
   TH.TAKE, TH.DRAW = .15, .15
+  -- (25 Nov 2026, code review: any guild member could send "TWTv4=Name:1:999999:100:1" on GUILD and the window
+  -- showed it, and it switched normal mobs on for good) we ask on RAID / PARTY (TH.Send) and the server answers
+  -- in the group: lines on any other channel (guild, officer, whisper, say...) are not the server's. The prefix
+  -- is not checked - no add-on that reads these (TWThreat, BigWigs) relies on it, so its real value is unknown.
+  -- TH.refused counts lines turned away (per channel), to see in game what arrives.
+  TH.CHANNELS = { RAID = true, PARTY = true, BATTLEGROUND = true }
+  TH.MINEWAIT = 3
+  TH.refused = {}
+  function TH.FromServer(msg, channel)
+    if type(msg) ~= "string" or not string.find(msg, "TWTv4=", 1, true) then return false end
+    if not TH.CHANNELS[channel or ""] then
+      local k = tostring(channel)
+      TH.refused[k] = (TH.refused[k] or 0) + 1
+      return false
+    end
+    return true
+  end
   function TH.Take()
     local box = TH.inbox
     if not box[1] then return end
@@ -739,10 +756,13 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
     if not list then return end
     -- (12 Nov 2026) a longer list may come in more than one message: parts that answer the same ask join up
     if TH.list and TH.ansAsk == TH.askAt and TH.askAt > 0 and not TH.estimated then list = TH.Join(TH.list, list) end
+    -- (25 Nov 2026, review) the first answer since our own ask, while it is still fresh
+    local mine = TH.askAt > 0 and TH.ansAsk ~= TH.askAt and GetTime() - TH.askAt <= TH.MINEWAIT
     TH.ansAsk = TH.askAt
     TH.list, TH.at, TH.silent, TH.answers = list, GetTime(), 0, TH.answers + 1
-    -- an answer for a normal mob: this server sends them too
-    if UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
+    -- an answer for a normal mob: this server sends them too. Saved for good, so only an answer to our own ask
+    -- counts (one someone else's ask brought, or a made-up line, could be about any mob)
+    if mine and UnitExists("target") and not TH.ServerKind() and not TH.NormalOK() then C.meters.normalok = "1" end
     TH.Snapshot(list)
     TH.estimated = nil
     TH.Warn()
@@ -758,7 +778,7 @@ pfUI:RegisterModule("meters-threat", "vanilla", function ()
   end
   f:SetScript("OnEvent", function()
     if event == "CHAT_MSG_ADDON" then
-      if type(arg2) ~= "string" or not string.find(arg2, "TWTv4=", 1, true) then return end
+      if not TH.FromServer(arg2, arg3) then return end
       if not TH.Wanted() then return end
       local box = TH.inbox
       table.insert(box, arg2)

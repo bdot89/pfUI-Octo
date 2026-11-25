@@ -1221,6 +1221,35 @@ if ME then
     "the next trash fight merged into the last (" .. tostring(hog.actors.Tester.damage) .. ")")
   ok(string.find(hog.name, "%(2%)"), "named as merged trash (" .. tostring(hog.name) .. ")")
 
+  -- (25 Nov 2026, code review) overall DPS stays true past the kept fights; merged trash counts only its fighting time
+  do
+    local keep = { overall = ME.overall, history = ME.history, current = ME.current, hist = pfUI_config.meters.history,
+                   merge = pfUI_config.meters.mergetrash, now = Mock.now }
+    ME.Reset()
+    pfUI_config.meters.history = "10"
+    pfUI_config.meters.mergetrash = "0"
+    for i = 1, 12 do
+      local s = ME.StartFight()
+      ME.overall.actors.Tester = ME.overall.actors.Tester or { name = "Tester", damage = 0 }
+      ME.overall.actors.Tester.damage = ME.overall.actors.Tester.damage + 1000
+      s.boss = "Boss" .. i
+      s.last = s.start + 10
+      ME.EndFight()
+      while table.getn(ME.history) > 10 do table.remove(ME.history) end
+    end
+    ok(math.abs(ME.overall.actors.Tester.damage / ME.Duration(ME.overall) - 100) < .01,
+      "12 fights of 10 s at 100 a second: overall DPS 100 (" .. ME.Duration(ME.overall) .. " s)")
+    ME.Reset()
+    pfUI_config.meters.mergetrash = "1"
+    local a = ME.StartFight() a.enemies.Gnoll = 1 a.last = a.start + 10 ME.EndFight()
+    Mock.now = Mock.now + 40
+    local b = ME.StartFight() b.enemies.Gnoll = 1 b.last = b.start + 10 ME.EndFight()
+    ok(table.getn(ME.history) == 1 and ME.Duration(ME.history[1]) == 20 and ME.Duration(ME.overall) == 20,
+      "two 10 s trash pulls 30 s apart, merged: 20 s, not 50 (" .. ME.Duration(ME.history[1]) .. ")")
+    ME.overall, ME.history, ME.current = keep.overall, keep.history, keep.current
+    pfUI_config.meters.history, pfUI_config.meters.mergetrash, Mock.now = keep.hist, keep.merge, keep.now
+  end
+
   -- threat: parse, ask, warn
   local TH = ME.threat
   if TH then TH.JUDGE_KEEP, TH.MYDOTS_KEEP = 0, 0 end  -- (settings change between asks in the same instant)
@@ -1240,11 +1269,11 @@ if ME then
     TH.Ask()
     ok(Mock.sent[1] and Mock.sent[1][1] == "TWT_UDTSv4" and Mock.sent[1][3] == "PARTY", "asks the server in a party")
     Mock.sounds = {}
-    Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:4600:92:1;Healbot:0:1000:20:0")
+    Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:4600:92:1;Healbot:0:1000:20:0", "PARTY", "Tester")
     ok(TH.list and TH.list[2].name == "Tester", "answer stored")
     ok(table.getn(Mock.sounds) == 0, "no warning at 84% of the pull point")
     TH.takenAt = nil  -- (a moment later: answers in a burst wait for the next take)
-    Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1")
+    Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1", "PARTY", "Tester")
     ok(table.getn(Mock.sounds) == 1, "warning past 90% of the pull point")
     -- (22 Nov 2026, /pfperf in a raid: the target frame 32 ms) aura changes redraw a frame at most every AURA_EVERY s
     do
@@ -1280,7 +1309,7 @@ if ME then
       TH.Parse = function(m) parsed = parsed + 1 return realParse(m) end
       TH.takenAt = nil
       for i = 1, 30 do
-        Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:" .. (5100 + i) .. ":102:1")
+        Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:" .. (5100 + i) .. ":102:1", "PARTY", "Tester")
       end
       ok(parsed == 1 and table.getn(TH.inbox) == 4, "30 answers at once: 1 read now, the newest 4 wait (" .. parsed .. " read, "
         .. table.getn(TH.inbox) .. " waiting)")
@@ -1290,7 +1319,31 @@ if ME then
       TH.Parse = realParse
       -- back to the answer the next checks read
       TH.list, TH.base, TH.takenAt = nil, nil, nil
-      Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1")
+      Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1", "PARTY", "Tester")
+    end
+    -- (25 Nov 2026, code review) a made-up threat line on the guild channel (or a whisper) is not the server's: it
+    -- changes nothing, and only an answer to our own fresh ask switches normal mobs on for good
+    do
+      local keepList, keepOK, keepAsk, keepAns = TH.list, pfUI_config.meters.normalok, TH.askAt, TH.ansAsk
+      TH.takenAt = nil
+      for _, ch in ipairs({ "GUILD", "OFFICER", "WHISPER", "SAY" }) do
+        Mock.Fire("CHAT_MSG_ADDON", "Anything", "TWTv4=Faker:1:999999:100:1", ch, "Faker")
+      end
+      ok(TH.list == keepList and not TH.inbox[1] and (TH.refused.GUILD or 0) >= 1,
+        "a threat line on the guild channel or a whisper is turned away")
+      local realKind = TH.ServerKind
+      TH.ServerKind = function() return false end -- a normal mob
+      pfUI_config.meters.normalok = "0"
+      TH.askAt, TH.ansAsk = GetTime() - 30, nil -- our last ask was long ago: this answer is not ours
+      TH.takenAt = nil
+      Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1", "RAID", "Someone")
+      ok(pfUI_config.meters.normalok == "0", "an answer someone else's ask brought does not switch normal mobs on")
+      TH.askAt, TH.ansAsk = GetTime(), nil -- just asked
+      TH.takenAt = nil
+      Mock.Fire("CHAT_MSG_ADDON", "TWT", "TWTv4=Tankguy:1:5000:100:1;Tester:0:5100:102:1", "PARTY", "Tester")
+      ok(pfUI_config.meters.normalok == "1", "an answer to our own ask does")
+      TH.ServerKind = realKind
+      TH.list, pfUI_config.meters.normalok, TH.askAt, TH.ansAsk, TH.takenAt = keepList, keepOK, keepAsk, keepAns, nil
     end
     local w2 = pfMeter2
     if w2 then

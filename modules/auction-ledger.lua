@@ -275,11 +275,11 @@ pfUI:RegisterModule("auction-ledger", "vanilla", function ()
     if where ~= Where() or tonumber(day) ~= AH.Day() then return 0 end
     local n = 0
     L.receiving = true
+    -- (25 Nov 2026, code review) into the shared table, by sender - never your own history (AH.PeerRecord)
     for key, unit in string.gfind(body, "([%d:]+)=(%d+)") do
       unit = tonumber(unit)
-      if unit and unit > 0 and unit < 2000000000 and string.len(key) < 24 then
-        record(key, unit)
-        n = n + 1
+      if unit and unit > 0 and unit < 2000000000 and string.len(key) < 24 and string.find(key, "^%d+:?%d*$") then
+        if AH.PeerRecord(key, unit, from) then n = n + 1 end
       end
     end
     L.receiving = nil

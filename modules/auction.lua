@@ -110,10 +110,63 @@ pfUI:RegisterModule("auction", "vanilla", function ()
       r.min = unit
     end
   end
-  -- the item's usual price each: the middle of the daily lows kept (today's included)
+  -- (25 Nov 2026, code review: "one guild or group member can set any item's usual price to 1c, and the sell price is
+  -- then pre-filled from it") prices from other players never go into your own history. They wait in Store().peer[key]
+  -- = { day, by = { [sender] = copper } } (today only) and count only when PEER_MIN different players agree; a value
+  -- below PEER_FLOOR of your own usual price is thrown away. Your own history always wins; a peer-only value is
+  -- marked (third return) and never pre-fills a sell price.
+  AH.PEER_MIN, AH.PEER_FLOOR, AH.PEER_SENDERS, AH.PEER_KEYS = 2, .3, 8, 3000
+  function AH.PeerRecord(key, unit, from)
+    if not (key and unit and from) or unit <= 0 then return false end
+    local st = AH.Store()
+    st.peer = st.peer or {}
+    local day = AH.Day()
+    local p = st.peer[key]
+    if not p or p.day ~= day then
+      if not p then
+        st.peerN = (st.peerN or 0) + 1
+        if st.peerN > AH.PEER_KEYS then AH.PrunePeers() end
+      end
+      p = { day = day, by = {}, n = 0 }
+      st.peer[key] = p
+    end
+    if not p.by[from] then
+      if p.n >= AH.PEER_SENDERS then return false end
+      p.n = p.n + 1
+    end
+    p.by[from] = unit
+    return true
+  end
+  -- yesterday's and older shared prices go (they never count anyway)
+  function AH.PrunePeers()
+    local st = AH.Store()
+    local day, n = AH.Day(), 0
+    for key, p in pairs(st.peer or {}) do
+      if p.day ~= day then st.peer[key] = nil else n = n + 1 end
+    end
+    st.peerN = n
+  end
+  -- the shared price players agree on today (the middle of theirs), or nil; own = your own usual price for the floor
+  function AH.PeerValue(key, own)
+    local p = key and AH.Store().peer and AH.Store().peer[key]
+    if not p or p.day ~= AH.Day() or (p.n or 0) < AH.PEER_MIN then return nil end
+    local list = {}
+    for _, v in pairs(p.by) do table.insert(list, v) end
+    table.sort(list)
+    local n = table.getn(list)
+    local mid = math.mod(n, 2) == 1 and list[(n + 1) / 2] or math.floor((list[n / 2] + list[n / 2 + 1]) / 2 + .5)
+    if own and mid < own * AH.PEER_FLOOR then return nil end
+    return mid, n
+  end
+  -- the item's usual price each: the middle of YOUR daily lows kept (today's included); with none of your own, the
+  -- price other players agree on (third return true = shared only)
   function AH.Value(key)
     local r = key and AH.Store().h[key]
-    if not r then return nil end
+    if not r then
+      local pv = AH.PeerValue(key)
+      if pv then return pv, 1, true end
+      return nil
+    end
     local list = { r.min }
     for _, v in ipairs(r.days) do table.insert(list, v) end
     table.sort(list)
@@ -731,9 +784,9 @@ pfUI:RegisterModule("auction", "vanilla", function ()
         if r.owner ~= UnitName("player") and (not lowOther or r.unit < lowOther) then lowOther = r.unit end
       end
     end
-    local value = AH.Value(key)
+    local value, _, shared = AH.Value(key)
     local saved = AH.Store().p and AH.Store().p[key]
-    return { low = low, other = lowOther, value = value, saved = saved }
+    return { low = low, other = lowOther, value = value, shared = shared, saved = saved }
   end
   -- under the cheapest other seller by the setting (copper, or a share), never under the floor share of the usual price
   function AH.Undercut(unit)

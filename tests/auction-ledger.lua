@@ -111,11 +111,22 @@ AH.Record("2589", 130)
 ok(L.outN == 1 and L.out["2589"] == 110, "the day's low of an item waits to be shared, once")
 local msg = L.Pack()
 ok(msg == "Octo-Horde^" .. AH.Day() .. "^2589=110" and not string.find(msg, "|", 1, true) and L.outN == 0, "packed as realm, day and prices (" .. tostring(msg) .. ")")
-ok(L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=450,7911:1200=99000,bad=1", "Khijazi") == 2 and AH.Value("2840") == 450 and AH.Value("7911:1200") == 99000,
-  "another player's prices are taken")
+-- (25 Nov 2026, code review: one peer could set a usual price to 1c) shared prices count once two players agree
+pfUI_cache.auction["Octo-Horde"].peer = {}
+ok(L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=450,7911:1200=99000,bad=1", "Khijazi") == 2 and AH.Value("2840") == nil,
+  "one player's prices are kept aside, not used alone")
+ok(L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=470,7911:1200=98000", "Bread") == 2 and AH.Value("2840") == 460
+  and select(3, AH.Value("2840")) == true and AH.Store().h["2840"] == nil, "two agree: their middle, marked shared, never in your history")
 ok(L.outN == 0, "and not sent on again")
 ok(L.Receive("Other-Horde^" .. AH.Day() .. "^2840=1", "Khijazi") == 0 and L.Receive("Octo-Horde^" .. (AH.Day() - 1) .. "^2840=1", "Khijazi") == 0
-  and L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=1", "Me") == 0 and AH.Value("2840") == 450, "not from another realm, another day, or yourself")
+  and L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=1", "Me") == 0, "not from another realm, another day, or yourself")
+-- your own history always wins: a peer 1c changes nothing
+AH.Record("2589", 110)
+L.Receive("Octo-Horde^" .. AH.Day() .. "^2589=1", "Khijazi")
+L.Receive("Octo-Horde^" .. AH.Day() .. "^2589=1", "Bread")
+ok(AH.Value("2589") == 110 and AH.Store().h["2589"].min == 110, "two players saying 1c do not touch your own price")
+ok(AH.PeerValue("2589", 110) == nil, "and a shared price under 30% of yours is thrown away")
+L.out, L.outN = {}, 0
 S.share = "0"
 AH.Record("4306", 500)
 ok(L.outN == 0 and L.Receive("Octo-Horde^" .. AH.Day() .. "^2840=1", "Khijazi") == 0, "sharing off: nothing out, nothing in")

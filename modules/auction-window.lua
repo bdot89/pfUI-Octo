@@ -1624,8 +1624,10 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
     if not d then return end
     local sug = AH.Suggest(d.key, d.name)
     local buy
-    if which == "under" then buy = AH.Undercut(sug.other) or sug.value
-    elseif which == "value" then buy = sug.value
+    -- (a price only other players shared never fills your sell price by itself: code review, 25 Nov 2026)
+    local own = not sug.shared and sug.value or nil
+    if which == "under" then buy = AH.Undercut(sug.other) or own
+    elseif which == "value" then buy = own
     elseif sug.saved then buy = sug.saved.buyout end
     if not buy or buy <= 0 then
       if not quiet then UI.Note("No price known for this yet: look it up first.") end
