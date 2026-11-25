@@ -733,6 +733,27 @@ if ME then
   ok(r.kind == "cast" and r.src == "Healbot" and r.spl == "Dispel Magic" and r.tgt == "Tester", "targeted cast read")
   r = read("CHAT_MSG_COMBAT_FRIENDLY_DEATH", "Healbot dies.")
   ok(r.kind == "death" and r.tgt == "Healbot", "death read")
+  -- (25 Nov 2026, code review) each event's templates are worked out once: the same ones, in the same order, as
+  -- every template filtered by the event's kinds (what was tried before), and fewer than all of them
+  if ME.SpecsFor and ME.KindsFor then
+    local same, fewer = true, true
+    for _, ev in ipairs({ "CHAT_MSG_COMBAT_SELF_HITS", "CHAT_MSG_COMBAT_SELF_MISSES", "CHAT_MSG_SPELL_SELF_DAMAGE",
+      "CHAT_MSG_SPELL_PARTY_BUFF", "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", "CHAT_MSG_SPELL_AURA_GONE_OTHER",
+      "CHAT_MSG_COMBAT_FRIENDLY_DEATH", "CHAT_MSG_SPELL_DAMAGESHIELDS_ON_SELF", "SOMETHING_ELSE" }) do
+      local kinds, want = ME.KindsFor(ev), {}
+      for _, spec in ipairs(ME.specs) do if kinds[spec[2]] then table.insert(want, spec) end end
+      local got = ME.SpecsFor(ev)
+      if got.n ~= table.getn(want) or ME.SpecsFor(ev) ~= got then same = false end
+      for i = 1, got.n do if got[i] ~= want[i] then same = false end end
+      if ev == "CHAT_MSG_COMBAT_SELF_HITS" and got.n >= table.getn(ME.specs) then fewer = false end
+    end
+    ok(same, "each combat log event tries the same templates in the same order, worked out once")
+    ok(fewer, "a melee hit line tries only the damage templates (" .. ME.SpecsFor("CHAT_MSG_COMBAT_SELF_HITS").n .. " of "
+      .. table.getn(ME.specs) .. ")")
+    -- a line with five captures still fills every role
+    r = read("CHAT_MSG_SPELL_SELF_DAMAGE", "Your Fireball hits Hogger for 300 Fire damage.")
+    ok(r.spl == "Fireball" and r.tgt == "Hogger" and r.amt == 300 and r.sch == "Fire", "every capture reaches its role")
+  end
 
   -- a fight: Tester (mage) and Healbot (priest) in a party
   local hp = { player = 3000, party1 = 2000 }

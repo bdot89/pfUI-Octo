@@ -235,6 +235,26 @@ pfUI:RegisterModule("meters", "vanilla", function ()
     return { dmg = true, heal = true, miss = true, interrupt = true, cast = true, start = true, dispel = true, death = true,
              power = true, aura = true }
   end
+  M.KindsFor = KindsFor
+  -- (25 Nov 2026, code review: without ClassicAPI every combat log line made two new tables and walked all ~120
+  -- templates) the templates an event can match, worked out once per event: ACTIVE's order (longest fixed text
+  -- first) kept, the kinds KindsFor gives that event only. Same results, far fewer tries and no garbage.
+  local SPECSBY = {}
+  local function SpecsFor(event)
+    local list = SPECSBY[event]
+    if list then return list end
+    local kinds = KindsFor(event)
+    list = { n = 0 }
+    for _, spec in ipairs(ACTIVE) do
+      if kinds[spec[2]] then
+        list.n = list.n + 1
+        list[list.n] = spec
+      end
+    end
+    SPECSBY[event] = list
+    return list
+  end
+  M.SpecsFor = SpecsFor
 
   local EVENTS = {
     "CHAT_MSG_COMBAT_SELF_HITS", "CHAT_MSG_COMBAT_SELF_MISSES",
@@ -292,22 +312,26 @@ pfUI:RegisterModule("meters", "vanilla", function ()
       end
     until n == 0
 
-    local kinds = KindsFor(event or "")
-    for _, spec in ipairs(ACTIVE) do
-      if kinds[spec[2]] then
-        local found, a1, a2, a3, a4, a5 = cfind(msg, spec.template)
-        if found then
-          rec.kind, rec.how, rec.crit, rec.dot = spec[2], spec.how, spec.crit, spec.dot
-          rec.glancing, rec.crushing = glancing, crushing
-          rec.src, rec.tgt, rec.spl, rec.amt, rec.sch, rec.aura = nil, nil, spec.spl, nil, nil, nil
-          rec.pow, rec.up, rec.harm, rec.amt2, rec.pow2, rec.leech = nil, spec.up, spec.harm, nil, nil, spec.leech
-          local values = { a1, a2, a3, a4, a5 }
-          for i, role in ipairs(spec.roles) do rec[role] = values[i] end
-          if spec.src == "self" then rec.src = player end
-          if spec.tgt == "self" then rec.tgt = player end
-          rec.amt = tonumber(rec.amt)
-          return rec
-        end
+    local list = SpecsFor(event or "")
+    for i = 1, list.n do
+      local spec = list[i]
+      local found, a1, a2, a3, a4, a5 = cfind(msg, spec.template)
+      if found then
+        rec.kind, rec.how, rec.crit, rec.dot = spec[2], spec.how, spec.crit, spec.dot
+        rec.glancing, rec.crushing = glancing, crushing
+        rec.src, rec.tgt, rec.spl, rec.amt, rec.sch, rec.aura = nil, nil, spec.spl, nil, nil, nil
+        rec.pow, rec.up, rec.harm, rec.amt2, rec.pow2, rec.leech = nil, spec.up, spec.harm, nil, nil, spec.leech
+        -- (25 Nov 2026) the captures go straight to their roles: no table per line
+        local r = spec.roles
+        if r[1] then rec[r[1]] = a1 end
+        if r[2] then rec[r[2]] = a2 end
+        if r[3] then rec[r[3]] = a3 end
+        if r[4] then rec[r[4]] = a4 end
+        if r[5] then rec[r[5]] = a5 end
+        if spec.src == "self" then rec.src = player end
+        if spec.tgt == "self" then rec.tgt = player end
+        rec.amt = tonumber(rec.amt)
+        return rec
       end
     end
   end
