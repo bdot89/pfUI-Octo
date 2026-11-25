@@ -287,18 +287,49 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
     return msgs
   end
 
-  function UP.ReadNotes(text)
+  -- (25 Nov 2026, code review: anyone on the realm could open the update window on every Octo client with a made-up
+  -- "OV1 99.0.0", and one guild member could write its "what's new" text.) A newer version only counts once
+  -- UP.VOUCH different players said it, and only a likely next one (same major, at most one minor ahead: UP.Likely).
+  -- Notes lines from others show only when UP.LINE_VOUCH players sent the same line; colour codes go, and a line with
+  -- a web address is dropped (the window already shows the real link).
+  UP.VOUCH, UP.LINE_VOUCH = 3, 2
+  UP.vouch, UP.lineBy = {}, {}
+  function UP.Likely(v)
+    local _, _, a, b = string.find(tostring(v or ""), "^(%d+)%.(%d+)")
+    local _, _, oa, ob = string.find(tostring(pfUI.version.octo or ""), "^(%d+)%.(%d+)")
+    if not (a and oa) then return false end
+    return tonumber(a) == tonumber(oa) and tonumber(b) <= tonumber(ob) + 1
+  end
+  -- true once enough different players said this newer version
+  function UP.Vouch(v, from)
+    if not v or not from or UP.Num(v) <= UP.Num(pfUI.version.octo) or not UP.Likely(v) then return false end
+    local by = UP.vouch[v]
+    if not by then by = { n = 0 } UP.vouch[v] = by end
+    if not by[from] then by[from] = true by.n = by.n + 1 end
+    return by.n >= UP.VOUCH
+  end
+  function UP.ReadNotes(text, from)
     local parts = {}
     for p in string.gfind(text, "[^%^]+") do table.insert(parts, p) end
     if parts[1] ~= "W" or not parts[2] then return end
     local v = parts[2]
-    if UP.Num(v) <= UP.Num(pfUI.version.octo) then return end
+    if UP.Num(v) <= UP.Num(pfUI.version.octo) or not UP.Likely(v) then return end
     local list = UP.heard[v] or {}
     UP.heard[v] = list
+    local by = UP.lineBy[v] or {}
+    UP.lineBy[v] = by
     for i = 3, table.getn(parts) do
-      local known
-      for _, t in ipairs(list) do if t == parts[i] then known = true end end
-      if not known and table.getn(list) < 20 then table.insert(list, parts[i]) end
+      local line = string.sub(string.gsub(string.gsub(parts[i], "|c%x%x%x%x%x%x%x%x", ""), "|[rH]", ""), 1, 140)
+      local low = string.lower(line)
+      if line ~= "" and not string.find(low, "http", 1, true) and not string.find(low, "www.", 1, true)
+        and not string.find(low, ".com", 1, true) then
+        local who = by[line] or { n = 0 }
+        by[line] = who
+        if from and not who[from] then who[from] = true who.n = who.n + 1 end
+        local known
+        for _, t in ipairs(list) do if t == line then known = true end end
+        if not known and who.n >= UP.LINE_VOUCH and table.getn(list) < 20 then table.insert(list, line) end
+      end
     end
     if UP.frame and UP.frame:IsShown() then UP.Fill() end
     return v
@@ -615,8 +646,9 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
   pfUI.updater:RegisterEvent("CHAT_MSG_CHANNEL")
   pfUI.updater:RegisterEvent("CHAT_MSG_CHANNEL_LIST")
   -- a newer version heard anywhere: kept for the About page, and the update window when it may open
-  function UP.Saw(v)
+  function UP.Saw(v, from)
     if not v or OctoNum(v) <= OctoNum(pfUI.version.octo) then return end
+    if not UP.Vouch(v, from) then return end
     if OctoNum(v) > OctoNum(pfUI_init.octoupdate) then pfUI_init.octoupdate = v end
     local up = pfUI.updater
     if UP.Wanted() then up.popAt = math.max(GetTime() + 3, (up.loginAt or 0) + 6) end
@@ -656,7 +688,7 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
       if arg2 == UnitName("player") then return end
       local v, ask = RC.Read(arg1, arg2)
       if v then
-        UP.Saw(v)
+        UP.Saw(v, arg2)
         if ask then RC.Asked(v) else RC.HeardAnswer(v) end
       end
       return
@@ -679,14 +711,14 @@ pfUI:RegisterModule("updatenotify", "vanilla:tbc", function ()
       if have then UP.Asked(arg3, have) return end
       if string.sub(msg, 1, 2) == "W^" then
         if arg3 then wsent[arg3] = GetTime() wq[arg3] = nil end
-        UP.ReadNotes(msg)
+        UP.ReadNotes(msg, arg4)
         return
       end
       local _, _, v = string.find(msg, "^V:(.+)$")
       if v and OctoNum(v) > OctoNum(pfUI.version.octo) then
-        if OctoNum(v) > OctoNum(pfUI_init.octoupdate) then pfUI_init.octoupdate = v end
-        UP.Ask(arg3)
-        if UP.Wanted() then this.popAt = math.max(GetTime() + 3, (this.loginAt or 0) + 6) end
+        -- (the notes are asked for at once; the version counts once enough players said it: UP.Saw)
+        if UP.Likely(v) then UP.Ask(arg3) end
+        UP.Saw(v, arg4)
       end
       return
     end

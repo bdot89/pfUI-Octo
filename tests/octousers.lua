@@ -125,8 +125,19 @@ do
   -- a newer version on the channel: the update window is wanted
   local keepSeen, keepSkip = pfUI_init.octoupdate, pfUI_init.octoupdateskip
   pfUI_init.octoupdate, pfUI_init.octoupdateskip = nil, nil
+  -- (25 Nov 2026, code review: anyone on the realm could type "OV1 99.0.0") a made-up jump is never believed; the
+  -- next minor version is, once three players said it
   Chan("OV1 99.0.0 ?", "Future")
-  ok(pfUI_init.octoupdate == "99.0.0" and pfUI.updater.popAt, "a newer version heard on the channel: the update window opens")
+  Chan("OV1 99.0.0", "Future2")
+  Chan("OV1 99.0.0", "Future3")
+  ok(pfUI_init.octoupdate == nil and not pfUI.updater.popAt, "a made-up 99.0.0 on the channel opens nothing")
+  local _, _, ma, mi = string.find(pfUI.version.octo, "^(%d+)%.(%d+)")
+  local nextv = ma .. "." .. (tonumber(mi) + 1) .. ".0"
+  Chan("OV1 " .. nextv, "Next1")
+  Chan("OV1 " .. nextv, "Next2")
+  ok(pfUI_init.octoupdate == nil, "two players are not enough")
+  Chan("OV1 " .. nextv, "Next3")
+  ok(pfUI_init.octoupdate == nextv and pfUI.updater.popAt, "three players saying the next version: the update window opens")
   pfUI.updater.popAt = nil
   pfUI_init.octoupdate, pfUI_init.octoupdateskip = keepSeen, keepSkip
   -- never in chat

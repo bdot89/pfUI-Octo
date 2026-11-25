@@ -452,7 +452,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     if period > 60 and period < 3600 then e.period = period changed = true end
     for d, v in string.gfind(waits or "", "(%d+):([%d%.]+)") do
       d, v = tonumber(d), tonumber(v)
-      if r.stops[d] and v >= 10 and v <= 600 then
+      if d and v and r.stops[d] and v >= 10 and v <= 600 then
         e.wait = e.wait or {}
         e.wait[d] = v
         changed = true
@@ -477,6 +477,8 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     if city then
       since, gap = tonumber(since), tonumber(gap)
       local e = TR.TRAM and TR.TRAM[city] and TR.Tram()[city]
+      -- (25 Nov 2026, code review: "." or "1.2.3" matched [%d%.]+ and tonumber gave nil: a Lua error on every receiver)
+      if not (since and gap) then return end
       if not TR.TRAM or not TR.TRAM[city] or from == UnitName("player") or since > 6 * 3600 or gap < 20 or gap > 160 then return end
       if e and e.dep and e.dep >= now - since - 1 then return end
       TR.TramDeparted(city, now - since, from, gap)
@@ -489,7 +491,7 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     end
     local _, _, id, t, age, sp = string.find(msg, "^S%^(%d+)%^([%d%.]+)%^(%d+)%^([%d%.]+)$")
     id, t, age, sp = tonumber(id), tonumber(t), tonumber(age), tonumber(sp)
-    if not id or not TR.routes[id] or age > 6 * 3600 or sp < 5 or sp > 80 then return end
+    if not (id and t and age and sp) or not TR.routes[id] or age > 6 * 3600 or sp < 5 or sp > 80 then return end
     if from == UnitName("player") then return end
     local r = TR.routes[id]
     if math.abs(sp - r.speed) > .3 then

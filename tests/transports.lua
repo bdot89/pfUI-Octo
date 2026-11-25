@@ -38,6 +38,15 @@ TR.Receive("S^72^5.0^30000^30.00", "Old", 6000)
 ok(pfUI_cache.transports[72].from == "Friend", "sightings older than 6 h are ignored")
 TR.Receive("S^72^5.0^100^30.00", "Older", 6000)
 ok(pfUI_cache.transports[72].from == "Friend", "an older sighting does not replace a newer one")
+-- (25 Nov 2026, code review) bad numbers ("." or "1.2.3") are dropped, never a Lua error
+do
+  local good = true
+  for _, m in ipairs({ "S^72^1^0^.", "S^72^.^0^30", "S^72^1.2.3^0^30", "T^Stormwind^10^.", "T^Ironforge^.^60",
+                       "P^72^.^1:.,2:30" }) do
+    if not pcall(TR.Receive, m, "Prankster", 6000) then good = false end
+  end
+  ok(good and pfUI_cache.transports[72].from == "Friend", "malformed sightings throw no error and change nothing")
+end
 -- tooltip lines
 local lines = TR.Lines(r, 6000)
 ok(lines[1] == "Ratchet - Booty Bay" and table.getn(lines) >= 3, "tooltip lines")

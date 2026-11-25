@@ -64,7 +64,7 @@ Msg("W^" .. mine .. "^Something", "RAID", "Other")
 Tick(5) Tick(.31) Tick(.31)
 ok(table.getn(sent) == 0, "someone else answered first: no second answer")
 
--- the older side: pretend we run 1.1.30 and hear 1.9.40
+-- the older side: pretend we run 1.1.30 and hear 1.2.0
 pfUI.version.octo = "1.1.30"
 pfUI_init.octoupdate, pfUI_init.octoupdateskip = nil, nil
 pfUI_config.global.updatepopup = "1"
@@ -74,16 +74,31 @@ if UP.frame then UP.frame:Hide() end
 _G.event, _G.this = "PLAYER_ENTERING_WORLD", pfUI.updater
 onEvent()
 sent = {}
-Msg("V:1.9.40", "GUILD", "Newbie")
-ok(pfUI_init.octoupdate == "1.9.40", "newer version noted")
+-- (25 Nov 2026, code review) one player saying it is not enough; three are; an unlikely jump never counts
+Msg("V:1.9.0", "GUILD", "Liar") Msg("V:1.9.0", "GUILD", "Liar2") Msg("V:1.9.0", "GUILD", "Liar3")
+ok(pfUI_init.octoupdate == nil, "a jump of eight versions is not believed, whoever says it")
+Msg("V:1.2.0", "GUILD", "Newbie")
+Msg("V:1.2.0", "GUILD", "Newbie")
+ok(pfUI_init.octoupdate == nil, "one player saying a newer version (twice) is not enough")
+Msg("V:1.2.0", "GUILD", "Newbie2")
+Msg("V:1.2.0", "GUILD", "Newbie3")
+ok(pfUI_init.octoupdate == "1.2.0", "newer version noted once three players said it")
 local asked
 for _, s in ipairs(sent) do if s[2] == "N:1.1.30" and s[3] == "GUILD" then asked = true end end
 ok(asked, "asks for the notes where it heard the newer version")
-Msg("W^1.9.40^Mail sends everything^Update window", "GUILD", "Newbie")
-Msg("W^1.9.40^Update window^Third thing", "GUILD", "Newbie")
-ok(UP.heard["1.9.40"] and table.getn(UP.heard["1.9.40"]) == 3, "heard titles kept once each")
+Msg("W^1.2.0^Mail sends everything^Update window^Visit www.evil.example.com", "GUILD", "Newbie")
+ok(not UP.heard["1.2.0"] or table.getn(UP.heard["1.2.0"]) == 0, "one player's notes lines wait for a second")
+Msg("W^1.2.0^Mail sends everything^Update window^Visit www.evil.example.com", "GUILD", "Newbie2")
+Msg("W^1.2.0^Update window^Third thing", "GUILD", "Newbie")
+Msg("W^1.2.0^Third thing", "GUILD", "Newbie3")
+ok(UP.heard["1.2.0"] and table.getn(UP.heard["1.2.0"]) == 3, "heard titles kept once each, web addresses dropped")
 local list = UP.NotesSince("1.1.30")
-ok(list[1] and list[1].v == "1.9.40" and list[1].items[1][1] == "Mail sends everything", "newest heard version first")
+-- (the heard version's lines come in with it; 1.2.0 has bundled notes of its own too, so look for the heard line)
+local heardIn
+for _, e in ipairs(list) do
+  if e.v == "1.2.0" then for _, it in ipairs(e.items) do if it[1] == "Mail sends everything" then heardIn = true end end end
+end
+ok(heardIn, "the heard version's lines are in the list")
 -- (the notes keep the newest 40 versions: any of ours, not a fixed one)
 local own = pfUI.octoNotes and pfUI.octoNotes[table.getn(pfUI.octoNotes)] and pfUI.octoNotes[table.getn(pfUI.octoNotes)][1]
 local hasOwn
@@ -100,14 +115,14 @@ onEvent()
 Tick(3)
 ok(UP.frame and UP.frame:IsShown(), "window opens after the fight")
 ok(UP.frame.box:GetText() == UP.url, "link box holds the launcher link")
-ok(string.find(UP.frame.versions:GetText() or "", "1.9.40") and string.find(UP.frame.versions:GetText() or "", "1.1.30"), "both versions shown")
+ok(string.find(UP.frame.versions:GetText() or "", "1.2.0") and string.find(UP.frame.versions:GetText() or "", "1.1.30"), "both versions shown")
 local lines = 0
 for _, l in ipairs(UP.frame.lines) do if l:IsShown() then lines = lines + 1 end end
 ok(lines >= 4, "what's new lines shown: " .. lines)
 ok((UP.frame:GetHeight() or 0) > 200 and (UP.frame:GetHeight() or 0) < 600, "window height " .. tostring(UP.frame:GetHeight()))
 -- Don't show for this version
 UP.frame.skip:GetScript("OnClick")()
-ok(pfUI_init.octoupdateskip == "1.9.40" and not UP.frame:IsShown(), "skip hides it for this version")
+ok(pfUI_init.octoupdateskip == "1.2.0" and not UP.frame:IsShown(), "skip hides it for this version")
 UP.shownThis = nil
 ok(not UP.Wanted(), "skipped version stays quiet")
 pfUI_init.octoupdate = "1.9.41"
