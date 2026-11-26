@@ -599,27 +599,176 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   -- casts, heals, damage on the frames and meters), 40 pretend mobs on OctoDoTs with 14 debuffs each and 200 aura
   -- changes a second (what a real 40-man pull gives it), and a frame-time recorder. At the end: FPS, worst frames,
   -- memory, and how long OctoDoTs' passes took - said in chat and kept in PF.stressLast.
-  PF.STRESS_MOBS, PF.STRESS_EVENTS = 40, 400
+  PF.STRESS_MOBS, PF.STRESS_EVENTS = 40, 800
   local function Ms() return debugprofilestop and debugprofilestop() or (Now() * 1000) end
+  -- the pretend mobs' GUIDs in order (slot 1 = the boss); a dying add gets a NEW GUID, as in a raid
+  PF.stressGuids, PF.stressNext = {}, 0
+  local function NewMob(D, slot)
+    PF.stressNext = PF.stressNext + 1
+    local g = string.format("0xF13000STRESS%05d", PF.stressNext)
+    D.units[g] = { guid = g, added = Now(), seen = Now(), auras = {}, na = 0, stress = true,
+      stressName = slot == 1 and PF.StressBossName() or PF.StressAddName(), stressMark = slot <= 8 and slot or nil }
+    D.n = (D.n or 0) + 1
+    PF.stressGuids[slot] = g
+    return g
+  end
   function PF.StressMobs(on)
     local D = pfUI.dots
     if not (D and D.units) then return 0 end
     local n = 0
     if on then
-      for i = 1, PF.STRESS_MOBS do
-        local g = string.format("0xF13000STRESS%04d", i)
-        if not D.units[g] then
-          D.units[g] = { guid = g, added = Now(), seen = Now(), auras = {}, na = 0, stress = true,
-            stressName = i == 1 and "Stress Boss" or ("Stress Add " .. i), stressMark = i <= 8 and i or nil }
-          D.n = (D.n or 0) + 1
-          n = n + 1
-        end
-      end
+      for i = 1, PF.STRESS_MOBS do NewMob(D, i) n = n + 1 end
     else
       for g, u in pairs(D.units) do if u.stress then D.Remove(g) n = n + 1 end end
+      PF.stressGuids = {}
     end
     D.dirty = true
     return n
+  end
+  -- an add died: gone from OctoDoTs, a new one in its slot
+  function PF.StressChurn(slot)
+    local D = pfUI.dots
+    if not (D and D.units) or slot < 2 then return end
+    local old = PF.stressGuids[slot]
+    if old and D.units[old] then D.Remove(old) end
+    NewMob(D, slot)
+    D.dirty = true
+  end
+
+  -- ------------------------------------------------------------ the combat log feed (26 Nov 2026)
+  -- User, after the stage: "it is just on the UI not stress in game" - add-on code cannot put anything into the world,
+  -- but what made the raider's 1 FPS was add-on DATA piling up. So the test feeds a raid's combat log to every add-on:
+  -- the game's own templates (GlobalStrings), hundreds of lines a second - your and the raid's spell hits and crits,
+  -- Frost Novas on the adds, melee, heals, debuffs going on, DoT ticks, the boss hitting the raid, adds dying (new
+  -- ones come with new GUIDs) - handed to each frame that listens for that event (ClassicAPI frame:IsEventRegistered),
+  -- with the event and arg1 set as the game does. Chat windows are left out (they would print all of it).
+  -- Add-ons that save fights (WhoDidIt, meters) record this pretend fight too.
+  PF.STRESS_LINES = 400
+  PF.STRESS_NAMES = { "Yara", "Delia", "Isolde", "Torvald", "Xander", "Cedric", "Hesper", "Mirelle", "Wren", "Briar",
+    "Gideon", "Lucan", "Varek", "Ansel", "Faye", "Kestra", "Zorik", "Emrys", "Joren", "Nessa", "Sable", "Magnus", "Rowan",
+    "Quill", "Kael", "Pella", "Ulric", "Orin", "Nyx", "Lira", "Thane", "Brenna", "Corin", "Dagny", "Elric", "Fen", "Garrick",
+    "Hale", "Ilsa", "Jory" }
+  PF.STRESS_NUKES = { { "Frostbolt", "Frost" }, { "Fireball", "Fire" }, { "Frost Nova", "Frost" }, { "Arcane Explosion", "Arcane" },
+    { "Shadow Bolt", "Shadow" }, { "Mind Blast", "Shadow" }, { "Lightning Bolt", "Nature" }, { "Chain Lightning", "Nature" },
+    { "Starfire", "Arcane" }, { "Moonfire", "Arcane" }, { "Hellfire", "Fire" }, { "Rain of Fire", "Fire" }, { "Blizzard", "Frost" },
+    { "Flamestrike", "Fire" }, { "Consecration", "Holy" }, { "Holy Nova", "Holy" }, { "Cone of Cold", "Frost" } }
+  PF.STRESS_HEALS = { "Flash Heal", "Greater Heal", "Healing Wave", "Chain Heal", "Healing Touch", "Rejuvenation", "Holy Light",
+    "Flash of Light", "Renew", "Prayer of Healing" }
+  PF.STRESS_DEBUFFS = { { "Corruption", "Shadow" }, { "Curse of Agony", "Shadow" }, { "Shadow Word: Pain", "Shadow" },
+    { "Immolate", "Fire" }, { "Serpent Sting", "Nature" }, { "Moonfire", "Arcane" }, { "Frost Nova", nil }, { "Sunder Armor", nil },
+    { "Faerie Fire", nil }, { "Hunter's Mark", nil }, { "Winter's Chill", nil }, { "Scorch", nil } }
+  PF.STRESS_EVENTS_FED = { "CHAT_MSG_SPELL_SELF_DAMAGE", "CHAT_MSG_SPELL_PARTY_DAMAGE", "CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE",
+    "CHAT_MSG_COMBAT_SELF_HITS", "CHAT_MSG_COMBAT_PARTY_HITS", "CHAT_MSG_COMBAT_FRIENDLYPLAYER_HITS",
+    "CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF", "CHAT_MSG_SPELL_PARTY_BUFF", "CHAT_MSG_SPELL_SELF_BUFF",
+    "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_PARTY_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_SELF_DAMAGE",
+    "CHAT_MSG_COMBAT_HOSTILE_DEATH", "UNIT_CASTEVENT" }
+  function PF.StressBossName()
+    local n = _G.UnitExists and _G.UnitExists("target") and not (_G.UnitIsPlayer and _G.UnitIsPlayer("target")) and (_G.UnitName("target"))
+    return n or "Onyxia"
+  end
+  function PF.StressAddName() return PF.stressAdd or "Onyxian Whelp" end
+  local function T(key, fallback) local v = rawget(_G, key) return type(v) == "string" and v or fallback end
+  -- every frame that listens for each event, chat windows left out -> { event = { frames } }, frames counted
+  function PF.StressListeners()
+    local out, seen, n = {}, {}, 0
+    local ef = rawget(_G, "EnumerateFrames")
+    if type(ef) ~= "function" then return out, 0 end
+    local f = ef()
+    local guard = 0
+    while f and guard < 200000 do
+      guard = guard + 1
+      local ok, has = pcall(function() return f.IsEventRegistered end)
+      if ok and has and f.GetScript then
+        local name = f.GetName and f:GetName()
+        local chat = type(name) == "string" and (string.find(name, "^ChatFrame%d") or string.find(name, "^pfStress"))
+        local okh, handler = pcall(f.GetScript, f, "OnEvent")
+        if not chat and okh and handler then
+          for _, e in ipairs(PF.STRESS_EVENTS_FED) do
+            local okr, r = pcall(f.IsEventRegistered, f, e)
+            if okr and r then
+              out[e] = out[e] or {}
+              table.insert(out[e], { f = f, h = handler })
+              if not seen[f] then seen[f] = true n = n + 1 end
+            end
+          end
+        end
+      end
+      f = ef(f)
+    end
+    return out, n
+  end
+  -- hand one event to its listeners as the game would (this / event / arg1-4 set, put back after)
+  local ARGS = { "this", "event", "arg1", "arg2", "arg3", "arg4" }
+  function PF.StressSend(s, e, a1, a2, a3, a4)
+    local list = s.listeners and s.listeners[e]
+    s.lines = s.lines + 1
+    if not list then return end
+    local keep = {}
+    for i, k in ipairs(ARGS) do keep[i] = rawget(_G, k) end
+    _G.event, _G.arg1, _G.arg2, _G.arg3, _G.arg4 = e, a1, a2, a3, a4
+    for _, l in ipairs(list) do
+      _G.this = l.f
+      if not pcall(l.h) then s.errors = s.errors + 1 end
+    end
+    for i, k in ipairs(ARGS) do _G[k] = keep[i] end
+  end
+  -- one random raid line
+  function PF.StressLine(s)
+    local names, me = PF.STRESS_NAMES, (_G.UnitName and (_G.UnitName("player"))) or "You"
+    local who = names[math.random(1, table.getn(names))]
+    local boss, add = PF.StressBossName(), PF.StressAddName()
+    local mob = math.random() < .35 and boss or add
+    local r = math.random()
+    local nuke = PF.STRESS_NUKES[math.random(1, table.getn(PF.STRESS_NUKES))]
+    local amt = math.random(250, 2400)
+    local fmt = string.format
+    if r < .10 then
+      PF.StressSend(s, "CHAT_MSG_SPELL_SELF_DAMAGE", fmt(T("SPELLLOGSCHOOLSELFOTHER", "Your %s hits %s for %d %s damage."), nuke[1], mob, amt, nuke[2]))
+    elseif r < .40 then
+      local e = math.random() < .2 and "CHAT_MSG_SPELL_PARTY_DAMAGE" or "CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE"
+      local crit = math.random() < .25
+      PF.StressSend(s, e, fmt(T(crit and "SPELLLOGCRITSCHOOLOTHEROTHER" or "SPELLLOGSCHOOLOTHEROTHER",
+        crit and "%s's %s crits %s for %d %s damage." or "%s's %s hits %s for %d %s damage."), who, nuke[1], mob, crit and amt * 2 or amt, nuke[2]))
+    elseif r < .55 then
+      PF.StressSend(s, math.random() < .2 and "CHAT_MSG_COMBAT_PARTY_HITS" or "CHAT_MSG_COMBAT_FRIENDLYPLAYER_HITS",
+        fmt(T("COMBATHITOTHEROTHER", "%s hits %s for %d."), who, mob, math.random(300, 1400)))
+    elseif r < .72 then
+      local crit = math.random() < .2
+      PF.StressSend(s, math.random() < .2 and "CHAT_MSG_SPELL_PARTY_BUFF" or "CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF",
+        fmt(T(crit and "HEALEDCRITOTHEROTHER" or "HEALEDOTHEROTHER", crit and "%s's %s critically heals %s for %d." or "%s's %s heals %s for %d."),
+        who, PF.STRESS_HEALS[math.random(1, table.getn(PF.STRESS_HEALS))], names[math.random(1, table.getn(names))], math.random(400, 3200)))
+    elseif r < .80 then
+      local d = PF.STRESS_DEBUFFS[math.random(1, table.getn(PF.STRESS_DEBUFFS))]
+      PF.StressSend(s, "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", fmt(T("AURAADDEDOTHERHARMFUL", "%s is afflicted by %s."), mob, d[1]))
+    elseif r < .90 then
+      local d = PF.STRESS_DEBUFFS[math.random(1, 6)]
+      PF.StressSend(s, "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", fmt(T("PERIODICAURADAMAGEOTHEROTHER", "%s suffers %d %s damage from %s's %s."),
+        mob, math.random(120, 600), d[2] or "Shadow", who, d[1]))
+    elseif r < .96 then
+      local tgt = names[math.random(1, table.getn(names))]
+      PF.StressSend(s, "CHAT_MSG_SPELL_CREATURE_VS_PARTY_DAMAGE", fmt(T("SPELLLOGSCHOOLOTHEROTHER", "%s's %s hits %s for %d %s damage."),
+        boss, math.random() < .5 and "Fire Nova" or "Flame Breath", tgt, math.random(600, 3500), "Fire"))
+    else
+      -- an add dies; a new one takes its place (new GUID on OctoDoTs)
+      PF.StressSend(s, "CHAT_MSG_COMBAT_HOSTILE_DEATH", fmt(T("UNITDIESOTHER", "%s dies."), add))
+      PF.StressChurn(math.random(2, PF.STRESS_MOBS))
+      s.deaths = s.deaths + 1
+    end
+    -- SuperWoW-style casts on the pretend mobs (OctoDoTs and others follow these by GUID)
+    if s.listeners and s.listeners.UNIT_CASTEVENT and math.random() < .3 then
+      local g = PF.stressGuids[math.random(1, PF.STRESS_MOBS)]
+      PF.StressSend(s, "UNIT_CASTEVENT", "0xF14000000000" .. math.random(10, 49), g, "CAST", 25295)
+    end
+  end
+  function PF.StressFeed(s, dt)
+    s.lineAcc = s.lineAcc + PF.STRESS_LINES * dt / 1000
+    local n = 0
+    while s.lineAcc >= 1 and n < 200 do
+      s.lineAcc = s.lineAcc - 1
+      n = n + 1
+      PF.StressLine(s)
+    end
+    if s.lineAcc > 50 then s.lineAcc = 50 end
   end
   -- (26 Nov 2026, user: "emulate players and spells casting") the picture side of a raid, on a full-screen stage under
   -- the interface (BACKGROUND), nothing in the world.
@@ -634,11 +783,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   --            ground, heal glows on players, bolts flying in - up to PF.STRESS_AOE at once
   --   fight    the Demo raid runs at 3x speed (more damage, heals, combat text, meter and frame updates)
   PF.STRESS_CAST = { 51, 52, 53, 54, 0 } -- ready / cast directed / cast omni sequences, then stand (unknown ids just stand)
-  PF.STRESS_ADDS, PF.STRESS_AOE = 30, 90
+  PF.STRESS_ADDS, PF.STRESS_AOE = 50, 250
   local SP = "Spells\\"
   -- texture, size, r, g, b, kind (ground | ring | glow | bolt)
   PF.STRESS_FX = {
     nova   = { SP .. "FireRing128", 1, 1, .45, .1, "ring" },
+    fnova  = { SP .. "Ice_Rune_128", 1, .5, .85, 1, "ring2" },
     fs     = { SP .. "Fire_Rune_128", 170, 1, .5, .15, "ground" },
     fire   = { SP .. "DangerAreaFlame", 210, 1, .55, .2, "ground" },
     bliz   = { SP .. "Ice_Rune_128", 190, .45, .75, 1, "ground" },
@@ -769,6 +919,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     if t.kind == "ring" then
       size = 80 + p * math.max(st.w, st.h) * 1.1      -- the nova grows out over the screen
       a = 1 - p
+    elseif t.kind == "ring2" then
+      size = 40 + p * 320                              -- a Frost Nova round a raider
+      a = 1 - p
     elseif t.kind == "ground" then
       size = t.size * (.8 + .2 * math.sin(now * 6))   -- burning on the floor
       a = p < .15 and p / .15 or (1 - p) * 1.2
@@ -801,11 +954,17 @@ pfUI:RegisterModule("perf", "vanilla", function ()
         elseif r < .75 then
           local g = PF.STRESS_GROUND[math.random(1, table.getn(PF.STRESS_GROUND))]
           PF.StressFx(g, Rnd(.3 * st.w), Rnd(.3 * st.h), 3 + math.random() * 3)
-        elseif r < .92 then
+        elseif r < .90 then
           local o = st.models[math.random(1, table.getn(st.models))]
           PF.StressFx(math.random() < .5 and "heal" or "holy", o.x, o.y + 30, 1)
-        else
+        elseif r < .97 then
           PF.StressFx("zap", bx + Rnd(80), by + Rnd(80), .4)
+        else
+          -- a mage's Frost Nova: the adds near them freeze (blue) for 2 s
+          PF.StressFx("fnova", m.x, m.y, .7)
+          for _, a in ipairs(st.adds) do
+            if not a.dead and a.px and math.abs(a.px - m.x) < 160 and math.abs(a.py - m.y) < 160 then a.frozen = now + 2 end
+          end
         end
       end
     end
@@ -813,6 +972,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     for _, m in ipairs(st.adds) do
       if m.dead then
         if now >= m.dead then PF.StressAddSpawn(m, now) end
+      elseif m.frozen and now < m.frozen then
+        -- (held by a Frost Nova: the walk waits)
+        m.born = m.born + (now - (m.lastT or now))
       else
         local p = (now - m.born) / m.walk
         if p > 1 then p = 1 end
@@ -820,6 +982,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
         m:ClearAllPoints()
         m:SetPoint("CENTER", st, "CENTER", m.px, m.py)
       end
+      m.lastT = now
     end
     if now >= (st.novaAt or 0) then
       st.novaAt = now + 6
@@ -869,6 +1032,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     -- (the fight at 3x: more hits, heals, combat text, meter and frame work every second)
     if S.demo and DM.speed then DM.speed = 3 end
     S.mobs = PF.StressMobs(true)
+    S.lines, S.errors, S.deaths, S.lineAcc = 0, 0, 0, 0
+    S.listeners, S.lframes = PF.StressListeners()
     S.models = not lite and PF.StressStage(true) or 0
     local D = pfUI.dots
     if D then
@@ -903,22 +1068,31 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       -- the raid's aura changes on the pretend mobs, through OctoDoTs' own event script
       local ev = D and D.auraEvents and D.auraEvents:GetScript("OnEvent")
       if ev then
-        s.evAcc = s.evAcc + PF.STRESS_EVENTS * dt / 1000
+        s.evAcc = s.evAcc + PF.STRESS_EVENTS * math.max(dt, (now - (s.lastNow or now)) * 1000) / 1000
+        if s.evAcc > 400 then s.evAcc = 400 end
         local keep = _G.arg1
         while s.evAcc >= 1 do
           s.evAcc = s.evAcc - 1
-          _G.arg1 = string.format("0xF13000STRESS%04d", math.random(1, PF.STRESS_MOBS))
+          _G.arg1 = PF.stressGuids[math.random(1, PF.STRESS_MOBS)]
           ev()
         end
         _G.arg1 = keep
       end
+      -- the raid's combat log, to every add-on that listens
+      -- (game time, not the frame clock: so a long frame sends its whole share)
+      local gdt = (now - (s.lastNow or now)) * 1000
+      s.lastNow = now
+      if s.lframes > 0 then PF.StressFeed(s, gdt) end
       if s.models > 0 then PF.StressStageTick(now) end
       if now >= s.untilT then PF.StressStop() end
     end)
     f:Show()
-    Say("stress test started: " .. seconds .. " s, " .. (S.demo and "40-player raid demo, " or "") .. S.mobs
-      .. (S.models > 0 and (S.models .. " characters, adds and AoE effects on screen (target a mob first: it becomes the boss and its adds), the fight at 3x speed, ") or "")
-      .. " mobs on OctoDoTs, " .. PF.STRESS_EVENTS .. " aura changes a second. /pfstress again stops it.")
+    Say("stress test started (" .. seconds .. " s): " .. (S.demo and "the 40-player raid demo at 3x, " or "")
+      .. PF.STRESS_LINES .. " combat log lines a second to " .. S.lframes .. " add-on frames"
+      .. (S.lframes == 0 and " (needs ClassicAPI)" or "") .. ", " .. S.mobs .. " mobs on OctoDoTs (" .. PF.STRESS_EVENTS
+      .. " aura changes a second, adds dying and coming back)"
+      .. (S.models > 0 and (", " .. S.models .. " characters, adds and AoE on screen (target a mob first: it becomes the boss)") or "")
+      .. ". /pfstress again stops it.")
   end
   function PF.StressStop(why)
     local s = PF.stress
@@ -941,6 +1115,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       scanN = s.scan.n, scanMs = s.scan.n > 0 and s.scan.ms / s.scan.n or 0,
       paintN = s.paint.n, paintMs = s.paint.n > 0 and s.paint.ms / s.paint.n or 0,
       share = s.sum > 0 and (s.scan.ms + s.paint.ms) / s.sum * 100 or 0,
+      lines = s.lines, lframes = s.lframes, errors = s.errors, deaths = s.deaths,
     }
     PF.stressLast = r
     for _, l in ipairs(PF.StressLines(r)) do DEFAULT_CHAT_FRAME:AddMessage(l) end
@@ -955,6 +1130,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       "  Lua memory: " .. F(r.mb0) .. " -> " .. F(r.mb1) .. " MB (peak " .. F(r.peak) .. "), " .. r.cleans .. " clean-ups",
       "  OctoDoTs: " .. r.scanN .. " passes at " .. F(r.scanMs, 2) .. " ms, " .. r.paintN .. " paints at " .. F(r.paintMs, 2)
         .. " ms = " .. F(r.share, 1) .. "% of the frame time",
+      "  Combat log fed: " .. (r.lines or 0) .. " lines to " .. (r.lframes or 0) .. " add-on frames, " .. (r.deaths or 0)
+        .. " adds died and came back" .. ((r.errors or 0) > 0 and (", |cffff5555" .. r.errors .. " add-on errors|r") or ""),
     }
   end
   _G.SLASH_PFSTRESS1 = "/pfstress"

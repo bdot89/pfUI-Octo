@@ -630,7 +630,19 @@ do
   ok(PF.Stress and PF.StressStop and _G.SlashCmdList.PFSTRESS, "stress test there (/pfstress)")
   if D and D.units and PF.Stress then
     local scan0 = D.Scan
+    -- an add-on frame listening to the combat log (ClassicAPI IsEventRegistered), and the game's frame list
+    local heard, heardEv = {}, {}
+    local fake = CreateFrame("Frame", "StressListenerTest")
+    fake.IsEventRegistered = function(self, e) return e == "CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE" or e == "CHAT_MSG_COMBAT_HOSTILE_DEATH" end
+    fake:SetScript("OnEvent", function() table.insert(heard, arg1) heardEv[event] = true end)
+    local chat = CreateFrame("Frame", "ChatFrame9")
+    chat.IsEventRegistered = function() return true end
+    local chatHeard = 0
+    chat:SetScript("OnEvent", function() chatHeard = chatHeard + 1 end)
+    local keepEF = rawget(_G, "EnumerateFrames")
+    _G.EnumerateFrames = function(f) if f == nil then return fake elseif f == fake then return chat end end
     PF.Stress(10)
+    ok(PF.stress and PF.stress.lframes == 1, "combat log feed: one add-on frame found, chat windows left out")
     local n = 0
     for _, u in pairs(D.units) do if u.stress then n = n + 1 end end
     ok(PF.stress and n == PF.STRESS_MOBS, "stress test: 40 pretend mobs on OctoDoTs")
@@ -648,9 +660,15 @@ do
     local left = 0
     for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
     ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
-    ok(table.getn(PF.StressLines(r)) == 4, "report lines")
-    ok(PF.STRESS_AOE == 90 and PF.STRESS_FX.nova and PF.STRESS_FX.fs, "AoE pictures set up")
-    ok(r and r.models >= 70 and PF.stage and not PF.stage:IsShown(), "40 characters + 30 adds on the stage while it ran, put away afterwards")
+    ok(table.getn(PF.StressLines(r)) == 5, "report lines")
+    ok(table.getn(heard) > 100 and chatHeard == 0 and heardEv.CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE, "the add-on frame got raid combat lines (" .. table.getn(heard) .. "), the chat window none")
+    local okLine = false
+    for _, l in ipairs(heard) do if string.find(l, "'s .+ hits .+ for %d+ %a+ damage%.$") or string.find(l, "'s .+ crits ") then okLine = true end end
+    ok(okLine and r.lines > 1000, "lines in the game's own words (" .. tostring(r.lines) .. " sent)")
+    ok(r.deaths > 0, "adds died and came back with new GUIDs (" .. tostring(r.deaths) .. ")")
+    _G.EnumerateFrames = keepEF
+    ok(PF.STRESS_AOE == 250 and PF.STRESS_FX.nova and PF.STRESS_FX.fs, "AoE pictures set up")
+    ok(r and r.models >= 90 and PF.stage and not PF.stage:IsShown(), "40 characters + 50 adds on the stage while it ran, put away afterwards")
     PF.Stress("10 lite")
     ok(PF.stress and PF.stress.models == 0 and PF.stress.secs == 10, "/pfstress 10 lite: no characters")
     PF.StressStop("test")
