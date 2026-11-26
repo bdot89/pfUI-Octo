@@ -1665,3 +1665,13 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   pages, made by, used in by profession; drops only while C.tooltip.x_sources is off (pfQuest's lines). Minimap button
   pfOctoLootMinimapButton (addonbuttons ignores it). PowerShell traps hit here: an empty ArrayList is falsy (`if ($cur)`),
   $ENT and $ent are one variable, LuaHost stderr under ErrorActionPreference Stop aborts the script.
+  26 Nov, dungeon quests (NOT seen in game; user with Naowh Forever's Dungeon Journal - all rights reserved, ideas only):
+  modules\octoloot-quests.lua (pfUI.octoloot.quests = Q). Q lines in octoloot-data.lua (tools\octoloot\quests.ps1: instance /
+  side / quest id / pick / reward ids, facts from Atlas-CFM's QuestData; its notes not taken). Everything else live from
+  pfDB (name, objective, levels, start / end, pre = the chain, giver coords). State: ClassicAPI C_QuestLog.IsQuestFlaggedCompleted
+  + GetLogIndexForQuestID, else pfQuest_history and the quest log by title. Banner button "Quests N" (N to do), OL.view
+  "quests" = Q.ListEntries (in log / ready / needs first / low / done); OL.ShowQuest(id) = Q.PageEntries (objective as a
+  paragraph line, Given by / Hand in to / everything on the map = waypoints, the chain with each step's state, asks for,
+  rewards). Waypoints: pfMap nodes addon "OCTOLOOT" with meta.arrow = true (pfQuest's route takes arrow nodes) +
+  pfQuest.route.SetTarget; /ol clear. Share quests (QuestLogPushQuest one a second), entering-instance chat note
+  (C.octoloot.questhint), /ol quests.

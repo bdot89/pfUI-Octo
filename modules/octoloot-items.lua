@@ -27,6 +27,7 @@ N^118^1^Minor Healing Potion^INV_Potion_49^5^1^0^3^0
 N^126^3^Band of Hailar^INV_Jewelry_Ring_28^18^13^4^0^11
 N^131^2^Steel Belt Buckle^inv_steel_buckle^40^0^7^0^0
 N^134^2^Frostmane Battle Boots^INV_Boots_01^18^13^4^3^8
+N^136^2^Archaeologist's Lantern^INV_Misc_Lantern_01^19^0^4^0^23
 N^150^2^Tribal War Gauntlets^INV_Gauntlets_11^18^13^4^3^10
 N^151^2^Truesilver Belt Buckle^inv_truesilver_buckle^10^0^7^0^0
 N^156^3^Refined Dwarven Necklace^INV_Belt_18^40^30^4^0^2
@@ -113,6 +114,7 @@ N^1483^3^Face Smasher^INV_Hammer_08^21^16^2^4^0
 N^1484^3^Witching Stave^INV_Wand_04^22^17^2^10^0
 N^1486^3^Tree Bark Jacket^INV_Shirt_02^24^19^4^1^5
 N^1488^3^Avenger's Armor^INV_Chest_Chain^31^26^4^3^5
+N^1490^2^Guardian Talisman^INV_Jewelry_Talisman_05^50^0^4^0^12
 N^1491^3^Ring of Precision^INV_Jewelry_Ring_14^25^20^4^0^11
 N^1493^3^Heavy Marauder Scimitar^INV_Sword_24^27^22^2^7^0
 N^1529^2^Jade^INV_Misc_Gem_Stone_01^35^0^7^0^0
@@ -146,11 +148,15 @@ N^1981^4^Icemail Jerkin^INV_Chest_Plate06^44^39^4^3^5
 N^1982^4^Nightblade^INV_Sword_02^44^39^2^8^0
 N^2011^3^Twisted Sabre^INV_Sword_24^26^21^2^7^0
 N^2033^2^Ambassador's Boots^INV_Boots_08^25^0^4^2^8
+N^2036^2^Dusty Mining Gloves^INV_Gauntlets_05^18^0^4^2^10
+N^2037^2^Tunneler's Boots^INV_Boots_01^18^0^4^3^8
 N^2039^3^Plains Ring^INV_Jewelry_Ring_02^29^24^4^0^11
 N^2040^3^Troll Protector^INV_Shield_16^48^43^4^6^0
 N^2041^3^Tunic of Westfall^INV_Chest_Leather_07^24^0^4^2^5
 N^2042^3^Staff of Westfall^INV_Staff_10^24^0^2^10^0
 N^2059^3^Sentry Cloak^INV_Misc_Cape_04^24^19^4^1^16
+N^2074^2^Solid Shortblade^INV_Sword_23^18^0^2^7^0
+N^2089^2^Scrimshaw Dagger^INV_Weapon_ShortBlade_01^18^0^2^15^0
 N^2098^3^Double-barreled Shotgun^INV_Weapon_Rifle_08^27^22^2^3^0
 N^2099^4^Dwarven Hand Cannon^INV_Weapon_Rifle_09^58^53^2^3^0
 N^2100^4^Precisely Calibrated Boomstick^INV_Weapon_Rifle_06^48^43^2^3^0
@@ -249,6 +255,7 @@ N^2679^1^Charred Wolf Meat^INV_Misc_Food_18^5^1^0^0^0
 N^2682^1^Cooked Crab Claw^INV_Misc_Birdbeck_02^15^5^0^0^0
 N^2683^1^Crab Cake^inv_misc_food_85^15^5^0^0^0
 N^2684^1^Coyote Steak^INV_Misc_Food_65^15^5^0^0^0
+N^2686^1^Thunder Ale^INV_Drink_13^1^1^0^3^0
 N^2687^1^Dry Pork Ribs^INV_Misc_Food_48^15^5^0^0^0
 N^2692^1^Hot Spices^inv_misc_food_wheat_03^20^0^7^0^0
 N^2721^3^Holy Shroud^INV_Helmet_16^32^27^4^1^1
@@ -337,6 +344,7 @@ N^3241^1^Heavy Weightstone^INV_Stone_WeightStone_03^25^15^7^0^0
 N^3304^1^Brackwater Gauntlets^INV_Gauntlets_25^14^9^4^3^10
 N^3307^2^Barbaric Cloth Boots^INV_Boots_05^15^10^4^1^8
 N^3308^2^Barbaric Cloth Gloves^INV_Gauntlets_18^15^10^4^1^10
+N^3324^2^Ghostly Mantle^INV_Shoulder_09^28^0^4^1^3
 N^3355^1^Wild Steelbloom^INV_Misc_Flower_01^22^0^7^0^0
 N^3356^1^Kingsblood^INV_Misc_Herb_03^24^0^7^0^0
 N^3357^1^Liferoot^INV_Misc_Root_02^30^0^7^0^0
@@ -640,10 +648,13 @@ N^4635^1^Hammertoe's Amulet^INV_Jewelry_Amulet_03^1^0^12^0^0
 N^4636^2^Strong Iron Lockbox^INV_Misc_OrnateBox^35^0^15^0^0
 N^4637^2^Steel Lockbox^INV_Misc_OrnateBox^40^0^15^0^0
 N^4638^2^Reinforced Steel Lockbox^INV_Misc_OrnateBox^45^0^15^0^0
+N^4643^2^Grimsteel Cape^INV_Misc_Cape_02^33^0^4^1^16
 N^4655^1^Giant Clam Meat^INV_Misc_Food_51^35^0^7^0^0
 N^4660^2^Walking Boots^INV_Boots_06^18^13^4^1^8
 N^4696^3^Lapidis Tankard of Tidesippe^INV_Drink_03^59^54^4^0^23
+N^4746^2^Doomsayer's Robe^INV_Chest_Cloth_19^40^0^4^1^20
 N^4852^1^Flash Bomb^INV_Misc_Ammo_Bullet_01^37^27^7^2^0
+N^4980^2^Prospector Gloves^INV_Gauntlets_04^37^0^4^2^10
 N^4987^2^Dwarf Captain's Sword^INV_Sword_25^45^0^2^7^0
 N^5081^1^Kodo Hide Bag^INV_Misc_Bag_10^5^0^1^0^0
 N^5082^1^Thin Kodo Leather^INV_Misc_LeatherScrap_06^10^0^7^0^0
@@ -761,6 +772,7 @@ N^6050^1^Frost Protection Potion^INV_Potion_13^38^28^0^3^0
 N^6051^1^Holy Protection Potion^INV_Potion_09^20^10^0^3^0
 N^6052^1^Nature Protection Potion^INV_Potion_06^38^28^0^3^0
 N^6087^3^Chausses of Westfall^INV_Pants_03^24^0^4^3^7
+N^6094^2^Piercing Axe^INV_ThrowingAxe_01^18^0^2^1^0
 N^6149^1^Greater Mana Potion^INV_Potion_73^41^31^0^3^0
 N^6181^1^Fetish of Hakkar^INV_Misc_Bone_HumanSkull_01^1^0^12^0^0
 N^6212^1^Head of Jammal'an^INV_Misc_Head_Troll_01^1^0^12^0^0
@@ -843,6 +855,7 @@ N^6474^1^Pattern: Deviate Scale Cloak^INV_Scroll_03^18^0^9^1^0
 N^6475^1^Pattern: Deviate Scale Gloves^INV_Scroll_03^21^0^9^1^0
 N^6476^2^Pattern: Deviate Scale Belt^INV_Scroll_06^23^0^9^1^0
 N^6480^2^Slick Deviate Leggings^INV_Pants_02^20^0^4^2^7
+N^6481^2^Dagmire Gauntlets^INV_Gauntlets_05^23^0^4^3^10
 N^6504^3^Wingblade^INV_Sword_16^24^0^2^7^0
 N^6505^3^Crescent Staff^INV_Staff_04^24^0^2^10^0
 N^6522^1^Deviate Fish^INV_Misc_MonsterHead_01^15^0^7^0^0
@@ -889,6 +902,7 @@ N^6733^2^Ironforge Gauntlets^INV_Gauntlets_05^28^23^4^3^10
 N^6742^3^Stonefist Girdle^INV_Belt_35^36^0^4^3^6
 N^6751^2^Mourning Shawl^INV_Misc_Cape_11^30^0^4^1^16
 N^6752^2^Lancer Boots^INV_Boots_03^30^0^4^2^8
+N^6755^1^A Small Container of Gems^INV_Misc_OrnateBox^25^0^15^0^0
 N^6773^2^Gelkis Marauder Chain^INV_Chest_Chain_07^42^0^4^3^5
 N^6774^2^Uthek's Finger^INV_Wand_03^42^0^4^0^23
 N^6786^1^Simple Dress^INV_Shirt_12^10^0^4^0^20
@@ -897,10 +911,16 @@ N^6788^2^Magram Hunter's Belt^INV_Belt_11^42^0^4^2^6
 N^6789^2^Ceremonial Centaur Blanket^INV_Misc_Cape_12^42^0^4^1^16
 N^6795^1^White Swashbuckler's Shirt^INV_Shirt_White_01^32^0^4^0^4
 N^6796^1^Red Swashbuckler's Shirt^INV_Shirt_Red_01^35^0^4^0^4
+N^6802^3^Sword of Omen^INV_Sword_19^44^0^2^7^0
+N^6803^3^Prophetic Cane^INV_Staff_01^44^0^4^0^23
+N^6829^3^Sword of Serenity^INV_Sword_27^44^0^2^7^0
+N^6830^3^Bonebiter^INV_Axe_04^44^0^2^1^0
+N^6831^3^Black Menace^INV_Sword_13^44^0^2^15^0
 N^6833^1^White Tuxedo Shirt^INV_Shirt_08^25^0^4^0^4
 N^6835^1^Black Tuxedo Pants^INV_Pants_01^23^0^4^1^7
 N^6889^1^Small Egg^INV_Egg_01^5^0^7^0^0
 N^6895^1^Jordan's Smithing Hammer^INV_Hammer_09^1^0^12^0^0
+N^6898^2^Orb of Soran'ruk^INV_Misc_Orb_03^25^0^4^0^23
 N^6901^3^Glowing Thresher Cape^INV_Misc_MonsterScales_03^29^24^4^1^16
 N^6902^2^Bands of Serra'kis^INV_Bracer_08^27^22^4^2^9
 N^6903^2^Gaze Dreamer Pants^INV_Pants_02^28^23^4^1^7
@@ -913,6 +933,8 @@ N^6909^3^Strike of the Hydra^INV_Sword_42^31^26^2^8^0
 N^6910^3^Leech Pants^INV_Pants_14^31^26^4^1^7
 N^6911^3^Moss Cinch^INV_Belt_25^31^26^4^2^6
 N^6953^3^Verigan's Fist^INV_Hammer_05^31^0^2^5^0
+N^6998^2^Nimbus Boots^INV_Boots_05^25^0^4^1^8
+N^7000^2^Heartwood Girdle^INV_Belt_04^25^0^4^2^6
 N^7001^3^Gravestone Scepter^INV_Wand_04^29^0^2^19^0
 N^7002^3^Arctic Buckler^INV_Shield_02^29^0^4^6^0
 N^7003^2^Beetle Clasps^INV_Bracer_06^27^0^4^3^9
@@ -1040,6 +1062,11 @@ N^7726^3^Aegis of the Scarlet Commander^INV_Shield_05^44^39^4^6^0
 N^7731^3^Ghostshard Talisman^INV_Jewelry_Necklace_06^35^30^4^0^2
 N^7734^3^Six Demon Bag^INV_Misc_Bag_01^51^46^4^0^12
 N^7742^1^Schematic: Gnomish Cloaking Device^INV_Scroll_03^40^0^9^3^0
+N^7746^2^Explorers' League Commendation^INV_Jewelry_Talisman_01^41^0^4^0^2
+N^7747^2^Vile Protector^INV_Shield_02^41^0^4^6^0
+N^7749^2^Omega Orb^INV_Misc_Orb_03^41^0^4^0^23
+N^7750^2^Mantle of Woe^INV_Shoulder_23^33^0^4^1^3
+N^7751^2^Vorrel's Boots^INV_Boots_03^30^0^4^2^8
 N^7756^2^Dog Training Gloves^INV_Gauntlets_07^34^29^4^2^10
 N^7807^1^Candy Bar^INV_Misc_Food_27^5^1^0^0^0
 N^7808^1^Chocolate Square^INV_Misc_Food_29^5^1^0^0^0
@@ -1119,6 +1146,7 @@ N^8053^1^Obsidian Power Source^Spell_Fire_FlameShock^1^0^12^0^0
 N^8067^1^Crafted Light Shot^INV_Ammo_Bullet_02^10^5^6^3^0
 N^8068^1^Crafted Heavy Shot^INV_Ammo_Bullet_02^20^15^6^3^0
 N^8069^1^Crafted Solid Shot^INV_Ammo_Bullet_02^35^30^6^3^0
+N^8071^2^Sizzle Stick^INV_Staff_02^23^0^2^19^0
 N^8146^1^Wicked Claw^INV_Misc_MonsterClaw_01^45^0^7^0^0
 N^8150^1^Deeprock Salt^INV_Misc_Dust_02^40^0^7^0^0
 N^8151^1^Flask of Mojo^INV_Potion_15^40^0^7^0^0
@@ -1229,6 +1257,7 @@ N^9312^1^Blue Firework^Spell_Ice_MagicDamage^20^0^0^0^0
 N^9327^2^Security DELTA Data Access Card^INV_Ingot_04^1^0^15^0^0
 N^9338^2^Murloc Eye on a String^INV_Misc_Eye_01^35^0^4^0^2
 N^9359^3^Wirt's Third Leg^INV_Misc_Flute_01^45^40^2^4^0
+N^9362^2^Brilliant Gold Ring^INV_Jewelry_Ring_03^31^0^4^0^11
 N^9366^2^Golden Scale Gauntlets^INV_Gauntlets_29^41^36^4^3^10
 N^9372^4^Sul'thraze the Lasher^INV_Sword_40^55^50^2^8^0
 N^9375^3^Expert Goldminer's Helmet^INV_Helmet_18^38^33^4^2^1
@@ -1312,16 +1341,24 @@ N^9496^2^Defias Mage Drape^INV_Misc_Cape_12^10^1^4^1^16
 N^9510^3^Caverndeep Trudgers^INV_Boots_01^32^27^4^3^8
 N^9511^3^Bloodletter Scalpel^INV_Sword_40^46^41^2^7^0
 N^9512^3^Blackmetal Cape^INV_Misc_Cape_05^46^41^4^1^16
+N^9522^2^Energized Stone Circle^INV_Shield_10^36^0^4^6^0
 N^9523^1^Troll Temper^INV_Potion_25^1^0^12^0^0
 N^9527^2^Spellshifter Rod^INV_Wand_11^46^0^2^10^0
 N^9531^2^Gemshale Pauldrons^INV_Shoulder_23^46^0^4^4^3
 N^9533^3^Masons Fraternity Ring^INV_Jewelry_Ring_03^47^0^4^0^11
 N^9534^3^Engineer's Guild Headpiece^INV_Helmet_33^47^0^4^2^1
+N^9535^2^Fire-welded Bracers^INV_Bracer_02^30^0^4^3^9
+N^9536^2^Fairywing Mantle^INV_Shoulder_02^30^0^4^1^3
+N^9587^1^Thawpelt Sack^INV_Misc_Bag_17^45^0^1^0^0
+N^9604^2^Mechanic's Pipehammer^INV_Mace_04^30^0^2^5^0
+N^9605^2^Repairman's Cape^INV_Misc_Cape_06^30^0^4^1^16
 N^9608^2^Shoni's Disarming Tool^INV_Misc_Wrench_01^31^0^2^0^0
 N^9609^2^Shilly Mitts^INV_Gauntlets_27^31^0^4^1^10
 N^9623^3^Civinad Robes^INV_Chest_Cloth_18^37^0^4^1^20
 N^9624^3^Triprunner Dungarees^INV_Pants_08^37^0^4^2^7
 N^9625^3^Dual Reinforced Leggings^INV_Pants_03^37^0^4^3^7
+N^9626^2^Dwarven Charge^INV_Axe_09^42^0^2^1^0
+N^9627^2^Explorer's League Lodestar^INV_Misc_Lantern_01^42^0^4^0^23
 N^9639^3^The Hand of Antu'sul^INV_Mace_11^48^43^2^4^0
 N^9640^3^Vice Grips^INV_Gauntlets_26^48^43^4^4^10
 N^9641^3^Lifeblood Amulet^INV_Jewelry_Necklace_02^48^43^4^0^2
@@ -1397,6 +1434,8 @@ N^10330^3^Scarlet Leggings^INV_Pants_03^43^38^4^3^7
 N^10331^2^Scarlet Gauntlets^INV_Gauntlets_19^38^33^4^3^10
 N^10332^3^Scarlet Boots^INV_Boots_02^35^30^4^3^8
 N^10333^2^Scarlet Wristguards^INV_Bracer_03^36^31^4^3^9
+N^10358^2^Duracin Bracers^INV_Bracer_04^36^0^4^3^9
+N^10359^2^Everlast Boots^INV_Boots_07^36^0^4^1^8
 N^10377^2^Commander's Vambraces^INV_Bracer_13^59^54^4^4^9
 N^10383^2^Commander's Pauldrons^INV_Shoulder_01^61^56^4^4^3
 N^10399^3^Blackened Defias Armor^INV_Chest_Leather_08^24^19^4^2^5
@@ -1464,9 +1503,13 @@ N^10645^1^Gnomish Death Ray^INV_Gizmo_08^48^0^7^3^0
 N^10646^1^Goblin Sapper Charge^Spell_Fire_SelfDestruct^41^0^7^2^0
 N^10647^1^Engineer's Ink^INV_Potion_65^50^0^7^0^0
 N^10648^1^Blank Parchment^INV_Misc_Bandage_10^40^0^7^0^0
+N^10657^2^Talbar Mantle^INV_Shoulder_09^26^0^4^1^3
+N^10658^2^Quagmire Galoshes^INV_Boots_07^25^0^4^3^8
 N^10660^1^First Mosh'aru Tablet^INV_Misc_Rune_04^1^0^12^0^0
 N^10661^1^Second Mosh'aru Tablet^INV_Misc_Rune_08^1^0^12^0^0
 N^10663^1^Essence of Hakkar^Spell_Shadow_DemonBreath^1^0^0^0^0
+N^10710^3^Dragonclaw Ring^INV_Jewelry_Ring_04^38^0^4^0^11
+N^10711^3^Dragon's Blood Necklace^INV_Jewelry_Necklace_02^44^0^4^0^2
 N^10716^1^Gnomish Shrink Ray^INV_Gizmo_09^41^0^7^3^0
 N^10720^1^Gnomish Net-o-Matic Projector^INV_Misc_Net_01^42^0^7^3^0
 N^10721^2^Gnomish Harm Prevention Belt^INV_Belt_06^43^0^4^2^6
@@ -1491,6 +1534,7 @@ N^10769^3^Glowing Eye of Mordresh^INV_Misc_Orb_03^41^36^4^0^2
 N^10770^3^Mordresh's Lifeless Skull^INV_Misc_Bone_ElfSkull_01^41^36^4^0^23
 N^10771^3^Deathmage Sash^INV_Belt_24^41^36^4^1^6
 N^10772^3^Glutton's Cleaver^INV_Axe_23^41^36^2^0^0
+N^10773^2^Hakkari Urn^INV_Box_01^1^0^15^0^0
 N^10774^3^Fleshhide Shoulders^INV_Shoulder_28^42^37^4^2^3
 N^10775^3^Carapace of Tuten'kash^INV_Chest_Plate08^42^40^4^4^5
 N^10776^3^Silky Spider Cape^INV_Misc_Cape_17^42^35^4^1^16
@@ -1525,6 +1569,7 @@ N^10844^3^Spire of Hakkar^INV_Staff_32^54^49^2^10^0
 N^10845^3^Warrior's Embrace^INV_Chest_Plate08^54^49^4^4^5
 N^10846^3^Bloodshot Greaves^INV_Boots_01^54^49^4^3^8
 N^10847^4^Dragon's Call^INV_Sword_38^57^52^2^7^0
+N^10919^2^Apothecary Gloves^INV_Gauntlets_06^18^0^4^1^10
 N^10938^2^Lesser Magic Essence^INV_Enchant_EssenceMagicSmall^10^0^7^0^0
 N^10939^2^Greater Magic Essence^INV_Enchant_EssenceMagicLarge^15^0^7^0^0
 N^10940^1^Strange Dust^INV_Enchant_DustStrange^10^0^7^0^0
@@ -1546,6 +1591,8 @@ N^11116^2^A Mangled Journal^INV_Misc_Book_11^48^48^15^0^0
 N^11118^3^Archaedic Stone^INV_Stone_15^47^42^4^0^11
 N^11121^2^Darkwater Talwar^INV_Sword_36^26^21^2^7^0
 N^11122^2^Carrot on a Stick^INV_Misc_Food_54^50^0^4^0^12
+N^11123^3^Rainstrider Leggings^INV_Pants_08^55^0^4^1^7
+N^11124^3^Helm of Exile^INV_Helmet_21^55^0^4^3^1
 N^11126^1^Tablet of Kurniya^INV_Misc_Rune_04^1^0^12^0^0
 N^11128^1^Golden Rod^INV_Staff_10^30^0^7^0^0
 N^11129^1^Essence of the Elements^INV_Enchant_ShardGlowingLarge^1^0^12^0^0
@@ -1575,6 +1622,7 @@ N^11208^2^Formula: Enchant Weapon - Demonslaying^INV_Misc_Note_01^46^0^9^8^0
 N^11224^2^Formula: Enchant Shield - Frost Resistance^INV_Misc_Note_01^47^0^9^8^0
 N^11225^2^Formula: Enchant Bracer - Greater Stamina^INV_Misc_Note_01^49^0^9^8^0
 N^11226^2^Formula: Enchant Gloves - Riding Skill^INV_Misc_Note_01^50^0^9^8^0
+N^11262^3^Orb of Lorica^INV_Misc_Orb_01^44^0^4^0^23
 N^11268^1^Head of Argelmach^INV_Misc_Head_Dwarf_01^1^0^12^0^0
 N^11287^2^Lesser Magic Wand^INV_Staff_02^15^5^2^19^0
 N^11288^2^Greater Magic Wand^INV_Staff_07^23^13^2^19^0
@@ -1698,6 +1746,7 @@ N^11839^3^Chief Architect's Monocle^INV_Helmet_44^55^50^4^1^1
 N^11841^3^Senior Designer's Pantaloons^INV_Pants_09^55^50^4^1^7
 N^11842^3^Lead Surveyor's Mantle^INV_Shoulder_15^55^50^4^3^3
 N^11865^2^Rancor Boots^INV_Boots_02^53^0^4^1^8
+N^11866^3^Nagmara's Whipping Belt^INV_Belt_11^55^0^4^2^6
 N^11883^1^A Dingy Fanny Pack^INV_Misc_Bag_09_Black^56^0^15^0^0
 N^11924^3^Robes of the Royal Crown^INV_Chest_Cloth_16^60^55^4^1^20
 N^11928^3^Thaurissan's Royal Scepter^INV_Mace_13^60^55^4^0^23
@@ -1707,15 +1756,24 @@ N^11932^3^Guiding Stave of Wisdom^INV_Staff_30^59^54^2^10^0
 N^11933^3^Imperial Jewel^INV_Misc_Gem_Sapphire_01^60^55^4^0^2
 N^11934^3^Emperor's Seal^INV_Jewelry_Ring_24^61^55^4^0^11
 N^11935^3^Magmus Stone^INV_Misc_Orb_05^58^53^4^0^23
+N^11962^3^Manacle Cuffs^INV_Bracer_13^55^0^4^1^9
 N^11963^2^Penance Spaulders^INV_Shoulder_25^53^0^4^2^3
 N^11964^2^Swiftstrike Cudgel^INV_Mace_08^55^0^2^4^0
 N^12000^2^Limb Cleaver^INV_Axe_02^55^0^2^1^0
+N^12003^1^Dark Dwarven Lager^INV_Drink_05^55^0^0^0^0
+N^12018^2^Conservator Helm^INV_Helmet_01^54^0^4^3^1
+N^12021^2^Shieldplate Sabatons^INV_Boots_Plate_01^54^0^4^4^8
 N^12037^1^Mystery Meat^INV_Misc_Food_67^30^0^7^0^0
 N^12038^2^Lagrave's Seal^INV_Jewelry_Ring_03^54^0^4^0^11
+N^12041^2^Windshear Leggings^INV_Pants_13^54^0^4^2^7
 N^12049^2^Splintsteel Armor^INV_Chest_Chain_16^53^0^4^3^5
+N^12059^3^Conqueror's Medallion^INV_Jewelry_Amulet_03^58^0^4^0^2
 N^12061^2^Blade of Reckoning^INV_Sword_26^60^0^2^7^0
 N^12062^2^Skilled Fighting Blade^INV_Sword_21^60^0^2^15^0
 N^12065^2^Ward of the Elements^INV_Jewelry_Talisman_02^60^0^4^0^12
+N^12066^2^Shaleskin Cape^INV_Misc_Cape_02^58^0^4^1^16
+N^12082^2^Wyrmhide Spaulders^INV_Shoulder_16^58^0^4^2^3
+N^12083^2^Valconian Sash^INV_Belt_11^58^0^4^1^6
 N^12103^3^Star of Mystaria^INV_Jewelry_Talisman_08^63^58^4^0^2
 N^12108^2^Basaltscale Armor^INV_Chest_Chain_16^58^0^4^3^5
 N^12109^2^Azure Moon Amice^INV_Shoulder_02^58^0^4^1^3
@@ -1743,6 +1801,7 @@ N^12243^3^Smoldering Claw^INV_Weapon_Halberd_04^54^49^2^6^0
 N^12259^2^Glinting Steel Dagger^INV_Weapon_ShortBlade_05^36^31^2^15^0
 N^12260^2^Searing Golden Blade^INV_Weapon_ShortBlade_05^39^34^2^15^0
 N^12261^2^Plans: Searing Golden Blade^INV_Scroll_06^38^0^9^4^0
+N^12264^1^Worg Pup^INV_Box_PetCarrier_01^1^0^15^2^0
 N^12302^3^Ancient Frostsaber^Ability_Mount_WhiteTiger^60^0^15^4^0
 N^12303^3^Black Zulian Panther^Ability_Mount_BlackPanther^60^0^15^4^0
 N^12325^3^Spotted Leopard^Ability_Mount_JungleTiger^40^0^15^4^0
@@ -1791,10 +1850,15 @@ N^12470^3^Sandstalker Ankleguards^INV_Bracer_04^47^42^4^2^8
 N^12471^3^Desertwalker Cane^INV_Staff_21^47^42^4^0^23
 N^12527^3^Ribsplitter^INV_Axe_13^53^48^2^0^0
 N^12528^3^The Judge's Gavel^INV_Hammer_07^52^47^2^5^0
+N^12529^1^Smolderweb Hatchling^INV_Box_Birdcage_01^1^0^15^2^0
 N^12531^3^Searing Needle^INV_Weapon_ShortBlade_03^51^46^2^15^0
 N^12535^3^Doomforged Straightedge^INV_Sword_41^54^49^2^7^0
 N^12542^3^Funeral Pyre Vestment^INV_Chest_Cloth_40^51^46^4^1^20
+N^12543^3^Songstone of Ironforge^INV_Jewelry_Ring_05^60^0^4^0^11
+N^12544^3^Thrall's Resolve^INV_Jewelry_Ring_05^60^0^4^0^11
+N^12545^3^Eye of Orgrimmar^INV_Jewelry_Ring_05^60^0^4^0^11
 N^12546^3^Aristocratic Cuffs^INV_Bracer_05^54^49^4^1^9
+N^12548^3^Magni's Will^INV_Jewelry_Ring_05^60^0^4^0^11
 N^12549^3^Braincage^INV_Helmet_10^52^47^4^3^1
 N^12550^3^Runed Golem Shackles^INV_Bracer_17^53^48^4^4^9
 N^12552^3^Blisterbane Wrap^INV_Misc_Cape_18^55^50^4^1^16
@@ -1861,6 +1925,7 @@ N^12694^2^Plans: Thorium Helm^INV_Scroll_06^56^0^9^4^0
 N^12695^2^Plans: Radiant Gloves^INV_Scroll_06^57^0^9^4^0
 N^12696^3^Plans: Demon Forged Breastplate^INV_Scroll_03^57^0^9^4^0
 N^12697^2^Plans: Radiant Boots^INV_Scroll_06^58^0^9^4^0
+N^12699^3^Plans: Fiery Plate Gauntlets^INV_Scroll_03^58^0^9^4^0
 N^12702^2^Plans: Radiant Circlet^INV_Scroll_06^59^0^9^4^0
 N^12703^3^Plans: Storm Gauntlets^INV_Scroll_03^59^0^9^4^0
 N^12704^2^Plans: Thorium Leggings^INV_Scroll_06^60^0^9^4^0
@@ -2113,6 +2178,7 @@ N^13167^3^Fist of Omokk^INV_Hammer_04^60^55^2^5^0
 N^13168^3^Plate of the Shaman King^INV_Chest_Plate13^60^55^4^4^5
 N^13169^3^Tressermane Leggings^INV_Pants_09^60^55^4^2^7
 N^13170^3^Skyshroud Leggings^INV_Pants_13^60^55^4^1^7
+N^13171^2^Smokey's Lighter^Spell_Fire_SearingTotem^61^0^4^0^12
 N^13172^1^Siabi's Premium Tobacco^INV_Crate_01^1^0^12^0^0
 N^13173^3^Flightblade Throwing Axe^INV_ThrowingAxe_06^60^55^2^16^0
 N^13174^1^Plagued Flesh Sample^INV_Misc_Pelt_Bear_Ruin_03^1^0^12^0^0
@@ -2137,6 +2203,8 @@ N^13210^3^Pads of the Dread Wolf^INV_Boots_Wolf^60^55^4^2^8
 N^13211^3^Slashclaw Bracers^INV_Bracer_07^60^55^4^3^9
 N^13212^3^Halycon's Spiked Collar^INV_Belt_14^60^55^4^0^2
 N^13213^3^Smolderweb's Eye^INV_Misc_Gem_Pearl_01^60^55^4^0^12
+N^13216^2^Crown of the Penitent^INV_Helmet_06^61^0^4^1^1
+N^13217^2^Band of the Penitent^INV_Jewelry_Ring_30^61^0^4^0^11
 N^13218^3^Fang of the Crystal Spider^INV_Weapon_ShortBlade_16^61^56^2^15^0
 N^13243^3^Argent Defender^INV_Shield_05^62^0^4^6^0
 N^13244^3^Gilded Gauntlets^INV_Gauntlets_29^60^55^4^3^10
@@ -2160,6 +2228,7 @@ N^13284^3^Swiftdart Battleboots^INV_Boots_01^58^53^4^3^8
 N^13285^3^The Blackrock Slicer^INV_Weapon_Halberd_11^58^53^2^1^0
 N^13286^3^Rivenspike^INV_Pick_05^58^53^2^0^0
 N^13314^4^Alanna's Embrace^INV_Chest_Cloth_12^62^57^4^1^20
+N^13315^2^Testament of Hope^INV_Misc_Book_06^61^0^4^0^23
 N^13325^4^Fluorescent Green Mechanostrider^Ability_Mount_MechaStrider^40^0^15^4^0
 N^13326^4^White Mechanostrider Mod A^Ability_Mount_MechaStrider^60^0^15^4^0
 N^13327^4^Icy Blue Mechanostrider Mod A^Ability_Mount_MechaStrider^60^60^15^4^0
@@ -2332,7 +2401,12 @@ N^13954^3^Verdant Footpads^INV_Boots_08^61^56^4^2^8
 N^13955^3^Stoneform Shoulders^INV_Shoulder_25^61^56^4^4^3
 N^13956^3^Clutch of Andros^INV_Belt_12^61^56^4^1^6
 N^13957^3^Gargoyle Slashers^INV_Gauntlets_09^61^56^4^2^10
+N^13958^3^Wyrmthalak's Shackles^INV_Bracer_04^60^0^4^1^9
+N^13959^3^Omokk's Girth Restrainer^INV_Belt_13^60^0^4^4^6
 N^13960^3^Heart of the Fiend^INV_Misc_Orb_03^61^56^4^0^2
+N^13961^3^Halycon's Muzzle^INV_Shoulder_24^60^0^4^2^3
+N^13962^3^Vosh'gajin's Strand^INV_Belt_15^60^0^4^2^6
+N^13963^3^Voone's Vice Grips^INV_Gauntlets_15^60^0^4^3^10
 N^13964^3^Witchblade^INV_Weapon_ShortBlade_25^62^57^2^15^0
 N^13965^3^Blackhand's Breadth^INV_Misc_ArmorKit_09^63^0^4^0^12
 N^13966^3^Mark of Tyranny^INV_Jewelry_Talisman_09^63^0^4^0^12
@@ -2519,6 +2593,7 @@ N^15093^2^Runic Leather Belt^INV_Belt_23^56^51^4^2^6
 N^15094^2^Runic Leather Headband^INV_Misc_Bandage_11^58^53^4^2^1
 N^15095^2^Runic Leather Pants^INV_Pants_02^60^55^4^2^7
 N^15096^2^Runic Leather Shoulders^INV_Shoulder_15^62^57^4^2^3
+N^15109^2^Staff of Soran'ruk^INV_Staff_09^25^0^2^10^0
 N^15138^3^Onyxia Scale Cloak^INV_Misc_Cape_05^60^55^4^1^16
 N^15141^4^Onyxia Scale Breastplate^INV_Chest_Plate06^62^57^4^3^5
 N^15196^1^Private's Tabard^INV_Misc_TabardPVP_01^20^0^4^0^19
@@ -2540,6 +2615,15 @@ N^15419^1^Warbear Leather^INV_Misc_Pelt_Bear_Ruin_05^50^0^7^0^0
 N^15420^1^Ironfeather^INV_Feather_05^50^0^5^0^0
 N^15422^1^Frostsaber Leather^INV_Misc_Pelt_06^50^0^7^0^0
 N^15423^1^Chimera Leather^INV_Misc_LeatherScrap_01^50^0^7^0^0
+N^15424^2^Axe of Orgrimmar^INV_Axe_04^18^0^2^1^0
+N^15443^2^Kris of Orgrimmar^INV_Weapon_ShortBlade_05^18^0^2^15^0
+N^15444^2^Staff of Orgrimmar^INV_Staff_Goldfeathered_01^18^0^2^10^0
+N^15445^2^Hammer of Orgrimmar^INV_Hammer_23^18^0^2^4^0
+N^15449^2^Ghastly Trousers^INV_Pants_14^18^0^4^1^7
+N^15450^2^Dredgemire Leggings^INV_Pants_07^18^0^4^2^7
+N^15451^2^Gargoyle Leggings^INV_Pants_03^18^0^4^3^7
+N^15452^2^Featherbead Bracers^INV_Bracer_08^18^0^4^1^9
+N^15453^2^Savannah Bracers^INV_Bracer_07^18^0^4^2^9
 N^15730^3^Pattern: Red Dragonscale Breastplate^INV_Scroll_03^61^0^9^1^0
 N^15731^2^Pattern: Runic Leather Gauntlets^INV_Scroll_06^54^0^9^1^0
 N^15733^3^Pattern: Green Dragonscale Leggings^INV_Scroll_03^54^0^9^1^0
@@ -2563,12 +2647,22 @@ N^15781^3^Pattern: Black Dragonscale Leggings^INV_Scroll_05^62^0^9^1^0
 N^15802^3^Mooncloth Boots^INV_Boots_05^56^51^4^1^8
 N^15805^3^Penelope's Rose^INV_Misc_Flower_04^61^0^4^0^23
 N^15806^3^Mirah's Song^INV_Sword_34^61^0^2^7^0
+N^15824^2^Astoria Robes^INV_Chest_Cloth_07^59^0^4^1^20
+N^15825^2^Traphook Jerkin^INV_Chest_Plate06^59^0^4^2^5
+N^15827^2^Jadescale Breastplate^INV_Chest_Chain_04^59^0^4^3^5
 N^15846^1^Salt Shaker^INV_Egg_05^50^0^7^3^0
+N^15853^3^Windreaper^INV_Axe_08^60^0^2^0^0
+N^15854^3^Dancing Sliver^INV_Staff_07^60^0^2^10^0
+N^15858^2^Freewind Gloves^INV_Gauntlets_16^59^0^4^1^10
+N^15859^2^Seapost Girdle^INV_Belt_23^59^0^4^3^6
+N^15860^2^Blinkstrike Armguards^INV_Bracer_17^60^0^4^4^9
+N^15861^2^Swiftfoot Treads^INV_Boots_07^60^0^4^2^8
 N^15867^2^Prismcharm^INV_Misc_Gem_Variety_02^60^0^4^0^12
 N^15869^2^Silver Skeleton Key^INV_Misc_Key_03^20^0^13^0^0
 N^15870^2^Golden Skeleton Key^INV_Misc_Key_13^30^0^13^0^0
 N^15871^2^Truesilver Skeleton Key^INV_Misc_Key_11^40^0^13^0^0
 N^15872^2^Arcanite Skeleton Key^INV_Misc_Key_08^55^0^13^0^0
+N^15873^3^Ragged John's Neverending Cup^INV_Drink_03^60^0^4^0^12
 N^15880^1^Head of Ramstein the Gorger^INV_Misc_Head_Elf_01^1^0^12^0^0
 N^15992^1^Dense Blasting Powder^INV_Misc_Ammo_Gunpowder_01^50^0^7^1^0
 N^15993^1^Thorium Grenade^INV_Misc_Bomb_08^52^0^7^2^0
@@ -3009,6 +3103,9 @@ N^17025^1^Pattern: Black Dragonscale Boots^INV_Scroll_03^66^0^9^1^0
 N^17028^1^Holy Candle^INV_Misc_Candle_03^48^0^5^0^0
 N^17034^1^Maple Seed^INV_Misc_Food_02^20^0^5^0^0
 N^17035^1^Stranglethorn Seed^INV_Misc_Food_02^30^0^5^0^0
+N^17039^2^Skullbreaker^INV_Misc_Bone_DwarfSkull_01^36^0^2^4^0
+N^17042^2^Nail Spitter^INV_Weapon_Rifle_01^36^0^2^3^0
+N^17043^2^Zealot's Robe^INV_Chest_Cloth_06^36^0^4^1^20
 N^17044^3^Will of the Martyr^INV_Jewelry_Talisman_07^61^0^4^0^2
 N^17045^3^Blood of the Martyr^INV_Jewelry_Ring_25^61^0^4^0^11
 N^17049^3^Plans: Fiery Chain Girdle^INV_Scroll_05^66^0^9^4^0
@@ -3076,6 +3173,7 @@ N^17402^1^Greatfather's Winter Ale^INV_Drink_13^35^0^0^3^0
 N^17404^1^Blended Bean Brew^INV_Drink_15^15^5^0^0^0
 N^17413^3^Codex: Prayer of Fortitude^INV_Misc_Book_09^48^48^9^0^0
 N^17414^3^Codex: Prayer of Fortitude II^INV_Misc_Book_09^60^60^9^0^0
+N^17508^2^Forcestone Buckler^INV_Shield_02^41^0^4^6^0
 N^17562^3^Knight-Lieutenant's Dreadweave Boots^INV_Boots_02^63^58^4^1^8
 N^17563^3^Knight-Captain's Dreadweave Bracers^INV_Bracer_09^60^55^4^1^9
 N^17564^3^Knight-Lieutenant's Dreadweave Gloves^INV_Gauntlets_19^63^58^4^1^10
@@ -3131,9 +3229,12 @@ N^17683^3^Book: Gift of the Wild II^INV_Misc_Book_11^60^60^9^0^0
 N^17684^1^Theradric Crystal Carving^INV_Jewelry_Talisman_07^1^0^12^0^0
 N^17690^2^Frostwolf Insignia Rank 1^INV_Jewelry_FrostwolfTrinket_01^60^0^4^0^12
 N^17691^2^Stormpike Insignia Rank 1^INV_Jewelry_StormPikeTrinket_01^60^0^4^0^12
+N^17694^2^Band of the Fist^INV_Jewelry_Ring_02^25^0^4^0^11
+N^17695^2^Chestnut Mantle^INV_Shoulder_09^26^0^4^1^3
 N^17702^1^Celebrian Rod^INV_Staff_19^1^0^12^0^0
 N^17703^1^Celebrian Diamond^INV_Jewelry_Talisman_08^1^0^12^0^0
 N^17704^2^Edge of Winter^INV_Axe_06^38^33^2^0^0
+N^17705^3^Thrash Blade^INV_Sword_36^53^0^2^7^0
 N^17706^2^Plans: Edge of Winter^INV_Scroll_06^38^0^9^4^0
 N^17707^3^Gemshard Heart^INV_Stone_01^54^49^4^0^2
 N^17708^1^Elixir of Frost Power^INV_Potion_115^38^28^0^3^0
@@ -3164,6 +3265,7 @@ N^17739^3^Grovekeeper's Drape^INV_Misc_Cape_17^52^47^4^1^16
 N^17740^3^Soothsayer's Headdress^INV_Helmet_12^52^47^4^2^1
 N^17741^3^Nature's Embrace^INV_Chest_Cloth_15^51^46^4^1^20
 N^17742^3^Fungus Shroud Armor^INV_Chest_Leather_08^51^46^4^2^5
+N^17743^3^Resurgence Rod^INV_Staff_Goldfeathered_01^53^0^2^10^0
 N^17744^3^Heart of Noxxion^INV_Misc_Gem_Pearl_06^51^46^4^0^12
 N^17745^3^Noxious Shooter^INV_Wand_04^51^46^2^19^0
 N^17746^3^Noxxion's Shackles^INV_Bracer_06^51^46^4^4^9
@@ -3172,15 +3274,20 @@ N^17749^3^Phytoskin Spaulders^INV_Shoulder_06^51^46^4^2^3
 N^17750^2^Chloromesh Girdle^INV_Belt_25^51^46^4^1^6
 N^17751^2^Brusslehide Leggings^INV_Pants_05^51^46^4^2^7
 N^17752^3^Satyr's Lash^INV_Weapon_ShortBlade_09^50^45^2^15^0
+N^17753^3^Verdant Keeper's Aim^INV_Weapon_Bow_03^53^0^2^2^0
 N^17754^3^Infernal Trickster Leggings^INV_Pants_Wolf^50^45^4^3^7
 N^17755^3^Satyrmane Sash^INV_Belt_24^50^45^4^1^6
 N^17757^1^Amulet of Spirits^INV_Jewelry_Amulet_02^1^0^12^0^0
 N^17766^3^Princess Theradras' Scepter^INV_Hammer_10^54^49^2^5^0
 N^17767^3^Bloomsprout Headpiece^INV_Helmet_17^51^46^4^3^1
+N^17770^2^Branchclaw Gauntlets^INV_Gauntlets_30^47^0^4^4^10
+N^17772^2^Zealous Shadowshard Pendant^INV_Jewelry_Necklace_06^42^0^4^0^2
+N^17773^2^Prodigious Shadowshard Pendant^INV_Jewelry_Necklace_06^42^0^4^0^2
 N^17774^2^Mark of the Chosen^INV_Jewelry_Talisman_08^48^0^4^0^12
 N^17775^2^Acumen Robes^INV_Chest_Cloth_49^47^0^4^1^20
 N^17776^2^Sprightring Helm^INV_Helmet_35^47^0^4^2^1
 N^17777^2^Relentless Chain^INV_Chest_Chain_07^47^0^4^3^5
+N^17778^2^Sagebrush Girdle^INV_Belt_25^47^0^4^2^6
 N^17779^2^Hulkstone Pauldrons^INV_Shoulder_23^47^0^4^4^3
 N^17780^4^Blade of Eternal Darkness^INV_Sword_09^54^49^2^15^0
 N^17782^5^Talisman of Binding Shard^INV_Jewelry_Amulet_04^80^60^4^0^2
@@ -3307,6 +3414,10 @@ N^18361^3^The Greatest Race of Hunters^INV_Misc_Book_02^60^54^15^0^0
 N^18362^3^Holy Bologna: What the Light Won't Tell You^INV_Misc_Book_08^60^54^15^0^0
 N^18363^3^Frost Shock and You^INV_Misc_Book_04^60^54^15^0^0
 N^18364^3^The Emerald Dream^INV_Misc_Book_10^60^54^15^0^0
+N^18366^3^Gordok's Handguards^INV_Gauntlets_09^60^0^4^4^10
+N^18367^3^Gordok's Gauntlets^INV_Gauntlets_09^60^0^4^3^10
+N^18368^3^Gordok's Gloves^INV_Gauntlets_01^60^0^4^2^10
+N^18369^3^Gordok's Handwraps^INV_Gauntlets_06^60^0^4^1^10
 N^18370^3^Vigilance Charm^INV_Misc_StoneTablet_04^62^57^4^0^12
 N^18371^3^Mindtap Talisman^INV_Battery_02^61^56^4^0^12
 N^18372^3^Blade of the New Moon^INV_Weapon_ShortBlade_18^62^57^2^15^0
@@ -3345,14 +3456,19 @@ N^18406^4^Onyxia Blood Talisman^Spell_Shadow_LifeDrain^74^0^4^0^12
 N^18407^3^Felcloth Gloves^INV_Gauntlets_19^62^57^4^1^10
 N^18408^3^Inferno Gloves^INV_Gauntlets_19^62^57^4^1^10
 N^18409^3^Mooncloth Gloves^INV_Gauntlets_17^62^57^4^1^10
+N^18410^2^Sprinter's Sword^INV_Sword_28^57^0^2^8^0
+N^18411^2^Spry Boots^INV_Boots_06^57^0^4^2^8
 N^18413^3^Cloak of Warding^INV_Misc_Cape_06^62^57^4^1^16
 N^18414^4^Pattern: Belt of the Archmage^INV_Scroll_04^62^0^9^2^0
 N^18415^3^Pattern: Felcloth Gloves^INV_Scroll_05^62^0^9^2^0
 N^18416^3^Pattern: Inferno Gloves^INV_Scroll_05^62^0^9^2^0
 N^18417^3^Pattern: Mooncloth Gloves^INV_Scroll_05^62^0^9^2^0
 N^18418^3^Pattern: Cloak of Warding^INV_Scroll_05^62^0^9^2^0
+N^18420^3^Bonecrusher^INV_Mace_02^63^0^2^5^0
+N^18421^3^Backwood Helm^INV_Helmet_19^63^0^4^3^1
 N^18422^4^Head of Onyxia (Horde)^INV_Misc_Head_Dragon_01^60^60^12^0^0
 N^18423^4^Head of Onyxia (Alliance)^INV_Misc_Head_Dragon_01^60^60^12^0^0
+N^18424^3^Sedge Boots^INV_Boots_05^63^0^4^2^8
 N^18425^2^Kreeg's Mug^INV_Drink_05^60^55^4^0^23
 N^18426^1^Lethtendris's Web^Spell_Nature_Web^1^0^12^0^0
 N^18427^3^Sergeant's Cloak^INV_Misc_Cape_07^35^30^4^1^16
@@ -3434,6 +3550,8 @@ N^18524^3^Leggings of Destruction^INV_Pants_03^63^58^4^3^7
 N^18525^3^Bracers of Prosperity^INV_Bracer_12^63^58^4^2^9
 N^18526^3^Crown of the Ogre King^INV_Crown_01^63^58^4^1^1
 N^18527^3^Harmonious Gauntlets^INV_Gauntlets_10^63^58^4^3^10
+N^18535^3^Milli's Shield^INV_Shield_12^59^0^4^6^0
+N^18536^3^Milli's Lexicon^INV_Misc_Book_06^59^0^4^0^23
 N^18541^4^Puissant Cape^INV_Misc_Cape_06^70^60^4^1^16
 N^18542^4^Typhoon^INV_Sword_41^68^60^2^8^0
 N^18543^4^Ring of Entropy^INV_Jewelry_Ring_20^66^60^4^0^11
@@ -4308,7 +4426,13 @@ N^20209^3^Defiler's Plate Greaves^INV_Boots_Plate_04^43^40^4^4^8
 N^20210^3^Defiler's Plate Greaves^INV_Boots_Plate_04^33^28^4^3^8
 N^20211^3^Defiler's Plate Greaves^INV_Boots_Plate_04^53^48^4^4^8
 N^20212^4^Defiler's Plate Spaulders^INV_Shoulder_01^71^60^4^4^3
+N^20213^3^Belt of Shrunken Heads^INV_Belt_13^70^0^4^4^6
 N^20214^4^Mindfang^INV_Sword_13^71^60^2^15^0
+N^20215^3^Belt of Shriveled Heads^INV_Belt_12^70^0^4^3^6
+N^20216^3^Belt of Preserved Heads^INV_Belt_14^70^0^4^2^6
+N^20217^3^Belt of Tiny Heads^INV_Belt_13^70^0^4^1^6
+N^20218^3^Faded Hakkari Cloak^INV_Misc_Cape_13^59^0^4^1^16
+N^20219^3^Tattered Hakkari Cape^INV_Misc_Cape_14^59^0^4^1^16
 N^20220^4^Ironbark Staff^INV_Wand_04^71^60^2^10^0
 N^20222^1^Defiler's Enriched Ration^inv_misc_food_82^55^45^0^0^0
 N^20223^1^Defiler's Field Ration^inv_misc_food_97^35^25^0^0^0
@@ -4761,8 +4885,11 @@ N^21506^4^Pendant of the Shifting Sands^INV_Jewelry_Necklace_AhnQiraj_03^70^0^4^
 N^21507^4^Amulet of the Shifting Sands^INV_Jewelry_Necklace_AhnQiraj_03^70^0^4^0^2
 N^21508^2^Mark of Cenarius^INV_Jewelry_Necklace_12^1^0^12^0^0
 N^21515^2^Mark of Remulos^INV_Jewelry_Necklace_14^1^0^12^0^0
+N^21517^4^Gnomish Turban of Psychic Might^INV_Helmet_63^75^0^4^1^1
 N^21524^2^Red Winter Hat^INV_Helmet_67^1^0^4^0^1
 N^21525^2^Green Winter Hat^INV_Helmet_68^1^0^4^0^1
+N^21529^4^Amulet of Shadow Shielding^INV_Jewelry_Necklace_17^77^0^4^0^2
+N^21530^4^Onyx Embedded Leggings^INV_Pants_Mail_04^77^0^4^3^7
 N^21536^1^Elune Stone^INV_Misc_Gem_Pearl_04^1^0^0^0^0
 N^21537^1^Festival Dumplings^INV_Misc_Food_DimSum^55^0^0^0^0
 N^21538^1^Festive Pink Dress^INV_Chest_Cloth_58^1^0^4^0^20
@@ -5019,6 +5146,8 @@ N^22268^3^Draconic Infused Emblem^INV_Jewelry_Talisman_09^63^58^4^0^12
 N^22269^3^Shadow Prowler's Cloak^INV_Misc_Cape_20^63^58^4^1^16
 N^22270^3^Entrenching Boots^INV_Boots_Plate_02^55^50^4^4^8
 N^22271^3^Leggings of Frenzied Magic^INV_Pants_Leather_21^57^52^4^2^7
+N^22272^3^Forest's Embrace^INV_Chest_Leather_08^52^0^4^2^5
+N^22274^3^Grizzled Pelt^INV_Chest_Leather_08^52^0^4^2^5
 N^22275^3^Firemoss Boots^INV_Boots_08^57^52^4^2^8
 N^22276^1^Lovely Red Dress^INV_Chest_Cloth_24^1^0^4^0^20
 N^22277^1^Red Dinner Suit^INV_Shirt_Red_01^1^0^4^0^20
@@ -5056,7 +5185,10 @@ N^22339^3^Rune Band of Wizardry^INV_Jewelry_Ring_35^63^58^4^0^11
 N^22340^3^Pendant of Celerity^INV_Jewelry_Necklace_04^63^58^4^0^2
 N^22342^3^Leggings of Torment^INV_Pants_09^63^58^4^1^7
 N^22343^3^Handguards of Savagery^INV_Gauntlets_11^63^58^4^3^10
+N^22344^1^Brazier of Invocation: User's Manual^INV_Misc_Book_09^0^0^15^0^0
 N^22345^3^Totem of Rebirth^INV_Relics_TotemofRebirth^62^57^4^9^0
+N^22347^3^Fahrad's Reloading Repeater^INV_Weapon_Crossbow_04^65^0^2^18^0
+N^22348^3^Doomulus Prime^INV_Hammer_10^65^0^2^5^0
 N^22349^4^Desecrated Breastplate^INV_Misc_Desecrated_PlateChest^60^60^4^0^0
 N^22350^4^Desecrated Tunic^INV_Misc_Desecrated_MailChest^60^60^4^0^0
 N^22351^4^Desecrated Robe^INV_Misc_Desecrated_ClothChest^60^60^4^0^0
@@ -5081,6 +5213,10 @@ N^22369^4^Desecrated Bindings^INV_Misc_Desecrated_ClothBracer^60^60^4^0^0
 N^22370^4^Desecrated Belt^INV_Misc_Desecrated_ClothBelt^60^60^4^0^0
 N^22371^4^Desecrated Gloves^INV_Misc_Desecrated_ClothGlove^60^60^4^0^0
 N^22372^4^Desecrated Sandals^INV_Misc_Desecrated_ClothBoots^60^60^4^0^0
+N^22377^3^The Thunderwood Poker^INV_Sword_17^65^0^2^15^0
+N^22378^3^Ravenholdt Slicer^INV_Sword_38^65^0^2^7^0
+N^22379^3^Shivsprocket's Shiv^INV_Sword_21^65^0^2^15^0
+N^22380^3^Simone's Cultivating Hammer^INV_Hammer_05^65^0^2^4^0
 N^22383^4^Sageblade^INV_Sword_51^64^59^2^7^0
 N^22384^4^Persuader^INV_Hammer_08^63^58^2^4^0
 N^22385^4^Titanic Leggings^INV_Pants_04^60^55^4^4^7
@@ -5132,6 +5268,7 @@ N^22441^4^Cryptstalker Handguards^INV_Gauntlets_25^88^0^4^3^10
 N^22442^4^Cryptstalker Girdle^INV_Belt_22^88^0^4^3^6
 N^22443^4^Cryptstalker Wristguards^INV_Bracer_02^88^0^4^3^9
 N^22444^1^Putrid Vine^Ability_Creature_Poison_04^1^0^15^0^0
+N^22458^3^Moonshadow Stave^INV_Staff_28^52^0^2^10^0
 N^22464^4^Earthshatter Tunic^INV_Chest_Chain_15^92^0^4^3^5
 N^22465^4^Earthshatter Legguards^INV_Pants_Mail_15^88^0^4^3^7
 N^22466^4^Earthshatter Headpiece^INV_Helmet_15^88^0^4^3^1
@@ -5229,6 +5366,11 @@ N^22688^3^Verimonde's Last Resort^INV_Weapon_ShortBlade_03^66^0^2^15^0
 N^22689^3^Sanctified Leather Helm^INV_Helmet_13^66^0^4^2^1
 N^22690^3^Leggings of the Plague Hunter^INV_Pants_03^66^0^4^3^7
 N^22691^4^Corrupted Ashbringer^INV_Sword_2H_AshbringerCorrupt^86^60^2^8^0
+N^22699^4^Icebane Leggings^INV_Pants_04^80^0^4^4^7
+N^22700^4^Glacial Leggings^INV_Pants_06^80^0^4^1^7
+N^22701^4^Polar Leggings^INV_Pants_Leather_21^80^0^4^2^7
+N^22702^4^Icy Scale Leggings^INV_Pants_Mail_15^80^0^4^3^7
+N^22707^4^Ramaladni's Icy Grasp^INV_Jewelry_Ring_35^80^0^4^0^11
 N^22711^3^Cloak of the Hakkari Worshipers^INV_Misc_Cape_16^68^60^4^1^16
 N^22712^3^Might of the Tribe^INV_Misc_Cape_16^68^60^4^1^16
 N^22713^3^Zulian Scepter of Rites^INV_Waepon_Bow_ZulGrub_D_01^68^60^2^4^0
@@ -6129,6 +6271,9 @@ N^33856^4^Veteran's Leather Chestpiece^INV_Chest_Chain_16^92^60^4^2^5
 N^33857^4^Veteran's Leather Handgrips^INV_Gauntlets_25^92^60^4^2^10
 N^33858^4^Veteran's Leather Leggings^INV_Pants_06^92^60^4^2^7
 N^33859^4^Veteran's Leather Footguards^INV_Boots_08^92^60^4^2^8
+N^33863^2^Spiritwater Orb^INV_Wand_11^50^0^4^0^23
+N^33864^2^Drape of Elusiveness^INV_Misc_Cape_16^50^0^4^1^16
+N^33865^2^Tempestria's Crown^INV_Jewelry_Ring_03^50^0^4^1^1
 N^33879^4^Partisan's Claymore^INV_Sword_39^72^60^2^8^0
 N^33880^4^Partisan's Battle Hammer^INV_Hammer_03^72^60^2^5^0
 N^33881^4^Strategist's Demolisher^INV_Hammer_23^72^60^2^5^0
@@ -6195,6 +6340,7 @@ N^37069^1^Sludge Ooze^INV_Misc_Slime_01^1^0^15^2^0
 N^37070^1^Starsilk Moth^ability_hunter_pet_moth^1^0^15^2^0
 N^37071^1^Toothy^INV_Drink_19^1^0^15^2^0
 N^37072^1^Palatinate Pebble^INV_Misc_Orb_02^1^0^15^2^0
+N^40065^3^Horde Defender's Axe^INV_Axe_04^20^0^2^1^0
 N^40080^3^Thunderforge Lance^inv_spear_02^55^0^2^6^0
 N^40083^2^Schematic: Jewelry Scope^INV_Scroll_03^25^0^9^3^0
 N^40084^2^Schematic: Precision Jewelers Kit^INV_Scroll_03^20^0^9^3^0
@@ -6260,6 +6406,7 @@ N^41410^1^Zandara's Head^INV_Misc_Foot_Centaur^1^0^12^0^0
 N^41411^1^Journal of Basil Frye^INV_Misc_Book_08^1^0^12^0^0
 N^41412^1^Cosmic Residue^INV_Enchant_DustSoul^1^0^12^0^0
 N^41414^1^Anima of the Guardian^INV_Enchant_EssenceMysticalSmall^1^0^12^0^0
+N^41415^4^The Scepter of Medivh^INV_Staff_11^1^0^15^0^0
 N^41429^1^Voss' Sizzling Brew^INV_Potion_22^1^0^12^0^0
 N^41454^1^Throwing Axes of the Amani^INV_Axe_15^1^0^12^0^0
 N^41455^1^Blackrock Powder^INV_Misc_Dust_01^1^0^12^0^0
@@ -6298,6 +6445,9 @@ N^41674^1^Ambersap Glazed Boar Ribs^INV_Misc_Food_48^35^25^0^0^0
 N^41675^1^Ambersap^inv_misc_ambersap^35^0^0^0^0
 N^41700^1^Lunar Token^INV_Jewelry_Talisman_08^1^0^12^0^0
 N^41704^2^Lunar Festival Gift Box^INV_Box_04^50^0^15^0^0
+N^41713^3^Doomsong Cuffs^INV_Bracer_05^39^0^4^2^9
+N^41714^3^Sash of Zarm'geth^INV_Belt_06^39^0^4^1^6
+N^41715^3^Legging's of Geth'kar^INV_Pants_03^39^0^4^3^7
 N^41719^2^Stonelink Leggings^INV_Pants_03^32^27^4^3^7
 N^41720^3^Earthweaver Kilt^INV_Pants_13^33^28^4^2^7
 N^41721^3^Bulwark of the Old Horde^GenShield_1F^33^28^4^6^0
@@ -6309,8 +6459,18 @@ N^41726^3^Slaver's Gauntlets^INV_Gauntlets_15^33^28^4^3^10
 N^41727^2^Blackheart Armor^INV_Chest_Leather_02^33^28^4^3^5
 N^41797^1^The Pendant of Uth'okk^INV_Jewelry_Necklace_07^1^0^12^0^0
 N^41798^3^The Pendant of Uth'okk^INV_Jewelry_Necklace_07^40^0^4^0^2
+N^41826^2^Mosshide Cinch^INV_Belt_03^26^0^4^2^6
+N^41827^2^Fenwater Gloves^INV_Gauntlets_18^26^0^4^1^10
+N^41828^2^Mosschain Bracers^INV_Bracer_12^26^0^4^3^9
 N^41829^1^Head of Gowlfang^Spell_Shadow_CorpseExplode^1^0^12^0^0
+N^41831^3^Runebound Dagger^INV_Weapon_ShortBlade_25^32^0^2^15^0
+N^41832^3^Flameweave Sash^INV_Belt_04^32^0^4^1^6
+N^41833^3^Cuffs of Burning Rage^INV_Bracer_02^32^0^4^3^9
 N^41834^1^Broodmother's Sac^INV_Misc_Organ_02^1^0^12^0^0
+N^41836^3^Ancient Flame Pendant^INV_Jewelry_Necklace_15^32^0^4^0^2
+N^41838^2^Gravelweave Pantaloons^INV_Pants_09^31^0^4^1^7
+N^41839^2^Defender of Dorgal^INV_Shield_05^31^0^4^6^0
+N^41840^2^Gemlaced Sash^INV_Belt_04^31^0^4^2^6
 N^41841^1^Blackheart's Head^INV_Misc_Head_Orc_01^1^0^12^0^0
 N^41842^3^Menethil Greaves^INV_Boots_Plate_09^31^0^4^3^8
 N^41843^3^Stoutheart Shawl^INV_Misc_Cape_18^31^0^4^1^16
@@ -6325,12 +6485,16 @@ N^41855^2^Fenweave Gloves^INV_Gauntlets_23^32^0^4^1^10
 N^41857^1^Balor Sigil Ring^INV_Jewelry_Ring_43^1^0^12^0^0
 N^41874^2^Fragment of Algoron^INV_Misc_StoneTablet_02^30^0^15^0^0
 N^41875^2^Fragment of Dathronag^INV_Misc_StoneTablet_06^30^0^15^0^0
+N^41876^2^Lower Reserve Key^INV_Misc_Key_03^0^0^13^0^0
 N^41895^4^Shard of the Demon Soul^INV_Enchant_ShardBrilliantLarge^35^30^12^0^0
+N^41916^2^Dune Wanderer's Hauberk^INV_Chest_Samurai^46^0^4^3^5
+N^41917^2^Desert Seeker's Pants^INV_Pants_09^46^0^4^1^7
 N^41921^1^Crown of Balor^INV_Crown_02^1^0^12^0^0
 N^41926^1^Heart of Mycellakos^INV_Misc_Herb_07^1^0^12^0^0
 N^41937^1^Balor Sigil Ring^INV_Jewelry_Ring_43^1^0^12^0^0
 N^41940^1^Compendium of Successful Trade^INV_Misc_Book_07^1^0^12^0^0
 N^41942^1^Arthur's Soul Fragment^INV_Enchant_EssenceMagicSmall^1^0^12^0^0
+N^41980^2^Slatebeard Amulet^INV_Jewelry_Necklace_12^40^0^4^0^2
 N^41985^1^Crest of Valor^INV_Misc_QuestionMark^1^0^12^0^0
 N^41988^1^Molten Scale^INV_Misc_MonsterScales_15^1^0^12^0^0
 N^41989^1^Signet of Thaurissan^BTNHarbingerRing^1^0^12^0^0
@@ -6354,6 +6518,12 @@ N^42204^3^Grimtotem Bracers^INV_Bracer_09^30^25^4^2^9
 N^42205^3^Kodoheart Necklace^INV_Jewelry_Necklace_13^30^25^4^0^2
 N^42215^1^Hydra Leather^INV_Misc_MonsterScales_10^20^0^7^0^0
 N^42224^1^Geode Shards^INV_Misc_Gem_Bloodstone_02^1^0^12^0^0
+N^42263^2^Sagh's Pendant^INV_Jewelry_Necklace_14^27^0^4^0^2
+N^42264^2^Hauberk of Bloodshed^INV_Chest_Plate16^27^0^4^3^5
+N^42265^2^Cloudtotem Cloak^INV_Misc_Cape_17^27^0^4^1^16
+N^42268^3^Bloodhoof Sash^INV_Belt_12^28^0^4^1^6
+N^42269^3^Stormhoof Shackles^INV_Bracer_17^28^0^4^3^9
+N^42270^3^Stonemane Boots^INV_Boots_Cloth_08^28^0^4^2^8
 N^42275^3^Canyonhide Gloves^INV_Gauntlets_25^29^24^4^2^10
 N^42276^3^Cloudrender Pants^INV_Pants_12^29^24^4^2^7
 N^42277^4^Hawkfeather Crown^INV_Helmet_04^38^26^4^2^1
@@ -6361,6 +6531,9 @@ N^42292^4^Plans: Crystalized Topaz Gemstone^INV_Scroll_04^65^0^9^0^0
 N^42300^1^Flawless Leopard Pelt^INV_Misc_Pelt_06^1^0^12^0^0
 N^42311^1^Transmutation Alloy^INV_Gizmo_MithrilCasing_01^1^0^12^0^0
 N^42313^1^Bottom Half of the Elementium Lock Blueprints^INV_Misc_Note_04^1^0^12^0^0
+N^42323^2^Heavy Chain Bracers^INV_Bracer_03^16^0^4^3^9
+N^42324^2^Sash of Illumination^INV_Belt_04^16^0^4^1^6
+N^42325^2^Deep-Thread Shawl^INV_Misc_Pelt_Bear_02^16^0^4^1^16
 N^42334^3^Outline: Starfeather Arrows^INV_Scroll_05^1^0^9^6^0
 N^46600^2^Lordaeron Breastplate^INV_Chest_Plate05^20^15^4^3^5
 N^47000^4^Lawbringer Helmet^INV_LawHelm_V3^66^60^4^4^1
@@ -6558,6 +6731,7 @@ N^51046^3^Call of Shadow^INV_Sword_37^59^54^2^7^0
 N^51047^3^Sacrosanct Epaulets^INV_Shoulder_24^59^54^4^1^3
 N^51048^3^The Veil of Hatred^BTNFreezingHotCloak^59^54^4^1^16
 N^51064^1^Glyph of the White Stag^INV_Misc_Note_05^0^0^13^0^0
+N^51070^1^Glyph of the Arcane Treant^INV_Misc_Note_05^0^0^13^0^0
 N^51217^2^Fashion Coin^INV_Misc_Ribbon_01^0^0^15^0^0
 N^51250^2^Miniature Winter Veil Tree^INV_Misc_Food_62^0^0^15^0^0
 N^51251^1^Hedwig^Ability_EyeOfTheOwl^1^0^15^2^0
@@ -6610,7 +6784,15 @@ N^51801^3^Schematic: Hypertech Battery Pack^INV_Scroll_05^0^0^9^3^0
 N^51802^3^Idol of Evergrowth^INV_Relics_IdolofRejuvenation^51^46^4^8^0
 N^51803^3^Totem of the Endless Flicker^Spell_Fire_Fire^47^42^4^9^0
 N^51804^3^Libram of the Resolute^INV_Misc_Book_10^44^39^4^7^0
+N^51805^3^Signet of Arugal^INV_Jewelry_Ring_24^29^0^4^0^11
 N^51809^3^Schematic: Hypertech Essentials^INV_Scroll_05^0^0^9^3^0
+N^51832^3^Nathrezim Wedge^INV_Axe_13^32^0^2^0^0
+N^51833^3^Femur Staff^INV_Staff_22^32^0^2^10^0
+N^51834^3^Scarlet Pillar^INV_Hammer_07^32^0^2^5^0
+N^51848^3^Ancient Elven Robes^INV_Chest_Cloth_03^24^0^4^1^5
+N^51849^3^Thunderhorn^INV_Sword_17^23^0^2^8^0
+N^51850^2^Greenweave Sash^INV_Belt_25^23^0^4^1^6
+N^51851^2^Verdant Boots^INV_Boots_03^23^0^4^3^8
 N^53016^3^Recipe: Gurubashi Gumbo^INV_Scroll_03^55^0^9^5^0
 N^53017^3^Formula: Enchant Gloves - Major Strength^INV_Misc_Note_01^70^0^9^8^0
 N^53018^3^Schematic: Enchanted Thorium Shells^INV_Scroll_05^55^0^9^3^0
@@ -6943,6 +7125,7 @@ N^56075^2^Dreary Opal Gemstone^INV_Misc_Gem_03^25^0^0^0^0
 N^56076^3^Resilient Arcane Gemstone^INV_Misc_Gem_Topaz_03^25^0^0^0^0
 N^56077^3^Resurged Topaz Gemstone^INV_Misc_Gem_Topaz_02^25^0^0^0^0
 N^56084^3^Middle Piece of an Ancient Idol^INV_Misc_Orb_01^60^0^15^0^0
+N^56085^3^Bottom Piece of an Ancient Idol^INV_Staff_05^60^0^15^0^0
 N^56089^2^Ornate Mithril Crown^INV_Helmet_06^45^40^4^1^1
 N^56090^2^Spellweaver Pendant^INV_Jewelry_Necklace_07^56^51^4^0^2
 N^56092^2^Stormcloud Shackles^INV_Bracer_01^61^56^4^1^9
@@ -6982,6 +7165,10 @@ N^58058^3^Harpoon of Ahab^INV_Spear_04^43^38^2^6^0
 N^58059^3^Razertooth Fetish^INV_Misc_Bone_07^43^38^4^0^12
 N^58061^3^Sharkskin Sash^INV_Belt_22^43^38^4^1^6
 N^58073^2^Grahan Family Seal^INV_Misc_Rune_01^41^0^4^0^12
+N^58080^3^Rufus' Trusty Tankard^INV_Drink_03^38^0^2^4^0
+N^58081^3^Kinrial's Scalpel^INV_Weapon_ShortBlade_14^38^0^2^15^0
+N^58082^3^Noppsy's Compendium^INV_Misc_Book_11^38^0^4^0^23
+N^58083^3^Nippsy's Precision Rifle^INV_Weapon_Rifle_02^38^0^2^3^0
 N^58088^4^True Band of Sulfuras^inv_jewelry_ring_sulfuras^78^60^4^0^11
 N^58089^3^Thornlash Branch^INV_Staff_02^34^29^2^19^0
 N^58090^3^Seed of Writhing Growth^INV_Misc_Root_02^34^29^4^0^12
@@ -7004,6 +7191,9 @@ N^58120^3^Cowl of Whispering Shadows^INV_Helmet_27^29^24^4^1^1
 N^58121^3^Totem of the Corrupted Current^INV_QirajIdol_Life^29^24^4^9^0
 N^58122^3^Bracers of Sinister Rites^INV_Bracer_07^29^24^4^1^9
 N^58123^3^Felhoof Sabatons^INV_Boots_03^29^24^4^2^8
+N^58127^2^Hammer of Earthfury^INV_Mace_01^29^0^2^4^0
+N^58128^2^Axe of Raging Winds^INV_Axe_04^29^0^2^1^0
+N^58129^2^Claw of Tempered Fire^INV_Weapon_ShortBlade_27^29^0^2^13^0
 N^58130^2^Maneater Cleaver^INV_Axe_04^36^31^2^1^0
 N^58131^2^Stormreaver Belt^INV_Belt_12^36^31^4^1^6
 N^58132^2^Gluttonous Buckle^INV_Belt_06^36^31^4^2^6
@@ -7118,10 +7308,15 @@ N^58262^3^Enchanted Glass Kopis^INV_Sword_39^36^0^2^7^0
 N^58268^3^Left^INV_Gauntlets_11^37^0^2^13^0
 N^58269^3^Right^INV_Mace_11^37^0^2^4^0
 N^58270^3^Totem of An'she^ability_smash^37^0^2^5^0
+N^58272^3^Kor'kron Crown^INV_Helmet_25^40^0^4^3^1
+N^58273^3^Voodoo Jerkin^INV_Misc_QuestionMark^40^0^4^2^5
+N^58274^3^Totemic Headdress^INV_Helmet_17^40^0^4^1^1
 N^58275^3^Handbook of Noxious Assault IV^INV_Misc_Book_10^60^60^9^0^0
 N^58276^4^Hull of Forlorn Souls^INV_Shield_16^40^35^4^6^0
+N^58277^2^Lady Winter's Touch^INV_Wand_06^40^0^2^19^0
 N^58279^2^Antiquated Slasher^INV_Weapon_ShortBlade_27^37^0^2^13^0
 N^58280^2^Chainmail of Many Pockets^INV_Chest_Chain_07^37^0^4^3^5
+N^58281^2^Trusty Goblin Shiv^INV_ThrowingKnife_03^37^0^2^16^0
 N^58305^3^Giga-Charged Arcane Reflector^INV_Misc_EngGizmos_15^60^55^4^0^12
 N^58401^3^Schematic: Giga-Charged Arcane Reflector^INV_Scroll_06^58^0^9^3^0
 N^60003^4^Remnants of an Old God^INV_WEAPON_HAND_07^84^60^2^13^0
@@ -7138,7 +7333,15 @@ N^60176^1^Groveweald Badge^INV_Misc_Coin_13^1^0^12^0^0
 N^60177^1^Paw of Elder 'One Eye'^INV_Misc_MonsterClaw_03^1^0^12^0^0
 N^60178^1^Paw of Elder Blackmaw^INV_Misc_MonsterClaw_04^1^0^12^0^0
 N^60179^3^Grol's Band^INV_Jewelry_Ring_12^37^0^4^0^11
+N^60180^3^Sentinel Chain^INV_Chest_Chain_12^40^0^4^3^5
+N^60181^3^Groveweave Cloak^INV_Misc_Cape_09^40^0^4^1^16
+N^60182^3^Epaulets of Forest Wisdom^INV_Shoulder_05^40^0^4^1^3
+N^60183^3^Bushstalker Mask^INV_Helmet_32^40^0^4^2^1
 N^60195^1^Intact Power Core^INV_Misc_Gem_Pearl_04^1^0^12^0^0
+N^60213^3^Outrider Chain^INV_Chest_Chain_07^40^0^4^3^5
+N^60214^3^Strongwind Cloak^INV_Misc_Cape_18^40^0^4^1^16
+N^60215^3^Foreststrider Spaulders^INV_Shoulder_04^40^0^4^2^3
+N^60216^3^Hat of Forest Medicine^INV_Helmet_15^40^0^4^1^1
 N^60258^4^Crown of Corruption^INV_Helmet_08^48^35^4^2^1
 N^60287^3^Rune-Etched Grips^INV_Gauntlets_09^62^58^4^4^10
 N^60288^3^Rune-Etched Greaves^inv_boots_plate_05^63^58^4^4^8
@@ -7148,9 +7351,15 @@ N^60291^3^Rune-Etched Crown^inv_helmet_06^63^58^4^4^1
 N^60292^3^Rune-Etched Mantle^INV_Shoulder_11^63^58^4^4^3
 N^60293^3^Untempered Runeblade^INV_Sword_17^63^58^2^8^0
 N^60294^2^Bloodstone Warblade^INV_Sword_12^47^41^2^8^0
+N^60316^3^Truthkeeper Mantle^INV_Shoulder_28^43^0^4^4^3
+N^60317^3^Lightgraced Mallet^INV_Mace_06^43^0^2^4^0
+N^60318^3^Sorrowguard Clutch^INV_Belt_11^43^0^4^2^6
 N^60332^1^Pure Ley Essence^INV_Misc_Dust_03^1^0^12^0^0
 N^60333^3^Azshara Keeper's Staff^INV_Staff_08^62^0^2^10^0
 N^60334^3^Ring of Eldara^INV_Jewelry_Ring_34^62^0^4^0^11
+N^60346^3^The Ogre Mantle^INV_Shoulder_23^59^0^4^2^3
+N^60347^3^Staff of the Ogre Seer^INV_Staff_06^59^0^2^10^0
+N^60348^3^Favor of Cruk'Zogg^INV_Jewelry_Necklace_05^59^0^4^0^2
 N^60350^3^Bloody Gladiator's Cord^INV_Misc_QuestionMark^66^60^4^3^6
 N^60351^3^Bloody Gladiator's Handguards^INV_Misc_QuestionMark^66^60^4^3^10
 N^60352^3^Bloody Gladiator's Leggings^INV_Misc_QuestionMark^68^60^4^3^7
@@ -7178,6 +7387,8 @@ N^60387^3^Sivaxis Tundra Shard^INV_Ore_Arcanite_02^65^60^4^0^23
 N^60388^3^Mariner's Cuffs^INV_Bracer_19^65^60^4^3^9
 N^60389^4^The Frigid Star Ring^INV_Jewelry_Ring_04^66^60^4^0^11
 N^60390^4^Jacket of the Scarlet Admiral^inv_chest_leather_10^66^60^4^2^5
+N^60392^3^Sword of Laneron^INV_Sword_23^25^0^2^8^0
+N^60393^3^Shield of Mathela^INV_Shield_05^25^0^4^6^0
 N^60408^3^Crown of Lost Memories^INV_Helmet_11^65^60^4^1^1
 N^60409^3^Banshee's Veil^INV_Misc_Cape_19^63^58^4^1^16
 N^60410^3^Willbreaker^INV_Weapon_ShortBlade_16^65^60^2^13^0
@@ -7208,6 +7419,12 @@ N^60439^3^Chieftain's Mantle^spell_nature_agitatingtotem^50^45^4^2^3
 N^60440^3^Bloodscalp Longbow^INV_Weapon_Bow_02^50^45^2^2^0
 N^60441^3^The Mojo Ring^INV_Jewelry_Ring_35^50^45^4^0^11
 N^60442^4^Hak'thalz of Legacy^INV_Axe_01^50^45^2^0^0
+N^60459^3^Charged Arcane Ring^INV_Jewelry_Ring_35^65^0^4^0^11
+N^60460^3^Tusk of Gardon^INV_Misc_Bone_05^65^0^4^0^2
+N^60461^3^Blackfire Orb^INV_Misc_Orb_05^65^0^4^0^12
+N^60463^3^Arcane Charged Pendant^INV_Misc_Rune_03^65^0^4^0^2
+N^60464^3^Orb of Kaladoon^INV_Misc_Orb_01^65^0^4^0^12
+N^60465^3^Arcane Strengthened Band^INV_Jewelry_Ring_51Naxxramas^65^0^4^0^11
 N^60492^2^Graypaw Leggings^INV_Pants_02^21^16^4^2^7
 N^60493^2^Graypaw Boots^INV_Boots_05^21^16^4^1^8
 N^60496^1^Head of Chronar^INV_Misc_Head_Dragon_Black^1^0^12^0^0
@@ -7218,6 +7435,7 @@ N^60500^3^Cloak of Atonement^INV_Misc_Cape_11^65^60^4^1^16
 N^60502^3^Unstable Belt^INV_Belt_26^65^60^4^2^6
 N^60503^3^Leggings of Alacrity^INV_Pants_03^65^60^4^3^7
 N^60504^3^Dreadskin Gloves^INV_Gauntlets_18^65^60^4^2^10
+N^60518^3^Broken Core Pendant^item_azereansphere^45^0^4^0^2
 N^60526^1^Grayson's Pendant^INV_Jewelry_Necklace_02^1^0^12^0^0
 N^60535^1^Heart of Hazzas^INV_Misc_Organ_04^1^0^12^0^0
 N^60536^3^Darkwind Glaive^INV_Spear_08^57^0^2^7^0
@@ -7260,9 +7478,29 @@ N^60579^3^Bronze Dragonscale Breastplate^INV_Chest_Chain_06^65^60^4^3^5
 N^60580^3^Bronze Dragonscale Leggings^INV_Pants_02^64^59^4^3^7
 N^60581^3^Bronze Dragonscale Gloves^INV_Gauntlets_10^63^58^4^3^10
 N^60582^3^Incendosaur Skin Gloves^INV_Gauntlets_05^54^49^4^2^10
+N^60622^3^Ring of the Academy^INV_Jewelry_Ring_48Naxxramas^65^0^4^0^11
+N^60624^3^Goldplated Royal Crossbow^INV_Weapon_Crossbow_03^65^0^2^18^0
+N^60625^3^Golden Gauntlets of Stormwind^INV_Gauntlets_04^65^0^4^4^10
+N^60626^3^Regal Goldthreaded Sash^INV_Belt_07^65^0^4^1^6
+N^60665^3^Deepblaze Signet^BTNHarbingerRing^58^0^4^0^11
+N^60666^3^Sternrock Trudgers^INV_Boots_07^58^0^4^2^8
+N^60667^3^Firepike's Lucky Trousers^INV_Pants_12^58^0^4^1^7
+N^60668^2^Badge of Shadowforge^BTN_cr_GCOIN^58^0^4^0^12
 N^60671^1^Arcane Golem Core^INV_Misc_Gem_Pearl_04^1^0^12^0^0
 N^60672^2^Energized Golem Core^INV_Misc_Gem_Pearl_01^58^0^4^0^12
+N^60673^2^Cuffs of Justice^INV_Bracer_14^57^0^4^4^9
+N^60684^2^Tinkering Belt^INV_Belt_06^20^0^4^2^6
+N^60685^2^Safety Wraps^INV_Bracer_10^20^0^4^1^9
+N^60686^2^Harvest Golem Arm^INV_Mace_04^20^0^2^5^0
+N^60694^3^Crown of Grobi^INV_Crown_01^60^0^4^3^1
+N^60695^3^Sigil of Heritage^INV_Jewelry_Ring_43^60^0^4^0^11
+N^60696^3^Rubyheart Mallet^INV_Hammer_04^60^0^2^4^0
+N^60699^2^Varlag's Clutches^INV_Gauntlets_15^58^0^4^2^10
 N^60714^1^War Master Voone's Tusks^INV_Misc_Bone_07^1^0^12^0^0
+N^60715^2^Taskmaster Whip^INV_Misc_Bandage_06^63^0^4^0^12
+N^60717^2^Worg Rider Sash^INV_Belt_12^60^0^4^2^6
+N^60718^2^Sootwalker Sandals^INV_Boots_Fabric_01^60^0^4^1^8
+N^60719^2^Axe of Fargosh^INV_Axe_24^60^0^2^0^0
 N^60724^4^Dalarani Conjurer's Hat^INV_Helmet_11^70^60^4^1^1
 N^60725^4^Ring of Flowing Leylines^INV_Jewelry_Ring_34^70^60^4^0^11
 N^60726^3^Spellguard's Shield^INV_Shield_06^65^60^4^6^0
@@ -7270,6 +7508,10 @@ N^60727^3^Pauldrons of Sealed Magics^INV_Shoulder_18^65^60^4^3^3
 N^60728^3^Boots of the Hermit Magi^INV_Boots_05^65^60^4^1^8
 N^60729^3^Skulker's Gloves^INV_Gauntlets_09^65^60^4^2^10
 N^60730^3^Girdle of the Warden^INV_Belt_33^65^60^4^4^6
+N^60734^3^Blade of the Warleader^INV_Weapon_ShortBlade_05^62^0^2^7^0
+N^60735^3^Obsidian Gem Choker^BTNEmptyAmulet^62^0^4^0^2
+N^60736^3^Battlemaster Helm^INV_Helmet_10^62^0^4^4^1
+N^60739^3^Tarnished Lancelot Ring^BTNLancelot_Ring^63^0^4^0^11
 N^60746^2^Sentinel's Breastplate^INV_Misc_QuestionMark^30^25^4^3^5
 N^60747^2^Sentinel's Boots^INV_Misc_QuestionMark^30^25^4^3^8
 N^60748^2^Sentinel's Crown^INV_Misc_QuestionMark^30^25^4^3^1
@@ -7277,6 +7519,13 @@ N^60749^2^Sentinel's Leggings^INV_Misc_QuestionMark^30^25^4^3^7
 N^60750^2^Sentinel's Gauntlets^INV_Misc_QuestionMark^30^25^4^3^10
 N^60751^2^Sentinel's Pauldrons^INV_Shoulder_13^30^25^4^3^3
 N^60752^3^Sentinel's Glaive^INV_Spear_08^45^40^2^7^0
+N^60759^2^Southmoon Pendant^INV_Jewelry_Necklace_13^52^0^4^0^2
+N^60764^2^The Dune Blade^INV_Sword_36^54^0^2^7^0
+N^60765^2^Sandmoon Greaves^INV_Pants_03^54^0^4^3^7
+N^60771^2^Pyrehand Gloves^INV_Gauntlets_18^58^0^4^1^10
+N^60772^2^Fur of Navakesh^INV_Misc_Cape_04^58^0^4^1^16
+N^60773^2^Blackrock Authority^INV_Mace_12^58^0^2^4^0
+N^60774^2^Girdle of Galron^INV_Belt_03^58^0^4^3^6
 N^60780^3^Pattern: Breastplate of the Earth^INV_Scroll_05^44^0^9^1^0
 N^60784^4^Breastplate of Beast Mastery^INV_Chest_Leather_08^58^53^4^3^5
 N^60786^4^The Night Watchman^INV_Helmet_41^40^35^4^2^1
@@ -7333,6 +7582,8 @@ N^60969^3^Formula: Enchant Bracer - Greater Agility^INV_Misc_Note_01^65^0^0^0^0
 N^60976^1^Danonzo's Tel'Abim Surprise^inv_misc_food_92^65^55^0^0^0
 N^60977^1^Danonzo's Tel'Abim Delight^INV_Drink_21^65^55^0^0^0
 N^60978^1^Danonzo's Tel'Abim Medley^INV_Misc_Food_73^65^55^0^0^0
+N^60996^3^Bixxle's Necklace of Control^INV_Jewelry_Talisman_08^62^0^4^0^2
+N^60997^3^Bixxle's Necklace of Mastery^INV_Jewelry_Talisman_08^62^0^4^0^2
 N^61000^2^Time-Worn Rune^inv_misc_rune_08_yellow^60^0^15^0^0
 N^61001^3^Claw of the Infinite^INV_Sword_34^68^0^2^15^0
 N^61002^3^Robe of the Custodian^INV_Chest_Cloth_30^68^0^4^1^5
@@ -7392,6 +7643,7 @@ N^61060^3^Thornweave Mask^INV_Helmet_32^66^60^4^2^1
 N^61061^3^Regenerating Robe^INV_Chest_Cloth_01^66^60^4^1^5
 N^61062^3^Corroded Plate Belt^INV_Belt_21^66^60^4^4^6
 N^61063^3^Rotmaw's Tooth^INV_Misc_MonsterFang_01^66^60^2^15^0
+N^61068^4^Dark Iron Desecrator^INV_Weapon_Rifle_07^65^0^2^3^0
 N^61081^3^Gift of Ferocity^INV_Misc_Rune_08^60^0^12^0^0
 N^61173^1^Premium Chocolate^BTNChocolateM^35^35^7^0^0
 N^61177^3^Recipe: Potion of Quickness^INV_Scroll_05^60^0^9^6^0
@@ -7527,6 +7779,8 @@ N^61331^3^Blackcowl Sash^INV_Belt_17^48^43^4^2^6
 N^61332^3^Ring of Electrical Binding^INV_Jewelry_Ring_35^48^43^4^0^11
 N^61333^3^Hookblade Cleaver^INV_Sword_36^48^43^2^7^0
 N^61334^3^Cloak of the Dark Veil^INV_Misc_Cape_19^48^43^4^1^16
+N^61348^2^Inlaid Plate Boots^INV_Boots_Plate_08^47^0^4^4^8
+N^61349^2^Dwarven Battle Bludgeon^INV_Mace_11^47^0^2^4^0
 N^61352^1^Genn Greymane's Head^INV_Misc_Head_Human_01^1^0^12^0^0
 N^61353^3^Blackthorn Gauntlets^INV_Gauntlets_15^47^0^4^2^10
 N^61354^3^Banshee's Tear^INV_Jewelry_Ring_27^47^0^4^0^11
@@ -7549,7 +7803,12 @@ N^61376^2^Greymane Gauntlets^INV_Misc_QuestionMark^45^40^4^4^10
 N^61377^2^Greymane Sabatons^INV_Misc_QuestionMark^47^42^4^4^8
 N^61378^2^Greymane Legplates^INV_Misc_QuestionMark^45^40^4^4^7
 N^61379^2^Greymane Vambraces^INV_Bracer_14^47^42^4^4^9
+N^61383^3^Intricate Gnomish Blunderbuss^INV_Weapon_Rifle_TWoW_01_Gold_Noglow^35^0^2^3^0
+N^61384^3^Ionized Metal Grips^INV_Gauntlets_29^35^0^4^3^10
+N^61385^3^Magnetic Band^INV_Belt_27^35^0^4^0^11
+N^61393^2^Low Energy Regulator^INV_Gizmo_06^30^0^4^0^12
 N^61406^4^Mark of the Worgen^INV_Jewelry_Necklace_22^51^46^4^0^11
+N^61422^3^Pure Bloodvial Pendant^INV_Jewelry_Amulet_05^45^0^4^0^2
 N^61423^1^Dreamtonic^INV_Potion_114^55^50^0^0^0
 N^61424^4^Plans: Dreamsteel Mantle^INV_Scroll_05^65^0^0^0^0
 N^61428^4^Pattern: Dreamhide Mantle^INV_Scroll_05^65^0^0^0^0
@@ -7575,6 +7834,8 @@ N^61462^1^Hammer of Hate^INV_Hammer_06^1^0^12^0^0
 N^61463^1^Hammer of the Depths^INV_Hammer_05^1^0^12^0^0
 N^61464^1^Dragonblood Heart^INV_Misc_Organ_01^1^0^12^0^0
 N^61465^4^Pendant of Mortality^INV_Jewelry_Amulet_04^65^0^15^0^12
+N^61486^3^Violet Sash^INV_Belt_10^44^0^4^1^6
+N^61487^3^Gauntlets of Insight^INV_Gauntlets_05^44^0^4^3^10
 N^61496^1^The Greymane Crown^INV_Crown_01^1^0^12^0^0
 N^61497^3^Ravenwood Belt^INV_Belt_26^47^0^4^3^6
 N^61498^3^Signet of Gilneas^INV_Jewelry_Ring_22^47^0^4^0^11
@@ -7641,12 +7902,19 @@ N^61586^2^Explorer's Shoulders^INV_Shoulder_08^57^52^4^2^3
 N^61587^2^Old Hunter's Boots^INV_Boots_07^57^52^4^2^8
 N^61588^3^Arugal Family Sigil^INV_Jewelry_Ring_43^57^52^4^0^11
 N^61589^3^Widow's Kiss^INV_Weapon_ShortBlade_01^42^37^2^15^0
+N^61601^2^Ebonmere Axe^INV_Axe_20^46^0^2^0^0
+N^61602^2^Gilneas Brigade Helmet^inv_helmet_02^46^0^4^4^1
+N^61603^2^Robes of Ravenshire^INV_Chest_Cloth_48^46^0^4^1^5
+N^61604^2^Greyshire Pauldrons^INV_Shoulder_07^46^0^4^2^3
 N^61610^2^Old Farmer's Pitchfork^INV_Spear_04^46^41^2^6^0
 N^61611^2^Emerald Pendant^INV_Jewelry_Necklace_01^46^41^4^0^2
 N^61612^2^Holy Sword^INV_Sword_06^46^41^2^8^0
 N^61613^2^Burnt Explorer's Tunic^INV_Chest_Leather_09^58^53^4^2^5
 N^61614^2^Ruk'thok Slippers^INV_Boots_09^58^53^4^1^8
 N^61615^2^Burning Torch^INV_Wand_11^58^53^2^19^0
+N^61620^2^Glaymore Family Breastplate^INV_Misc_MonsterSpiderCarapace_01^50^0^4^3^5
+N^61621^2^Ceremonial Gilnean Pike^INV_Spear_06^50^0^2^6^0
+N^61622^2^Glaymore Shawl^INV_Chest_Cloth_15^50^0^4^1^16
 N^61626^1^Ebonmere Deed^INV_Scroll_03^1^0^12^0^0
 N^61627^2^Ebonmere Reaver^INV_Axe_11^46^0^2^0^0
 N^61628^2^Clutch of Joshua^INV_Belt_12^46^0^4^1^6
@@ -7831,6 +8099,7 @@ N^70202^3^Plans: Resilient Arcane Gemstone^INV_Misc_Note_01^60^0^9^10^0
 N^70206^2^Plans: Ornate Mithril Crown^INV_Misc_Note_01^45^0^9^10^0
 N^70207^2^Plans: Spellweaver Pendant^INV_Misc_Note_01^55^0^9^10^0
 N^70208^2^Plans: Ring of Midnight^INV_Misc_Note_01^25^0^9^10^0
+N^70209^3^Plans: Gorgeous Mountain Gemstone^INV_Misc_Note_01^60^0^9^10^0
 N^70211^4^Plans: Golden Runed Ring^INV_Misc_Note_01^60^0^9^10^0
 N^70212^4^Plans: Mana Binding Signet^INV_Misc_Note_01^45^0^9^10^0
 N^70214^4^Plans: Ring of Unleashed Potential^INV_Misc_Note_01^60^0^9^10^0
@@ -7842,6 +8111,7 @@ N^70221^3^Plans: Bindings of Luminance^INV_Misc_Note_01^60^0^9^10^0
 N^70222^3^Plans: Crown of the Illustrious Queen^INV_Misc_Note_01^60^0^9^10^0
 N^70223^4^Plans: Mastercrafted Diamond Bangles^INV_Misc_Note_01^60^0^9^10^0
 N^70224^3^Kolkar Drape^INV_Misc_Cape_08^22^17^4^1^16
+N^70225^2^Necklace of Redemption^INV_Belt_18^21^0^4^0^2
 N^70226^3^Ancient Warfare Text^INV_Misc_Bandage_10^60^0^15^0^0
 N^70227^3^Mastery of Axes^INV_Misc_Book_09^60^60^12^0^0
 N^70228^3^Mastery of Swords^INV_Misc_Book_09^60^60^12^0^0
@@ -8063,6 +8333,7 @@ N^81017^3^Girdle of Fading Hope^INV_Belt_13^61^56^4^1^6
 N^81018^3^Crimson Spellblade^INV_Sword_07^61^56^2^7^0
 N^81019^3^Gauntlets of Myrmidon^INV_Gauntlets_26^61^56^4^3^10
 N^81031^2^Bright Copper Necklace^INV_Jewelry_Necklace_01^17^12^4^0^2
+N^81060^4^Tempered Runeblade^INV_Sword_02^66^0^2^8^0
 N^81061^2^Primalist's Gloves^INV_Gauntlets_09^54^49^4^2^10
 N^81062^2^Primalist's Shoulders^INV_Shoulder_09^56^51^4^2^3
 N^81063^2^Primalist's Headdress^INV_Helmet_04^55^50^4^2^1
@@ -8156,6 +8427,10 @@ N^81381^3^Isildien Ley-Stave^INV_Staff_07^52^47^4^0^23
 N^81382^3^Gordunni War Beads^INV_Jewelry_Necklace_19^52^47^4^0^12
 N^81383^3^The Ogre Truncheon^INV_Mace_11^52^47^2^4^0
 N^81384^4^Grug'thok's Sash^INV_Belt_12^54^47^4^2^6
+N^81416^3^Valiant Medallion^INV_Jewelry_Amulet_03^30^0^4^0^2
+N^81417^3^Ambient Talisman^INV_Jewelry_Necklace_01^30^0^4^0^2
+N^81418^3^Magnificent Necklace^INV_Jewelry_Necklace_04^30^0^4^0^2
+N^82002^4^Tabard of the Ashbringer^INV_Misc_TheGoldenCheep^85^60^4^0^19
 N^82950^3^X-51 Arcane Ocular Implants^inv_gizmo_newgoggles^63^0^4^1^1
 N^82951^3^X-52 Stealth Ocular Implants^inv_gizmo_newgoggles^63^0^4^2^1
 N^82952^3^X-53 Ranger Ocular Implants^inv_gizmo_newgoggles^63^0^4^3^1
@@ -8404,11 +8679,18 @@ N^84604^3^Aurastone Bracers^INV_Bracer_14^65^60^4^3^9
 N^91795^1^Dragon Firework^INV_Misc_MissileLargeCluster_Red^1^0^12^0^0
 N^91796^1^Recipe: Transmute Elemental Earth^INV_Scroll_03^60^0^9^6^0
 N^91797^1^Recipe: Transmute Elemental Water^INV_Scroll_03^60^0^9^6^0
+N^92001^2^Tome of Teleportation: Theramore^INV_Misc_Book_07^60^40^9^0^0
+N^92005^3^Invocation of Shattering^Ability_Creature_Cursed_01^65^58^12^0^0
+N^92006^3^Invocation of Greater Protection^Ability_Creature_Cursed_01^65^58^12^0^0
+N^92007^3^Invocation of Expansive Mind^Ability_Creature_Cursed_01^65^58^12^0^0
+N^92008^3^Invocation of Greater Arcane Fortitude^Ability_Creature_Cursed_01^65^58^12^0^0
 N^92011^3^Lavender Spring Shirt^inv_shirt_12^0^0^4^0^4
 N^92012^3^Mint Spring Shirt^inv_shirt_12^0^0^4^0^4
 N^92013^3^Pink Spring Shirt^inv_shirt_12^0^0^4^0^4
 N^92019^3^Green Spring Shirt^inv_shirt_12^0^0^4^0^4
 N^92020^3^Spawn of Cla'ckora^INV_Misc_Birdbeck_02^1^0^15^2^0
+N^92025^4^Tome of Polymorph: Rodent^INV_Misc_Book_07^40^40^9^0^0
+N^92045^3^Recipe: Empowering Herbal Salad^INV_Scroll_03^55^0^9^10^0
 N^92080^4^Molten Corehound^Spell_Fire_FlameShock^20^0^15^4^0
 N^92082^4^Felforged Dreadhound^Spell_Shadow_SummonFelHunter^20^0^15^4^0
 N^98731^4^Gladiator's Tunic^INV_Chest_Leather_07^75^0^4^0^4

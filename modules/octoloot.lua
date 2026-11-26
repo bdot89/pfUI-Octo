@@ -78,6 +78,13 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         if id then db.recipes[tonumber(id)] = line end
       elseif kind == "S" then
         table.insert(db.setLines, line)
+      elseif kind == "Q" then
+        -- an instance's quest (octoloot-quests.lua reads them)
+        local _, _, key = string.find(line, "^Q%^([^%^]+)%^")
+        if key then
+          db.quests[key] = db.quests[key] or {}
+          table.insert(db.quests[key], line)
+        end
       elseif kind == "X" then
         local _, _, id, to = string.find(line, "^X%^(%d+)%^([%d,]+)")
         if id then db.swaps[tonumber(id)] = to end
@@ -92,7 +99,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     if OL.db then return OL.db end
     local text = pfUI.octolootData
     if type(text) ~= "string" then return nil end
-    local db = { list = {}, by = {}, raw = {}, items = {}, recipes = {}, setLines = {}, swaps = {} }
+    local db = { list = {}, by = {}, raw = {}, items = {}, recipes = {}, setLines = {}, swaps = {}, quests = {} }
     ReadPages(db, text)
     OL.db = db
     return db
@@ -586,6 +593,17 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     OL.itemTop = 0
     if OL.frame and OL.frame:IsShown() then OL.PaintMain() else OL.Show() end
   end
+  -- a quest's guide (octoloot-quests.lua), on the same Back stack as an item's page
+  function OL.ShowQuest(id)
+    if not id then return end
+    if OL.results and OL.results.quest == id then return end
+    OL.backs = OL.backs or {}
+    table.insert(OL.backs, { inst = OL.inst, boss = OL.boss, results = OL.results, top = OL.itemTop })
+    if table.getn(OL.backs) > 20 then table.remove(OL.backs, 1) end
+    OL.results = { quest = id }
+    OL.itemTop = 0
+    if OL.frame and OL.frame:IsShown() then OL.PaintMain() else OL.Show() end
+  end
   function OL.Back()
     local b = OL.backs and table.remove(OL.backs)
     OL.results = b and b.results or nil
@@ -1036,7 +1054,8 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     ban.youare:SetPoint("LEFT", ban.badge, "RIGHT", 10, 0)
     -- views: loot / map / entrance
     f.views = {}
-    local VIEWS = { { "loot", "Loot", 70 }, { "map", "Map", 60 }, { "ent", "Entrance", 84 } }
+    -- (26 Nov 2026, user with Naowh's Dungeon Journal) the instance's quests, with their chains and waypoints
+    local VIEWS = { { "loot", "Loot", 70 }, { "quests", "Quests", 96 }, { "map", "Map", 60 }, { "ent", "Entrance", 84 } }
     local prev
     for i = table.getn(VIEWS), 1, -1 do
       local v = VIEWS[i]
@@ -1060,6 +1079,14 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     f.pinBtn:SetScript("OnClick", function() if OL.inst then OL.Pin(OL.inst, OL.boss) end end)
     Tip(f.pinBtn, "Pin to QuickLook", "Puts what is open (with its boss or page) on one of the six QuickLook buttons at the "
       .. "foot of the list. Click again to take it off.")
+    Tip(f.views.quests, "Quests", "This instance's quests for your side: in your log, ready to take, needing a quest first, done. "
+      .. "Click one for its guide: the whole chain, who gives it and where, waypoints with pfQuest's arrow, the rewards.")
+    -- share every quest of this instance in your log with the group
+    f.shareBtn = TextButton(ban, "Share quests", 104, 24)
+    f.shareBtn:SetPoint("RIGHT", f.pinBtn, "LEFT", -6, 0)
+    f.shareBtn:SetScript("OnClick", function() if OL.quests and OL.inst then OL.quests.ShareAll(OL.inst) end end)
+    Tip(f.shareBtn, "Share quests", "Shares every quest of this instance that is in your log with your group, one a second.")
+    f.shareBtn:Hide()
 
     -- ---- right below the banner: bosses, then the loot
     local bosses = CreateFrame("Frame", nil, main)
@@ -1145,6 +1172,21 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       hd.rule:SetPoint("BOTTOMLEFT", hd, "BOTTOMLEFT", 4, 3)
       hd.rule:SetPoint("BOTTOMRIGHT", hd, "BOTTOMRIGHT", -4, 3)
       hd.rule:SetHeight(1)
+      hd.para = Font(hd:CreateFontString(nil, "OVERLAY"), 12, { .88, .88, .9 })
+      hd.para:SetPoint("TOPLEFT", hd, "TOPLEFT", 6, -2)
+      hd.para:SetWidth(colW * cols - 18)
+      hd.para:SetHeight(ITEM_H - 6)
+      hd.para:SetJustifyH("LEFT")
+      hd.para:SetJustifyV("TOP")
+      hd.para:Hide()
+      hd:EnableMouse(true)
+      hd:SetScript("OnEnter", function()
+        if not this.fullText then return end
+        GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
+        GameTooltip:AddLine(this.fullText, 1, 1, 1, 1)
+        GameTooltip:Show()
+      end)
+      hd:SetScript("OnLeave", function() GameTooltip:Hide() end)
       hd:Hide()
       f.heads[i] = hd
       for c = 1, cols do
@@ -1186,6 +1228,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         r.pct:SetPoint("RIGHT", r, "RIGHT", -8, 0)
         r:SetScript("OnEnter", function()
           local e = this.entry
+          if e and e.quest and OL.quests then OL.quests.Tip(this, e) return end
           if e and e.item then OL.ShowTip(this, e.item, e.recipe) end
           if e and e.where then
             if not e.item then GameTooltip:SetOwner(this, "ANCHOR_RIGHT") GameTooltip:AddLine(e.title or "", 1, .82, .2) end
@@ -1200,6 +1243,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         r:SetScript("OnClick", function()
           local e = this.entry
           if not e then return end
+          if e.quest and OL.quests then OL.quests.Click(e, arg1) return end
           if e.item and (e.view or not e.go or IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or arg1 == "RightButton") then
             OL.ClickItem(e.item, arg1)
             return
@@ -1369,6 +1413,25 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     Grad(f.topShade, r, g, b, .16, 0, true)
     local hasBack = OL.backs and table.getn(OL.backs) > 0
     if hasBack and OL.results and OL.results.view then f.backBtn:Show() else f.backBtn:Hide() end
+    if f.shareBtn then f.shareBtn:Hide() end
+    if hasBack and OL.results and OL.results.quest then f.backBtn:Show() end
+    if OL.results and OL.results.quest then
+      -- a quest's guide: the instance's own banner behind its name
+      local qid = OL.results.quest
+      local Q = OL.quests
+      local d = Q and Q.Data(qid)
+      ban.art:SetTexture(OL.Art(OL.inst))
+      ban.art:SetTexCoord(0, 1, .3, .62)
+      local r, g, b2 = 1, 1, 0
+      if Q then r, g, b2 = Q.LevelColor(d and d.lvl) end
+      ban.name:SetText(string.format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b2 * 255, Q and Q.Title(qid) or ""))
+      ban.meta:SetText("Quest guide   |cff666870/|r   level " .. (d and d.lvl or "?") .. (d and d.min and ("   |cff666870/|r   from level " .. d.min) or "")
+        .. (OL.inst and ("   |cff666870/|r   " .. OL.inst.name) or ""))
+      ban.badge:Hide()
+      ban.youare:SetText("")
+      for _, v in pairs(f.views) do v:Hide() end
+      return
+    end
     if OL.results then
       local view = OL.results.view
       ban.art:SetTexture(GLUE .. (view and "LoadScreenHallofLegends" or "LoadScreenDungeon"))
@@ -1429,6 +1492,19 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     f.views.loot:Show()
     if inst.map and maps then f.views.map:Show() else f.views.map:Hide() end
     if inst.ent and maps then f.views.ent:Show() else f.views.ent:Hide() end
+    -- the quests button with how many you can still do here (in your log or ready to take)
+    local Q = OL.quests
+    local todo, total = 0, 0
+    if Q and not paged then todo, total = Q.ToDo(inst) end
+    if total > 0 then
+      f.views.quests.text:SetText("Quests " .. (todo > 0 and ("|cffffd133" .. todo .. "|r") or ("|cff55ff77" .. total .. "|r")))
+      f.views.quests:Show()
+      if todo > 0 then ban.meta:SetText(ban.meta:GetText() .. "   |cff666870/|r   |cffffd133" .. todo .. " quests to do|r") end
+    else
+      f.views.quests:Hide()
+      if OL.view == "quests" then OL.view = "loot" end
+    end
+    if OL.view == "quests" and GetNumPartyMembers and (GetNumPartyMembers() or 0) > 0 then f.shareBtn:Show() else f.shareBtn:Hide() end
     for k, v in pairs(f.views) do v.Lit(k == (OL.view or "loot")) end
   end
 
@@ -1482,6 +1558,8 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   function OL.Entries()
     local out = {}
     if OL.results and OL.results.view then return OL.ItemEntries(OL.results.view) end
+    if OL.results and OL.results.quest and OL.quests then return OL.quests.PageEntries(OL.results.quest, OL.inst) end
+    if not OL.results and OL.view == "quests" and OL.quests and OL.inst then return OL.quests.ListEntries(OL.inst) end
     if OL.results then
       for _, res in ipairs(OL.results) do
         if res.kind == "inst" then
@@ -1559,7 +1637,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   function OL.Lines(list)
     local lines, pend = {}, nil
     for _, e in ipairs(list or {}) do
-      if e.head then
+      if e.head or e.text then
         if pend then table.insert(lines, { pend }) pend = nil end
         table.insert(lines, { head = e })
       elseif pend then
@@ -1576,6 +1654,26 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   local function PaintCell(r, e)
     r.entry = e
     if not e then r:Hide() return end
+        if e.quest then
+          -- a quest: its mark, its name in the quest log's level colour, where you are with it
+          local Qm = OL.quests
+          local cr, cg, cb = Qm.LevelColor(e.lvl)
+          r.icon:SetTexture(Qm.ICON[e.state] or Qm.ICON.ready)
+          r.icon:SetTexCoord(0, 1, 0, 1)
+          if e.state == "locked" or e.state == "low" then r.icon:SetVertexColor(.5, .5, .5) else r.icon:SetVertexColor(1, 1, 1) end
+          local nm = (e.step and (e.step .. ". ") or "") .. "[" .. (e.lvl or "?") .. "] " .. Qm.Title(e.quest)
+          if e.here then nm = "> " .. nm end
+          r.name:SetText(nm)
+          r.name:SetTextColor(cr, cg, cb)
+          local edge = e.state == "done" and { .3, .8, .4 } or (e.state == "log" and { 1, .82, .2 } or { .35, .36, .4 })
+          Paint(r.qedge, edge[1], edge[2], edge[3], 1)
+          Grad(r.glow, edge[1], edge[2], edge[3], e.here and .25 or .1, 0, true)
+          r.info:SetText(e.info or "")
+          r.pct:SetText(e.right or "")
+          r:Show()
+          return
+        end
+        r.icon:SetVertexColor(1, 1, 1)
         if e.item then
           local it = e.item
           local c = OL.QCOLOR[it.q] or OL.QCOLOR[1]
@@ -1609,7 +1707,9 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
           end
         else
           r.icon:SetTexture(e.icon)
-          if e.art then r.icon:SetTexCoord(.3, .62, .3, .62) end
+          if e.art then r.icon:SetTexCoord(.3, .62, .3, .62)
+          elseif e.plain then r.icon:SetTexCoord(0, 1, 0, 1)
+          else r.icon:SetTexCoord(.07, .93, .07, .93) end
           r.name:SetText(e.title)
           r.name:SetTextColor(1, .82, .2)
           Paint(r.qedge, .4, .41, .45, 1)
@@ -1631,10 +1731,23 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       local hd, cells = f.heads[i], f.cells[i]
       if line and line.head then
         local e = line.head
-        hd.text:SetText(e.big and ("|cffffffff" .. e.head .. "|r") or e.head)
-        hd.text:SetFont(hd.text:GetFont(), e.big and 15 or 12, "")
-        hd.note:SetText(e.note or "")
-        hd.rule:SetVertexColor(1, .82, .2, e.big and .6 or .3)
+        if e.text then
+          -- a paragraph (a quest's objective): up to three lines, the whole of it on hover
+          hd.text:SetText("")
+          hd.note:SetText("")
+          hd.para:SetText(e.text)
+          hd.para:Show()
+          hd.rule:Hide()
+          hd.fullText = e.text
+        else
+          hd.para:Hide()
+          hd.rule:Show()
+          hd.fullText = nil
+          hd.text:SetText(e.big and ("|cffffffff" .. e.head .. "|r") or e.head)
+          hd.text:SetFont(hd.text:GetFont(), e.big and 15 or 12, "")
+          hd.note:SetText(e.note or "")
+          hd.rule:SetVertexColor(1, .82, .2, e.big and .6 or .3)
+        end
         hd:Show()
         PaintCell(cells[1], nil)
         PaintCell(cells[2], nil)
@@ -1671,7 +1784,15 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     OL.entries = OL.Entries()
     OL.lines = OL.Lines(OL.entries)
     local loot = f.loot
-    if OL.results and OL.results.view then
+    if OL.results and OL.results.quest then
+      loot.head:SetText("Quest guide")
+      loot.headInfo:SetText("waypoints, the chain step by step, what it asks for, the rewards")
+    elseif not OL.results and OL.view == "quests" then
+      local todo, total = 0, 0
+      if OL.quests and inst then todo, total = OL.quests.ToDo(inst) end
+      loot.head:SetText("Quests")
+      loot.headInfo:SetText(total .. " here for your side  -  " .. todo .. " still to do")
+    elseif OL.results and OL.results.view then
       loot.head:SetText("All about it")
       loot.headInfo:SetText("swaps, set, where it comes from, what it makes - click any line")
     elseif OL.results then
@@ -2190,6 +2311,12 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   if not IsAddOnLoaded("AtlasLoot") then _G["SLASH_PFOCTOLOOT" .. n] = "/atlasloot" n = n + 1 end
   _G.SlashCmdList.PFOCTOLOOT = function(msg)
     msg = msg or ""
-    if msg ~= "" then OL.SearchFor(msg) else OL.Toggle() end
+    if msg == "clear" then
+      if OL.ClearWaypoint then OL.ClearWaypoint() end
+    elseif msg == "quests" then
+      local inst = OL.Here() or OL.inst
+      OL.Show()
+      if inst then OL.Select(inst) OL.view = "quests" OL.PaintMain() end
+    elseif msg ~= "" then OL.SearchFor(msg) else OL.Toggle() end
   end
 end)

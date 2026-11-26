@@ -66,6 +66,10 @@ pfUI:RegisterModule("octoloot-options", "vanilla:tbc", function ()
       .. "Off keeps them for a faster open.",
       function() return C.octoloot.unload ~= "0" end,
       function(v) C.octoloot.unload = v and "1" or "0" end)
+    W.Check(p, "Dungeon quests note when I go in", "Walking into a dungeon or raid with quests still to do for it: one chat line with "
+      .. "how many are in your log and how many to do (/ol quests opens the guide).",
+      function() return C.octoloot.questhint ~= "0" end,
+      function(v) C.octoloot.questhint = v and "1" or "0" end)
     W.Check(p, "Minimap button", "The gold chest on the minimap's edge: click opens OctoLoot, right-click this page, drag it round.",
       function() return C.octoloot.minimap ~= "0" end,
       function(v)

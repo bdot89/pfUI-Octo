@@ -161,6 +161,63 @@ end)
 ok(okw, "every section, an item's page and Back paint: " .. tostring(errw))
 OL.Unload()
 
+-- (26 Nov 2026, user with Naowh's Dungeon Journal) dungeon quests: which ones from the data, the rest from pfQuest's database
+do
+  local Qm = OL.quests
+  ok(Qm and Qm.For and Qm.PageEntries and Qm.Waypoint, "the quests part loaded (pfUI.octoloot.quests)")
+  local qdb = OL.Load()
+  local brd = qdb.by.BlackrockDepths
+  local keepDB, keepHist = rawget(_G, "pfDB"), rawget(_G, "pfQuest_history")
+  -- a small pfQuest database: a three-step chain, a giver with a place
+  rawset(_G, "pfDB", {
+    quests = { data = { [3801] = { lvl = 50, min = 45, start = { U = { 8888 } }, ["end"] = { U = { 8888 } } },
+      [3802] = { lvl = 52, min = 48, pre = { 3801 }, start = { U = { 8888 } }, ["end"] = { O = { 164689 } }, obj = { I = { 10999 } } } },
+      loc = { [3801] = { T = "Dark Iron Legacy", O = "Talk to Franclorn." }, [3802] = { T = "Dark Iron Legacy", O = "Slay Fineous Darkvire.$BReturn." } } },
+    units = { data = { [8888] = { coords = { { 34.5, 85.2, 25 } } } }, loc = { [8888] = "Franclorn Forgewright" } },
+    objects = { data = {}, loc = { [164689] = "Shrine of Thaurissan" } },
+    items = { data = {}, loc = { [10999] = "Ironfel" } },
+    zones = { loc = { [25] = "Blackrock Mountain" } },
+  })
+  rawset(_G, "pfQuest_history", {})
+  local list = brd and Qm.For(brd) or {}
+  local withRewards = 0
+  for _, q in ipairs(list) do if table.getn(q.rewards) > 0 then withRewards = withRewards + 1 end end
+  ok(table.getn(list) >= 10 and withRewards >= 5, "Blackrock Depths: its quests for your side (" .. Qm.Side() .. "), with rewards ("
+    .. table.getn(list) .. " / " .. withRewards .. ")")
+  ok(Qm.State(3802) == "locked", "a quest whose first step is not done says what it needs")
+  pfQuest_history[3801] = { 1, 50 }
+  local st = Qm.State(3802)
+  ok(st == "ready" or st == "low", "with the first step done it can be taken (" .. tostring(st) .. ")")
+  local chain = Qm.Chain(3802)
+  ok(chain[1] == 3801 and chain[2] == 3802, "the chain: first step first")
+  local who = Qm.Who(3802, "start")
+  ok(who and who.name == "Franclorn Forgewright" and Qm.WhereText(who) == "Blackrock Mountain  34, 85", "the giver and where he stands")
+  local pe = Qm.PageEntries(3802, brd)
+  local gotChain, gotGiver, gotText = false, false, false
+  for _, e in ipairs(pe) do
+    if e.head and string.find(e.head, "The chain", 1, true) then gotChain = true end
+    if e.title and string.find(e.title, "Given by Franclorn", 1, true) and e.go then gotGiver = true end
+    if e.text and string.find(e.text, "Slay Fineous", 1, true) then gotText = true end
+  end
+  ok(gotChain and gotGiver and gotText, "a quest's guide: objective, giver with a waypoint, the chain")
+  local le = Qm.ListEntries(brd)
+  ok(table.getn(le) > 2 and le[1].head, "the quests view lists them under headings")
+  local okq, errq = pcall(function()
+    OL.Show()
+    OL.Select(brd)
+    OL.view = "quests"
+    OL.PaintMain()
+    OL.ShowQuest(3802)
+    OL.Back()
+    OL.frame:Hide()
+  end)
+  ok(okq, "the quests view and a guide paint: " .. tostring(errq))
+  rawset(_G, "pfDB", keepDB)
+  rawset(_G, "pfQuest_history", keepHist)
+  OL.view = "loot"
+  OL.Unload()
+end
+
 -- tooltips anywhere: the texts are searched, no tables made
 OL.tipCache = nil
 local tf = OL.TipFacts(16925)

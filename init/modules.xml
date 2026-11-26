@@ -123,6 +123,7 @@
   <Include file="..\modules\octoloot-items.lua"/>
   <Include file="..\modules\octoloot-pages.lua"/>
   <Include file="..\modules\octoloot.lua"/>
+  <Include file="..\modules\octoloot-quests.lua"/>
   <Include file="..\modules\octoloot-options.lua"/>
   <Include file="..\modules\perf-options.lua"/>
   <Include file="..\modules\movers-options.lua"/>

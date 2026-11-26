@@ -34,4 +34,5 @@ if ($LASTEXITCODE -ne 0) { throw "dump-atlas.lua failed" }
 $ErrorActionPreference = "Stop"
 & (Join-Path $dir "items.ps1")
 & (Join-Path $dir "recipes.ps1")
+& (Join-Path $dir "quests.ps1")
 & (Join-Path $dir "pages.ps1") -PagesOut (Join-Path $mods "octoloot-pages.lua") -ItemsOut (Join-Path $mods "octoloot-items.lua") -LootData (Join-Path $mods "octoloot-data.lua")
