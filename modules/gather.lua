@@ -1167,10 +1167,20 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     GF.MARKSOWN = { pfMapMarksButton = true, pfMapMarks = true }
     for _, n in ipairs(GF.MAPMENUS) do GF.MARKSOWN[n] = true end
     local function Box(f)
+      if not (f and f.GetLeft and f.GetRight and f.GetTop and f.GetBottom) then return end
       local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
       if not (l and r and t and b) then return end
       local s = f.GetEffectiveScale and f:GetEffectiveScale() or 1
       return l * s, r * s, t * s, b * s
+    end
+    -- a frame name that may push our button: named, not ours, not a pin (numbered, or "Pin" / "POI" / "Node" / "Icon")
+    function GF.MarksCounts(name)
+      if type(name) ~= "string" or name == "" or GF.MARKSOWN[name] then return false end
+      if string.find(name, "%d+$") then return false end
+      local l = string.lower(name)
+      if string.find(l, "pin", 1, true) or string.find(l, "poi", 1, true) or string.find(l, "node", 1, true)
+        or string.find(l, "icon", 1, true) then return false end
+      return true
     end
     function GF.MarksBlocker(x1, x2, top, bottom)
       local best, low
@@ -1182,7 +1192,9 @@ pfUI:RegisterModule("gather", "vanilla", function ()
           local f = kids[i]
           local kind = f and f.GetObjectType and f:GetObjectType()
           local name = f and f.GetName and f:GetName()
-          if (kind == "Button" or kind == "Frame" or kind == "CheckButton") and not (name and GF.MARKSOWN[name])
+          -- (26 Nov 2026, Lo5t1ncyb3r: the bar "just moves up and down") only another add-on's NAMED button counts:
+          -- map pins (pfQuest's, ours, the game's POIs - unnamed or numbered) came and went under it and moved it
+          if (kind == "Button" or kind == "Frame" or kind == "CheckButton") and GF.MarksCounts(name)
             and f ~= btn and f ~= marks and f.IsShown and f:IsShown() and f.GetAlpha and f:GetAlpha() > .05 then
             local w, h = f:GetWidth() or 0, f:GetHeight() or 0
             if w > 4 and h > 4 and w <= 100 and h <= 70 then
@@ -1213,12 +1225,22 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         else btn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -12, -12) end
       end
       if spot ~= "auto" then return end
-      -- step down past whatever sits on it (three times at most: a column of buttons). The client reports a moved
-      -- frame's edges late, so the edges are read once and moved by hand
-      local l, r, t, b = Box(btn)
-      if not l then return end
+      -- step down past whatever sits on it (three times at most: a column of buttons). (26 Nov 2026: the spot is worked
+      -- out from where the button WOULD sit with no step - the menu's / canvas's edges - every time, never from the
+      -- button's own edges: those were read after the last step, so the steps added up and it crept down and back up)
       local s = btn:GetEffectiveScale() or 1
+      local r, t
+      if under then
+        local ul, ur, ut, ub = Box(under)
+        if ur then r, t = ur - 16 * s, ub end
+      else
+        local cl, cr, ct = Box(canvas)
+        if cr then r, t = cr - 12 * s, ct - 12 * s end
+      end
+      if not r then return end
+      local l, b = r - (btn:GetWidth() or 200) * s, t - (btn:GetHeight() or 20) * s
       local drop = 0
+      btn.blocker = nil
       for _ = 1, 3 do
         local f, low = GF.MarksBlocker(l, r, t, b)
         if not f then break end
@@ -1227,11 +1249,12 @@ pfUI:RegisterModule("gather", "vanilla", function ()
         drop = drop + step / s
         btn.blocker = f
       end
-      if drop <= 0 then return end
-      btn.drop = (btn.drop or 0) + drop
+      drop = math.floor(drop + .5)
+      if math.abs(drop - (btn.drop or 0)) < 1 then return end
+      btn.drop = drop
       btn:ClearAllPoints()
-      if under then btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, -btn.drop)
-      else btn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -12, -12 - btn.drop) end
+      if under then btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, -drop)
+      else btn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -12, -12 - drop) end
     end
     GF.PlaceMarks()
     btn:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 20)

@@ -165,6 +165,28 @@ foreach ($inst in $atlas) {
     }
   }
 }
+# world map markers: entrances and world bosses (coordinates from Atlas-CFM's marker list, after ModernMapMarkers -
+# facts); the Turtle-side entries where a server choice exists, never transports or battlegrounds (pfUI has its own)
+$known = @{}
+foreach ($l in $lines) { if ($l.StartsWith("I^")) { $known[($l -split "\^")[1]] = $true } }
+$mk = Join-Path (Split-Path $maps -Parent | Split-Path -Parent) "CFMAtlas\AtlasMapMarkers.lua"
+$marks = 0
+if (Test-Path $mk) {
+  foreach ($m in [regex]::Matches((Get-Content -Raw $mk), '\{\s*(\d),\s*"([^"]+)",\s*([\d.]+),\s*([\d.]+),\s*"(\w+)",\s*"(dungeon|raid|worldboss)",\s*([^\r\n]*)')) {
+    $key = $m.Groups[5].Value
+    if (-not $known[$key]) { continue }
+    $rest = $m.Groups[7].Value
+    $srv = [regex]::Match($rest, '\{\s*(AtlasCFM\.Server\.[\w, .]+)\}')
+    if ($srv.Success -and $srv.Groups[1].Value -notmatch 'TURTLE') { continue }
+    $note = ""
+    if ($rest -match 'LMD\["Back"\]') { $note = "back" }
+    $lb = [regex]::Match($rest, 'LB\["([^"]+)"\]')
+    if ($lb.Success) { $note = $lb.Groups[1].Value }
+    [void]$lines.Add(("M^{0}^{1}^{2}^{3}^{4}^{5}^{6}" -f $key, $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value, $m.Groups[4].Value, $m.Groups[6].Value.Substring(0, 1), $note))
+    $marks++
+  }
+}
+"$marks map markers"
 foreach ($id in ($names.Keys | Sort-Object)) {
   $it = $names[$id]
   [void]$lines.Add(("N^{0}^{1}^{2}^{3}^{4}^{5}^{6}^{7}" -f $id, $it.q, ($it.name -replace '\^', ''), $icons[$id], $it.il, $it.rl, $it.cl, $it.sc))
@@ -182,6 +204,7 @@ $hdr = @"
 --        B^map number (E = at the entrance)^name^n|o (npc / object)^id^drops: "#chance" starts a group the
 --          server rolls once (that % of kills), then item:percent (negative = only on the quest)
 --        N^item^quality^name^icon^item level^required level^class^subclass
+--        M^instance^continent^zone (English map name)^x^y (0-1)^d|r|w (dungeon / raid / world boss)^note (back | a boss)
 pfUI.octolootData = [[
 "@
 [IO.File]::WriteAllText($Out, (($hdr + $body + "`n]]`n") -replace "`r`n", "`n"), (New-Object Text.UTF8Encoding($false)))

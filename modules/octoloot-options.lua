@@ -66,6 +66,15 @@ pfUI:RegisterModule("octoloot-options", "vanilla:tbc", function ()
       .. "Off keeps them for a faster open.",
       function() return C.octoloot.unload ~= "0" end,
       function(v) C.octoloot.unload = v and "1" or "0" end)
+    W.Check(p, "Markers on the world map", "Every dungeon and raid entrance and world boss gets a pin on its zone's map: "
+      .. "green doorway = dungeon, orange skull = raid, purple horned skull = world boss. Hover for what it is, click to "
+      .. "open it here.",
+      function() return C.octoloot.mapmarks ~= "0" end,
+      function(v)
+        C.octoloot.mapmarks = v and "1" or "0"
+        local ol = OL()
+        if ol and ol.PaintPins then ol.PaintPins() end
+      end)
     W.Slider(p, "Window size", "The whole OctoLoot window's scale.", .6, 1.4, .05,
       function() return tonumber(C.octoloot.scale) or 1 end,
       function(v)

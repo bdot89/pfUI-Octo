@@ -675,11 +675,31 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     loot.empty = Font(loot:CreateFontString(nil, "OVERLAY"), 13, P.dim)
     loot.empty:SetPoint("CENTER", loot, "CENTER", 0, 0)
     loot.empty:SetWidth(440)
-    f.items = {}
+    -- (26 Nov 2026, user: "look how the tables are layed out ... when it says one of these 12 they are out of line")
+    -- a table of lines: a heading runs across the whole width, items go two to a line under it (left, then right),
+    -- so a group never starts in one column and ends in the other
+    f.items, f.cells, f.heads = {}, {}, {}
     local cols, per = 2, math.floor((HEIGHT - 52 - BANNER_H - 44 - 24) / ITEM_H)
     local colW = (WIDTH - 2 - LEFT_W - BOSS_W - 40) / cols
-    for c = 1, cols do
-      for i = 1, per do
+    for i = 1, per do
+      f.cells[i] = {}
+      local hd = CreateFrame("Frame", nil, loot)
+      hd:SetHeight(ITEM_H - 4)
+      hd:SetPoint("TOPLEFT", loot, "TOPLEFT", 14, -40 - (i - 1) * ITEM_H)
+      hd:SetWidth(colW * cols - 6)
+      hd:EnableMouseWheel(true)
+      hd:SetScript("OnMouseWheel", function() OL.ScrollItems(arg1) end)
+      hd.text = Font(hd:CreateFontString(nil, "OVERLAY"), 12, { 1, .82, .2 })
+      hd.text:SetPoint("BOTTOMLEFT", hd, "BOTTOMLEFT", 4, 8)
+      hd.note = Font(hd:CreateFontString(nil, "OVERLAY"), 11, P.dim)
+      hd.note:SetPoint("LEFT", hd.text, "RIGHT", 10, 0)
+      hd.rule = Fill(hd, { 1, .82, .2 }, .35, "ARTWORK")
+      hd.rule:SetPoint("BOTTOMLEFT", hd, "BOTTOMLEFT", 4, 3)
+      hd.rule:SetPoint("BOTTOMRIGHT", hd, "BOTTOMRIGHT", -4, 3)
+      hd.rule:SetHeight(1)
+      hd:Hide()
+      f.heads[i] = hd
+      for c = 1, cols do
         local r = CreateFrame("Button", nil, loot)
         r:SetWidth(colW - 6)
         r:SetHeight(ITEM_H - 4)
@@ -716,14 +736,6 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         r.info:SetJustifyH("LEFT")
         r.pct = Font(r:CreateFontString(nil, "OVERLAY"), 14, P.text, FONT .. "Expressway.ttf")
         r.pct:SetPoint("RIGHT", r, "RIGHT", -8, 0)
-        r.head = Font(r:CreateFontString(nil, "OVERLAY"), 11, { 1, .82, .2 })
-        r.head:SetPoint("LEFT", r, "LEFT", 6, -4)
-        r.head:SetPoint("RIGHT", r, "RIGHT", -6, 0)
-        r.head:SetJustifyH("LEFT")
-        r.rule = Fill(r, { 1, .82, .2 }, .35, "ARTWORK")
-        r.rule:SetPoint("BOTTOMLEFT", r, "BOTTOMLEFT", 6, 4)
-        r.rule:SetPoint("BOTTOMRIGHT", r, "BOTTOMRIGHT", -6, 4)
-        r.rule:SetHeight(1)
         r:SetScript("OnEnter", function()
           if this.entry and this.entry.item then OL.ShowTip(this, this.entry.item) end
           if this.entry and this.entry.where then
@@ -742,6 +754,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         r:EnableMouseWheel(true)
         r:SetScript("OnMouseWheel", function() OL.ScrollItems(arg1) end)
         table.insert(f.items, r)
+        f.cells[i][c] = r
       end
     end
     f.perCol = per
@@ -984,14 +997,20 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     local seen = {}
     for _, b in ipairs(bosses) do
       if not OL.boss then table.insert(out, { head = b.name, big = true }) end
-      for _, g in ipairs(OL.Loot(b)) do
+      local loot = OL.Loot(b)
+      local grouped = false
+      for _, g in ipairs(loot) do if g.chance then grouped = true end end
+      for _, g in ipairs(loot) do
         local count = table.getn(g.items)
         if g.chance then
-          local txt
+          local txt, note
           if count == 1 then txt = "Rolled once a kill"
           else txt = "One of these " .. count end
-          if g.chance < 100 then txt = txt .. "  -  in " .. g.chance .. "% of kills" end
-          table.insert(out, { head = txt })
+          if g.chance < 100 then note = "the roll happens in " .. g.chance .. "% of kills"
+          elseif count > 1 then note = "one of them drops every kill" end
+          table.insert(out, { head = txt, note = note })
+        elseif grouped then
+          table.insert(out, { head = "Drops on their own", note = "each has its own chance" })
         end
         for _, e in ipairs(g.items) do
           local it = OL.Item(e.id)
@@ -1016,32 +1035,27 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     return string.format("|cff9a9ca3%.2f%%|r", v)
   end
 
-  function OL.PaintItems()
-    local f = OL.frame
-    local rows = f.items
-    local list = OL.entries or {}
-    local n = table.getn(rows)
-    OL.itemTop = math.max(0, math.min(OL.itemTop or 0, math.max(0, table.getn(list) - n)))
-    OL.missing = false
-    -- fill down the first column, then the second
-    for i = 1, n do
-      local r = rows[i]
-      local e = list[i + OL.itemTop]
-      r.entry = e
-      if not e then
-        r:Hide()
-      elseif e.head then
-        r.head:SetText(e.big and ("|cffffffff" .. e.head .. "|r") or e.head)
-        r.head:SetFont(r.head:GetFont(), e.big and 14 or 11, "")
-        r.head:Show() r.rule:Show()
-        r.rule:SetVertexColor(1, .82, .2, e.big and .6 or .3)
-        r.icon:Hide() r.ib:Hide() r.name:Hide() r.info:Hide() r.pct:Hide() r.glow:Hide() r.bg:Hide()
-        for _, x in ipairs(r.qedge) do x:Hide() end
-        r:Show()
+  -- the entries as lines of the table: { head = entry } or { a, b } (two items side by side)
+  function OL.Lines(list)
+    local lines, pend = {}, nil
+    for _, e in ipairs(list or {}) do
+      if e.head then
+        if pend then table.insert(lines, { pend }) pend = nil end
+        table.insert(lines, { head = e })
+      elseif pend then
+        table.insert(lines, { pend, e })
+        pend = nil
       else
-        r.head:Hide() r.rule:Hide()
-        r.icon:Show() r.ib:Show() r.name:Show() r.info:Show() r.pct:Show() r.glow:Show() r.bg:Show()
-        for _, x in ipairs(r.qedge) do x:Show() end
+        pend = e
+      end
+    end
+    if pend then table.insert(lines, { pend }) end
+    return lines
+  end
+
+  local function PaintCell(r, e)
+    r.entry = e
+    if not e then r:Hide() return end
         if e.item then
           local it = e.item
           local c = OL.QCOLOR[it.q] or OL.QCOLOR[1]
@@ -1067,7 +1081,31 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
           r.info:SetText(e.sub or "")
           r.pct:SetText("|cff66ccff>|r")
         end
-        r:Show()
+    r:Show()
+  end
+
+  function OL.PaintItems()
+    local f = OL.frame
+    local lines = OL.lines or {}
+    local n = table.getn(f.heads)
+    OL.itemTop = math.max(0, math.min(OL.itemTop or 0, math.max(0, table.getn(lines) - n)))
+    OL.missing = false
+    for i = 1, n do
+      local line = lines[i + OL.itemTop]
+      local hd, cells = f.heads[i], f.cells[i]
+      if line and line.head then
+        local e = line.head
+        hd.text:SetText(e.big and ("|cffffffff" .. e.head .. "|r") or e.head)
+        hd.text:SetFont(hd.text:GetFont(), e.big and 15 or 12, "")
+        hd.note:SetText(e.note or "")
+        hd.rule:SetVertexColor(1, .82, .2, e.big and .6 or .3)
+        hd:Show()
+        PaintCell(cells[1], nil)
+        PaintCell(cells[2], nil)
+      else
+        hd:Hide()
+        PaintCell(cells[1], line and line[1])
+        PaintCell(cells[2], line and line[2])
       end
     end
   end
@@ -1095,6 +1133,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     f.map.tex:SetTexture(nil)
     f.loot:Show()
     OL.entries = OL.Entries()
+    OL.lines = OL.Lines(OL.entries)
     local loot = f.loot
     if OL.results then
       loot.head:SetText("Search")
@@ -1126,9 +1165,8 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     OL.PaintBosses()
   end
   function OL.ScrollItems(d)
-    local f = OL.frame
-    local step = f and f.perCol or 6
-    OL.itemTop = (OL.itemTop or 0) - (d or 0) * math.floor(step / 2)
+    -- (26 Nov 2026, user: "the scrolling is abit too much") two lines a notch, was half a column
+    OL.itemTop = (OL.itemTop or 0) - (d or 0) * 2
     OL.PaintItems()
   end
 
@@ -1211,6 +1249,136 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   function OL.Toggle()
     if OL.frame and OL.frame:IsShown() then OL.frame:Hide() else OL.Show() end
   end
+
+  -- ---------------------------------------------------------------- world map markers
+  -- (26 Nov 2026, Lo5t1ncyb3r: "octoloot is really neat too ... just need the world markers") every dungeon / raid
+  -- entrance and world boss on its zone's map: our own pins (tools\mklootpins.c), hover = what it is, click = OctoLoot
+  -- on it. Only the data's small M lines are read (OL.Marks), not the whole text, and only while the map is open.
+  local PINS = "Interface\\AddOns\\pfUI\\img\\octoloot\\"
+  local BADGE = "Interface\\AddOns\\pfUI\\img\\transports\\"
+  OL.PINCOLOR = { d = { .35, .85, .55 }, r = { 1, .45, .2 }, w = { .75, .45, 1 } }
+  OL.PINART = { d = "dungeon", r = "raid", w = "worldboss" }
+
+  function OL.Marks()
+    if OL.marks then return OL.marks end
+    local out = {}
+    local text = pfUI.octolootData
+    if type(text) == "string" then
+      for line in string.gfind(text, "\nM%^([^\n]+)") do
+        local f = Split(line)
+        table.insert(out, { key = f[1], cont = tonumber(f[2]), zone = f[3], x = tonumber(f[4]), y = tonumber(f[5]),
+          kind = f[6], note = f[7] ~= "" and f[7] or nil })
+      end
+    end
+    OL.marks = out
+    return out
+  end
+  -- name, levels and size of an instance without reading everything: its I line
+  function OL.Meta(key)
+    local text = pfUI.octolootData
+    if type(text) ~= "string" then return nil end
+    local s = string.find(text, "\nI^" .. key .. "^", 1, true) or string.find(text, "I^" .. key .. "^", 1, true)
+    if not s then return nil end
+    local e = string.find(text, "\n", s + 1, true) or string.len(text)
+    local f = Split(string.sub(text, s + (string.sub(text, s, s) == "\n" and 1 or 0), e - 1))
+    return { key = f[2], name = f[3], kind = f[4], levels = f[5], players = tonumber(f[6]) or 0, short = f[7] }
+  end
+
+  -- the zone the world map shows, by its English name (nil on a continent or the whole world)
+  function OL.MapZone()
+    local c = GetCurrentMapContinent and GetCurrentMapContinent() or 0
+    local z = GetCurrentMapZone and GetCurrentMapZone() or 0
+    if not c or c < 1 or not z or z < 1 then return nil end
+    local names = { GetMapZones(c) }
+    return names[z], c
+  end
+
+  OL.pins = {}
+  local function NewPin(i)
+    local p = CreateFrame("Button", "pfOctoLootPin" .. i, WorldMapButton)
+    p:SetWidth(24) p:SetHeight(24)
+    p.badge = p:CreateTexture(nil, "BACKGROUND")
+    p.badge:SetTexture(BADGE .. "badge")
+    p.badge:SetAllPoints(p)
+    p.badge:SetVertexColor(.06, .06, .07, .92)
+    p.ring = p:CreateTexture(nil, "BORDER")
+    p.ring:SetTexture(BADGE .. "ring")
+    p.ring:SetAllPoints(p)
+    p.glyph = p:CreateTexture(nil, "ARTWORK")
+    p.glyph:SetPoint("TOPLEFT", p, "TOPLEFT", 3, -3)
+    p.glyph:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", -3, 3)
+    p:SetScript("OnEnter", function()
+      local m = this.mark
+      if not m then return end
+      this:SetWidth(30) this:SetHeight(30)
+      local meta = OL.Meta(m.key)
+      local c = OL.PINCOLOR[m.kind] or OL.PINCOLOR.d
+      WorldMapTooltip:SetOwner(this, "ANCHOR_RIGHT")
+      WorldMapTooltip:AddLine(meta and meta.name or m.key, c[1], c[2], c[3])
+      local what = m.kind == "w" and "World boss" or (m.kind == "r" and "Raid" or "Dungeon")
+      if m.note == "back" then what = what .. " - back entrance" elseif m.note then what = what .. " - " .. m.note end
+      WorldMapTooltip:AddLine(what, .8, .8, .8)
+      if meta and m.kind ~= "w" then
+        local lv = meta.levels or ""
+        WorldMapTooltip:AddLine("Level " .. lv .. (meta.players > 0 and ("   " .. meta.players .. " players") or ""), 1, .82, 0)
+      end
+      WorldMapTooltip:AddLine("Click: its bosses and loot in OctoLoot", .4, .8, 1)
+      WorldMapTooltip:Show()
+    end)
+    p:SetScript("OnLeave", function()
+      this:SetWidth(24) this:SetHeight(24)
+      WorldMapTooltip:Hide()
+    end)
+    p:SetScript("OnClick", function()
+      local m = this.mark
+      if not m then return end
+      local db = OL.Load()
+      local inst = db and db.by[m.key]
+      if not inst then return end
+      local boss
+      if m.note and m.note ~= "back" then
+        for _, b in ipairs(inst.bosses) do if b.name == m.note then boss = b end end
+      end
+      if WorldMapFrame and WorldMapFrame:IsShown() then ToggleWorldMap() end
+      OL.Select(inst, boss)
+    end)
+    return p
+  end
+
+  function OL.PaintPins()
+    local zone = OL.MapZone()
+    local show = S("mapmarks", "1") == "1" and zone and WorldMapButton and WorldMapButton:IsVisible()
+    local n = 0
+    if show then
+      local w, h = WorldMapButton:GetWidth() or 0, WorldMapButton:GetHeight() or 0
+      for _, m in ipairs(OL.Marks()) do
+        if m.zone == zone and m.x and m.y then
+          n = n + 1
+          local p = OL.pins[n] or NewPin(n)
+          OL.pins[n] = p
+          p.mark = m
+          local c = OL.PINCOLOR[m.kind] or OL.PINCOLOR.d
+          p.ring:SetVertexColor(c[1], c[2], c[3], 1)
+          p.glyph:SetTexture(PINS .. (OL.PINART[m.kind] or "dungeon"))
+          p.glyph:SetVertexColor(1, 1, 1, 1)
+          p:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 6)
+          p:ClearAllPoints()
+          p:SetPoint("CENTER", WorldMapButton, "TOPLEFT", m.x * w, -m.y * h)
+          p:Show()
+        end
+      end
+    end
+    for i = n + 1, table.getn(OL.pins) do OL.pins[i]:Hide() OL.pins[i].mark = nil end
+  end
+
+  -- the map's own event (fires while it is open and its zone changes); nothing is read before the map is opened
+  local mapev = CreateFrame("Frame")
+  mapev:RegisterEvent("WORLD_MAP_UPDATE")
+  mapev:SetScript("OnEvent", function()
+    if WorldMapFrame and WorldMapFrame:IsShown() then OL.PaintPins() end
+  end)
+  -- (1.12 frames have no :HookScript - pfUI's own HookScript chains the handler)
+  if WorldMapFrame and HookScript then HookScript(WorldMapFrame, "OnShow", function() OL.PaintPins() end) end
 
   _G.BINDING_HEADER_PFOCTOLOOT = "pfUI Octo: OctoLoot"
   _G.BINDING_NAME_PFOCTOLOOT = "Open / close OctoLoot"

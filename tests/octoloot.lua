@@ -75,6 +75,14 @@ if okShow then
   OL.boss = rag
   local okP, errP = pcall(OL.PaintMain)
   ok(okP and table.getn(OL.entries) > 10, "Ragnaros's loot paints: " .. tostring(errP))
+  -- (26 Nov 2026, user: "when it says one of these 12 they are out of line") headings run across, items two a line
+  local L = OL.Lines({ { item = 1 }, { head = "A" }, { item = 2 }, { item = 3 }, { item = 4 }, { head = "B" }, { item = 5 } })
+  ok(table.getn(L) == 6 and L[1][1].item == 1 and L[1][2] == nil and L[2].head and L[3][1].item == 2 and L[3][2].item == 3
+    and L[4][1].item == 4 and L[4][2] == nil and L[5].head and L[6][1].item == 5,
+    "a heading always starts a new line, so a group's items never run on from the line before")
+  local mixed = false
+  for _, line in ipairs(OL.lines or {}) do if line.head and (line[1] or line[2]) then mixed = true end end
+  ok(OL.lines and table.getn(OL.lines) > 5 and not mixed, "Ragnaros's table: heading lines hold no items")
   OL.boss = nil
   okP, errP = pcall(OL.PaintMain)
   ok(okP and table.getn(OL.entries) > 100, "Everything here lists the whole raid: " .. tostring(errP))
@@ -89,3 +97,23 @@ if okShow then
   OL.inst, OL.boss, OL.results = nil, nil, nil
 end
 ok(getglobal("BINDING_NAME_PFOCTOLOOT") ~= nil, "key binding name for OctoLoot")
+
+-- (26 Nov 2026, Lo5t1ncyb3r: "just need the world markers") pins from the M lines alone, without reading everything
+OL.marks = nil
+local marks = OL.Marks()
+ok(table.getn(marks) >= 50 and OL.db == nil, "world map markers read from their own lines (" .. table.getn(marks) .. "), no tables")
+local mcm, kinds, badkey = nil, {}, 0
+local keys = {}
+for k in string.gfind(pfUI.octolootData, "I%^(%w+)%^") do keys[k] = true end
+for _, m in ipairs(marks) do
+  kinds[m.kind] = true
+  if not keys[m.key] then badkey = badkey + 1 end
+  if m.key == "MoltenCore" and m.zone == "Searing Gorge" then mcm = m end
+end
+ok(mcm and mcm.kind == "r" and mcm.x > .3 and mcm.x < .4 and mcm.y > .8, "Molten Core's entrance in Searing Gorge")
+ok(kinds.d and kinds.r and kinds.w and badkey == 0, "dungeons, raids and world bosses, every marker an instance OctoLoot has")
+local meta = OL.Meta("OnyxiasLair")
+ok(meta and meta.name == "Onyxia's Lair" and meta.players == 40 and OL.Meta("BlackfathomDeeps").name == "Blackfathom Deeps",
+  "a pin's tooltip reads only its instance's line (first line too)")
+local okPin, errPin = pcall(OL.PaintPins)
+ok(okPin, "pins paint (or stay hidden) without the map open: " .. tostring(errPin))

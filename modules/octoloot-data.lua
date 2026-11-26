@@ -7,6 +7,7 @@
 --        B^map number (E = at the entrance)^name^n|o (npc / object)^id^drops: "#chance" starts a group the
 --          server rolls once (that % of kills), then item:percent (negative = only on the quest)
 --        N^item^quality^name^icon^item level^required level^class^subclass
+--        M^instance^continent^zone (English map name)^x^y (0-1)^d|r|w (dungeon / raid / world boss)^note (back | a boss)
 pfUI.octolootData = [[I^BlackfathomDeeps^Blackfathom Deeps^d^19-32^5^BFD^Ashenvale^BlackfathomDeeps^BlackfathomDeepsEnt^719
 B^1)^Ghamoo-ra^n^4887^#100,6907:50,6908:50,#35,80718:35
 B^2)^Lady Sarevess^n^4831^5952:-80,#100,888:33.33,11121:33.33,3078:33.33
@@ -594,6 +595,72 @@ I^Reaver^Dark Reaver of Karazhan^w^1-60^40^Reaver^Deadwind Pass^Reaver^^
 B^1)^Dark Reaver of Karazhan^n^80936^#100,51785:3.85,51786:3.85,51787:3.85,51782:3.85,51783:3.85,51784:3.85,51788:3.85,51798:3.85,51799:3.85,51800:3.85,51789:3.85,51796:3.85,51797:3.85,51772:3.85,51773:3.85,51774:3.85,51769:3.85,51770:3.85,51771:3.85,51775:3.85,51779:3.85,51780:3.85,51781:3.85,51776:3.85,51777:3.85,51778:3.85,#100,51785:3.85,51786:3.85,51787:3.85,51782:3.85,51783:3.85,51784:3.85,51788:3.85,51798:3.85,51799:3.85,51800:3.85,51789:3.85,51796:3.85,51797:3.85,51772:3.85,51773:3.85,51774:3.85,51769:3.85,51770:3.85,51771:3.85,51775:3.85,51779:3.85,51780:3.85,51781:3.85,51776:3.85,51777:3.85,51778:3.85
 I^TeremustheDevourer^Teremus the Devourer^w^1-60^40^TeremustheDevourer^Blasted Lands^^^
 B^1)^Teremus the Devourer^n^7846^8244:100,7909:2.03,7910:1.44,5759:0.58,16245:0.14,20400:0.14,4500:0.14,14498:0.14,#3.467,55250:2.03,55251:1.44
+M^BlackfathomDeeps^1^Ashenvale^0.123^0.128^d^
+M^CavernsOfTimeBlackMorass^1^Tanaris^0.66^0.49^d^
+M^TheCrescentGrove^1^Ashenvale^0.51^0.78^d^
+M^DireMaulEast^1^Feralas^0.648^0.303^d^
+M^DireMaulNorth^1^Feralas^0.624^0.249^d^
+M^DireMaulWest^1^Feralas^0.604^0.311^d^
+M^Maraudon^1^Desolace^0.29^0.629^d^
+M^RagefireChasm^1^Orgrimmar^0.53^0.486^d^
+M^RazorfenDowns^1^The Barrens^0.488^0.919^d^
+M^RazorfenKraul^1^The Barrens^0.407^0.873^d^
+M^WailingCaverns^1^The Barrens^0.462^0.357^d^
+M^WindhornCanyon^1^Thousand Needles^0.65^0.46^d^
+M^ZulFarrak^1^Tanaris^0.389^0.184^d^
+M^EmeraldSanctum^1^Hyjal^0.207^0.592^r^
+M^OnyxiasLair^1^Dustwallow Marsh^0.53^0.76^r^
+M^TheRuinsofAhnQiraj^1^Silithus^0.30^0.95^r^
+M^TheTempleofAhnQiraj^1^Silithus^0.28^0.95^r^
+M^TimbermawHold^1^Azshara^0.38^0.33^r^
+M^Azuregos^1^Azshara^0.535^0.816^w^
+M^Clackora^1^Azshara^0.69^0.094^w^
+M^Concavius^1^Desolace^0.82^0.80^w^
+M^Ostarius^1^Tanaris^0.361^0.762^w^
+M^FourDragons^1^Ashenvale^0.937^0.355^w^Ysondre
+M^FourDragons^1^Feralas^0.512^0.108^w^Taerar
+M^BlackrockDepths^2^Searing Gorge^0.375^0.83^d^
+M^BlackrockDepths^2^Burning Steppes^0.33^0.3^d^
+M^TheDeadmines^2^Westfall^0.423^0.726^d^
+M^GilneasCity^2^Gilneas^0.30^0.27^d^
+M^Gnomeregan^2^Dun Morogh^0.23^0.38^d^
+M^FrostmaneHollow^2^Dun Morogh^0.66^0.4^d^
+M^HateforgeQuarry^2^Searing Gorge^0.95^0.53^d^
+M^KarazhanCrypt^2^Deadwind Pass^0.45^0.75^d^
+M^BlackrockSpireLower^2^Burning Steppes^0.3^0.3^d^
+M^BlackrockSpireLower^2^Searing Gorge^0.364^0.879^d^
+M^ScarletMonasteryGraveyard^2^Tirisfal Glades^0.85^0.29^d^
+M^ScarletMonasteryCathedral^2^Tirisfal Glades^0.87^0.295^d^
+M^ScarletMonasteryArmory^2^Tirisfal Glades^0.87^0.33^d^
+M^ScarletMonasteryLibrary^2^Tirisfal Glades^0.85^0.34^d^
+M^Scholomance^2^Western Plaguelands^0.69^0.74^d^
+M^ShadowfangKeep^2^Silverpine Forest^0.44^0.67^d^
+M^TheStockade^2^Stormwind City^0.51^0.675^d^
+M^StormwindVault^2^Stormwind City^0.63^0.58^d^
+M^StormwindVault^2^Elwynn Forest^0.29^0.61^d^
+M^Stratholme^2^Eastern Plaguelands^0.31^0.14^d^
+M^Stratholme^2^Eastern Plaguelands^0.47^0.24^d^back
+M^TheSunkenTemple^2^Swamp of Sorrows^0.701^0.55^d^
+M^Uldaman^2^Badlands^0.429^0.130^d^
+M^Uldaman^2^Badlands^0.657^0.438^d^back
+M^BlackrockSpireUpper^2^Burning Steppes^0.32^0.37^d^
+M^BlackrockSpireUpper^2^Searing Gorge^0.39^0.87^d^
+M^DragonmawRetreat^2^Wetlands^0.67^0.634^d^
+M^StormwroughtRuins^2^Balor^0.57^0.598^d^
+M^StormwroughtRuins^2^Balor^0.561^0.846^d^back
+M^BlackwingLair^2^Searing Gorge^0.33^0.83^r^
+M^BlackwingLair^2^Burning Steppes^0.27^0.3^r^
+M^LowerKarazhan^2^Deadwind Pass^0.46^0.70^r^
+M^MoltenCore^2^Searing Gorge^0.336^0.879^r^
+M^MoltenCore^2^Burning Steppes^0.275^0.37^r^
+M^Naxxramas^2^Eastern Plaguelands^0.40^0.28^r^
+M^TowerofKarazhan^2^Deadwind Pass^0.442^0.719^r^
+M^ZulGurub^2^Stranglethorn Vale^0.53^0.172^r^
+M^Reaver^2^Deadwind Pass^0.471^0.751^w^
+M^FourDragons^2^Duskwood^0.465^0.357^w^Lethon
+M^FourDragons^2^The Hinterlands^0.632^0.217^w^Emeriss
+M^LordKazzak^2^Blasted Lands^0.36^0.753^w^
+M^Nerubian^2^Eastern Plaguelands^0.082^0.38^w^
 N^24^3^Formula: Enchant Bracer - Agility^INV_Misc_Note_01^35^0^9^8
 N^31^2^Formula: Enchant Boots - Lesser Intellect^INV_Misc_Note_01^35^0^9^8
 N^64^2^Fiery Cloak^INV_Helmet_48^10^1^4^1
