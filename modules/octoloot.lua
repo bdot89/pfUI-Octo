@@ -1156,6 +1156,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     f.items, f.cells, f.heads = {}, {}, {}
     local cols, per = 2, math.floor((HEIGHT - 52 - BANNER_H - 44 - 24) / ITEM_H)
     local colW = (WIDTH - 2 - LEFT_W - BOSS_W - 40) / cols
+    f.colW = colW
     for i = 1, per do
       f.cells[i] = {}
       local hd = CreateFrame("Frame", nil, loot)
@@ -1640,6 +1641,10 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       if e.head or e.text then
         if pend then table.insert(lines, { pend }) pend = nil end
         table.insert(lines, { head = e })
+      elseif e.wide then
+        -- a quest row: the whole width on its own
+        if pend then table.insert(lines, { pend }) pend = nil end
+        table.insert(lines, { e })
       elseif pend then
         table.insert(lines, { pend, e })
         pend = nil
@@ -1654,6 +1659,11 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
   local function PaintCell(r, e)
     r.entry = e
     if not e then r:Hide() return end
+    -- a wide row (quests) spans both columns; the rest keep their column
+    if OL.frame and OL.frame.colW then
+      local w = e.wide and (OL.frame.colW * 2 - 6) or (OL.frame.colW - 6)
+      if r.curW ~= w then r:SetWidth(w) r.curW = w end
+    end
         if e.quest then
           -- a quest: its mark, its name in the quest log's level colour, where you are with it
           local Qm = OL.quests
@@ -1663,6 +1673,8 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
           if e.state == "locked" or e.state == "low" then r.icon:SetVertexColor(.5, .5, .5) else r.icon:SetVertexColor(1, 1, 1) end
           local nm = (e.step and (e.step .. ". ") or "") .. "[" .. (e.lvl or "?") .. "] " .. Qm.Title(e.quest)
           if e.here then nm = "> " .. nm end
+          if e.ready then r.icon:SetTexture(Qm.ICON.turnin) end
+          if e.state == "done" then cr, cg, cb = .55, .56, .6 end
           r.name:SetText(nm)
           r.name:SetTextColor(cr, cg, cb)
           local edge = e.state == "done" and { .3, .8, .4 } or (e.state == "log" and { 1, .82, .2 } or { .35, .36, .4 })

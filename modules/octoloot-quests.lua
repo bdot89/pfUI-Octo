@@ -132,12 +132,17 @@ pfUI:RegisterModule("octoloot-quests", "vanilla:tbc", function ()
     -- quests that follow it, as far as pfQuest's database knows (one after another)
     local all = DB("quests") and DB("quests").data
     if all then
+      -- which quest follows which (only one quest before it): one pass over the database, the first time
+      if not Q.nextOf then
+        Q.nextOf = {}
+        for qid, d in pairs(all) do
+          if d.pre and table.getn(d.pre) == 1 and not Q.nextOf[d.pre[1]] then Q.nextOf[d.pre[1]] = qid end
+        end
+      end
       local cur, n = id, 0
       while n < 8 do
-        local nextq
-        for qid, d in pairs(all) do
-          if d.pre and table.getn(d.pre) == 1 and d.pre[1] == cur and not seen[qid] then nextq = qid break end
-        end
+        local nextq = Q.nextOf[cur]
+        if nextq and seen[nextq] then nextq = nil end
         if not nextq then break end
         seen[nextq] = true
         table.insert(out, nextq)
@@ -250,10 +255,12 @@ pfUI:RegisterModule("octoloot-quests", "vanilla:tbc", function ()
 
   -- ---------------------------------------------------------------- the rows OctoLoot draws
 
+  -- (26 Nov 2026, in game: the done mark showed an item's icon - ReadyCheck-Ready is not in this client) pictures it has:
+  -- the game's tick, pfQuest's yellow "!" (to take) and "?" (to hand in), the game's quest log mark
+  local PQ = "Interface\\AddOns\\pfUI\\pfquest\\img\\"
   Q.ICON = {
-    done = "Interface\\RaidFrame\\ReadyCheck-Ready", log = "Interface\\GossipFrame\\ActiveQuestIcon",
-    ready = "Interface\\GossipFrame\\AvailableQuestIcon", low = "Interface\\GossipFrame\\AvailableQuestIcon",
-    locked = "Interface\\GossipFrame\\AvailableQuestIcon",
+    done = "Interface\\Buttons\\UI-CheckBox-Check", log = "Interface\\GossipFrame\\ActiveQuestIcon",
+    ready = PQ .. "available", low = PQ .. "available", locked = PQ .. "available", turnin = PQ .. "complete",
   }
   -- the level colour as the game's quest log draws it
   function Q.LevelColor(lvl)
@@ -275,39 +282,94 @@ pfUI:RegisterModule("octoloot-quests", "vanilla:tbc", function ()
     if st == "done" then e.info = "|cff55ff77Done|r"
     elseif st == "log" then
       local dn, tot, ready = Q.Progress(more)
-      e.info = ready and "|cff55ff77Ready to hand in|r" or ("In your log  " .. dn .. " / " .. tot)
-      e.right = ready and "|cff55ff77ready|r" or (tot > 0 and (dn .. "/" .. tot) or "")
+      e.ready = ready
+      e.info = ready and ("|cff55ff77Ready to hand in|r to " .. ((Q.Who(id, "end") or {}).name or "?"))
+        or ("|cffffd133In your log|r  -  objectives " .. dn .. " / " .. tot)
     elseif st == "locked" then
       local names = {}
-      for _, p in ipairs(more) do table.insert(names, Q.Title(p)) end
-      e.info = "|cffff9a55Needs first:|r " .. table.concat(names, ", ")
+      local chain = Q.Chain(id)
+      for _, p in ipairs(more) do
+        local step
+        for i, c in ipairs(chain) do if c == p then step = i end end
+        table.insert(names, Q.Title(p) .. (step and (" (step " .. step .. ")") or ""))
+      end
+      e.info = "|cffff9a55Do first:|r " .. table.concat(names, ", ")
     elseif st == "low" then e.info = "|cffff6655From level " .. more .. "|r"
     else e.info = "From " .. (who and who.name or "?") .. "  |cff8c8c8c" .. Q.WhereText(who) .. "|r" end
+    -- the step of its chain, on the right
+    local chain = Q.Chain(id)
+    if table.getn(chain) > 1 then
+      for i, c in ipairs(chain) do if c == id then e.right = "step " .. i .. " / " .. table.getn(chain) end end
+    end
+    if e.ready then e.right = "|cff55ff77hand in|r" end
+    e.wide = true
     if extra then for k, v in pairs(extra) do e[k] = v end end
     return e
   end
 
   -- an instance's quests in groups: in your log, ready to take, not yet, done
+  -- (26 Nov 2026, user: "quest layout isn't great ... following chains and seeing what you have done is hard") the
+  -- instance's quests as chains: one block per chain (every step in order, the steps outside the instance too, each with
+  -- its mark), the quests on their own after them; what you can do now first, finished chains last. One row a line.
   function Q.ListEntries(inst)
     Q.log = nil
     local out = {}
     local list = Q.For(inst)
-    local groups = { log = {}, ready = {}, low = {}, locked = {}, done = {} }
+    local here = {}
+    for _, q in ipairs(list) do here[q.id] = true end
+    local blocks, byRoot = {}, {}
     for _, q in ipairs(list) do
-      local e = Q.Row(q.id)
-      table.insert(groups[e.state] or groups.ready, e)
+      local chain = Q.Chain(q.id)
+      local root = chain[1]
+      local b = byRoot[root]
+      if not b then
+        b = { root = root, chain = chain, quests = {} }
+        byRoot[root] = b
+        table.insert(blocks, b)
+      elseif table.getn(chain) > table.getn(b.chain) then
+        b.chain = chain
+      end
+      table.insert(b.quests, q.id)
     end
-    local function add(key, head, note)
-      local g = groups[key]
-      if table.getn(g) == 0 then return end
-      table.insert(out, { head = head .. "  " .. table.getn(g), note = note })
-      for _, e in ipairs(g) do table.insert(out, e) end
+    -- each block's rows and how far along it is: 1 doing, 2 can start, 3 not yet, 4 finished
+    for _, b in ipairs(blocks) do
+      b.rows, b.done, b.rank = {}, 0, 4
+      local steps = table.getn(b.chain) > 1 and b.chain or b.quests
+      for _, id in ipairs(steps) do
+        local e = Q.Row(id, { outside = not here[id] })
+        if not here[id] then e.info = e.info .. "   |cff8c8c8c(outside the instance)|r" end
+        table.insert(b.rows, e)
+        if e.state == "done" then b.done = b.done + 1 end
+        local r = (e.state == "log" and 1) or (e.state == "ready" and 2) or ((e.state == "locked" or e.state == "low") and 3) or 4
+        if r < b.rank then b.rank = r end
+      end
     end
-    add("log", "In your log", "click one for its guide - Alt-click for a waypoint")
-    add("ready", "Ready to take", "you can pick these up now")
-    add("locked", "Needs a quest first", "the guide shows the whole chain")
-    add("low", "Not your level yet", "")
-    add("done", "Done", "")
+    table.sort(blocks, function(a, b)
+      if a.rank ~= b.rank then return a.rank < b.rank end
+      local da, dbb = Q.Data(a.quests[1]), Q.Data(b.quests[1])
+      return (da and da.lvl or 0) < (dbb and dbb.lvl or 0)
+    end)
+    local singles = {}
+    local NOTE = { "you are on it", "you can start it", "not yet", "finished" }
+    for _, b in ipairs(blocks) do
+      if table.getn(b.rows) > 1 then
+        local n = table.getn(b.rows)
+        local col = b.done == n and "|cff55ff77" or "|cffffd133"
+        table.insert(out, { head = "Chain: " .. Q.Title(b.chain[n]) .. "   " .. col .. b.done .. " / " .. n .. " done|r", note = NOTE[b.rank] })
+        for i, e in ipairs(b.rows) do
+          e.step = i
+          table.insert(out, e)
+        end
+      else
+        table.insert(singles, b.rows[1])
+      end
+    end
+    if table.getn(singles) > 0 then
+      local d = 0
+      for _, e in ipairs(singles) do if e.state == "done" then d = d + 1 end end
+      table.insert(out, { head = "Quests on their own   " .. d .. " / " .. table.getn(singles) .. " done", note = "" })
+      for _, e in ipairs(singles) do table.insert(out, e) end
+    end
     if table.getn(out) == 0 then
       table.insert(out, { head = "No quests for this one", note = "the lists know none for your side" })
     end
