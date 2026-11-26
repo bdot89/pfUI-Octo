@@ -119,6 +119,8 @@
   <Include file="..\modules\octorank.lua"/>
   <Include file="..\modules\octorank-timer.lua"/>
   <Include file="..\modules\octorank-options.lua"/>
+  <Include file="..\modules\idtimer.lua"/>
+  <Include file="..\modules\idtimer-options.lua"/>
   <Include file="..\modules\octoloot-data.lua"/>
   <Include file="..\modules\octoloot-items.lua"/>
   <Include file="..\modules\octoloot-pages.lua"/>

@@ -4578,8 +4578,9 @@ do
       local qgrp = O.groupOf["o:qolgeneral"]
       local labels = {}
       for _, b in ipairs(qgrp and qgrp.buttons or {}) do table.insert(labels, b.text:GetText() or "") end
+      -- (26 Nov 2026) ID Timer after Screenshots
       ok(qgrp and qgrp.name == "Quality of Life" and labels[1] == "QoL" and labels[2] == "Raid Tools" and labels[3] == "Screenshots"
-        and labels[4] == "Minigames" and labels[5] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
+        and labels[4] == "ID Timer" and labels[5] == "Minigames" and labels[6] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
       for _, k in ipairs({ "qolgeneral", "qolraid", "qolshots" }) do
         local okq, errq = pcall(function() O:Select("o:" .. k) end)
         ok(okq and O.pages[k], "QoL page " .. k .. " builds: " .. tostring(errq))
@@ -7588,6 +7589,9 @@ dofile(DIR .. "/tests/tooltip-extras.lua")
 
 -- OctoLoot: every boss and its drops, read only while the window is open (26 Nov 2026)
 dofile(DIR .. "/tests/octoloot.lua")
+
+-- ID Timer: the user's IDTimer add-on built in, off until asked (26 Nov 2026)
+dofile(DIR .. "/tests/idtimer.lua")
 
 local started, broken = 0, 0
 for _, m in ipairs(pfUI.modules) do
