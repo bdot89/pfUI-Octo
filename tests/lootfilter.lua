@@ -118,7 +118,7 @@ local c, u = AL.Normalize({ ["0xC"] = { { id = 2589 }, { id = 4865 } } })
 ok(table.getn(c) == 2 and u["0xC"].n == 2, "a map of corpses")
 ok(table.getn(AL.Normalize(nil)) == 0 and table.getn(AL.Normalize("x")) == 0, "nothing / nonsense: no items, no error")
 
--- taking: a corpse with nothing to leave is looted whole, the rest item by item
+-- picking corpses: ClassicAPI's LootUnit only opens a corpse now (25 Nov 2026); the scan picks which to open
 local whole, single = {}, {}
 _G.C_Loot = {
   LootAllCorpses = function() return true end, IsScanInProgress = function() return false end,
@@ -131,44 +131,75 @@ _G.GetNumPartyMembers = function() return 0 end
 local res = {
   { guid = "0x1", items = { { itemID = 2589 }, { itemID = 5000 } }, money = 50 },
   { guid = "0x2", items = { { itemID = 2589 }, { itemID = 4865 } } },
-  { guid = "0x3", items = { { itemID = 4865 } }, money = 10 },
+  { guid = "0x3", items = { { itemID = 4865 } } },
+  { guid = "0x4", items = {} },
 }
+local picked = {}
 AL.TakeItems(res)
-ok(table.getn(whole) == 1 and whole[1] == "0x1", "a corpse with only wanted items is looted whole (coins too)")
-ok(table.getn(single) == 1 and single[1] == "0x2:2589", "a corpse with trash: only the wanted item is taken")
--- (10 Nov 2026, Bread: "it doesn't pick up currency") ClassicAPI's scan lists no coins: a coins-only corpse
--- comes back with no items and is looted whole
-whole, single = {}, {}
-AL.TakeItems({ { guid = "0x4", items = {} }, { guid = "0x5", items = { { itemID = 4865 } } } })
-ok(table.getn(whole) == 1 and whole[1] == "0x4" and table.getn(single) == 0, "a corpse with only coins is looted (whole)")
+for _, g in ipairs(AL.state.queue) do picked[g] = true end
+ok(picked["0x1"] and picked["0x2"] and picked["0x4"] and not picked["0x3"], "corpses with something to take (or coins only) are opened, trash-only ones not")
+AL.state.queue = nil
+
+-- the open window: slots taken by the rules
+local keep = {}
+for _, k in ipairs({ "GetNumLootItems", "LootSlotIsCoin", "LootSlot", "GetLootSlotInfo", "GetLootSlotLink", "GiveMasterLoot", "GetMasterLootCandidate", "GetLootMethod", "GetLootThreshold" }) do keep[k] = rawget(_G, k) end
+local slots = {
+  { coin = true },
+  { link = "|cffffffff|Hitem:2589:0:0:0|h[Linen Cloth]|h|r", q = 1 },
+  { link = "|cffa335ee|Hitem:19019:0:0:0|h[Epic BoP]|h|r", q = 4, bop = true },
+  { link = "|cffa335ee|Hitem:19020:0:0:0|h[Epic BoE]|h|r", q = 4 },
+}
+local taken, given = {}, {}
+_G.GetNumLootItems = function() return table.getn(slots) end
+_G.LootSlotIsCoin = function(i) return slots[i].coin end
+_G.LootSlot = function(i) table.insert(taken, i) end
+_G.GetLootSlotInfo = function(i) return "tex", "name", 1, slots[i].q end
+_G.GetLootSlotLink = function(i) return slots[i].link end
+_G.GiveMasterLoot = function(i, c) table.insert(given, i .. ":" .. c) end
+_G.GetMasterLootCandidate = function(c) if c == 3 then return (UnitName("player")) end end
+local bop = AL.SlotBoP
+AL.SlotBoP = function(i) return slots[i].bop and true or false end
+_G.GetNumRaidMembers = function() return 10 end
+_G.GetLootThreshold = function() return 2 end
+_G.GetLootMethod = function() return "master", 0 end
+AL.TakeWindow()
+table.sort(taken)
+ok(table.getn(taken) == 2 and taken[1] == 1 and taken[2] == 2, "master looter: coins and cloth taken")
+ok(table.getn(given) == 1 and given[1] == "4:3", "master looter: the BoE epic given to yourself, the BoP epic left")
+taken, given = {}, {}
+_G.GetLootMethod = function() return "master", 1 end
+AL.TakeWindow()
+ok(table.getn(taken) == 2 and table.getn(given) == 0, "someone else is master looter: both epics left")
+taken, given = {}, {}
+_G.GetLootMethod = function() return "group" end
+AL.TakeWindow()
+ok(table.getn(taken) == 2 and table.getn(given) == 0, "group loot: the epics are left for the roll")
+AL.SlotBoP = bop
+for k, v in pairs(keep) do _G[k] = v end
+for k in pairs(keep) do if not keep[k] then _G[k] = nil end end
+
 -- coins in a loot window you open yourself are taken
 do
-  local keep = { GetNumLootItems = rawget(_G, "GetNumLootItems"), LootSlotIsCoin = rawget(_G, "LootSlotIsCoin"), LootSlot = rawget(_G, "LootSlot") }
-  local taken = {}
+  local keep2 = { GetNumLootItems = rawget(_G, "GetNumLootItems"), LootSlotIsCoin = rawget(_G, "LootSlotIsCoin"), LootSlot = rawget(_G, "LootSlot") }
+  local got = {}
   _G.GetNumLootItems = function() return 3 end
   _G.LootSlotIsCoin = function(i) return i == 1 end
-  _G.LootSlot = function(i) table.insert(taken, i) end
-  ok(AL.TakeCoins() == 1 and taken[1] == 1 and table.getn(taken) == 1, "an opened loot window: the coins taken, the items left")
-  for k, v in pairs(keep) do _G[k] = v end
-  if not keep.GetNumLootItems then _G.GetNumLootItems = nil end
-  if not keep.LootSlotIsCoin then _G.LootSlotIsCoin = nil end
-  if not keep.LootSlot then _G.LootSlot = nil end
+  _G.LootSlot = function(i) table.insert(got, i) end
+  ok(AL.TakeCoins() == 1 and got[1] == 1 and table.getn(got) == 1, "an opened loot window: the coins taken, the items left")
+  for k, v in pairs(keep2) do _G[k] = v end
+  for k in pairs(keep2) do if not keep2[k] then _G[k] = nil end end
 end
 
--- master loot: the threshold and better is left for the master looter
-whole, single = {}, {}
 _G.GetNumRaidMembers = function() return 10 end
 _G.GetLootMethod = function() return "master", 0 end
 _G.GetLootThreshold = function() return 2 end
-ok(AL.Threshold() == 2 and AL.ItemMode(), "master loot in a raid: item by item, threshold green")
-AL.TakeItems({ { guid = "0x9", items = { { itemID = 5000 }, { itemID = 2589 } } } })
-ok(table.getn(whole) == 0 and table.getn(single) == 1 and single[1] == "0x9:2589", "the green sword is left for the master looter, the cloth taken")
+ok(AL.Threshold() == 2 and AL.ItemMode(), "master loot in a raid: corpse by corpse, threshold green")
 _G.GetLootMethod = function() return "freeforall" end
 ok(AL.Threshold() == nil, "free for all: no threshold")
 _G.GetLootMethod = function() return "group" end
 ok(AL.Threshold() == 2, "group loot: the roll gets them")
 
--- a pass in item mode: scan, then take when the scan is in
+-- a pass in item mode: scan, then open the corpses one by one
 local scans = 0
 _G.C_Loot.ScanNearbyLoot = function() scans = scans + 1 return true end
 _G.C_Loot.GetLastScanResults = function() return { { guid = "0x7", items = { { itemID = 2589 } } } } end
@@ -179,9 +210,10 @@ pfUI_config.autoloot.enable = "1"
 AL.Run(1000)
 ok(scans == 1 and st.itemScan, "a pass in a group starts with a scan")
 AL.Step(1000.5, false)
-ok(table.getn(single) == 1 or table.getn(whole) == 1, "when the scan is in, the wanted item is taken")
-AL.Step(1001, false)
-ok(not st.walking, "...and the pass ends")
+ok(table.getn(whole) == 1 and whole[1] == "0x7" and st.opening == "0x7", "when the scan is in, the corpse is opened")
+AL.Step(1002.5, false)
+AL.Step(1003, false)
+ok(not st.walking, "...and the pass ends (a window that never opened is given up)")
 pfUI_config.autoloot.enable = "0"
 
 -- no group, no rules on: whole corpses as before

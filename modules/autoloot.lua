@@ -252,9 +252,12 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     end
     return items, units
   end
-  -- may this item be taken, and should it? -> keep, why
-  function AL.Decide(it, threshold)
-    if threshold and it.quality and it.quality >= threshold then return false, "group" end
+  -- may this item be taken, and should it? -> keep, why. (26 Nov 2026, user: "take everything it can under normal
+  -- rules unless its BoP") Bind on pickup is always left; at or over the group's threshold only the master looter
+  -- takes it (given to himself), never under group loot / need before greed (the roll has it).
+  function AL.Decide(it, threshold, master)
+    if it.bop then return false, "bind on pickup" end
+    if threshold and it.quality and it.quality >= threshold and not master then return false, "group" end
     local LF = pfUI.lootfilter
     if LF and LF.Active and LF.Active() then
       local keep, name = LF.Keep(it)
@@ -262,41 +265,111 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     end
     return true
   end
+  -- are you the master looter?
+  function AL.IAmMaster()
+    if type(_G.GetLootMethod) ~= "function" then return false end
+    local method, party, raid = _G.GetLootMethod()
+    if method ~= "master" then return false end
+    if raid and _G.UnitIsUnit then return _G.UnitIsUnit("raid" .. raid, "player") and true or false end
+    return tonumber(party) == 0
+  end
+  -- (26 Nov 2026) ClassicAPI's update of 25 Nov: C_Loot.LootUnit now only OPENS a corpse's loot window (as a
+  -- right-click), and LootUnitItem refuses while another request is pending - the old item-by-item pass opened the
+  -- window, our LOOT_OPENED closed it at once, and nothing was taken. Now the scan only picks which corpses to open;
+  -- each is opened in turn (st.queue) and its slots are taken here by the normal rules (AL.TakeWindow).
   function AL.TakeItems(res)
-    local C_Loot = _G.C_Loot
     local items, units = AL.Normalize(res)
-    local threshold = AL.Threshold()
-    local take, left = {}, {}
+    local threshold, master = AL.Threshold(), AL.IAmMaster()
+    local worth = {}
     for i = 1, table.getn(items) do
       local it = items[i]
-      local keep, why = AL.Decide(it, threshold)
-      if keep then
-        take[it.guid] = take[it.guid] or {}
-        table.insert(take[it.guid], it)
-      else
-        left[it.guid] = true
-        st.skipped = (st.skipped or 0) + 1
-        st.lastSkip = { name = it.link or ("item " .. it.id), why = why }
+      if AL.Decide(it, threshold, master) then worth[it.guid] = true end
+    end
+    st.queue = {}
+    for g, u in pairs(units) do
+      -- coins only (the scan lists no coins) or anything we may take
+      if worth[g] or (u.money or 0) > 0 or u.n == 0 then table.insert(st.queue, g) end
+    end
+    st.itemCalls = (st.itemCalls or 0) + table.getn(st.queue)
+    return table.getn(st.queue)
+  end
+  -- open the next corpse of the queue
+  function AL.OpenNext(now)
+    local q = st.queue
+    while q and table.getn(q) > 0 do
+      local g = table.remove(q, 1)
+      if pcall(_G.C_Loot.LootUnit, g) then
+        st.opening, st.openAt = g, now or GetTime()
+        return true
       end
     end
-    local calls = 0
-    for g, u in pairs(units) do
-      local mine = take[g]
-      -- (10 Nov 2026, Bread: "it doesn't pick up currency") ClassicAPI's scan lists items only, no coins: a
-      -- corpse with just coins came back with an empty item list and was never looted. A corpse with nothing
-      -- to leave behind - no items at all included - is looted whole. (Coins on a corpse that keeps an item
-      -- for the master looter / a filter rule cannot be taken alone: AL.TakeCoins when you open it.)
-      if not left[g] and type(C_Loot.LootUnit) == "function" and (mine or (u.money or 0) > 0 or u.n == 0) then
-        -- nothing to leave behind: the whole corpse, coins included
-        if pcall(C_Loot.LootUnit, g) then calls = calls + 1 end
-      elseif mine and type(C_Loot.LootUnitItem) == "function" then
-        for j = 1, table.getn(mine) do
-          if pcall(C_Loot.LootUnitItem, g, mine[j].id) then calls = calls + 1 end
+    st.opening = nil
+    return false
+  end
+
+  -- is loot slot i bind on pickup? (a hidden tooltip of the slot)
+  local scan
+  function AL.SlotBoP(i)
+    if type(_G.ITEM_BIND_ON_PICKUP) ~= "string" then return false end
+    if not scan then
+      scan = CreateFrame("GameTooltip", "pfAutoLootScan", nil, "GameTooltipTemplate")
+    end
+    if not scan.SetLootItem then return false end
+    scan:SetOwner(_G.WorldFrame, "ANCHOR_NONE")
+    scan:ClearLines()
+    scan:SetLootItem(i)
+    for l = 2, 6 do
+      local fs = _G["pfAutoLootScanTextLeft" .. l]
+      local t = fs and fs.GetText and fs:GetText()
+      if t == _G.ITEM_BIND_ON_PICKUP then return true end
+    end
+    return false
+  end
+  -- your own index in the master loot list
+  local function MyCandidate()
+    if type(_G.GetMasterLootCandidate) ~= "function" then return nil end
+    local me = _G.UnitName and (_G.UnitName("player"))
+    for c = 1, 40 do
+      if _G.GetMasterLootCandidate(c) == me then return c end
+    end
+  end
+  -- the open loot window: take what the rules allow -> how many slots were taken
+  function AL.TakeWindow()
+    if type(_G.GetNumLootItems) ~= "function" or type(_G.LootSlot) ~= "function" then return 0 end
+    local threshold, master = AL.Threshold(), AL.IAmMaster()
+    local n = 0
+    for i = (_G.GetNumLootItems() or 0), 1, -1 do
+      if _G.LootSlotIsCoin and _G.LootSlotIsCoin(i) then
+        _G.LootSlot(i)
+        n = n + 1
+      else
+        local _, _, count, quality = _G.GetLootSlotInfo(i)
+        local link = _G.GetLootSlotLink and _G.GetLootSlotLink(i)
+        local id
+        if type(link) == "string" then
+          local _, _, x = string.find(link, "item:(%d+)")
+          id = tonumber(x)
+        end
+        if id then
+          local it = { id = id, link = link, count = tonumber(count) or 1, quality = tonumber(quality) or QualityOf({ link = link, id = id }) }
+          it.bop = AL.SlotBoP(i)
+          local keep, why = AL.Decide(it, threshold, master)
+          if keep then
+            if threshold and it.quality and it.quality >= threshold and master then
+              local me = MyCandidate()
+              if me and _G.GiveMasterLoot then _G.GiveMasterLoot(i, me) n = n + 1 end
+            else
+              _G.LootSlot(i)
+              n = n + 1
+            end
+          else
+            st.skipped = (st.skipped or 0) + 1
+            st.lastSkip = { name = link or ("item " .. id), why = why }
+          end
         end
       end
     end
-    st.itemCalls = (st.itemCalls or 0) + calls
-    return calls
+    return n
   end
 
   -- a loot window you opened yourself: its coins are taken at once (the area loot cannot take coins alone
@@ -322,7 +395,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     st.walkItems, st.walkMoney = 0, 0
     local C_Loot = _G.C_Loot
     local ok, started
-    if AL.ItemMode() and type(C_Loot.ScanNearbyLoot) == "function" and type(C_Loot.LootUnitItem) == "function" then
+    if AL.ItemMode() and type(C_Loot.ScanNearbyLoot) == "function" and type(C_Loot.LootUnit) == "function" then
       st.itemScan = true
       ok, started = pcall(C_Loot.ScanNearbyLoot)
       if ok and started == nil then started = true end
@@ -345,7 +418,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
         if ok then res = r end
       end
       st.lastScan = res
-      if AL.TakeItems(res) > 0 then
+      if AL.TakeItems(res) > 0 and AL.OpenNext(now) then
         st.walkAt = now
         return
       end
@@ -380,8 +453,15 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
         st.due = now + Num("stopdelay", .15)
       end
     end
+    -- corpses being opened one by one: the next when this one is done or did not open in 1.5 s
+    if st.walking and (st.opening or (st.queue and table.getn(st.queue) > 0)) then
+      if st.opening and now - st.openAt > 1.5 then st.opening = nil end
+      if not st.opening and now >= (st.nextAt or 0) then
+        st.walkAt = now
+        if not AL.OpenNext(now) then st.queue = nil Done(now) end
+      end
     -- a scan that finished without telling us
-    if st.walking and (now - st.walkAt > WALK_TIMEOUT or (now - st.walkAt > .3 and not Scanning())) then Done(now) end
+    elseif st.walking and (now - st.walkAt > WALK_TIMEOUT or (now - st.walkAt > .3 and not Scanning())) then Done(now) end
     if st.want and st.due and now >= st.due and not moving and not AL.Blocked(now) then AL.Run(now) end
     if st.summary and now >= st.recordUntil and not st.walking then
       st.summary = nil
@@ -428,7 +508,12 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     if e == "UNIT_DIED" then AL.OnDeath(_G.arg1)
     elseif e == "CHAT_MSG_COMBAT_HOSTILE_DEATH" then AL.OnDeath(nil)
     elseif e == "LOOT_OPENED" then
-      if st.walking or GetTime() < st.settleUntil - .2 then
+      if st.opening then
+        -- a corpse we opened: take it by the rules, shut it, then the next
+        AL.TakeWindow()
+        st.opening, st.nextAt = nil, GetTime() + .15
+        if type(_G.CloseLoot) == "function" then _G.CloseLoot() end
+      elseif st.walking or GetTime() < st.settleUntil - .2 then
         if On("closewin") and type(_G.CloseLoot) == "function" then _G.CloseLoot() else st.manual = true end
       else
         st.manual = true
@@ -454,6 +539,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
       if st.want or On("death") then AL.Want("retry", .5) end
     elseif e == "PLAYER_LEAVING_WORLD" then
       st.want, st.due, st.walking, st.manual, st.cast, st.lost, st.wasMoving = nil, nil, nil, nil, nil, nil, nil
+      st.queue, st.opening = nil, nil
     elseif e == "PLAYER_ENTERING_WORLD" then
       st.moneyBase = _G.GetMoney and _G.GetMoney() or 0
       lastX = nil
