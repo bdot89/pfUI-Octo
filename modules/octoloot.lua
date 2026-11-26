@@ -27,6 +27,18 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
 
   C.octoloot = C.octoloot or {}
   local function S(k, d) local v = C.octoloot[k] if v == nil then return d end return v end
+  -- (26 Nov 2026, in game: "octoloot.lua:525: attempt to call global `Accent'" - the QuickLook buttons' painter sits
+  -- above where these were made; locals must be made before the functions that use them)
+  local function Paint(parts, r, g, b, a)
+    for i = 1, table.getn(parts) do parts[i]:SetVertexColor(r, g, b, a or 1) end
+  end
+  local function Accent()
+    if pfUI.api and pfUI.api.GetAccentColor then
+      local ok, r, g, b = pcall(pfUI.api.GetAccentColor)
+      if ok and r then return r, g, b end
+    end
+    return P.accent[1], P.accent[2], P.accent[3]
+  end
 
   -- ---------------------------------------------------------------- the data
 
@@ -539,7 +551,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         Paint(q.edge, r1, g1, b1, 1)
       else
         q.art:Hide()
-        q.num:SetText(tostring(i))
+        q.num:SetText("+")
         Paint(q.edge, P.line[1], P.line[2], P.line[3], 1)
       end
     end
@@ -705,9 +717,6 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     parts[4]:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0) parts[4]:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0) parts[4]:SetWidth(1)
     return parts
   end
-  local function Paint(parts, r, g, b, a)
-    for i = 1, table.getn(parts) do parts[i]:SetVertexColor(r, g, b, a or 1) end
-  end
   local function Font(fs, size, c, face)
     fs:SetFont(face or (W and W.UIFont and W.UIFont()) or STANDARD_TEXT_FONT, size or 12, "")
     if c then fs:SetTextColor(c[1], c[2], c[3]) end
@@ -723,13 +732,6 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     else
       t:SetVertexColor(r, g, b, math.max(a1, a2))
     end
-  end
-  local function Accent()
-    if pfUI.api and pfUI.api.GetAccentColor then
-      local ok, r, g, b = pcall(pfUI.api.GetAccentColor)
-      if ok and r then return r, g, b end
-    end
-    return P.accent[1], P.accent[2], P.accent[3]
   end
   local function Tip(f, title, text)
     f:SetScript("OnEnter", function()
@@ -927,19 +929,24 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         local e = OL.QuickEntry(qi)
         if e then
           GameTooltip:AddLine("QuickLook " .. qi .. ": " .. e.title, 1, .82, .2)
-          GameTooltip:AddLine("Click: open it.  Right-click: take it off.", .8, .8, .8, 1)
+          GameTooltip:AddLine("Click: jump straight back to it.  Right-click: take it off.", .8, .8, .8, 1)
         else
-          GameTooltip:AddLine("QuickLook " .. qi, 1, .82, .2)
-          GameTooltip:AddLine("Empty. Right-click an instance, a group or a boss / page to pin it here.", .8, .8, .8, 1)
+          GameTooltip:AddLine("QuickLook " .. qi .. " (empty)", 1, .82, .2)
+          GameTooltip:AddLine("Six shortcuts to the pages you use most - your raid's bosses, a faction's rewards, a crafting "
+            .. "list. Keep one here by right-clicking it in the list, or open it and press Pin at the banner's top right.", .8, .8, .8, 1)
         end
         GameTooltip:Show()
       end)
       q:SetScript("OnLeave", function() GameTooltip:Hide() end)
       f.quick[i] = q
     end
+    -- (26 Nov 2026, user: "how does this even work what is it meant for") it says so above the buttons
+    f.quickLabel = Font(left:CreateFontString(nil, "OVERLAY"), 10, { .55, .56, .6 })
+    f.quickLabel:SetPoint("BOTTOMLEFT", f.quick[1], "TOPLEFT", 1, 4)
+    f.quickLabel:SetText("QUICKLOOK  -  right-click a list row or press Pin to keep it here")
     f.rows = {}
     local LIST_TOP = 10 + 3 * 28 + 4
-    local nrows = math.floor((HEIGHT - 52 - LIST_TOP - 52) / ROW_H)
+    local nrows = math.floor((HEIGHT - 52 - LIST_TOP - 66) / ROW_H)
     for i = 1, nrows do
       local r = CreateFrame("Button", nil, left)
       r:SetHeight(ROW_H - 2)
