@@ -3123,6 +3123,9 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
 
   local onShow = g:GetScript("OnShow")
   g:SetScript("OnShow", function()
+    -- (26 Nov 2026) the options pages that waited at login start now, before the list is made
+    local late = pfUI.StartDeferred and pfUI.StartDeferred()
+    if late then O.navCount = nil end
     if onShow then onShow() end
     -- categories added since (late modules, the search page) join the list
     -- (stand-in pages for switched-off features, once every module has run)

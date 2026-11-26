@@ -1734,6 +1734,9 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
 
   pfUI.unlock:SetScript("OnShow", function()
     if this.skip then this.skip = nil return end
+    -- (26 Nov 2026) the raid frames wait until first wanted (raid.lua): layout mode sizes and moves them
+    if pfUI.uf and pfUI.uf.raid and pfUI.uf.raid.Build then pfUI.uf.raid:Build() end
+    if pfUI.uf and pfUI.uf.group and pfUI.uf.group.Build then pfUI.uf.group:Build() end
     if InCombatLockdown and InCombatLockdown() then
       DEFAULT_CHAT_FRAME:AddMessage(ERR_NOT_IN_COMBAT, 1, .2, .2)
       this.skip = true

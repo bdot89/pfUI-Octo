@@ -15,7 +15,26 @@ pfUI:RegisterModule("group", "vanilla:tbc", function ()
 
   pfUI.uf.group = {}
 
+  -- (octo, 26 Nov 2026, Wolfahrt's /pfload: "group" 47 ms at every login) the party frames (and their targets / pets) are
+  -- made the first time they are wanted - in a party, layout mode, the demo (pfUI.uf.group:Build) - not at login
+  function pfUI.uf.group:Build()
+    if pfUI.uf.group.built then return end
+    pfUI.uf.group.built = true
+    pfUI.uf.group:UpdateConfig()
+  end
+  local wake = CreateFrame("Frame")
+  wake:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  wake:RegisterEvent("RAID_ROSTER_UPDATE")
+  wake:RegisterEvent("PLAYER_ENTERING_WORLD")
+  wake:SetScript("OnEvent", function()
+    if pfUI.uf.group.built then this:UnregisterAllEvents() return end
+    if (GetNumPartyMembers() or 0) > 0 or UnitInRaid("player") then pfUI.uf.group:Build() this:UnregisterAllEvents() end
+  end)
+
   function pfUI.uf.group:UpdateConfig()
+    if not pfUI.uf.group.built then
+      if (GetNumPartyMembers() or 0) > 0 or UnitInRaid("player") then pfUI.uf.group.built = true else return end
+    end
     local startid = C.unitframes.selfingroup == "1" and 0 or 1
     local spacing = C.unitframes.group.pspace
     local rawborder, default_border = GetBorderSize("unitframes")

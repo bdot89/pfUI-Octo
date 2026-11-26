@@ -17,13 +17,24 @@ pfUI:RegisterModule("pixelperfect", "vanilla:tbc", function ()
     if v and v >= .3 and v <= 2 then return v end
   end
 
+  -- (26 Nov 2026, Wolfahrt's /pfload: pixelperfect 80 ms at login) a new scale makes the client lay out every frame on
+  -- UIParent again, and it ran at load and again at entering the world: the scale and the CVars are only set when they
+  -- differ from what they already are
+  local function SetScaleIf(v)
+    local now = UIParent:GetScale()
+    if not now or math.abs(now - v) > .0005 then UIParent:SetScale(v) end
+  end
+  local function CVarIf(name, v)
+    local cur = tonumber(GetCVar(name))
+    if not cur or math.abs(cur - tonumber(v)) > .0005 then SetCVar(name, v) end
+  end
   -- pixel perfect
   local function pixelperfect()
     local mine = own()
     if mine then
-      SetCVar("uiScale", math.max(.64, math.min(1, mine)))
-      SetCVar("useUiScale", 1)
-      UIParent:SetScale(mine)
+      CVarIf("uiScale", math.max(.64, math.min(1, mine)))
+      CVarIf("useUiScale", 1)
+      SetScaleIf(mine)
       return
     end
     local conf = tonumber(C.global.pixelperfect) or 0
@@ -32,17 +43,17 @@ pfUI:RegisterModule("pixelperfect", "vanilla:tbc", function ()
       -- number 1 and set the scale to that "1" - every login went to .9)
       local scale = tonumber(GetCVar("uiScale"))
       if GetCVar("useUiScale") == "1" and scale then
-        UIParent:SetScale(scale)
+        SetScaleIf(scale)
       else
-        UIParent:SetScale(.9)
+        SetScaleIf(.9)
       end
     else
       local scale = conf and statics[conf] or 1
 
-      SetCVar("uiScale", scale)
-      SetCVar("useUiScale", 1)
+      CVarIf("uiScale", scale)
+      CVarIf("useUiScale", 1)
 
-      UIParent:SetScale(scale)
+      SetScaleIf(scale)
     end
   end
 

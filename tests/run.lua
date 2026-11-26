@@ -258,6 +258,21 @@ if TIMEPROF then
   print(string.format("TIMEPROF total %.0f ms (all files + module starts)", total * 1000))
   for i = 1, math.min(30, table.getn(TIMEPROF)) do print(string.format("TIMEPROF %7.1f ms  %s", TIMEPROF[i][2] * 1000, TIMEPROF[i][1])) end
 end
+-- (26 Nov 2026, Wolfahrt's /pfload: 1.2 s of module starts) options pages wait until the options window first opens
+do
+  local waiting = pfUI.deferred and table.getn(pfUI.deferred) or 0
+  ok(waiting >= 20, "options page modules wait at login (" .. waiting .. ")")
+  local kept = true
+  for _, m in ipairs(pfUI.deferred or {}) do if pfUI.DEFER_KEEP[m] then kept = false end end
+  ok(kept, "the options modules others call at run time are not among them")
+  -- and the 40 raid frames wait until first wanted
+  local rf = pfUI.uf and pfUI.uf.raid
+  if rf and rf.Build then
+    ok(not rf.built and rawget(rf, 1) == nil and _G.pfRaidCluster:GetWidth() > 10, "solo: no raid frames made at login, the cluster box sized")
+    rf:Build()
+    ok(rf.built and rf[1] and rf[40], "wanted: all raid frames made")
+  end
+end
 seterrorhandler(pfErrorHandler)
 ok(Mock.errorhandler == pfErrorHandler, "pfUI's error handler back")
 ok(pfUI.bootup == nil, "bootup finished")
@@ -2100,6 +2115,7 @@ do
   ok(O and O.frame == pfUI.gui, "pfUI's window has the Octo shell")
   if O and O.frame then
     pfUI.gui:Show()
+    ok(pfUI.deferred == nil and O.pages and O.BUILD and O.BUILD.octoloot, "opening the options starts the waiting pages (OctoLoot's is there)")
     -- Combat Text first, with five pages (16 Nov 2026: Crits merged into Scroll areas, Nameplates and General)
     local ct
     for _, s in ipairs(O.octo) do if s[1] == "Combat Text" then ct = s end end

@@ -20,9 +20,36 @@ pfUI:RegisterModule("raid", "vanilla:tbc", function ()
   -- no tank order for now, just "all tanks first"
   pfUI.uf.raid.tankrole = { }
 
+  -- (octo, 26 Nov 2026, Wolfahrt's /pfload: "raid" 64 ms at every login) the 40 raid frames are made the first time they
+  -- are wanted - in a raid, layout mode, the raid demo (pfUI.uf.raid:Build) - not at login. Until then only the cluster
+  -- (the layout mode box) is there, sized from the settings.
+  -- wanted now: in a raid, or in a party with "raid frames for the party" on
+  function pfUI.uf.raid.Wanted()
+    if UnitInRaid("player") then return true end
+    return C.unitframes.raidforgroup == "1" and (GetNumPartyMembers() or 0) > 0
+  end
+  function pfUI.uf.raid:Build()
+    if pfUI.uf.raid.built then return end
+    pfUI.uf.raid.built = true
+    pfUI.uf.raid:UpdateConfig()
+    pfUI.uf.raid:Show()
+  end
   function pfUI.uf.raid:UpdateConfig()
     local rawborder, default_border = GetBorderSize("unitframes")
     maxraid = tonumber(C.unitframes.maxraid)
+
+    if not pfUI.uf.raid.built then
+      if pfUI.uf.raid.Wanted() then return pfUI.uf.raid:Build() end
+      local cfg = C.unitframes.raid
+      local w = (tonumber(cfg.width) or 50) + 2 * default_border
+      local h = (tonumber(cfg.height) or 30) + (tonumber(cfg.pheight) or 0) + 2 * default_border
+      local pad = (tonumber(cfg.raidpadding) or 0) * GetPerfectPixel()
+      local _, _, x, y = string.find(cfg.raidlayout or "5x8", "(.+)x(.+)")
+      x, y = tonumber(x) or 5, tonumber(y) or 8
+      cluster:SetWidth(math.max(10, x * (pad + w) - pad))
+      cluster:SetHeight(math.max(10, y * (pad + h) - pad))
+      return
+    end
 
     for i=1,maxraid do
       pfUI.uf.raid[i] = pfUI.uf.raid[i] or pfUI.uf:CreateUnitFrame("Raid", i, C.unitframes.raid)
@@ -94,7 +121,15 @@ pfUI:RegisterModule("raid", "vanilla:tbc", function ()
   pfUI.uf.raid:Hide()
   pfUI.uf.raid:RegisterEvent("RAID_ROSTER_UPDATE")
   pfUI.uf.raid:RegisterEvent("VARIABLES_LOADED")
-  pfUI.uf.raid:SetScript("OnEvent", function() this:Show() end)
+  pfUI.uf.raid:RegisterEvent("PLAYER_ENTERING_WORLD")
+  pfUI.uf.raid:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  pfUI.uf.raid:SetScript("OnEvent", function()
+    if not this.built then
+      if not this.Wanted() then return end
+      this:Build()
+    end
+    this:Show()
+  end)
   pfUI.uf.raid:SetScript("OnUpdate", function()
     -- don't proceed without raid or during combat
     -- (octo, 22 Nov 2026: out of a raid it went to sleep only after a sort, so it asked UnitInRaid every frame from the

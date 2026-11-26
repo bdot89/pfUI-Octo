@@ -347,6 +347,26 @@ local function Start(kind, name, fn)
   end
 end
 
+-- the options modules that start at login all the same (see the module loop below)
+pfUI.DEFER_KEEP = {
+  ["octo-options"] = true,        -- the options window itself
+  ["castbar-options"] = true,     -- pfUI.castbarOcto: UI layouts and layout mode call it
+  ["gear-options"] = true,        -- pfUI.gearOcto: gear, specs, layouts, cooldowns
+  ["unitframes-options"] = true,  -- pfUI.ufOcto, pfUI.font_unit: layouts, layout mode, every frame's font
+  ["sct-options"] = true,         -- /sct
+  ["actionbar-options"] = true, ["buffs-options"] = true, ["minimap-options"] = true, -- set defaults at load
+  ["plates-options"] = true,      -- pfUI.plates.OpenSection (the sidebar's Profiles entry and others)
+  ["dots-options"] = true,        -- a named frame other code finds
+}
+-- start the options modules that waited (the first time the options window opens); true when any started
+function pfUI.StartDeferred()
+  local list = pfUI.deferred
+  if not list or table.getn(list) == 0 then return false end
+  pfUI.deferred = nil
+  for _, m in ipairs(list) do pfUI:LoadModule(m) end
+  return true
+end
+
 function pfUI:LoadModule(m)
   Start("module", m, pfUI.module[m])
 end
@@ -407,9 +427,17 @@ pfUI:SetScript("OnEvent", function()
     pfUI:UpdateFonts()
 
     -- load modules
+    -- (26 Nov 2026, user: "1 and 2 do it amazingly" - Wolfahrt's /pfload: 1.2 s of module starts) an options page's module
+    -- only registers its pages: it starts the first time the options window opens (pfUI.StartDeferred), not at login.
+    -- Kept at login: the options shell and the pages whose code other modules call at run time or that set defaults.
+    pfUI.deferred = {}
     for _, m in pairs(this.modules) do
       if not ( pfUI_config["disabled"] and pfUI_config["disabled"][m]  == "1" ) then
-        pfUI:LoadModule(m)
+        if string.find(m, "%-options$") and not pfUI.DEFER_KEEP[m] and not pfUI.nodefer then
+          table.insert(pfUI.deferred, m)
+        else
+          pfUI:LoadModule(m)
+        end
       end
     end
 

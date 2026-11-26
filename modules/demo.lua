@@ -1784,6 +1784,9 @@ pfUI:RegisterModule("demo", "vanilla", function ()
   function DM.Begin(kind)
     math.randomseed(math.floor((GetTime() or 0) * 1000))
     local roster = DM.ROSTERS[kind]
+    -- (26 Nov 2026) the raid frames are only made when first wanted (raid.lua): the demo wants them
+    if roster and pfUI.uf and pfUI.uf.raid and pfUI.uf.raid.Build then pfUI.uf.raid:Build() end
+    if roster and pfUI.uf and pfUI.uf.group and pfUI.uf.group.Build then pfUI.uf.group:Build() end
     if roster == "raid" then DM.MakeRaid() elseif roster == "party" then DM.MakeParty()
     else DM.units, DM.list, DM.tank, DM.offtank = {}, {}, nil, nil end
     DM.kind, DM.on, DM.paused, DM.t = kind, true, false, 0
