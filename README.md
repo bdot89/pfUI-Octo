@@ -122,6 +122,13 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.56
+
+- 📖 **OctoLoot, our own loot browser:** every boss on OctoWoW and what it drops, with drop chances, from the OctoWoW database (green and better plus quest drops, never greys). Nine sections like Atlas: Dungeons, Raids, World, Events, Collections, Factions, PvP, Crafting (1720 recipes) and your Wishlist. Click any item for its own page: its set, what it swaps for, every boss or vendor it comes from, the recipe that makes it. Dungeon and raid entrances and world bosses are marked on the world map. `/octoloot`, `/ol`. It is only loaded while the window is open, so it costs nothing in raids.
+- 🖼️ **Stops the white textures + error #132 crash:** with DXVK (a d3d9.dll in your game folder), "Install pfUI Octo DLLs.bat" now adds `d3d9.textureMemory = 0` to dxvk.conf, the fix Wolfahrt confirmed. Your other lines are kept and the old file is saved as dxvk.conf.pfui-backup. The Octo DLL Installer 1.6.0 does the same.
+- 🗺️ **The map icons button stays put:** in 1.2.55 it kept moving up and down; now only other add-ons' buttons push it, never map pins.
+- 🏷️ **Nameplates:** "Nothing" in the Health text list, to show no health text at all.
+
 ## 📜 New in 1.2.55
 
 - 🩹 **Fixed the pfQuest map error:** "pfquest map.lua:2398: attempt to perform arithmetic on field `queue_update`" after zooming the world map (a bug from 1.2.54) is gone, and pfQuest can no longer hit it another way.
