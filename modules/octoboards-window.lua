@@ -14,7 +14,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   local TITLE = FONTS .. "FiraSansCondensed-SemiBold.ttf"
   local BODY = FONTS .. "FiraSansCondensed-Regular.ttf"
   local WHITE = "Interface\\Buttons\\WHITE8X8"
-  local WIDTH, HEIGHT, BANNER = 880, 580, 150
+  local WIDTH, HEIGHT, BANNER = 880, 600, 150
   local GOLD, SILVER, BRONZE = { 1, .82, .3 }, { .78, .8, .86 }, { .8, .52, .3 }
   local MEDAL = { GOLD, SILVER, BRONZE }
   local UI = {}
@@ -195,7 +195,9 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     f.pages = {}
     for _, k in ipairs({ "awards", "boards", "player" }) do
       local p = CreateFrame("Frame", nil, f)
-      p:SetPoint("TOPLEFT", f, "TOPLEFT", 18, -BANNER - 6)
+      p:SetPoint("TOPLEFT", f, "TOPLEFT", 18, k == "awards" and (-BANNER - 6) or -92)
+      -- (26 Nov 2026, seen in game: an empty band under the art and the last cards past the bottom) Boards and Player
+      -- start over the faded part of the banner
       p:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -18, 16)
       p:Hide()
       f.pages[k] = p
@@ -484,8 +486,9 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   end
   function UI.PaintBoards()
     local p = UI.frame.pages.boards
-    UI.Banner(nil, nil, "Counted by pfUI Octo for every player who runs it - share it with your guild")
-    UI.frame.place:SetText("Leaderboards")
+    -- (the page sits over the banner's faded part: no zone line here)
+    UI.Banner(nil, nil, "")
+    UI.frame.place:SetText("")
     for k, b in pairs(p.cats) do
       if k == UI.cat then b.edge:Show() b.bg:SetVertexColor(PAL.accent[1] * .22, PAL.accent[2] * .22, PAL.accent[3] * .22, .95) b.text:SetTextColor(1, 1, 1)
       else b.edge:Hide() b.bg:SetVertexColor(PAL.card[1], PAL.card[2], PAL.card[3], .9) b.text:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3]) end
@@ -595,7 +598,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
       local t = CreateFrame("Button", nil, p)
       t:SetWidth(tw) t:SetHeight(th)
       local r, k = floor((i - 1) / 4), math.mod(i - 1, 4)
-      t:SetPoint("TOPLEFT", p, "TOPLEFT", k * (tw + 7), -104 - r * (th + 5))
+      t:SetPoint("TOPLEFT", p, "TOPLEFT", k * (tw + 7), -96 - r * (th + 5))
       local bg = Fill(t, PAL.card, .9)
       bg:SetAllPoints(t)
       t.icon = Icon(t, 30, ICON .. s[3])
