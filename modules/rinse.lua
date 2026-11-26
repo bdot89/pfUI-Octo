@@ -1516,6 +1516,8 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     quick:Show()
   end
 
+  -- (26 Nov 2026) class colours that stay readable on a dark row (shaman blue, warlock purple were too dark)
+  R.BRIGHTHEX = { SHAMAN = "3d9bff", WARLOCK = "a98bf0", PRIEST = "ffffff", MAGE = "7fdcff" }
   local function NewButton(i)
     local b = CreateFrame("Button", "pfRinseButton" .. i, frame)
     b:RegisterForClicks("LeftButtonDown")
@@ -1670,7 +1672,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         if On("flip") then b:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, y) else b:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -y) end
         y = y + bh + gap
       end
-      b.bg:SetVertexColor(.06, .065, .075, On("backdrop") and .88 or .35)
+      b.bg:SetVertexColor(.025, .027, .032, On("backdrop") and .94 or .6)
       -- the school-colour fill: the whole row, or the fade at its left
       b.wash:ClearAllPoints()
       b.wash:SetPoint("TOPLEFT", b, "TOPLEFT", 0, 0)
@@ -1678,7 +1680,7 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       b.fullW = L.grid and isz or w
       b.wash:SetWidth(L.fill and b.fullW or 60)
       if b.wash.SetGradientAlpha then
-        if L.fill then b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, L.fill, 1, 1, 1, L.fill * .55)
+        if L.fill then local fa = math.min(L.fill, .28) b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, fa, 1, 1, 1, fa * .25)
         else b.wash:SetGradientAlpha("HORIZONTAL", 1, 1, 1, .35, 1, 1, 1, 0) end
       end
       b.edge:SetWidth(L.edge or 3)
@@ -1707,11 +1709,15 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
       b.timer:SetPoint("CENTER", b.icon, "CENTER", 0, 0)
       b.timer:SetText("")
       b.timeShown = nil
-      b.debuff:SetFont(font, bfs, "OUTLINE")
+      b.debuff:SetFont(font, bfs - 1, "OUTLINE")
+      b.debuff:SetShadowColor(0, 0, 0, 1)
+      b.debuff:SetShadowOffset(1, -1)
       b.debuff:ClearAllPoints()
-      b.player:SetFont(font, bfs - 1, "OUTLINE")
+      b.player:SetFont(font, bfs + 2, "OUTLINE")
+      b.player:SetShadowColor(0, 0, 0, 1)
+      b.player:SetShadowOffset(1, -1)
       b.player:ClearAllPoints()
-      b.tag:SetFont(font, bfs - 2, "OUTLINE")
+      b.tag:SetFont(font, bfs - 1, "OUTLINE")
       b.tag:ClearAllPoints()
       if L.grid then
         b.debuff:Hide()
@@ -1732,10 +1738,11 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
         b.debuff:Show()
         b.tag:Show()
         b.player:SetJustifyH("LEFT")
-        b.debuff:SetPoint("TOPLEFT", b.iconbg, "TOPRIGHT", 6, -1)
-        b.debuff:SetPoint("RIGHT", b, "RIGHT", -6, 0)
-        b.player:SetPoint("BOTTOMLEFT", b.iconbg, "BOTTOMRIGHT", 6, 1)
-        b.player:SetPoint("RIGHT", b, "RIGHT", -40, 0)
+        -- (26 Nov 2026) the player is the big top line, the debuff the small grey one under it
+        b.player:SetPoint("TOPLEFT", b.iconbg, "TOPRIGHT", 7, 0)
+        b.player:SetPoint("RIGHT", b, "RIGHT", -6, 0)
+        b.debuff:SetPoint("BOTTOMLEFT", b.iconbg, "BOTTOMRIGHT", 7, 1)
+        b.debuff:SetPoint("RIGHT", b, "RIGHT", -48, 0)
         b.tag:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -6, 2)
       end
     end
@@ -1814,8 +1821,8 @@ pfUI:RegisterModule("rinse", "vanilla", function ()
     if b.rim and b.rim:IsShown() then b.rim:SetBackdropBorderColor(c[1], c[2], c[3], 1) end
     if b.glow then b.glow:SetVertexColor(c[1], c[2], c[3]) end
     b.debuff:SetText(d.totem and ("Totem - " .. d.name) or d.name)
-    b.debuff:SetTextColor(1, 1, 1)
-    b.player:SetText("|cff" .. (R.CLASSHEX[d.class] or "ffffff") .. (d.unitName or "") .. "|r")
+    b.debuff:SetTextColor(.82, .84, .88)
+    b.player:SetText("|cff" .. (R.BRIGHTHEX[d.class] or R.CLASSHEX[d.class] or "ffffff") .. (d.unitName or "") .. "|r")
     b.count:SetText((d.stacks or 0) > 1 and d.stacks or "")
     b.tag:SetText(d.prio and "|cffffd24dPRIORITY|r" or d.totem and "|cff40d977TOTEM|r" or "|cff" .. c[4] .. string.upper(d.school) .. "|r")
     b.unit, b.unitName, b.class, b.school, b.totem, b.debuffName, b.index = d.unit, d.unitName, d.class, d.school, d.totem, d.name, d.index
