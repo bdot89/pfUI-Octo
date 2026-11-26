@@ -2862,6 +2862,24 @@ do
       st.mhStart, st.mhSpeed = GetTime() - 1, 2.6
       SW.PublishST()
       ok(math.abs((rawget(_G, "st_timer") or -1) - 1.6) < .01, "st_timer = seconds left on the swing (" .. tostring(rawget(_G, "st_timer")) .. ")")
+      -- (26 Nov 2026, Wolfahrt: the macros' swing conditionals still wanted SP_SwingTimer) its other globals too
+      ok(rawget(_G, "st_timerMax") == 2.6, "st_timerMax = this swing's length (" .. tostring(rawget(_G, "st_timerMax")) .. ")")
+      local keepR, keepRS, keepRg = st.rgStart, st.rgSpeed, st.ranged
+      st.ranged, st.rgStart, st.rgSpeed = true, GetTime() - 1, 3
+      SW.PublishST()
+      ok(math.abs((rawget(_G, "st_timerRange") or -1) - 2) < .01 and rawget(_G, "st_timerRangeMax") == 3,
+        "st_timerRange / st_timerRangeMax for the ranged conditionals")
+      st.rgStart, st.rgSpeed, st.ranged = keepR, keepRS, keepRg
+      -- the built-in macros' [swingtimer] reads them: a percentage, as with SP_SwingTimer
+      local CR = rawget(_G, "CleveRoids")
+      if CR and CR.GetSwingPercentElapsed and CR.GetSwingTimerRaw then
+        st.mhStart, st.mhSpeed = GetTime() - 1, 2
+        SW.PublishST()
+        local pct = CR.GetSwingPercentElapsed()
+        local left, len = CR.GetSwingTimerRaw()
+        ok(pct and math.abs(pct - 50) < 2 and len == 2 and left and math.abs(left - 1) < .02,
+          "the built-in macros' swing conditionals see our swing (" .. tostring(pct) .. "%, " .. tostring(left) .. " / " .. tostring(len) .. ")")
+      end
       st.mhStart = GetTime() - 5
       SW.PublishST()
       ok(rawget(_G, "st_timer") == 0 and rawget(_G, "st_timerOff") == 0, "no swing running: 0, as SP_SwingTimer")
@@ -3219,7 +3237,8 @@ do
       ok(not foundLoose, "a button made elsewhere and anchored to the map is not searched for")
       loose:Hide()
       local ownSpot
-      for _, n in ipairs(pfUI.addonbuttons:List()) do if string.find(n, "^pf") and n ~= "pfGearMinimapButton" and n ~= "pfUIMinimapButton" then ownSpot = n end end
+      -- (26 Nov 2026, user: OctoLoot's button "should drop into the menu like the rest") it is collected too
+      for _, n in ipairs(pfUI.addonbuttons:List()) do if string.find(n, "^pf") and n ~= "pfGearMinimapButton" and n ~= "pfUIMinimapButton" and n ~= "pfOctoLootMinimapButton" then ownSpot = n end end
       ok(not ownSpot, "pfUI's own parts are left alone (" .. tostring(ownSpot) .. ")")
       local takenOcto
       for _, n in ipairs(pfUI.addonbuttons:List()) do if n == "pfUIMinimapButton" then takenOcto = true end end

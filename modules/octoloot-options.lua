@@ -77,6 +77,13 @@ pfUI:RegisterModule("octoloot-options", "vanilla:tbc", function ()
         local ol = OL()
         if ol and ol.ShowMinimap then ol.ShowMinimap() end
       end)
+    W.Check(p, "Keep the button on the map's edge", "Off (as it comes): the button goes into pfUI's minimap button menu with "
+      .. "every other add-on's. On: it stays on the minimap's edge, where you can drag it round. (Takes a reload.)",
+      function() return C.octoloot.mmedge == "1" end,
+      function(v)
+        C.octoloot.mmedge = v and "1" or "0"
+        if pfUI.gui then pfUI.gui.settingChanged = true end
+      end)
     W.Check(p, "Markers on the world map", "Every dungeon and raid entrance and world boss gets a pin on its zone's map: "
       .. "green doorway = dungeon, orange skull = raid, purple horned skull = world boss. Hover for what it is, click to "
       .. "open it here.",

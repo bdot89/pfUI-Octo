@@ -444,10 +444,28 @@ pfUI:RegisterModule("swing", "vanilla", function ()
     ST.stOther = ST.OtherTimer()
     if ST.stOther then this:SetScript("OnUpdate", nil) end
   end)
+  -- (26 Nov 2026, Wolfahrt: "the macro conditionnals relative to swing timer does not work with PFUI Octo only. I still
+  -- need to use SP_Swingtimer") the macros built in (SuperCleveRoidMacros' [swingtimer], [mhswing], the Slam / queue
+  -- checks, [rangedtimer]) also read SP_SwingTimer's st_timerMax (this swing's length: Flurry and haste change it, so not
+  -- UnitAttackSpeed), st_timerOffMax and the ranged pair st_timerRange (seconds left) / st_timerRangeMax. Without them
+  -- they found no swing timer at all. All of them now, the same meaning as SP_SwingTimer's.
+  function ST.RangedLeft()
+    if not (s.rgStart and s.rgSpeed) or s.rgStart <= 0 then return 0 end
+    local left = s.rgStart + s.rgSpeed - now()
+    return left > 0 and left or 0
+  end
   function ST.PublishST()
     if ST.stOther then return end
     _G.st_timer = ST.Left("main")
+    _G.st_timerMax = s.mhSpeed or 0
     _G.st_timerOff = s.dual and ST.Left("off") or 0
+    _G.st_timerOffMax = s.dual and (s.ohSpeed or 0) or 0
+    if s.ranged then
+      _G.st_timerRange = ST.RangedLeft()
+      _G.st_timerRangeMax = s.rgSpeed or 0
+    else
+      _G.st_timerRange, _G.st_timerRangeMax = nil, nil
+    end
   end
   -- (octo, 22 Nov 2026) 30 times a second, not every frame: macros read these when a key is pressed
   stvars:SetScript("OnUpdate", function()

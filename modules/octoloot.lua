@@ -2236,6 +2236,9 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     if OL.mm or not Minimap then return OL.mm end
     local b = CreateFrame("Button", "pfOctoLootMinimapButton", Minimap)
     OL.mm = b
+    -- (26 Nov 2026, user: "button should drop into the menu like the rest not sit on minimap") pfUI's minimap button
+    -- collector takes it like any add-on's button; C.octoloot.mmedge = "1" keeps it on the map's edge (a reload)
+    b.pfNoCollect = S("mmedge", "0") == "1"
     b:SetWidth(30) b:SetHeight(30)
     b:SetFrameStrata("MEDIUM")
     b:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 8)
@@ -2264,7 +2267,8 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     b:SetScript("OnDragStart", function() this.dragging = true end)
     b:SetScript("OnDragStop", function() this.dragging = nil end)
     b:SetScript("OnUpdate", function()
-      if not this.dragging then return end
+      -- (in the collector its place is the collector's)
+      if not this.dragging or not this.pfNoCollect then return end
       local mx, my = GetCursorPosition()
       local s = Minimap:GetEffectiveScale()
       local cx, cy = Minimap:GetCenter()

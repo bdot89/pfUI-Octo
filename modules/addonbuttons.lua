@@ -22,8 +22,6 @@ pfUI:RegisterModule("addonbuttons", "vanilla:tbc", function ()
     "pfMiniMapPin",
     "MiniMapBattlefieldFrame",
     "pfMinimapButton",
-    -- (26 Nov 2026) OctoLoot's chest keeps its own place on the map's edge
-    "pfOctoLootMinimapButton",
     "GatherNote",
     "MiniNotePOI",
     "FWGMinimapPOI",
@@ -114,6 +112,8 @@ pfUI:RegisterModule("addonbuttons", "vanilla:tbc", function ()
 
     -- ignore manually selected frames
     if TablePartialMatch(ignored_icons, frame:GetName()) then return false end
+    -- (26 Nov 2026) a button of pfUI's own that asks to stay on the map's edge (OctoLoot's, by its setting)
+    if frame.pfNoCollect then return false end
 
     -- check button/frame script handlers
     if frame:IsFrameType("Button") then
