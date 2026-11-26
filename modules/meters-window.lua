@@ -2743,10 +2743,31 @@ pfUI:RegisterModule("meters-window", "vanilla", function ()
   end
 
   -- in / out of combat: opacity, and hiding when the window says so
+  -- (26 Nov 2026, Lo5t: after a /reload a meter shown in combat had the left chat's text over it until a relog)
+  -- a free window always sits above the chat frames: their strata or MEDIUM, whichever is higher
+  local ORDER = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
+  function M.AboveChat(w)
+    if not w.free then return end
+    local top, lvl = "MEDIUM", 0
+    for i = 1, (NUM_CHAT_WINDOWS or 7) do
+      local cf = _G["ChatFrame" .. i]
+      if cf and cf.GetFrameStrata and cf:IsShown() then
+        local s = cf:GetFrameStrata()
+        if (ORDER[s] or 0) > (ORDER[top] or 0) then top, lvl = s, 0 end
+        if s == top then lvl = math.max(lvl, (cf:GetFrameLevel() or 0)) end
+      end
+    end
+    local moved
+    if w:GetFrameStrata() ~= top then w:SetFrameStrata(top) moved = true end
+    if (w:GetFrameLevel() or 0) <= lvl then w:SetFrameLevel(lvl + 5) moved = true end
+    -- (1.12: children keep their old strata / level - put them back on top)
+    if moved then Lift(w) end
+  end
   function M.CombatLook()
     local fighting = UnitAffectingCombat("player")
     for _, w in ipairs(M.windows) do
       local s = S(w)
+      M.AboveChat(w)
       local a = tonumber(fighting and s.alpha or s.oocalpha) or 1
       local hide = (s.autohide == "outofcombat" and not fighting) or (s.autohide == "incombat" and fighting)
       if hide then a = 0 end

@@ -216,7 +216,7 @@ local function IsGreetingQuestReady(title)
             -- action that grants credit and enables completion.
             if npcName then
                 for objectiveIndex = 1, objectiveCount do
-                    local text, _, done = pfQuestCompat.GetQuestLogLeaderBoard(objectiveIndex, qlogid)
+                    local text, _, done = GetQuestLogLeaderBoard(objectiveIndex, qlogid) -- (26 Nov 2026, Lo5t: pfQuestCompat has no such call)
                     local _, _, target = string.find(text or "", "^(.-):")
                     local normalizedTarget = target and string.lower(target)
                     if not done and normalizedTarget
