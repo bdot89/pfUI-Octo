@@ -63,8 +63,10 @@ if O and O.navFrame then
     local pa, pb = a.points and a.points[1], b.points and b.points[1]
     return (pa and pa[5] or 0) > (pb and pb[5] or 0)
   end)
-  ok(entries[1] and string.find(entries[1].pic.texture, "icons\\rank", 1, true) and entries[2]
-    and string.find(entries[2].pic.texture, "icons\\move", 1, true), "OctoRanks is the first big entry, above Move Frames")
+  -- (26 Nov 2026) OctoLoot sits between them
+  ok(entries[1] and string.find(entries[1].pic.texture, "icons\\rank", 1, true) and entries[3]
+    and string.find(entries[2].pic.texture, "icons\\loot", 1, true)
+    and string.find(entries[3].pic.texture, "icons\\move", 1, true), "OctoRanks is the first big entry, then OctoLoot, above Move Frames")
   ok(O.TOPENTRY["OctoRanks"] and O.BUILD["orank"], "its page exists and opens from the big entry")
 end
 

@@ -119,6 +119,9 @@
   <Include file="..\modules\octorank.lua"/>
   <Include file="..\modules\octorank-timer.lua"/>
   <Include file="..\modules\octorank-options.lua"/>
+  <Include file="..\modules\octoloot-data.lua"/>
+  <Include file="..\modules\octoloot.lua"/>
+  <Include file="..\modules\octoloot-options.lua"/>
   <Include file="..\modules\perf-options.lua"/>
   <Include file="..\modules\movers-options.lua"/>
   <Include file="..\modules\perf-window.lua"/>

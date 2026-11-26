@@ -87,6 +87,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     { "Demo Mode", { "Demo Mode" } },
     -- (24 Nov 2026) octorank-options.lua; opened from its big entry at the sidebar's top (O.TOPENTRY), not a row here
     { "OctoRanks", { "OctoRanks" } },
+    -- (26 Nov 2026) octoloot-options.lua; its big entry at the sidebar's top opens the OctoLoot window itself
+    { "OctoLoot", { "OctoLoot" } },
     { "Add-ons", { "Thirdparty", "Components" } },
     { "About", { "About" } },
   }
@@ -98,6 +100,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- sit, and the footer's height
   -- (16 Nov 2026: a fifth big entry - Quality of Life - under Install; the entries 22 px apart, was 26)
   -- (24 Nov 2026: a sixth - OctoRanks - above Move Frames; the entries 20 px apart)
+  -- (26 Nov 2026: a seventh - OctoLoot - under OctoRanks; the entries 18 px apart, so the list starts where it did)
   local NAV_TOP, TAB_TOP, FOOT = 184, 88, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
@@ -117,7 +120,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (16 Nov 2026, user: "Put quality of life in the Top under install with its own logo") sections opened
   -- from a big entry at the sidebar's top (BuildSideTop) in place of a row in the list
   -- (24 Nov 2026, user: OctoRank "a big feature ... put above move frames under pfUI in its own section saying OctoRanks")
-  O.TOPENTRY = { ["Quality of Life"] = true, ["OctoRanks"] = true }
+  -- (26 Nov 2026, user: Atlas-CFM as our own, "We call this OctoLoot") a seventh entry, under OctoRanks
+  O.TOPENTRY = { ["Quality of Life"] = true, ["OctoRanks"] = true, ["OctoLoot"] = true }
   function O.NavColor(name)
     if O.FEATURED[name] then return 1, 1, 1 end
     return .6, .62, .66
@@ -1236,7 +1240,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local y = -58
     local function Entry(text, icon, tip, fn)
       local b = CreateFrame("Button", nil, nav)
-      b:SetHeight(20)
+      -- (26 Nov 2026: 18 px apart, was 20 - seven entries in the room of six, so a 600 px window keeps every row)
+      b:SetHeight(18)
       b:SetPoint("TOPLEFT", nav, "TOPLEFT", 6, y)
       b:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, y)
       local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
@@ -1245,15 +1250,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       -- (8 Nov 2026, user: the item icons "look childish": our own white line glyphs, img\octo\icons)
       b.pic:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\" .. icon)
       b.pic:SetVertexColor(.86, .87, .9, 1)
-      b.pic:SetWidth(18)
-      b.pic:SetHeight(18)
+      b.pic:SetWidth(17)
+      b.pic:SetHeight(17)
       b.pic:SetPoint("LEFT", b, "LEFT", 8, 0)
       b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.text[1], K.text[2], K.text[3])
       b.text:SetPoint("LEFT", b.pic, "RIGHT", 9, 0)
       b.text:SetText(text)
       b:SetScript("OnClick", function() GameTooltip:Hide() fn() end)
       QuickTip(b, text, tip)
-      y = y - 20
+      y = y - 18
       return b
     end
     -- a section opened from a big entry: the page last seen there, else its first
@@ -1271,6 +1276,13 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       .. "and shared with the realm, plus every guild's raid times. Works as one with WhoDidIt.", function() OpenGroup("OctoRanks") end)
     rk.pic:SetVertexColor(1, .82, .2, 1)
     rk.text:SetTextColor(1, .82, .2)
+    -- (26 Nov 2026) OctoLoot: the window itself (its Options button comes back to the page); gold like OctoRanks
+    local ol = Entry("OctoLoot", "loot", "Every dungeon, raid and world boss on OctoWoW and what it drops - the server's own "
+      .. "drop chances, with each instance's loading screen art. Costs nothing in fights (/ol).", function()
+      if pfUI.octoloot then g:Hide() pfUI.octoloot.Show() else OpenGroup("OctoLoot") end
+    end)
+    ol.pic:SetVertexColor(1, .82, .2, 1)
+    ol.text:SetTextColor(1, .82, .2)
     Entry(T["Move Frames"], "move", "Every frame gets a box you can drag. Boxes snap to each other and to the grid. "
       .. "Alt-click two boxes to give the second the first one's size; right-click a box for its options.", function()
       -- layout mode closes this window and opens it again when done

@@ -111,5 +111,18 @@ int main(void) {
   line(32, 26, 32, 44);
   line(24, 44, 40, 44); line(19, 54, 45, 54); line(24, 44, 21, 54); line(40, 44, 43, 54);
   save("rank.tga");
+  /* OctoLoot: a treasure chest - arched lid, box, band and lock (26 Nov 2026) */
+  for (int y = 0; y < N; y++) for (int x = 0; x < N; x++) {
+    float dx = (x + .5f - 32) / 22.0f, dy = (y + .5f - 26) / 13.0f;
+    if (dy > 0) continue;
+    float d = fabsf(sqrtf(dx * dx + dy * dy) - 1) * 15;
+    put(x, y, clamp01(W / 2 + .5f - d));
+  }
+  line(10, 26, 54, 26);
+  line(10, 26, 10, 54); line(54, 26, 54, 54); line(10, 54, 54, 54);
+  W = 3.2f; line(10, 34, 26, 34); line(38, 34, 54, 34); W = 4.6f;
+  line(26, 29, 38, 29); line(26, 29, 26, 41); line(38, 29, 38, 41); line(26, 41, 38, 41);
+  W = 3.0f; line(32, 33, 32, 37); W = 4.6f;
+  save("loot.tga");
   return 0;
 }
