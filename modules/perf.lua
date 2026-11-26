@@ -599,7 +599,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   -- casts, heals, damage on the frames and meters), 40 pretend mobs on OctoDoTs with 14 debuffs each and 200 aura
   -- changes a second (what a real 40-man pull gives it), and a frame-time recorder. At the end: FPS, worst frames,
   -- memory, and how long OctoDoTs' passes took - said in chat and kept in PF.stressLast.
-  PF.STRESS_MOBS, PF.STRESS_EVENTS = 40, 200
+  PF.STRESS_MOBS, PF.STRESS_EVENTS = 40, 400
   local function Ms() return debugprofilestop and debugprofilestop() or (Now() * 1000) end
   function PF.StressMobs(on)
     local D = pfUI.dots
@@ -621,27 +621,49 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     D.dirty = true
     return n
   end
-  -- (26 Nov 2026, user: "emulate players and spells casting") the picture side of a raid: 40 animated characters
-  -- (the races' own models, every 4th one wearing YOUR gear through a DressUpModel) in a ring round Ragnaros, and
-  -- the game's real spell effects (Frostbolt, Fireball, Flamestrike, Consecration, heals, Shadow Nova...) going off
-  -- on them and the boss. Model frames on a full-screen stage under the interface (BACKGROUND), nothing in the world.
-  -- Paths are the client's own (MPQ listfiles); 1.12 model frames take them as .mdx.
-  PF.STRESS_RACES = { "Human\\Male\\HumanMale", "Orc\\Male\\OrcMale", "Dwarf\\Male\\DwarfMale", "NightElf\\Female\\NightElfFemale",
-    "Gnome\\Male\\GnomeMale", "Tauren\\Male\\TaurenMale", "Scourge\\Male\\ScourgeMale", "Troll\\Male\\TrollMale",
-    "Human\\Female\\HumanFemale", "Orc\\Female\\OrcFemale", "NightElf\\Male\\NightElfMale", "Dwarf\\Female\\DwarfFemale" }
-  PF.STRESS_SPELLS = { "Frostbolt", "Fireball_Missile_High", "Flamestrike_Impact", "Consecration_Impact_Base", "Renew_Base",
-    "Rejuvenation_Impact_Base", "LightningBolt_Impact_Chest", "Shadow_Nova_area", "Arcane_Missile", "Blizzard_Impact_Base",
-    "Moonfire_Impact_Base", "HellFire_Area_Base", "Starfire_Area", "FireBlast_Impact_Chest" }
+  -- (26 Nov 2026, user: "emulate players and spells casting") the picture side of a raid, on a full-screen stage under
+  -- the interface (BACKGROUND), nothing in the world.
+  -- (26 Nov 2026, seen in game: bare race models drew white, a Ragnaros model a white box and spell model files
+  -- black squares - only a real unit gets its skins, so every character is a copy of a unit) Then, user: "HIGH
+  -- STRESS ... spells and adds whelps getting novad and aoe going off". So:
+  --   raid     40 copies of you in your gear (DressUpModel), two rings, casting moves
+  --   boss     a big copy of your target when you have one (any mob: its own skin), in the middle
+  --   adds     30 small copies of your target (or of you), walking in, blown away by the boss's nova, back again
+  --   AoE      the game's own spell textures (fire rings, runes, danger zones, glows, lightning) as additive
+  --            pictures: Fire Nova rings from the boss, Flamestrikes / Blizzards / Consecrations / shadow runes on the
+  --            ground, heal glows on players, bolts flying in - up to PF.STRESS_AOE at once
+  --   fight    the Demo raid runs at 3x speed (more damage, heals, combat text, meter and frame updates)
   PF.STRESS_CAST = { 51, 52, 53, 54, 0 } -- ready / cast directed / cast omni sequences, then stand (unknown ids just stand)
-  PF.STRESS_EFFECTS = 0 -- (spell effect files draw as black squares in a model frame on this client)
+  PF.STRESS_ADDS, PF.STRESS_AOE = 30, 90
+  local SP = "Spells\\"
+  -- texture, size, r, g, b, kind (ground | ring | glow | bolt)
+  PF.STRESS_FX = {
+    nova   = { SP .. "FireRing128", 1, 1, .45, .1, "ring" },
+    fs     = { SP .. "Fire_Rune_128", 170, 1, .5, .15, "ground" },
+    fire   = { SP .. "DangerAreaFlame", 210, 1, .55, .2, "ground" },
+    bliz   = { SP .. "Ice_Rune_128", 190, .45, .75, 1, "ground" },
+    frost  = { SP .. "DangerAreaFrost", 200, .5, .8, 1, "ground" },
+    cons   = { SP .. "Holy_Rune_128", 160, 1, .9, .4, "ground" },
+    shadow = { SP .. "DemonRune6", 170, .7, .3, 1, "ground" },
+    heal   = { SP .. "GENERICGLOW64", 90, .3, 1, .4, "glow" },
+    holy   = { SP .. "GlowStar_Yellow", 80, 1, .95, .6, "glow" },
+    puff   = { SP .. "FIRE1A", 110, 1, .6, .2, "glow" },
+    bolt   = { SP .. "GENERICGLOW2_64_BLUE", 46, .6, .8, 1, "bolt" },
+    fball  = { SP .. "FIRE1A", 50, 1, .6, .2, "bolt" },
+    zap    = { SP .. "Lightning2", 120, .7, .8, 1, "glow" },
+  }
+  PF.STRESS_GROUND = { "fs", "fire", "bliz", "frost", "cons", "shadow" }
   local function Seq(m, id) if m.SetSequence then pcall(m.SetSequence, m, id) end end
+  local function Unit(m, unit) if m.SetUnit then pcall(m.SetUnit, m, unit) end end
+  local function Rnd(a) return (math.random() * 2 - 1) * a end
   function PF.StressStage(on)
     local st = PF.stage
     if not on then
       if st then
         st:Hide()
         for _, m in ipairs(st.models) do if m.ClearModel then pcall(m.ClearModel, m) end end
-        for _, m in ipairs(st.fx) do if m.ClearModel then pcall(m.ClearModel, m) end end
+        for _, m in ipairs(st.adds) do if m.ClearModel then pcall(m.ClearModel, m) end end
+        if st.boss.ClearModel then pcall(st.boss.ClearModel, st.boss) end
       end
       return 0
     end
@@ -650,82 +672,170 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       PF.stage = st
       st:SetFrameStrata("BACKGROUND")
       st:SetAllPoints(UIParent)
-      st.models, st.fx = {}, {}
-      for i = 1, 41 do
-        -- (26 Nov 2026, seen in game: bare race models drew white, Ragnaros a white box, spell effects black squares -
-        -- only a unit gets its skins) every one is a DressUpModel of you, in your gear
-        local dress = true
-        local m = CreateFrame(dress and "DressUpModel" or "PlayerModel", nil, st)
-        m:SetWidth(i == 1 and 360 or 130)
-        m:SetHeight(i == 1 and 360 or 170)
-        m.dress = dress
+      st.models, st.adds, st.fx = {}, {}, {}
+      st.boss = CreateFrame("PlayerModel", nil, st)
+      st.boss:SetWidth(420)
+      st.boss:SetHeight(420)
+      for i = 1, 40 do
+        local m = CreateFrame("DressUpModel", nil, st)
+        m:SetWidth(130)
+        m:SetHeight(170)
         table.insert(st.models, m)
       end
-      for i = 1, PF.STRESS_EFFECTS do
+      for i = 1, PF.STRESS_ADDS do
         local m = CreateFrame("PlayerModel", nil, st)
-        m:SetWidth(140)
-        m:SetHeight(140)
-        m:SetFrameLevel(st:GetFrameLevel() + 5)
-        table.insert(st.fx, m)
+        m:SetWidth(80)
+        m:SetHeight(80)
+        table.insert(st.adds, m)
+      end
+      -- the AoE pictures: on a frame above the characters
+      st.fxLayer = CreateFrame("Frame", nil, st)
+      st.fxLayer:SetAllPoints(st)
+      st.fxLayer:SetFrameLevel(st:GetFrameLevel() + 6)
+      for i = 1, PF.STRESS_AOE do
+        local t = st.fxLayer:CreateTexture(nil, "ARTWORK")
+        t:SetBlendMode("ADD")
+        t:Hide()
+        table.insert(st.fx, t)
       end
     end
-    -- the boss in the middle, two rings of players round it
     local w, h = UIParent:GetWidth() or 1024, UIParent:GetHeight() or 768
+    st.w, st.h = w, h
+    -- the boss: your target, when there is one that is not a player
+    local boss = _G.UnitExists and _G.UnitExists("target") and not (_G.UnitIsPlayer and _G.UnitIsPlayer("target"))
+    st.hasBoss = boss and true or nil
+    st.boss:ClearAllPoints()
+    st.boss:SetPoint("CENTER", st, "CENTER", 0, 30)
+    if boss then Unit(st.boss, "target") st.boss:Show() else st.boss:Hide() end
     for i, m in ipairs(st.models) do
+      local k = i - 1
+      local ring = k < 22 and 1 or 2
+      local slot = ring == 1 and k or (k - 22)
+      local count = ring == 1 and 22 or 18
+      local ang = (slot / count) * 2 * math.pi
+      local rx, ry = (ring == 1 and .30 or .44) * w, (ring == 1 and .28 or .40) * h
+      m.x, m.y = math.cos(ang) * rx, math.sin(ang) * ry
       m:ClearAllPoints()
-      if i == 1 then
-        -- (no boss: a creature model gets no skin here and drew as a white box)
-        m:SetPoint("CENTER", st, "CENTER", 0, 0)
-      else
-        local k = i - 2
-        local ring = k < 22 and 1 or 2
-        local slot = ring == 1 and k or (k - 22)
-        local count = ring == 1 and 22 or 18
-        local ang = (slot / count) * 2 * math.pi
-        local rx, ry = (ring == 1 and .30 or .44) * w, (ring == 1 and .28 or .40) * h
-        m:SetPoint("CENTER", st, "CENTER", math.cos(ang) * rx, math.sin(ang) * ry)
-        if m.dress then
-          pcall(m.SetUnit, m, "player")
-        else
-          pcall(m.SetModel, m, "Character\\" .. PF.STRESS_RACES[math.mod(k, table.getn(PF.STRESS_RACES)) + 1] .. ".mdx")
-        end
-        -- facing the boss
-        if m.SetFacing then pcall(m.SetFacing, m, math.mod(ang + math.pi * 1.5, 2 * math.pi)) end
-      end
+      m:SetPoint("CENTER", st, "CENTER", m.x, m.y)
+      Unit(m, "player")
+      if m.SetFacing then pcall(m.SetFacing, m, math.mod(ang + math.pi * 1.5, 2 * math.pi)) end
       m.castAt = Now() + math.random() * 2
-      if i == 1 then m:Hide() else m:Show() end
+      m:Show()
     end
-    for _, m in ipairs(st.fx) do m.fxUntil = 0 m:Hide() end
+    for _, m in ipairs(st.adds) do
+      Unit(m, boss and "target" or "player")
+      if not boss and m.SetModelScale then pcall(m.SetModelScale, m, .6) end
+      PF.StressAddSpawn(m, Now())
+      m:Show()
+    end
+    for _, t in ipairs(st.fx) do t.untilT = 0 t:Hide() end
+    st.novaAt = Now() + 4
     st:Show()
-    return 40
+    return 40 + PF.STRESS_ADDS + (boss and 1 or 0)
   end
-  -- every frame while the test runs: players start casts, spells go off on players and the boss
+  -- an add starts at the edge and walks to the boss
+  function PF.StressAddSpawn(m, now)
+    local st = PF.stage
+    local a = math.random() * 2 * math.pi
+    m.fx, m.fy = math.cos(a) * st.w * .55, math.sin(a) * st.h * .55
+    m.tx, m.ty = math.cos(a) * st.w * .12, math.sin(a) * st.h * .12
+    m.px, m.py = m.fx, m.fy
+    m.born, m.walk, m.dead = now, 3 + math.random() * 3, nil
+    m:SetAlpha(1)
+  end
+  -- one AoE picture: kind, centre x / y (from the screen's middle), how long, where a bolt flies to
+  function PF.StressFx(key, x, y, life, x2, y2)
+    local st = PF.stage
+    local d = PF.STRESS_FX[key]
+    if not (st and d) then return end
+    for _, t in ipairs(st.fx) do
+      if not t:IsShown() then
+        t:SetTexture(d[1])
+        t:SetVertexColor(d[3], d[4], d[5], 1)
+        t.kind, t.size, t.x, t.y, t.x2, t.y2 = d[6], d[2], x, y, x2 or x, y2 or y
+        t.born, t.untilT = Now(), Now() + (life or 1.5)
+        t:Show()
+        PF.StressFxDraw(t, t.born)
+        return t
+      end
+    end
+  end
+  function PF.StressFxDraw(t, now)
+    local st = PF.stage
+    local life = t.untilT - t.born
+    local p = life > 0 and (now - t.born) / life or 1
+    if p > 1 then p = 1 end
+    local x, y, size, a = t.x, t.y, t.size, 1
+    if t.kind == "ring" then
+      size = 80 + p * math.max(st.w, st.h) * 1.1      -- the nova grows out over the screen
+      a = 1 - p
+    elseif t.kind == "ground" then
+      size = t.size * (.8 + .2 * math.sin(now * 6))   -- burning on the floor
+      a = p < .15 and p / .15 or (1 - p) * 1.2
+    elseif t.kind == "bolt" then
+      x, y = t.x + (t.x2 - t.x) * p, t.y + (t.y2 - t.y) * p
+    else
+      size = t.size * (1 + p * .6)
+      a = 1 - p
+    end
+    if a > 1 then a = 1 elseif a < 0 then a = 0 end
+    t:ClearAllPoints()
+    t:SetPoint("CENTER", st, "CENTER", x, y)
+    t:SetWidth(size)
+    t:SetHeight(size)
+    t:SetAlpha(a)
+  end
+  -- every frame while the test runs
   function PF.StressStageTick(now)
     local st = PF.stage
     if not (st and st:IsShown()) then return end
-    for i = 2, table.getn(st.models) do
-      local m = st.models[i]
+    local bx, by = 0, 30
+    -- the raid casts: bolts into the boss, ground AoE on the adds, heals on each other
+    for _, m in ipairs(st.models) do
       if now >= (m.castAt or 0) then
-        m.castAt = now + 1.2 + math.random() * 1.8
+        m.castAt = now + .8 + math.random() * 1.4
         Seq(m, PF.STRESS_CAST[math.random(1, table.getn(PF.STRESS_CAST))])
-        -- the spell lands somewhere: mostly the boss, some on players (heals)
-        for _, fx in ipairs(st.fx) do
-          if now >= (fx.fxUntil or 0) then
-            local at = math.random() < .6 and st.models[1] or st.models[math.random(2, table.getn(st.models))]
-            fx:ClearAllPoints()
-            fx:SetPoint("CENTER", at, "CENTER", math.random(-40, 40), math.random(-30, 30))
-            pcall(fx.SetModel, fx, "Spells\\" .. PF.STRESS_SPELLS[math.random(1, table.getn(PF.STRESS_SPELLS))] .. ".mdx")
-            fx.fxUntil = now + 1.5
-            fx:Show()
-            break
-          end
+        local r = math.random()
+        if r < .45 then
+          PF.StressFx(math.random() < .5 and "bolt" or "fball", m.x, m.y, .7, bx + Rnd(60), by + Rnd(60))
+        elseif r < .75 then
+          local g = PF.STRESS_GROUND[math.random(1, table.getn(PF.STRESS_GROUND))]
+          PF.StressFx(g, Rnd(.3 * st.w), Rnd(.3 * st.h), 3 + math.random() * 3)
+        elseif r < .92 then
+          local o = st.models[math.random(1, table.getn(st.models))]
+          PF.StressFx(math.random() < .5 and "heal" or "holy", o.x, o.y + 30, 1)
+        else
+          PF.StressFx("zap", bx + Rnd(80), by + Rnd(80), .4)
         end
       end
     end
-    for _, fx in ipairs(st.fx) do
-      if fx:IsShown() and now >= (fx.fxUntil or 0) then
-        if fx.ClearModel then pcall(fx.ClearModel, fx) end
-        fx:Hide()
+    -- adds walk in; the boss's Fire Nova every 6 s blows them all away
+    for _, m in ipairs(st.adds) do
+      if m.dead then
+        if now >= m.dead then PF.StressAddSpawn(m, now) end
+      else
+        local p = (now - m.born) / m.walk
+        if p > 1 then p = 1 end
+        m.px, m.py = m.fx + (m.tx - m.fx) * p, m.fy + (m.ty - m.fy) * p
+        m:ClearAllPoints()
+        m:SetPoint("CENTER", st, "CENTER", m.px, m.py)
+      end
+    end
+    if now >= (st.novaAt or 0) then
+      st.novaAt = now + 6
+      PF.StressFx("nova", bx, by, 1.4)
+      PF.StressFx("nova", bx, by, 1.8)
+      for _, m in ipairs(st.adds) do
+        if not m.dead then
+          m.dead = now + 1 + math.random() * 2
+          m:SetAlpha(.15)
+          PF.StressFx("puff", m.px or 0, m.py or 0, .8)
+        end
+      end
+    end
+    for _, t in ipairs(st.fx) do
+      if t:IsShown() then
+        if now >= t.untilT then t:Hide() else PF.StressFxDraw(t, now) end
       end
     end
   end
@@ -756,6 +866,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     -- the Demo's raid fight, when the Demo is there
     local DM = pfUI.demo
     if DM and DM.Start and not DM.on then S.demo = DM.Start("raid") end
+    -- (the fight at 3x: more hits, heals, combat text, meter and frame work every second)
+    if S.demo and DM.speed then DM.speed = 3 end
     S.mobs = PF.StressMobs(true)
     S.models = not lite and PF.StressStage(true) or 0
     local D = pfUI.dots
@@ -805,7 +917,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end)
     f:Show()
     Say("stress test started: " .. seconds .. " s, " .. (S.demo and "40-player raid demo, " or "") .. S.mobs
-      .. (S.models > 0 and (S.models .. " copies of your character casting on screen, ") or "")
+      .. (S.models > 0 and (S.models .. " characters, adds and AoE effects on screen (target a mob first: it becomes the boss and its adds), the fight at 3x speed, ") or "")
       .. " mobs on OctoDoTs, " .. PF.STRESS_EVENTS .. " aura changes a second. /pfstress again stops it.")
   end
   function PF.StressStop(why)

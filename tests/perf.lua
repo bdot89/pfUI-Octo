@@ -644,12 +644,13 @@ do
     end
     local r = PF.stressLast
     ok(not PF.stress and r and r.scanN > 0, "stress test ends by itself with OctoDoTs passes timed")
-    ok(r and r.scanN <= 10 * 10 + 5, "OctoDoTs passes held to 10 a second under 200 aura changes a second (" .. tostring(r and r.scanN) .. ")")
+    ok(r and r.scanN <= 10 * 10 + 5, "OctoDoTs passes held to 10 a second under 400 aura changes a second (" .. tostring(r and r.scanN) .. ")")
     local left = 0
     for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
     ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
     ok(table.getn(PF.StressLines(r)) == 4, "report lines")
-    ok(r and r.models == 40 and PF.stage and not PF.stage:IsShown(), "40 characters on the stage while it ran, put away afterwards")
+    ok(PF.STRESS_AOE == 90 and PF.STRESS_FX.nova and PF.STRESS_FX.fs, "AoE pictures set up")
+    ok(r and r.models >= 70 and PF.stage and not PF.stage:IsShown(), "40 characters + 30 adds on the stage while it ran, put away afterwards")
     PF.Stress("10 lite")
     ok(PF.stress and PF.stress.models == 0 and PF.stress.secs == 10, "/pfstress 10 lite: no characters")
     PF.StressStop("test")
