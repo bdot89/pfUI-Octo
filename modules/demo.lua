@@ -1583,13 +1583,17 @@ pfUI:RegisterModule("demo", "vanilla", function ()
     dots = function(s) local D = pfUI.dots if D and D.Test then D.Test(s) end end,
     dottarget = function(s) local TB = pfUI.dotsTarget if TB and TB.Test then TB.Test(s) end end,
     range = function(s) local RG = pfUI.range if RG and RG.Test then RG.Test(s) end end,
+    -- (26 Nov 2026, user: "make sure octo rinse is in the test and demo ... make it all run")
+    rinse = function(s) local R = pfUI.rinse if R and R.Test then R.Test(s) end end,
+    procs = function() local P = pfUI.procs if P and P.Test then P.Test() end end,
+    threat = function(s) local TH = pfUI.meters and pfUI.meters.threat if TH and TH.Sample then TH.Sample(s) end end,
   }
   DM.CYCLES = {
-    raid = { "plates", "bars", "swing", "dots", "dottarget", "range" },
-    dungeon = { "plates", "bars", "swing", "dots", "dottarget", "range" },
-    pvp = { "plates", "bars", "swing", "dots", "dottarget", "range" },
-    dummy = { "bars", "swing", "dots", "dottarget", "range" },
-    showcase = { "bars", "swing", "dottarget", "range" },
+    raid = { "plates", "bars", "swing", "dots", "dottarget", "range", "rinse", "procs", "threat" },
+    dungeon = { "plates", "bars", "swing", "dots", "dottarget", "range", "rinse", "procs", "threat" },
+    pvp = { "plates", "bars", "swing", "dots", "dottarget", "range", "rinse", "procs" },
+    dummy = { "bars", "swing", "dots", "dottarget", "range", "procs", "threat" },
+    showcase = { "bars", "swing", "dottarget", "range", "rinse", "procs" },
   }
   DM.CYCLETIME = 20
   -- t: seconds the tests last (nil = start them for the next stretch; 0 = end them now)

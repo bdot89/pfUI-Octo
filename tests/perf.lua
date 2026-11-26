@@ -660,7 +660,7 @@ do
     local left = 0
     for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
     ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
-    ok(table.getn(PF.StressLines(r)) == 5, "report lines")
+    ok(table.getn(PF.StressLines(r)) == 6, "report lines")
     ok(table.getn(heard) > 100 and chatHeard == 0 and heardEv.CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE, "the add-on frame got raid combat lines (" .. table.getn(heard) .. "), the chat window none")
     local okLine = false
     for _, l in ipairs(heard) do if string.find(l, "'s .+ hits .+ for %d+ %a+ damage%.$") or string.find(l, "'s .+ crits ") then okLine = true end end
@@ -675,4 +675,15 @@ do
   end
   pfUI.demo = dm
   for k, v in pairs(keep2) do _G[k] = v end
+end
+
+-- (26 Nov 2026) OctoRinse, procs and the threat label take part in the demo; the stress test sends raid unit events
+do
+  local DM = pfUI.demo
+  local has = {}
+  for _, k in ipairs(DM and DM.CYCLES and DM.CYCLES.raid or {}) do has[k] = true end
+  ok(has.rinse and has.procs and has.threat and DM.TESTS.rinse, "the raid demo runs OctoRinse, procs and the threat label")
+  local fed = {}
+  for _, e in ipairs(PF.STRESS_EVENTS_FED or {}) do fed[e] = true end
+  ok(fed.UNIT_AURA and fed.UNIT_HEALTH and PF.STRESS_UNITS >= 600, "the stress test sends raid debuff / health / mana changes")
 end

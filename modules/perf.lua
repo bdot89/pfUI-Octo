@@ -661,7 +661,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     "CHAT_MSG_COMBAT_SELF_HITS", "CHAT_MSG_COMBAT_PARTY_HITS", "CHAT_MSG_COMBAT_FRIENDLYPLAYER_HITS",
     "CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF", "CHAT_MSG_SPELL_PARTY_BUFF", "CHAT_MSG_SPELL_SELF_BUFF",
     "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_PARTY_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_SELF_DAMAGE",
-    "CHAT_MSG_COMBAT_HOSTILE_DEATH", "UNIT_CASTEVENT" }
+    "CHAT_MSG_COMBAT_HOSTILE_DEATH", "UNIT_CASTEVENT", "UNIT_AURA", "UNIT_HEALTH", "UNIT_MANA" }
   function PF.StressBossName()
     local n = _G.UnitExists and _G.UnitExists("target") and not (_G.UnitIsPlayer and _G.UnitIsPlayer("target")) and (_G.UnitName("target"))
     return n or "Onyxia"
@@ -769,7 +769,22 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       PF.StressLine(s)
     end
     if s.lineAcc > 50 then s.lineAcc = 50 end
+    -- (26 Nov 2026, user: "make sure octo rinse is in the test ... make it all run") the raid's units changing: debuffs
+    -- going on and off, health and mana moving on raid1-40 - what OctoRinse, the raid frames, heal prediction and the
+    -- other unit watchers do most of their work on. The Demo's raid answers for those units while it runs.
+    s.unitAcc = (s.unitAcc or 0) + PF.STRESS_UNITS * dt / 1000
+    n = 0
+    while s.unitAcc >= 1 and n < 200 do
+      s.unitAcc = s.unitAcc - 1
+      n = n + 1
+      local r, u = math.random(), "raid" .. math.random(1, 40)
+      if r < .45 then PF.StressSend(s, "UNIT_AURA", u)
+      elseif r < .85 then PF.StressSend(s, "UNIT_HEALTH", u)
+      else PF.StressSend(s, "UNIT_MANA", u) end
+    end
+    if s.unitAcc > 50 then s.unitAcc = 50 end
   end
+  PF.STRESS_UNITS = 600
   -- (26 Nov 2026, user: "emulate players and spells casting") the picture side of a raid, on a full-screen stage under
   -- the interface (BACKGROUND), nothing in the world.
   -- (26 Nov 2026, seen in game: bare race models drew white, a Ragnaros model a white box and spell model files
@@ -1024,7 +1039,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
     local S = { untilT = Now() + seconds, secs = seconds, warmUntil = Now() + 3, warmWorst = 0, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
       secFrames = 0, secStart = Now(), lowest = nil, kb0 = gcinfo(), peak = gcinfo(), cleans = 0,
-      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, evAcc = 0 }
+      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, rinse = { ms = 0, n = 0 }, evAcc = 0 }
     PF.stress = S
     -- the Demo's raid fight, when the Demo is there
     local DM = pfUI.demo
@@ -1039,6 +1054,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     if D then
       S.origScan = Wrap(D, "Scan", S.scan)
       S.origPaint = Wrap(D, "Paint", S.paint)
+    end
+    -- OctoRinse: its rows up for the whole test, its scans timed
+    local R = pfUI.rinse
+    if R then
+      if R.Test then pcall(R.Test, seconds) end
+      S.origRinse = Wrap(R, "Scan", S.rinse)
     end
     local f = PF.stressFrame or CreateFrame("Frame")
     PF.stressFrame = f
@@ -1108,6 +1129,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       if s.origScan then D.Scan = s.origScan end
       if s.origPaint then D.Paint = s.origPaint end
     end
+    local R = pfUI.rinse
+    if R and s.origRinse then R.Scan = s.origRinse end
     PF.StressMobs(false)
     PF.StressStage(false)
     local DM = pfUI.demo
@@ -1120,6 +1143,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       scanN = s.scan.n, scanMs = s.scan.n > 0 and s.scan.ms / s.scan.n or 0,
       paintN = s.paint.n, paintMs = s.paint.n > 0 and s.paint.ms / s.paint.n or 0,
       share = s.sum > 0 and (s.scan.ms + s.paint.ms) / s.sum * 100 or 0,
+      rinseN = s.rinse.n, rinseMs = s.rinse.n > 0 and s.rinse.ms / s.rinse.n or 0,
+      rinseShare = s.sum > 0 and s.rinse.ms / s.sum * 100 or 0,
       lines = s.lines, lframes = s.lframes, errors = s.errors, deaths = s.deaths,
       warm = s.warmWorst,
     }
@@ -1137,6 +1162,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       "  Lua memory: " .. F(r.mb0) .. " -> " .. F(r.mb1) .. " MB (peak " .. F(r.peak) .. "), " .. r.cleans .. " clean-ups",
       "  OctoDoTs: " .. r.scanN .. " passes at " .. F(r.scanMs, 2) .. " ms, " .. r.paintN .. " paints at " .. F(r.paintMs, 2)
         .. " ms = " .. F(r.share, 1) .. "% of the frame time",
+      "  OctoRinse: " .. (r.rinseN or 0) .. " scans at " .. F(r.rinseMs, 2) .. " ms = " .. F(r.rinseShare, 1) .. "% of the frame time",
       "  Combat log fed: " .. (r.lines or 0) .. " lines to " .. (r.lframes or 0) .. " add-on frames, " .. (r.deaths or 0)
         .. " adds died and came back" .. ((r.errors or 0) > 0 and (", |cffff5555" .. r.errors .. " add-on errors|r") or ""),
     }
