@@ -1047,6 +1047,25 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
   B.status = Text(B, 11)
   B.status:SetPoint("TOPLEFT", B.list, "BOTTOMLEFT", 4, -8)
   B.status:SetTextColor(.62, .62, .67)
+  -- what you bought of the items in the list today (AH.ledger.Bought)
+  B.mine = Text(B, 11)
+  B.mine:SetPoint("LEFT", B.status, "RIGHT", 18, 0)
+  B.mine:SetTextColor(.4, .85, .55)
+  function UI.BoughtLine()
+    local L = AH.ledger
+    if not (L and L.Bought) then B.mine:SetText("") return end
+    local d = date and date("*t")
+    local from = type(d) == "table" and d.hour and time and (time() - d.hour * 3600 - d.min * 60 - d.sec) or 0
+    local seen, parts = {}, {}
+    for _, r in ipairs(AH.rows) do
+      if r.name and not seen[r.name] and table.getn(parts) < 3 then
+        seen[r.name] = true
+        local n, cost = L.Bought(r.name, from)
+        if n > 0 then table.insert(parts, n .. " x " .. r.name .. " (" .. AH.Money(cost, true) .. ")") end
+      end
+    end
+    B.mine:SetText(table.getn(parts) > 0 and ("Bought today: " .. table.concat(parts, ", ")) or "")
+  end
   B.list.multi = true
   B.buy = Role(Btn(B, "Buyout", 190, function() UI.Buy("buyout") end, "Buy the picked auction out, then the cheapest one left of the same item is picked. Alt + click a row does it in one go (when that is on in the Auctions options). Shift + drag (or Shift + click) picks several: they are bought cheapest first, one by one; click again to stop."), "buy")
   B.buy:SetPoint("TOPRIGHT", B.list, "BOTTOMRIGHT", 0, -4)
@@ -1066,6 +1085,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
       B.status:SetText((why and why ~= "done") and (n .. " found (" .. why .. ")") or (n .. " found" .. (AH.total > 0 and (" in " .. AH.total .. " auctions") or "")))
       B.go.text:SetText("Search")
     end
+    UI.BoughtLine()
     UI.PaintEmpty(not s and n == 0)
   end
   -- None up now: what they went for when last seen (price history) and your own last sale of them
@@ -1697,8 +1717,9 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
         .. (n.buy > 0 and ("   |cff9a9aa0all sold = " .. AH.Money(n.buy * n.size * n.stacks, true) .. "|r") or "")
         .. (function()
           -- (the client's own deposit sum, per stack; the neutral auction houses may take more)
-          local dep = AH.Deposit(d.key, n.size * n.stacks, UI.hours, n.size)
-          return dep and dep > 0 and ("   |cff9a9aa0deposit about " .. AH.Money(dep, true) .. "|r") or ""
+          -- (26 Nov 2026, Wolfahrt: "Can't see deposit price" - it was hidden at 0) always shown; no vendor price = 0
+          local dep = AH.Deposit(d.key, n.size * n.stacks, UI.hours, n.size) or 0
+          return "   |cffd8d8dcdeposit " .. (dep > 0 and "about " or "") .. AH.Money(dep, true) .. "|r"
         end)())
       P.post.text:SetText("Post " .. n.stacks .. " x " .. n.size)
       P.post.Able(true)
@@ -2175,6 +2196,7 @@ pfUI:RegisterModule("auction-window", "vanilla", function ()
 
   function UI.Refresh(event)
     if not f:IsShown() then return end
+    if event == "ledger" and UI.BoughtLine then UI.BoughtLine() end
     if UI.tab == "browse" then
       -- (from the Shopping tab: only the clicked item's auctions, until the next search)
       local rows = AH.rows

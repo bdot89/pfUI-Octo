@@ -34,6 +34,17 @@ pfUI:RegisterModule("auction-ledger", "vanilla", function ()
     return e
   end
   function L.Entries() return St().ledger end
+  -- (26 Nov 2026, Wolfahrt: "a recap of what you bought ... like in Aux") how many of an item you bought / won
+  -- since `from` (time()), and for how much
+  function L.Bought(name, from)
+    local n, cost = 0, 0
+    for _, e in ipairs(St().ledger) do
+      if (e.k == "bought" or e.k == "won") and e.n == name and e.t >= (from or 0) and not e.who then
+        n, cost = n + (e.c or 1), cost - (e.a or 0)
+      end
+    end
+    return n, cost
+  end
   -- { sold, spent, net, sales, buys } over the last `seconds` (nil = everything)
   function L.Sum(seconds)
     local out = { sold = 0, spent = 0, net = 0, sales = 0, buys = 0 }

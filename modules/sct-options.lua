@@ -70,6 +70,8 @@ local SHORT = { ["in"] = "damage you take", heal = "heals and power you get", ou
                 warn = "alerts", reward = "rewards", obg = "OctoBG alerts" }
 -- every place in use: place -> { n = messages, groups = { "your damage", ... } } (messages switched on only)
 function CT.Usage()
+  -- (26 Nov 2026, Wolfahrt: Find a setting threw line 88 every key press) combat text switched off: no B.db
+  if not (B.db and B.db.sct and B.db.sct.events) then return {} end
   local ev, use = B.db.sct.events, {}
   for _, e in ipairs(CT.EVENTS) do
     local s = ev[e.key]
@@ -85,7 +87,10 @@ function CT.Usage()
   end
   return use
 end
-local function AreaOf(key) local s = B.db.sct.events[key] return s and s.area end
+local function AreaOf(key)
+  local s = B.db and B.db.sct and B.db.sct.events and B.db.sct.events[key]
+  return s and s.area
+end
 -- "plates" | "screen" | "mix" | "own"
 function CT.Setup()
   local dmgP, healP, other = true, true, false
