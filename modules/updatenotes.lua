@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.58", {
+    { "Swing timer macros work without SP_SwingTimer", "the macro conditions that read the swing timer ([swingtimer], [mhswing], Slam and queue checks, [rangedtimer], [norangedclip]) now see pfUI Octo's own Swing Timer, Flurry and haste included. If SP_SwingTimer is loaded, it still wins." },
+    { "OctoLoot's minimap button goes into the minimap button menu", "like every other add-on's. \"Keep the button on the map's edge\" on the OctoLoot page keeps it where it was." },
+  } },
   { "1.2.57", {
     { "Dungeon quests in OctoLoot", "every dungeon and raid has a Quests button (\"Quests 5\" = five still to do). It lists that place's quests for your side: in your log (with your progress), ready to take, needs a quest first, not your level yet, done." },
     { "A guide for every quest", "click one to see what it asks, who gives it and takes it and where they stand, the whole chain step by step (each step done or not), what to bring and the rewards. Click \"Given by\", \"Hand in to\" or \"Everything on the map\" and pfQuest's arrow points the way, inside or outside the dungeon. Alt-click a quest for a waypoint to its giver; /ol clear takes it off." },
@@ -183,11 +187,5 @@ pfUI.octoNotes = {
     { "Top scores reach everyone on their own", "a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag." },
     { "Log in to full boards", "when you log in, one player who is online sends you the top 3 of every board, so your Scores are filled straight away. Everyone else hears it too, so all boards stay in step, and only one player answers so the channel stays quiet." },
     { "Live boards", "an open Scores tab or quiz lobby updates the moment a score comes in. It all runs over the hidden OctoArcade channel; switch it off in Minigames > Scores." },
-  } },
-  { "1.2.18", {
-    { "Quiz: Normal, Heroic and Mythic", "timed runs of 10, 25 and 40 questions (20, 15 and 10 seconds each). Faster answers score more - up to 1000 points in the first second, down to 250 at the buzzer, x1.5 on Heroic, x2 on Mythic, and up to +50% for a streak. Quiz-show look: countdown, live clock, A-D answers, a dot for every question, and a results card with a grade and the leaderboard. The old endless quiz is still there as Practice." },
-    { "New leaderboards", "every board in one clean list - the three quiz runs, the six aim modes and the practice streak - with gold, silver and bronze for the top three and your own place always shown." },
-    { "Realm tags", "every score shows the player's realm - NZ N'zoth, YS Y'Shaarj, CT C'thun. Players on older versions can't read the new scores until they update." },
-    { "Flight launcher", "the sweep of light stays inside the sign, with a softer glow that lights up the title as it passes." },
   } },
 }

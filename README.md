@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.58
+
+- ⚔️ **Swing timer macros work without SP_SwingTimer:** the macro conditions that read the swing timer ([swingtimer], [mhswing], Slam and queue checks, [rangedtimer], [norangedclip]) now see pfUI Octo's own Swing Timer, Flurry and haste included. If SP_SwingTimer is loaded, it still wins.
+- 📖 **OctoLoot's minimap button goes into the minimap button menu** like every other add-on's. "Keep the button on the map's edge" on the OctoLoot page keeps it where it was.
+
 ## 📜 New in 1.2.57
 
 - 📜 **Dungeon quests in OctoLoot:** every dungeon and raid has a Quests button ("Quests 5" = five still to do). It lists that place's quests for your side: in your log (with your progress), ready to take, needs a quest first, not your level yet, done.
