@@ -621,6 +621,114 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     D.dirty = true
     return n
   end
+  -- (26 Nov 2026, user: "emulate players and spells casting") the picture side of a raid: 40 animated characters
+  -- (the races' own models, every 4th one wearing YOUR gear through a DressUpModel) in a ring round Ragnaros, and
+  -- the game's real spell effects (Frostbolt, Fireball, Flamestrike, Consecration, heals, Shadow Nova...) going off
+  -- on them and the boss. Model frames on a full-screen stage under the interface (BACKGROUND), nothing in the world.
+  -- Paths are the client's own (MPQ listfiles); 1.12 model frames take them as .mdx.
+  PF.STRESS_RACES = { "Human\\Male\\HumanMale", "Orc\\Male\\OrcMale", "Dwarf\\Male\\DwarfMale", "NightElf\\Female\\NightElfFemale",
+    "Gnome\\Male\\GnomeMale", "Tauren\\Male\\TaurenMale", "Scourge\\Male\\ScourgeMale", "Troll\\Male\\TrollMale",
+    "Human\\Female\\HumanFemale", "Orc\\Female\\OrcFemale", "NightElf\\Male\\NightElfMale", "Dwarf\\Female\\DwarfFemale" }
+  PF.STRESS_SPELLS = { "Frostbolt", "Fireball_Missile_High", "Flamestrike_Impact", "Consecration_Impact_Base", "Renew_Base",
+    "Rejuvenation_Impact_Base", "LightningBolt_Impact_Chest", "Shadow_Nova_area", "Arcane_Missile", "Blizzard_Impact_Base",
+    "Moonfire_Impact_Base", "HellFire_Area_Base", "Starfire_Area", "FireBlast_Impact_Chest" }
+  PF.STRESS_CAST = { 51, 52, 53, 54, 0 } -- ready / cast directed / cast omni sequences, then stand (unknown ids just stand)
+  PF.STRESS_EFFECTS = 24
+  local function Seq(m, id) if m.SetSequence then pcall(m.SetSequence, m, id) end end
+  function PF.StressStage(on)
+    local st = PF.stage
+    if not on then
+      if st then
+        st:Hide()
+        for _, m in ipairs(st.models) do if m.ClearModel then pcall(m.ClearModel, m) end end
+        for _, m in ipairs(st.fx) do if m.ClearModel then pcall(m.ClearModel, m) end end
+      end
+      return 0
+    end
+    if not st then
+      st = CreateFrame("Frame", "pfStressStage", UIParent)
+      PF.stage = st
+      st:SetFrameStrata("BACKGROUND")
+      st:SetAllPoints(UIParent)
+      st.models, st.fx = {}, {}
+      for i = 1, 41 do
+        local dress = i > 1 and math.mod(i, 4) == 0
+        local m = CreateFrame(dress and "DressUpModel" or "PlayerModel", nil, st)
+        m:SetWidth(i == 1 and 360 or 130)
+        m:SetHeight(i == 1 and 360 or 170)
+        m.dress = dress
+        table.insert(st.models, m)
+      end
+      for i = 1, PF.STRESS_EFFECTS do
+        local m = CreateFrame("PlayerModel", nil, st)
+        m:SetWidth(140)
+        m:SetHeight(140)
+        m:SetFrameLevel(st:GetFrameLevel() + 5)
+        table.insert(st.fx, m)
+      end
+    end
+    -- the boss in the middle, two rings of players round it
+    local w, h = UIParent:GetWidth() or 1024, UIParent:GetHeight() or 768
+    for i, m in ipairs(st.models) do
+      m:ClearAllPoints()
+      if i == 1 then
+        m:SetPoint("CENTER", st, "CENTER", 0, 20)
+        pcall(m.SetModel, m, "Creature\\Ragnaros\\Ragnaros.mdx")
+        pcall(m.SetModelScale, m, .9)
+      else
+        local k = i - 2
+        local ring = k < 22 and 1 or 2
+        local slot = ring == 1 and k or (k - 22)
+        local count = ring == 1 and 22 or 18
+        local ang = (slot / count) * 2 * math.pi
+        local rx, ry = (ring == 1 and .30 or .44) * w, (ring == 1 and .28 or .40) * h
+        m:SetPoint("CENTER", st, "CENTER", math.cos(ang) * rx, math.sin(ang) * ry)
+        if m.dress then
+          pcall(m.SetUnit, m, "player")
+        else
+          pcall(m.SetModel, m, "Character\\" .. PF.STRESS_RACES[math.mod(k, table.getn(PF.STRESS_RACES)) + 1] .. ".mdx")
+        end
+        -- facing the boss
+        if m.SetFacing then pcall(m.SetFacing, m, math.mod(ang + math.pi * 1.5, 2 * math.pi)) end
+      end
+      m.castAt = Now() + math.random() * 2
+      m:Show()
+    end
+    for _, m in ipairs(st.fx) do m.fxUntil = 0 m:Hide() end
+    st:Show()
+    return 40
+  end
+  -- every frame while the test runs: players start casts, spells go off on players and the boss
+  function PF.StressStageTick(now)
+    local st = PF.stage
+    if not (st and st:IsShown()) then return end
+    for i = 2, table.getn(st.models) do
+      local m = st.models[i]
+      if now >= (m.castAt or 0) then
+        m.castAt = now + 1.2 + math.random() * 1.8
+        Seq(m, PF.STRESS_CAST[math.random(1, table.getn(PF.STRESS_CAST))])
+        -- the spell lands somewhere: mostly the boss, some on players (heals)
+        for _, fx in ipairs(st.fx) do
+          if now >= (fx.fxUntil or 0) then
+            local at = math.random() < .6 and st.models[1] or st.models[math.random(2, table.getn(st.models))]
+            fx:ClearAllPoints()
+            fx:SetPoint("CENTER", at, "CENTER", math.random(-40, 40), math.random(-30, 30))
+            pcall(fx.SetModel, fx, "Spells\\" .. PF.STRESS_SPELLS[math.random(1, table.getn(PF.STRESS_SPELLS))] .. ".mdx")
+            fx.fxUntil = now + 1.5
+            fx:Show()
+            break
+          end
+        end
+      end
+    end
+    for _, fx in ipairs(st.fx) do
+      if fx:IsShown() and now >= (fx.fxUntil or 0) then
+        if fx.ClearModel then pcall(fx.ClearModel, fx) end
+        fx:Hide()
+      end
+    end
+  end
+
   -- OctoDoTs' pass and paint timed while the test runs
   local function Wrap(t, key, rec)
     local f = t[key]
@@ -635,6 +743,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   end
   function PF.Stress(seconds)
     if PF.stress then PF.StressStop("stopped by hand") return end
+    -- "/pfstress 120 lite": no characters or spell effects on screen
+    local lite = type(seconds) == "string" and string.find(seconds, "lite") and true or nil
+    if type(seconds) == "string" then local _, _, n = string.find(seconds, "(%d+)") seconds = n end
     if _G.UnitAffectingCombat and _G.UnitAffectingCombat("player") then Say("the stress test waits until you are out of the fight.") return end
     seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
     local S = { untilT = Now() + seconds, secs = seconds, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
@@ -645,6 +756,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     local DM = pfUI.demo
     if DM and DM.Start and not DM.on then S.demo = DM.Start("raid") end
     S.mobs = PF.StressMobs(true)
+    S.models = not lite and PF.StressStage(true) or 0
     local D = pfUI.dots
     if D then
       S.origScan = Wrap(D, "Scan", S.scan)
@@ -687,10 +799,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
         end
         _G.arg1 = keep
       end
+      if s.models > 0 then PF.StressStageTick(now) end
       if now >= s.untilT then PF.StressStop() end
     end)
     f:Show()
     Say("stress test started: " .. seconds .. " s, " .. (S.demo and "40-player raid demo, " or "") .. S.mobs
+      .. (S.models > 0 and (S.models .. " characters and Ragnaros casting real spell effects on screen, ") or "")
       .. " mobs on OctoDoTs, " .. PF.STRESS_EVENTS .. " aura changes a second. /pfstress again stops it.")
   end
   function PF.StressStop(why)
@@ -703,11 +817,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       if s.origPaint then D.Paint = s.origPaint end
     end
     PF.StressMobs(false)
+    PF.StressStage(false)
     local DM = pfUI.demo
     if s.demo and DM and DM.Stop then DM.Stop(true) end
     local avg = s.frames > 0 and s.sum / s.frames or 0
     local r = {
-      why = why or "done", secs = s.secs, frames = s.frames,
+      why = why or "done", secs = s.secs, frames = s.frames, models = s.models,
       fps = avg > 0 and 1000 / avg or 0, lowest = s.lowest or 0, worst = s.worst, over50 = s.over50, over100 = s.over100,
       mb0 = s.kb0 / 1024, mb1 = gcinfo() / 1024, peak = s.peak / 1024, cleans = s.cleans,
       scanN = s.scan.n, scanMs = s.scan.n > 0 and s.scan.ms / s.scan.n or 0,
@@ -721,7 +836,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     local function F(x, d) return string.format("%." .. (d or 0) .. "f", x or 0) end
     local good = r.lowest >= 30 and r.over100 <= 3
     return {
-      "|cff33ccffpfUI Octo|r stress test (" .. r.why .. ", " .. F(r.secs) .. " s): " .. (good and "|cff55ff55smooth|r" or "|cffff5555stutters|r"),
+      "|cff33ccffpfUI Octo|r stress test (" .. r.why .. ", " .. F(r.secs) .. " s" .. ((r.models or 0) > 0 and (", " .. r.models .. " characters on screen") or "") .. "): " .. (good and "|cff55ff55smooth|r" or "|cffff5555stutters|r"),
       "  FPS: |cffffffff" .. F(r.fps) .. "|r on average, lowest second |cffffffff" .. F(r.lowest) .. "|r; worst frame |cffffffff"
         .. F(r.worst) .. " ms|r, " .. r.over50 .. " frames over 50 ms, " .. r.over100 .. " over 100 ms",
       "  Lua memory: " .. F(r.mb0) .. " -> " .. F(r.mb1) .. " MB (peak " .. F(r.peak) .. "), " .. r.cleans .. " clean-ups",

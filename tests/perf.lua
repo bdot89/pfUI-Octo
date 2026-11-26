@@ -649,6 +649,10 @@ do
     for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
     ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
     ok(table.getn(PF.StressLines(r)) == 4, "report lines")
+    ok(r and r.models == 40 and PF.stage and not PF.stage:IsShown(), "40 characters on the stage while it ran, put away afterwards")
+    PF.Stress("10 lite")
+    ok(PF.stress and PF.stress.models == 0 and PF.stress.secs == 10, "/pfstress 10 lite: no characters")
+    PF.StressStop("test")
   end
   pfUI.demo = dm
   for k, v in pairs(keep2) do _G[k] = v end
