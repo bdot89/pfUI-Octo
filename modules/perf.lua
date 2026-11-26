@@ -677,6 +677,20 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end
     return l
   end
+  -- the n add-on frames that failed most: "name 30000x (CHAT_MSG_...: file:12: attempt to ...)", nil when none
+  function PF.StressErrors(by, msg, n)
+    local list = {}
+    for k, c in pairs(by or {}) do table.insert(list, { k, c }) end
+    if table.getn(list) == 0 then return nil end
+    table.sort(list, function(a, b) return a[2] > b[2] end)
+    local out = {}
+    for i = 1, math.min(n or 3, table.getn(list)) do
+      local m = msg and msg[list[i][1]] or ""
+      if string.len(m) > 110 then m = string.sub(m, 1, 107) .. "..." end
+      table.insert(out, list[i][1] .. " " .. list[i][2] .. "x (" .. m .. ")")
+    end
+    return table.concat(out, "; ")
+  end
   -- the n listeners that took the most time: "name 12.3% (4.1 ms/s), ..."
   function PF.StressTop(by, sum, n)
     local list = {}
@@ -738,7 +752,13 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     for _, l in ipairs(list) do
       _G.this = l.f
       local t0 = Ms()
-      if not pcall(l.h) then s.errors = s.errors + 1 end
+      local good, err = pcall(l.h)
+      if not good then
+        -- (26 Nov 2026, first 5-minute run: 35,904 errors, nobody knew whose) who failed, how often, and its first message
+        s.errors = s.errors + 1
+        s.errBy[l.key] = (s.errBy[l.key] or 0) + 1
+        if not s.errMsg[l.key] then s.errMsg[l.key] = e .. ": " .. tostring(err) end
+      end
       -- (26 Nov 2026: the HUD put all of it on the driver) each listener's own share
       s.byFrame[l.key] = (s.byFrame[l.key] or 0) + (Ms() - t0)
     end
@@ -1071,7 +1091,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
     local S = { untilT = Now() + seconds, secs = seconds, warmUntil = Now() + 3, warmWorst = 0, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
       secFrames = 0, secStart = Now(), lowest = nil, kb0 = gcinfo(), peak = gcinfo(), cleans = 0,
-      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, rinse = { ms = 0, n = 0 }, evAcc = 0, byFrame = {} }
+      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, rinse = { ms = 0, n = 0 }, evAcc = 0, byFrame = {}, errBy = {}, errMsg = {} }
     PF.stress = S
     -- the Demo's raid fight, when the Demo is there
     local DM = pfUI.demo
@@ -1142,6 +1162,13 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       s.lastNow = now
       if s.lframes > 0 then PF.StressFeed(s, gdt) end
       if s.models > 0 then PF.StressStageTick(now) end
+      -- OctoRinse only scans where its own settings let it run: the test scans it at its own pace (4 a second)
+      local R = pfUI.rinse
+      if R and R.Scan and now >= (s.rinseAt or 0) then
+        s.rinseAt = now + .25
+        if s.rinse.n == (s.rinseSeen or -1) then pcall(R.Scan) end
+        s.rinseSeen = s.rinse.n
+      end
       if now >= s.untilT then PF.StressStop() end
     end)
     f:Show()
@@ -1178,6 +1205,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       rinseN = s.rinse.n, rinseMs = s.rinse.n > 0 and s.rinse.ms / s.rinse.n or 0,
       rinseShare = s.sum > 0 and s.rinse.ms / s.sum * 100 or 0,
       top = PF.StressTop(s.byFrame, s.sum, 5),
+      errTop = PF.StressErrors(s.errBy, s.errMsg, 3),
       lines = s.lines, lframes = s.lframes, errors = s.errors, deaths = s.deaths,
       warm = s.warmWorst,
     }
@@ -1199,6 +1227,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       "  Busiest with the raid traffic: " .. (r.top or "(nothing timed)"),
       "  Combat log fed: " .. (r.lines or 0) .. " lines to " .. (r.lframes or 0) .. " add-on frames, " .. (r.deaths or 0)
         .. " adds died and came back" .. ((r.errors or 0) > 0 and (", |cffff5555" .. r.errors .. " add-on errors|r") or ""),
+      (r.errTop and ("  |cffff5555Errors:|r " .. r.errTop) or nil),
     }
   end
   _G.SLASH_PFSTRESS1 = "/pfstress"

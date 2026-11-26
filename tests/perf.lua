@@ -687,3 +687,10 @@ do
   for _, e in ipairs(PF.STRESS_EVENTS_FED or {}) do fed[e] = true end
   ok(fed.UNIT_AURA and fed.UNIT_HEALTH and PF.STRESS_UNITS >= 600, "the stress test sends raid debuff / health / mana changes")
 end
+
+-- (26 Nov 2026) the add-ons that fail on the test's traffic are named with their first error
+do
+  local s = PF.StressErrors({ A = 5, B = 30 }, { A = "UNIT_AURA: a.lua:3: boom", B = "CHAT_MSG_LOOT: b.lua:9: bad" }, 3)
+  ok(s and string.find(s, "^B 30x %(CHAT_MSG_LOOT: b.lua:9: bad%)") and string.find(s, "A 5x"), "errors: worst first, with the first message")
+  ok(PF.StressErrors({}, {}, 3) == nil, "no errors: no line")
+end
