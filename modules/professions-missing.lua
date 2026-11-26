@@ -326,7 +326,7 @@ pfUI:RegisterModule("professions-missing", "vanilla", function ()
       if not f or f.octoMissingHook then return end
       f.octoMissingHook = true
       if hooksecurefunc and _G[k.update] then
-        hooksecurefunc(k.update, function()
+        hooksecurefunc(k.update, PO.Guard("missing recipes", function()
           if not _G[k.frame].octoProf then return end
           local p = _G[k.frame].octoMissing or (On() and PM.Build(k))
           if p and p:IsShown() then
@@ -337,7 +337,7 @@ pfUI:RegisterModule("professions-missing", "vanilla", function ()
             PM.Learn(k)
           end
           PM.PaintButton(k)
-        end)
+        end))
       end
       local search = _G[k.search]
       if search and HookScript then

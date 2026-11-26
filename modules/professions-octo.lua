@@ -14,6 +14,32 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
   local PO = {}
   pfUI.professionsOcto = PO
   local function On() return C.charframe.prof ~= "0" end
+
+  -- (26 Nov 2026, Lobo: "my profession panel is now crashing me ... it just freezes the whole game") every pfUI hook on
+  -- the profession windows' update goes through this: it never runs inside itself (two add-ons' hooks bouncing off each
+  -- other can't loop), and one that ever takes longer than FUSE ms is switched off for this session and named in chat,
+  -- so a freeze happens once at most and says what it was.
+  PO.FUSE = 250
+  PO.blown = {}
+  function PO.Guard(name, fn)
+    local busy
+    return function(a1, a2, a3)
+      if busy or PO.blown[name] then return end
+      busy = true
+      local t0 = debugprofilestop and debugprofilestop()
+      local ok, err = pcall(fn, a1, a2, a3)
+      busy = nil
+      local ms = t0 and (debugprofilestop() - t0) or 0
+      if ms > PO.FUSE then
+        PO.blown[name] = true
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cff33ccffpfUI|r: the profession window's |cffffd24d%s|r took %d ms - switched "
+          .. "off until the next reload so the game does not freeze. Please tell us (it names the part to fix).", name, ms))
+      end
+      if not ok and DEFAULT_CHAT_FRAME and C.global and C.global.errors == "1" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cffff5555pfUI " .. name .. ": " .. tostring(err))
+      end
+    end
+  end
   local WHITE = "Interface\\Buttons\\WHITE8X8"
   local GOLD = { 1, .82, .25 }
 
@@ -177,7 +203,7 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
     end
     -- categories as gold bars, every time the list is drawn
     if hooksecurefunc and _G[k.update] then
-      hooksecurefunc(k.update, function() PO.Paint(k) end)
+      hooksecurefunc(k.update, PO.Guard("look", function() PO.Paint(k) end))
     end
     PO.Paint(k)
     PO.SolidMenus()
