@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.65", {
+    { "Find a setting", "no more sct-options.lua:88 errors while typing when combat text is switched off." },
+    { "Auctions, Sell tab", "the deposit is always shown, 0c included." },
+    { "Auctions, Browse", "a \"Bought today\" line shows how many of the listed items you already bought or won today, and what you paid." },
+  } },
   { "1.2.64", {
     { "Auto Loot works again", "the latest ClassicAPI changed how corpses are opened, which stopped Auto Loot in groups. It now sweeps everything in range in one go again, groups and raids included." },
     { "Master looters", "after the sweep it goes back to the corpses that still hold epics and gives you every one that isn't bind on pickup. BoP is always left on the corpse for you to hand out." },
@@ -180,9 +185,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.26", {
     { "Threat % on your target frame", "Meters Threat Label Where On my target frame puts just your threat % on top of your target frame (pfUI's, or the game's own), moving and sizing with it - no meter window needed. X / Y nudge it." },
-  } },
-  { "1.2.25", {
-    { "Smoother raids, round three - threat", "the \"DoTs on the way\" countdown read every debuff on the boss about 25 times a second; now 4 times, with your DoTs' time left still exact. Your threat judgement (cap, colours, aggro countdown) is worked out once a tenth of a second and shared by the label, the popups and the window, and everyone's countdowns only when new numbers arrive." },
-    { "Raid and party frames", "bars and texts redraw at most 10 times a second (up to 40 frames all changing in a raid fight); your own and your target's stay at 20." },
   } },
 }

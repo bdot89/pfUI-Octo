@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.65
+
+- 🔍 **Find a setting:** no more `sct-options.lua:88` errors while typing when combat text is switched off.
+- 💸 **Auctions, Sell tab:** the deposit is always shown, 0c included.
+- 🧾 **Auctions, Browse:** a "Bought today" line shows how many of the listed items you already bought or won today, and what you paid.
+
 ## 📜 New in 1.2.64
 
 - 💰 **Auto Loot works again:** the latest ClassicAPI changed how corpses are opened, which stopped Auto Loot in groups. It now sweeps everything in range in one go again, groups and raids included.
