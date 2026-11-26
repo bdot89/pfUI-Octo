@@ -1022,7 +1022,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     if type(seconds) == "string" then local _, _, n = string.find(seconds, "(%d+)") seconds = n end
     if _G.UnitAffectingCombat and _G.UnitAffectingCombat("player") then Say("the stress test waits until you are out of the fight.") return end
     seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
-    local S = { untilT = Now() + seconds, secs = seconds, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
+    local S = { untilT = Now() + seconds, secs = seconds, warmUntil = Now() + 3, warmWorst = 0, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
       secFrames = 0, secStart = Now(), lowest = nil, kb0 = gcinfo(), peak = gcinfo(), cleans = 0,
       scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, evAcc = 0 }
     PF.stress = S
@@ -1049,7 +1049,12 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       local now, ms = Now(), Ms()
       local dt = ms - last
       last = ms
-      if s.frames > 0 or dt < 1000 then
+      -- (26 Nov 2026, first run in game: "lowest second 1, worst frame 1217 ms" was the 3 s start - loading 70 models -
+      -- not the fight) the start is noted on its own and left out of the numbers
+      if now < s.warmUntil then
+        if dt > s.warmWorst and dt < 30000 then s.warmWorst = dt end
+        s.secFrames, s.secStart = 0, now
+      elseif s.frames > 0 or dt < 1000 then
         s.frames, s.sum = s.frames + 1, s.sum + dt
         if dt > s.worst then s.worst = dt end
         if dt > 50 then s.over50 = s.over50 + 1 end
@@ -1116,6 +1121,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       paintN = s.paint.n, paintMs = s.paint.n > 0 and s.paint.ms / s.paint.n or 0,
       share = s.sum > 0 and (s.scan.ms + s.paint.ms) / s.sum * 100 or 0,
       lines = s.lines, lframes = s.lframes, errors = s.errors, deaths = s.deaths,
+      warm = s.warmWorst,
     }
     PF.stressLast = r
     for _, l in ipairs(PF.StressLines(r)) do DEFAULT_CHAT_FRAME:AddMessage(l) end
@@ -1126,7 +1132,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     return {
       "|cff33ccffpfUI Octo|r stress test (" .. r.why .. ", " .. F(r.secs) .. " s" .. ((r.models or 0) > 0 and (", " .. r.models .. " characters on screen") or "") .. "): " .. (good and "|cff55ff55smooth|r" or "|cffff5555stutters|r"),
       "  FPS: |cffffffff" .. F(r.fps) .. "|r on average, lowest second |cffffffff" .. F(r.lowest) .. "|r; worst frame |cffffffff"
-        .. F(r.worst) .. " ms|r, " .. r.over50 .. " frames over 50 ms, " .. r.over100 .. " over 100 ms",
+        .. F(r.worst) .. " ms|r, " .. r.over50 .. " frames over 50 ms, " .. r.over100 .. " over 100 ms"
+        .. ((r.warm or 0) > 0 and ("; the start (loading everything, left out) " .. F(r.warm) .. " ms") or ""),
       "  Lua memory: " .. F(r.mb0) .. " -> " .. F(r.mb1) .. " MB (peak " .. F(r.peak) .. "), " .. r.cleans .. " clean-ups",
       "  OctoDoTs: " .. r.scanN .. " passes at " .. F(r.scanMs, 2) .. " ms, " .. r.paintN .. " paints at " .. F(r.paintMs, 2)
         .. " ms = " .. F(r.share, 1) .. "% of the frame time",
