@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.62
+
+- 🛠️ **Profession windows no longer freeze:** the craft profit and missing-recipe parts redid all their work on every redraw (dozens when a window opens). They now run once when it settles, and switch themselves off with a chat line if one is ever slow.
+- ⏳ **ID Timer built in:** counts the 5 instances an hour, with a countdown to each free slot and your saved raid IDs. Off until you first reset an instance (it asks), or Quality of Life > ID Timer, or `/idt`.
+- ⏱️ **Run timer:** Alt + drag to move it.
+
 ## 📜 New in 1.2.61
 
 - 🏎️ **Smoother in fights:** health and mana bars only redraw when they actually move, the swing timer draws at most 60 times a second (a landing swing still shows at once), and the action bars group their usable / cooldown checks to 20 a second. About 15-20 ms less work every second in a raid.

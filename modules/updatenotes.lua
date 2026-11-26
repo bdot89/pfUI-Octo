@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.62", {
+    { "Profession windows no longer freeze", "the craft profit and missing-recipe parts redid all their work on every redraw (dozens when a window opens). They now run once when it settles, and switch themselves off with a chat line if one is ever slow." },
+    { "ID Timer built in", "counts the 5 instances an hour, with a countdown to each free slot and your saved raid IDs. Off until you first reset an instance (it asks), or Quality of Life > ID Timer, or /idt." },
+    { "Run timer", "Alt + drag to move it." },
+  } },
   { "1.2.61", {
     { "Smoother in fights", "health and mana bars only redraw when they actually move, the swing timer draws at most 60 times a second (a landing swing still shows at once), and the action bars group their usable / cooldown checks to 20 a second. About 15-20 ms less work every second in a raid." },
   } },
@@ -182,9 +187,5 @@ pfUI.octoNotes = {
     { "Smoother raids - threat", "in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers." },
     { "Lighter debuff tracking", "DoT tick lines get a quick check before the full match, your target's debuffs are read at most 5 times a second (at once on a new target), and your own spell lines are only checked while a cast is pending." },
     { "OctoRinse in raids", "debuff changes rescan at most 10 times a second in a raid (20 in a group) - cures still show almost instantly." },
-  } },
-  { "1.2.22", {
-    { "Meters stay the size you drag them to", "the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight)." },
-    { "Tiny windows come back", "a window that was saved shrunk to a line or two comes back once at the normal size, ready to drag. \"Fit the lines\" is still in Meters > Data for anyone who likes it, now off by default." },
   } },
 }
