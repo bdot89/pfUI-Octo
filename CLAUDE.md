@@ -1652,3 +1652,16 @@ C_LossOfControl / school lockout on action buttons; C_NewItems glow in bags.
   Interface\AddOns\Atlas-CFM\Images\Maps\<key> when that folder exists (OL.HasMaps via GetAddOnInfo reason ~= MISSING).
   Page "octoloot" (octoloot-options.lua, O.TOPENTRY); gold big entry img\octo\icons\loot under OctoRanks - the big
   entries are 18 px apart now so NAV_TOP stays 184 (a 600 px window keeps every row). Tests: tests\octoloot.lua.
+  26 Nov, sections (NOT seen in game; user: Atlas-CFM's bar "PvP sets, collections, pvp rewards, crafting ... EVERYTHING",
+  set swaps "interlinked and fast", Atlas's options "our own version"): modules\octoloot-pages.lua (pfUI.octolootPages, kinds
+  e c f p x as I / B lines, B field 4 "p" = page; tokens "@heading", "id[:pct][~note]", "s<spell>"; R recipe, S set, X swap
+  lines) and octoloot-items.lua (pfUI.octolootItems, every N line, indexed by OL.ItemIndex on first need; the dungeon data
+  has no N lines any more). Builder steps 5-8 in Make-OctoLootData.ps1: dump-atlas.lua runs Atlas-CFM's tables / menus on a
+  stand-in (LuaHost; submenu functions caught through PrepMenu) -> atlas-tables.txt; items.ps1 crawls ?items=c[.s[.slot]]
+  (~340 lists, 19k items); recipes.ps1 ?spells=11.<skill> + ?itemsets; pages.ps1. OL.LoadPages on first section tab /
+  search; OL.ShowItem = an item's own page (swaps both ways, set, sources incl. pages, recipe, Used to make; Back stack);
+  wishlist C.octoloot.wish (Alt-click), QuickLook C.octoloot.quick (6, right-click a row / Pin); tooltips anywhere
+  (pfOctoLootTip child of GameTooltip): OL.TipFacts searches the texts for the id (no tables, 300 kept) - set, swaps,
+  pages, made by, used in by profession; drops only while C.tooltip.x_sources is off (pfQuest's lines). Minimap button
+  pfOctoLootMinimapButton (addonbuttons ignores it). PowerShell traps hit here: an empty ArrayList is falsy (`if ($cur)`),
+  $ENT and $ent are one variable, LuaHost stderr under ErrorActionPreference Stop aborts the script.

@@ -66,6 +66,13 @@ pfUI:RegisterModule("octoloot-options", "vanilla:tbc", function ()
       .. "Off keeps them for a faster open.",
       function() return C.octoloot.unload ~= "0" end,
       function(v) C.octoloot.unload = v and "1" or "0" end)
+    W.Check(p, "Minimap button", "The gold chest on the minimap's edge: click opens OctoLoot, right-click this page, drag it round.",
+      function() return C.octoloot.minimap ~= "0" end,
+      function(v)
+        C.octoloot.minimap = v and "1" or "0"
+        local ol = OL()
+        if ol and ol.ShowMinimap then ol.ShowMinimap() end
+      end)
     W.Check(p, "Markers on the world map", "Every dungeon and raid entrance and world boss gets a pin on its zone's map: "
       .. "green doorway = dungeon, orange skull = raid, purple horned skull = world boss. Hover for what it is, click to "
       .. "open it here.",
@@ -86,11 +93,30 @@ pfUI:RegisterModule("octoloot-options", "vanilla:tbc", function ()
     W.Note(p, "Also: |cffffffff/octoloot|r or |cffffffff/ol|r (and |cffffffff/atlas|r while no Atlas add-on is on). "
       .. "Put a name after it to search: |cffffffff/ol perdition|r.", 0, true)
 
+    W.Card(p, "Item tooltips", { icon = "Interface\\Icons\\INV_Misc_Note_01",
+      tip = "Lines OctoLoot adds to every item tooltip in the game - bags, bank, chat links, the auction house. Worked out once per item, no tables kept." })
+    W.Check(p, "OctoLoot lines in item tooltips", "The set it is in, what it swaps for, the faction / PvP / event / crafting page it is on, "
+      .. "the recipe that makes it and what it is used to make. Where it drops comes from pfUI's own tooltip lines "
+      .. "(pfQuest's database); turn those off (QoL > Tooltips) and OctoLoot shows the server's drop chances instead.",
+      function() return C.octoloot.tip ~= "0" end,
+      function(v) C.octoloot.tip = v and "1" or "0" end)
+    W.Check(p, "What it is used to make", "\"Used in Blacksmithing 8, Engineering 4\" on reagents.",
+      function() return C.octoloot.tipreagent ~= "0" end,
+      function(v) C.octoloot.tipreagent = v and "1" or "0" end)
+    W.Check(p, "Only my professions", "\"Used in\" names only the professions this character has.",
+      function() return C.octoloot.tipmine == "1" end,
+      function(v) C.octoloot.tipmine = v and "1" or "0" end)
+    W.Slider(p, "Pages and drops shown", "How many faction / PvP / event pages (and drops, when shown) a tooltip lists.", 1, 10, 1,
+      function() return tonumber(C.octoloot.tiprows) or 4 end,
+      function(v) C.octoloot.tiprows = v if pfUI.octoloot then pfUI.octoloot.tipCache = nil end end)
+
     W.Card(p, "Using it", { icon = "Interface\\Icons\\INV_Misc_Book_09" })
-    W.Note(p, "Pick an instance on the left, then a boss - or Everything here for all its drops at once.\n"
-      .. "The percentage is the chance a kill drops that item. \"One of these\" groups are rolled once a kill: one item of "
-      .. "the group drops.\nShift-click an item to link it, Ctrl-click to try it on, right-click to see every boss that "
-      .. "drops it.\nThe search finds items, bosses and instances as you type.", 0, true)
+    W.Note(p, "Nine sections: Dungeons, Raids, World, Events, Collections, Factions, PvP, Crafting and your Wishlist.\n"
+      .. "Pick a group on the left, then a boss or page. The percentage is the chance a kill drops that item; \"One of these\" "
+      .. "groups are rolled once a kill.\nClick an item for everything about it: what it swaps for, its set, every boss, "
+      .. "vendor or page it comes from, the recipe that makes it and what it is used to make - every line opens what it names.\n"
+      .. "Shift-click links it, Ctrl-click tries it on, Alt-click puts it on your wishlist, right-click searches for it.\n"
+      .. "Right-click a group (or press Pin) to keep it on one of the six QuickLook buttons under the list.", 0, true)
   end
 
   O:AddPage("OctoLoot", "octoloot", "OctoLoot", Build)

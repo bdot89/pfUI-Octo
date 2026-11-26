@@ -31,17 +31,21 @@ ok(perd and perd.q == 4 and perd.cl == 2 and OL.TypeText(perd) == "Dagger", "Per
 ok(OL.Link(perd) == "|cffa335ee|Hitem:18816:0:0:0|h[Perdition's Blade]|h|r" or string.find(OL.Link(perd), "|Hitem:18816:0:0:0|h", 1, true),
   "chat link built for an item")
 
--- never greys or whites unless the quest needs them
+-- a boss never drops greys or whites unless the quest needs them (the other sections' pages list reagents and quest items)
 local grey = 0
-for id in pairs(db.raw) do
-  local x = OL.Item(id)
-  if x and x.q < 2 then
-    local quest = false
-    for _, s in ipairs(OL.Sources()[id] or {}) do if s.pct < 0 then quest = true end end
-    if not quest then grey = grey + 1 end
+for _, x in ipairs(db.list) do
+  if x.kind == "d" or x.kind == "r" or x.kind == "w" then
+    for _, b in ipairs(x.bosses) do
+      for _, g in ipairs(OL.Loot(b)) do
+        for _, e in ipairs(g.items) do
+          local itm = e.id and OL.Item(e.id)
+          if itm and itm.q < 2 and not (e.pct and e.pct < 0) then grey = grey + 1 end
+        end
+      end
+    end
   end
 end
-ok(grey == 0, "no grey / white items outside quest drops (" .. grey .. ")")
+ok(grey == 0, "no grey / white boss drops outside quest drops (" .. grey .. ")")
 
 -- search: an item finds its boss, a boss its instance
 local res = OL.Search("perdition")
@@ -56,10 +60,10 @@ ok(inst and inst.key == "OnyxiasLair", "searching finds instances")
 -- every instance has its own art, every boss with loot parses
 local noart, bad = {}, 0
 for _, x in ipairs(db.list) do
-  if not OL.ART[x.key] and x.kind ~= "w" then table.insert(noart, x.key) end
+  if not OL.ART[x.key] and (x.kind == "d" or x.kind == "r") then table.insert(noart, x.key) end
   for _, b in ipairs(x.bosses) do
     for _, g in ipairs(OL.Loot(b)) do
-      for _, e in ipairs(g.items) do if not db.raw[e.id] then bad = bad + 1 end end
+      for _, e in ipairs(g.items) do if e.id and not OL.ItemIndex()[e.id] then bad = bad + 1 end end
     end
   end
 end
@@ -97,6 +101,76 @@ if okShow then
   OL.inst, OL.boss, OL.results = nil, nil, nil
 end
 ok(getglobal("BINDING_NAME_PFOCTOLOOT") ~= nil, "key binding name for OctoLoot")
+
+-- (26 Nov 2026, user: "PvP sets, collections, pvp rewards, crafting ... EVERYTHING") the other sections
+OL.Unload()
+local pdb = OL.Load()
+ok(pdb and not pdb.pagesRead and type(pfUI.octolootPages) == "string", "the sections' pages are not read until one is wanted")
+pdb = OL.LoadPages()
+local kinds2 = {}
+for _, x in ipairs(pdb.list) do kinds2[x.kind] = (kinds2[x.kind] or 0) + 1 end
+ok((kinds2.e or 0) >= 10 and (kinds2.c or 0) >= 10 and (kinds2.f or 0) >= 20 and (kinds2.p or 0) >= 5 and (kinds2.x or 0) >= 10,
+  "events, collections, factions, PvP and crafting groups (" .. (kinds2.e or 0) .. "/" .. (kinds2.c or 0) .. "/" .. (kinds2.f or 0)
+  .. "/" .. (kinds2.p or 0) .. "/" .. (kinds2.x or 0) .. ")")
+local ad = pdb.by["f-ArgentDawn"]
+local revered
+for _, b in ipairs(ad and ad.bosses or {}) do if b.name == "Revered" then revered = b end end
+ok(ad and revered and table.getn(OL.Loot(revered)[1].items) > 0, "Argent Dawn: a page per standing (Revered has items)")
+local bs = pdb.by["x-AtlasCFMLoot_SmithingMenu"]
+local recipe
+for _, b in ipairs(bs and bs.bosses or {}) do
+  for _, g in ipairs(OL.Loot(b)) do for _, e in ipairs(g.items) do if e.spell and not recipe then recipe = OL.Recipe(e.spell) end end end
+end
+ok(bs and recipe and table.getn(recipe.reagents) > 0 and recipe.skill == 164, "Blacksmithing: recipes with their reagents")
+local cord = OL.SetOf(16925)
+ok(cord and string.find(cord.name, "Transcendence", 1, true) and table.getn(cord.pieces) >= 8, "a set piece knows its set (Belt of Transcendence)")
+local to = OL.Swaps(16812)
+ok(table.getn(to) >= 1, "a swap list: Gloves of Prophecy swap for another item")
+local ents = OL.ItemEntries(OL.Item(16925))
+local hasSet, hasWhere = false, false
+for _, e in ipairs(ents) do
+  if e.head and string.find(e.head, "Set:", 1, true) then hasSet = true end
+  if e.head == "Where it comes from" then hasWhere = true end
+end
+ok(hasSet and hasWhere, "an item's own page: its set and where it comes from")
+local used = OL.UsedIn(12359)
+ok(table.getn(used) > 5, "Thorium Bar is used to make many recipes (" .. table.getn(used) .. ")")
+-- wishlist and QuickLook (per character)
+pfUI_config.octoloot.wish, pfUI_config.octoloot.quick = nil, nil
+OL.ToggleWish(17204)
+ok(OL.Wished(17204) and table.getn(OL.WishList()) == 1, "Alt-click puts an item on the wishlist")
+local wp = OL.WishPage()
+ok(wp and wp.bosses[1] and string.find(wp.bosses[1].lootText, "17204", 1, true), "the wishlist page lists it")
+OL.ToggleWish(17204)
+ok(not OL.Wished(17204), "and takes it off again")
+OL.Pin(pdb.by.MoltenCore)
+local q1 = OL.QuickEntry(1)
+ok(q1 and q1.key == "MoltenCore" and q1.title == "Molten Core", "QuickLook pins an instance")
+OL.Unpin(1)
+ok(OL.QuickEntry(1) == nil, "and frees the slot")
+local okw, errw = pcall(function()
+  OL.Show()
+  OL.PickKind("f")
+  OL.PickKind("x")
+  OL.ShowItem(OL.Item(16925))
+  OL.Back()
+  OL.PickKind("wish")
+  OL.PickKind("c")
+  OL.frame:Hide()
+end)
+ok(okw, "every section, an item's page and Back paint: " .. tostring(errw))
+OL.Unload()
+
+-- tooltips anywhere: the texts are searched, no tables made
+OL.tipCache = nil
+local tf = OL.TipFacts(16925)
+ok(OL.db == nil and tf.set and string.find(tf.set.name, "Transcendence", 1, true), "a tooltip names the set without loading the tables")
+local tb = OL.TipFacts(12359)
+local usedBS = tb.used[164] or 0
+ok(usedBS > 0, "a reagent's tooltip: used in Blacksmithing (" .. usedBS .. ")")
+local tr = OL.TipFacts(17204)
+ok(table.getn(tr.drops) > 0 and tr.drops[1].group == "Molten Core", "the drop lines know the boss's instance (" .. tostring(tr.drops[1] and tr.drops[1].group) .. ")")
+ok(OL.TipFacts(16925) == tf, "asked again: the kept answer")
 
 -- (26 Nov 2026, Lo5t1ncyb3r: "just need the world markers") pins from the M lines alone, without reading everything
 OL.marks = nil
