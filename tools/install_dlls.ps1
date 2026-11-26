@@ -312,6 +312,43 @@ try {
   Remove-Item -Recurse -Force $temp -ErrorAction SilentlyContinue
 }
 
+# (26 Nov 2026, Lobo / Wolfahrt / the user: everything white a few seconds after login, then #132 inside DXVK's d3d9.dll
+# - WoW 0x5A10A0 -> d3d9 +0x2FD4D, memcpy from NULL. DXVK unmaps 32-bit managed textures past d3d9.textureMemory
+# (100 MB) and a remap fails. d3d9.textureMemory = 0 never unmaps them (Wolfahrt: no crash since). As the Octo DLL
+# Installer 1.6.0 does: only with DXVK's d3d9.dll in the game folder, other lines kept, backup once.)
+try {
+  $dxvkFix = "d3d9.textureMemory = 0"
+  if (Test-Path (Join-Path $GameDir "d3d9.dll")) {
+    $conf = Join-Path $GameDir "dxvk.conf"
+    $cl = New-Object System.Collections.ArrayList
+    if (Test-Path $conf) { foreach ($l in [IO.File]::ReadAllLines($conf)) { [void]$cl.Add($l) } }
+    $found, $right = $false, $false
+    for ($i = 0; $i -lt $cl.Count; $i++) {
+      if ($cl[$i] -match '^\s*d3d9\.textureMemory\s*=\s*(\S*)') {
+        if ($found) { $cl[$i] = "# " + $cl[$i]; continue }
+        $found = $true
+        if ($Matches[1] -eq "0") { $right = $true } else { $cl[$i] = $dxvkFix }
+      }
+    }
+    if (-not $right) {
+      if (-not $found) {
+        [void]$cl.Add("# (pfUI Octo) keep every texture mapped: stops the white textures + error #132 crash")
+        [void]$cl.Add($dxvkFix)
+      }
+      if ($Check) {
+        "  dxvk.conf: would get $dxvkFix (stops the white textures + #132 crash)."
+      } else {
+        if ((Test-Path $conf) -and -not (Test-Path "$conf.pfui-backup")) { Copy-Item $conf "$conf.pfui-backup" }
+        [IO.File]::WriteAllLines($conf, [string[]]$cl.ToArray())
+        $changed++
+        "  dxvk.conf: $dxvkFix set - stops the white textures followed by error #132 (old file: dxvk.conf.pfui-backup)."
+      }
+    }
+  }
+} catch {
+  Write-Host ("  dxvk.conf: could not change it ({0})." -f $_.Exception.Message) -ForegroundColor Yellow
+}
+
 ""
 if ($Check) {
   "Check done: nothing was changed."
