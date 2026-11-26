@@ -85,3 +85,35 @@ local okM, errM = pcall(LB.Show, "player")
 ok(okM, "Player draws your own card " .. tostring(errM or ""))
 ok(_G.SlashCmdList.PFBOARDS and _G.SLASH_PFBOARDS1 == "/boards", "/boards")
 pfOctoBoards:Hide()
+
+-- (26 Nov 2026) the Community tab: Chronicle's boards from tools\Sync-Chronicle.ps1
+do
+  local keep = rawget(pfUI, "boardsChronicle")
+  ok(keep == nil or (type(keep.boards) == "table" and type(keep.realms) == "table"), "the generated Chronicle file reads as a table")
+  pfUI.boardsChronicle = { updated = "26 Nov 2026 23:00", days = 7, raids = 2, players = 3, realms = { "N'Zoth", "Y'Shaarj" },
+    boards = { realmwar = { all = { { "N'Zoth", "", "", "N'Zoth", 120, "40 raids" }, { "Y'Shaarj", "", "", "Y'Shaarj", 90, "30 raids" } } },
+      topparse = { all = { { "Yanna", "PRIEST", "Sons of Mukla", "Y'Shaarj", 98.7, "23 boss kills" } }, ["Y'Shaarj"] = { { "Yanna", "PRIEST", "Sons of Mukla", "Y'Shaarj", 98.7, "23 boss kills" } } } } }
+  local okC, errC = pcall(LB.Show, "community")
+  ok(okC, "the Community tab draws " .. tostring(errC or ""))
+  local UI = LB.ui
+  UI.cboard, UI.cscope = "topparse", "Y'Shaarj"
+  local okT, errT = pcall(UI.PaintCommunity)
+  ok(okT and UI.frame.pages.community.rows[1]:IsShown(), "a realm's board shows its rows " .. tostring(errT or ""))
+  ok(UI.CValue(98.7, "parse") == "98.7" and UI.CValue(195, "mins") == "3h 15m", "Chronicle values read right")
+  for _, d in ipairs(UI.CBOARDS) do UI.cboard = d[1] local okB = pcall(UI.PaintCommunity) if not okB then ok(false, "board " .. d[1]) end end
+  pfUI.boardsChronicle = keep
+  pfOctoBoards:Hide()
+end
+
+-- (26 Nov 2026) nothing piles up: old players forgotten, at most LB.KEEP_MAX kept
+do
+  local d = LB.DB()
+  local keep = d.others
+  d.others = { Old = { t = time() - 90 * 86400, all = {} }, New = { t = time(), all = {} } }
+  for i = 1, LB.KEEP_MAX + 20 do d.others["P" .. i] = { t = time() - i, all = {} } end
+  LB.Prune()
+  local n = 0
+  for _ in pairs(d.others) do n = n + 1 end
+  ok(d.others.Old == nil and d.others.New and n == LB.KEEP_MAX, "players unseen 60 days go, at most " .. LB.KEEP_MAX .. " kept (" .. n .. ")")
+  d.others = keep
+end

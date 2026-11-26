@@ -74,6 +74,7 @@
   <Include file="..\modules\meters-breakdown.lua"/>
   <Include file="..\modules\meters-hover.lua"/>
   <Include file="..\modules\octoboards.lua"/>
+  <Include file="..\modules\octoboards-data.lua"/>
   <Include file="..\modules\octoboards-window.lua"/>
   <Include file="..\modules\meters-test.lua"/>
   <Include file="..\modules\sct-core.lua"/>

@@ -195,8 +195,24 @@ pfUI:RegisterModule("octoboards", "vanilla", function ()
       if a1 == LB.PREFIX then LB.Receive(_G.arg2, _G.arg3, _G.arg4) end
     end
   end
+  -- (26 Nov 2026, user: "make sure data doesn't pile up") players not heard from in 60 days are forgotten, and at most
+  -- 400 are kept (the longest unseen go first); nights are already capped at 5
+  LB.KEEP_DAYS, LB.KEEP_MAX = 60, 400
+  function LB.Prune()
+    local d = DB()
+    local now, list = T(), {}
+    for name, o in pairs(d.others) do
+      if not o.t or now - o.t > LB.KEEP_DAYS * 86400 then d.others[name] = nil else table.insert(list, { name, o.t }) end
+    end
+    if table.getn(list) > LB.KEEP_MAX then
+      table.sort(list, function(a, b) return a[2] > b[2] end)
+      for i = LB.KEEP_MAX + 1, table.getn(list) do d.others[list[i][1]] = nil end
+    end
+    while table.getn(d.nights) > 5 do table.remove(d.nights) end
+  end
   -- numbers the game itself keeps
   function LB.ReadGame()
+    LB.Prune()
     if GetPVPLifetimeStats then
       local ok, hk = pcall(GetPVPLifetimeStats)
       if ok and tonumber(hk) then LB.Add("hk", tonumber(hk)) end
