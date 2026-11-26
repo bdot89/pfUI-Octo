@@ -1,3 +1,14 @@
+-- octo (26 Nov 2026, Wolfahrt: "my loading screen is now taking a looong time before connecting ... I suppose this comes
+-- from PFUI"): a load clock with the client's own precise timer (debugprofilestop, in WoW.exe). Marks along the way
+-- (pfUI's first file, pfQuest's database and clean-ups, all files read, modules, skins, in the world) and each module's
+-- start; /pfload prints where the time went (kept in pfUI_cache.loadprof for the next session too).
+PFUI_LOADCLOCK = { marks = {}, mods = {} }
+function pfUI_LoadMark(name)
+  if not debugprofilestop then return end
+  table.insert(PFUI_LOADCLOCK.marks, { name, debugprofilestop() })
+end
+pfUI_LoadMark("pfUI's first file")
+
 SLASH_RELOAD1 = '/rl'
 function SlashCmdList.RELOAD(msg, editbox)
   ReloadUI()
@@ -33,6 +44,40 @@ end
 
 pfUI = CreateFrame("Frame", nil, UIParent)
 pfUI:RegisterEvent("ADDON_LOADED")
+pfUI:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+-- the load clock's report: the steps between marks, then the slowest module starts
+function pfUI.LoadReport()
+  local lc = PFUI_LOADCLOCK
+  local out = {}
+  local m = lc.marks
+  for i = 2, table.getn(m) do table.insert(out, { m[i][1], m[i][2] - m[i - 1][2] }) end
+  local mods = {}
+  for name, ms in pairs(lc.mods) do table.insert(mods, { name, ms }) end
+  table.sort(mods, function(a, b) return a[2] > b[2] end)
+  local total = table.getn(m) > 1 and (m[table.getn(m)][2] - m[1][2]) or 0
+  return out, mods, total
+end
+function pfUI.LoadReportSave()
+  if not pfUI_cache then return end
+  local steps, mods, total = pfUI.LoadReport()
+  local top = {}
+  for i = 1, math.min(15, table.getn(mods)) do top[i] = mods[i] end
+  pfUI_cache.loadprof = { steps = steps, mods = top, total = total, when = date and date("%d %b %H:%M") or "" }
+end
+SLASH_PFLOAD1 = '/pfload'
+function SlashCmdList.PFLOAD()
+  local steps, mods, total = pfUI.LoadReport()
+  if table.getn(steps) == 0 and pfUI_cache and pfUI_cache.loadprof then
+    local lp = pfUI_cache.loadprof
+    steps, mods, total = lp.steps or {}, lp.mods or {}, lp.total or 0
+  end
+  local p = function(s) DEFAULT_CHAT_FRAME:AddMessage(s) end
+  p(string.format("|cff33ffccpfUI Octo|r load time: |cffffffff%.1f s|r from pfUI's first file to the world", total / 1000))
+  for _, s in ipairs(steps) do p(string.format("   %6.0f ms  up to: %s", s[2], s[1])) end
+  p("|cff33ffccslowest module starts:|r")
+  for i = 1, math.min(12, table.getn(mods)) do p(string.format("   %6.0f ms  %s", mods[i][2], mods[i][1])) end
+end
 
 -- setup bootvar
 pfUI.bootup = true
@@ -291,7 +336,9 @@ local function Start(kind, name, fn)
   setfenv(fn, pfUI:GetEnvironment())
   -- (16 Nov 2026) the module starting, for the profiler's labels (modules\perf.lua)
   pfUI.loading = name
+  local t0 = debugprofilestop and debugprofilestop()
   local ok, err = pcall(fn)
+  if t0 then PFUI_LOADCLOCK.mods[kind .. " " .. tostring(name)] = (PFUI_LOADCLOCK.mods[kind .. " " .. tostring(name)] or 0) + debugprofilestop() - t0 end
   pfUI.loading = nil
   if not ok then
     local handler = geterrorhandler and geterrorhandler()
@@ -319,7 +366,14 @@ pfUI:SetScript("OnEvent", function()
     pfUI:UpdateFonts()
   end
 
+  if event == "PLAYER_ENTERING_WORLD" then
+    pfUI:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    pfUI_LoadMark("in the world")
+    if pfUI.LoadReportSave then pfUI.LoadReportSave() end
+    return
+  end
   if arg1 == pfUI.name then
+    pfUI_LoadMark("every file read (pfUI and pfQuest)")
     -- read pfUI version from .toc file
     local major, minor, fix = pfUI.api.strsplit(".", tostring(GetAddOnMetadata(pfUI.name, "Version")))
     pfUI.version.major = tonumber(major) or 1
@@ -359,12 +413,14 @@ pfUI:SetScript("OnEvent", function()
       end
     end
 
+    pfUI_LoadMark("modules started")
     -- load skins
     for _, s in pairs(this.skins) do
       if not ( pfUI_config["disabled"] and pfUI_config["disabled"]["skin_" .. s]  == "1" ) then
         pfUI:LoadSkin(s)
       end
     end
+    pfUI_LoadMark("skins started")
 
     pfUI.bootup = nil
   end

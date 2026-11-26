@@ -198,8 +198,11 @@ function geterrorhandler() return Mock.errorhandler or print end
 -- (18 Nov 2026) PFUI_MEMPROF=1: memory each file and each module start keeps (after a full collect), the
 -- biggest printed at the end - out-of-memory crashes in the graphics wrapper (d3d9.dll memset near 0)
 local MEMPROF = os.getenv("PFUI_MEMPROF") and {}
+-- (26 Nov 2026, Wolfahrt: loading screens take "a looong time") PFUI_TIMEPROF=1: the time each file and module start takes
+local TIMEPROF = os.getenv("PFUI_TIMEPROF") and {}
 local function MemNow() collectgarbage("collect") collectgarbage("collect") return collectgarbage("count") end
 for _, f in ipairs(files) do
+  local t0 = TIMEPROF and os.clock()
   local before = MEMPROF and MemNow()
   local fn, err = load50(DIR .. "/" .. f)
   ok(fn, "parses: " .. f .. " " .. tostring(err))
@@ -208,6 +211,7 @@ for _, f in ipairs(files) do
     ok(good, "runs: " .. f .. " " .. tostring(e))
   end
   if MEMPROF then table.insert(MEMPROF, { f, MemNow() - before }) end
+  if TIMEPROF then table.insert(TIMEPROF, { f, os.clock() - t0 }) end
 end
 error = realError
 
@@ -225,8 +229,10 @@ end)
 function pfUI:LoadModule(m)
   starting = m
   local before = MEMPROF and MemNow()
+  local t0 = TIMEPROF and os.clock()
   LoadModule(self, m)
   if MEMPROF then table.insert(MEMPROF, { "module " .. m, MemNow() - before }) end
+  if TIMEPROF then table.insert(TIMEPROF, { "module " .. m, os.clock() - t0 }) end
   starting = nil
 end
 function pfUI:LoadSkin(s)
@@ -244,6 +250,13 @@ if MEMPROF then
   print(string.format("MEMPROF total %.1f MB (all files + module starts), after ADDON_LOADED %.1f MB now",
     total / 1024, MemNow() / 1024))
   for i = 1, math.min(40, table.getn(MEMPROF)) do print(string.format("MEMPROF %8.0f KB  %s", MEMPROF[i][2], MEMPROF[i][1])) end
+end
+if TIMEPROF then
+  table.sort(TIMEPROF, function(a, b) return a[2] > b[2] end)
+  local total = 0
+  for _, e in ipairs(TIMEPROF) do total = total + e[2] end
+  print(string.format("TIMEPROF total %.0f ms (all files + module starts)", total * 1000))
+  for i = 1, math.min(30, table.getn(TIMEPROF)) do print(string.format("TIMEPROF %7.1f ms  %s", TIMEPROF[i][2] * 1000, TIMEPROF[i][1])) end
 end
 seterrorhandler(pfErrorHandler)
 ok(Mock.errorhandler == pfErrorHandler, "pfUI's error handler back")

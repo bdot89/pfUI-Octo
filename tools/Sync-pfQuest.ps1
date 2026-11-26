@@ -446,13 +446,17 @@ end
 -- (18 Nov 2026) out-of-memory crashes (#132 in DXVK's d3d9.dll at logins and after /reload): reading pfQuest's 32 MB
 -- of data leaves its read-in garbage behind; Lua 5.0 would let it pile up to twice the database before cleaning.
 -- Cleaned here once, during the loading screen (gcmid.lua does the same after the base database).
+if pfUI_LoadMark then pfUI_LoadMark("pfQuest's data read") end
 collectgarbage()
+if pfUI_LoadMark then pfUI_LoadMark("pfQuest's clean-up") end
 "@
 $gcmid = @"
 if pfQuestOctoSkip then return end
 -- pfUI Octo (written by tools\Sync-pfQuest.ps1): the base database is read - clean its read-in garbage now, during
 -- the loading screen, before the Turtle data doubles it (out-of-memory crashes in d3d9.dll, 18 Nov 2026)
+if pfUI_LoadMark then pfUI_LoadMark("pfQuest's data read") end
 collectgarbage()
+if pfUI_LoadMark then pfUI_LoadMark("pfQuest's clean-up") end
 "@
 [IO.File]::WriteAllText((Join-Path $dst "guard.lua"), ($skip -replace "`r?`n", "`r`n"), $utf8)
 [IO.File]::WriteAllText((Join-Path $dst "restore.lua"), ($restore -replace "`r?`n", "`r`n"), $utf8)

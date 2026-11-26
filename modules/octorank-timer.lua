@@ -226,11 +226,32 @@ pfUI:RegisterModule("octorank-timer", "vanilla:tbc", function ()
     old:Hide()
   end
 
+  -- (26 Nov 2026, Wolfahrt: "I'd like to have a clear screen ... This should be off by default or at least ask it for
+  -- first time") the first time it would show, it asks; until then it stays hidden. The answer is kept (C.octorank.timerasked).
+  StaticPopupDialogs["PFUI_OCTORANK_TIMER"] = {
+    text = "OctoRanks can show a small timer for your 5-man runs (from the first pull to the last boss).\n\nShow it?",
+    button1 = YES, button2 = NO, timeout = 0, whileDead = 1, hideOnEscape = 1,
+    OnAccept = function() CFG.timer = "1" CFG.timerasked = "1" end,
+    OnCancel = function()
+      CFG.timer = "0" CFG.timerasked = "1"
+      DEFAULT_CHAT_FRAME:AddMessage("|cffffd133OctoRanks|r: run timer off. Runs are still timed and ranked; switch it on any time on the OctoRanks page.")
+    end,
+  }
+  local function Asked()
+    if CFG.timerasked == "1" then return true end
+    if not T.asking then
+      T.asking = true
+      StaticPopup_Show("PFUI_OCTORANK_TIMER")
+    end
+    return false
+  end
+
   local said = {}
   local lastState
   function T.Update()
     local layout = pfUI.unlock and pfUI.unlock.IsShown and pfUI.unlock:IsShown()
     local real = T.State()
+    if real and On("timer") and not Asked() then real = nil end
     local s = On("timer") and real or nil
     if not s and layout and On("timer") then s = SAMPLE end
     if On("timer") then Quiet() end
