@@ -152,7 +152,8 @@ pfUI:RegisterModule("octorank-timer", "vanilla:tbc", function ()
     GameTooltip:AddLine("The official time: from the first pull after you zone in to the last boss, the way the 5-man boards count it.", .9, .9, .9, 1)
     GameTooltip:AddLine("Bar: your time against your best in this dungeon (green = ahead).", .7, .7, .7, 1)
     GameTooltip:AddLine("Click: a slim bar with only the time (click again for all of it).", .5, .7, 1, 1)
-    GameTooltip:AddLine("Move it in layout mode (/moveui). Switch it off: pfUI options > OctoRanks.", .5, .7, 1, 1)
+    GameTooltip:AddLine("Alt + drag: move it (or in layout mode, /moveui).", .5, .7, 1, 1)
+    GameTooltip:AddLine("Switch it off: pfUI options > OctoRanks.", .5, .7, 1, 1)
     GameTooltip:Show()
   end)
   holder:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -165,8 +166,28 @@ pfUI:RegisterModule("octorank-timer", "vanilla:tbc", function ()
   -- (26 Nov 2026, Lobo: "when you click it, minimize it to a bar that only shows the timer") a click swaps between the
   -- full timer and a slim bar with the icon and the time alone (C.octorank.timermini, kept)
   local MINI_W, MINI_H = 104, 24
+  -- (26 Nov 2026, user: "make this window be able to be altdragged") Alt + drag moves it; the place is kept like layout
+  -- mode's (C.position, pfUI.api.SaveMovable)
+  holder:SetMovable(true)
+  holder:SetClampedToScreen(true)
+  holder:RegisterForDrag("LeftButton")
+  holder:SetScript("OnDragStart", function()
+    if not IsAltKeyDown() then return end
+    this.dragging = true
+    GameTooltip:Hide()
+    this:StartMoving()
+  end)
+  holder:SetScript("OnDragStop", function()
+    if not this.dragging then return end
+    this:StopMovingOrSizing()
+    if pfUI.api and pfUI.api.SaveMovable then pfUI.api.SaveMovable(this) end
+    this.moved = true
+  end)
   holder:SetScript("OnMouseUp", function()
     if arg1 ~= "LeftButton" then return end
+    -- (the end of an Alt-drag is not a click)
+    if this.dragging or this.moved then this.dragging, this.moved = nil, nil return end
+    if IsAltKeyDown() then return end
     CFG.timermini = (CFG.timermini == "1") and "0" or "1"
     T.Update()
   end)
