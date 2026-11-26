@@ -662,6 +662,35 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     "CHAT_MSG_SPELL_FRIENDLYPLAYER_BUFF", "CHAT_MSG_SPELL_PARTY_BUFF", "CHAT_MSG_SPELL_SELF_BUFF",
     "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_PARTY_DAMAGE", "CHAT_MSG_SPELL_CREATURE_VS_SELF_DAMAGE",
     "CHAT_MSG_COMBAT_HOSTILE_DEATH", "UNIT_CASTEVENT", "UNIT_AURA", "UNIT_HEALTH", "UNIT_MANA" }
+  -- a listener's name for the report: its own (or a parent's) name, else the file and line of its event handler
+  -- (unnamed frames all read "Frame" otherwise)
+  function PF.StressFrameName(f)
+    local l = PF.Label(f)
+    if l ~= "Frame" and not string.find(l, "^Frame$") then return l end
+    local ok, h = pcall(f.GetScript, f, "OnEvent")
+    local info = ok and h and debug and debug.getinfo and debug.getinfo(h)
+    local src = info and info.source
+    if type(src) == "string" then
+      local _, _, add, file = string.find(src, "AddOns[\\/]([^\\/]+)[\\/](.-)$")
+      if add then return add .. " " .. file .. ":" .. (info.linedefined or "?") end
+      return src .. ":" .. (info.linedefined or "?")
+    end
+    return l
+  end
+  -- the n listeners that took the most time: "name 12.3% (4.1 ms/s), ..."
+  function PF.StressTop(by, sum, n)
+    local list = {}
+    for k, ms in pairs(by or {}) do table.insert(list, { k, ms }) end
+    if table.getn(list) == 0 then return nil end
+    table.sort(list, function(a, b) return a[2] > b[2] end)
+    local out, secs = {}, (sum or 0) / 1000
+    for i = 1, math.min(n or 5, table.getn(list)) do
+      local pct = (sum or 0) > 0 and list[i][2] / sum * 100 or 0
+      table.insert(out, list[i][1] .. " " .. string.format("%.1f", pct) .. "%"
+        .. (secs > 0 and (" (" .. string.format("%.1f", list[i][2] / secs) .. " ms/s)") or ""))
+    end
+    return table.concat(out, ", ")
+  end
   function PF.StressBossName()
     local n = _G.UnitExists and _G.UnitExists("target") and not (_G.UnitIsPlayer and _G.UnitIsPlayer("target")) and (_G.UnitName("target"))
     return n or "Onyxia"
@@ -687,7 +716,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
             local okr, r = pcall(f.IsEventRegistered, f, e)
             if okr and r then
               out[e] = out[e] or {}
-              table.insert(out[e], { f = f, h = handler })
+              table.insert(out[e], { f = f, h = handler, key = PF.StressFrameName(f) })
               if not seen[f] then seen[f] = true n = n + 1 end
             end
           end
@@ -708,7 +737,10 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     _G.event, _G.arg1, _G.arg2, _G.arg3, _G.arg4 = e, a1, a2, a3, a4
     for _, l in ipairs(list) do
       _G.this = l.f
+      local t0 = Ms()
       if not pcall(l.h) then s.errors = s.errors + 1 end
+      -- (26 Nov 2026: the HUD put all of it on the driver) each listener's own share
+      s.byFrame[l.key] = (s.byFrame[l.key] or 0) + (Ms() - t0)
     end
     for i, k in ipairs(ARGS) do _G[k] = keep[i] end
   end
@@ -1039,7 +1071,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
     local S = { untilT = Now() + seconds, secs = seconds, warmUntil = Now() + 3, warmWorst = 0, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
       secFrames = 0, secStart = Now(), lowest = nil, kb0 = gcinfo(), peak = gcinfo(), cleans = 0,
-      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, rinse = { ms = 0, n = 0 }, evAcc = 0 }
+      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, rinse = { ms = 0, n = 0 }, evAcc = 0, byFrame = {} }
     PF.stress = S
     -- the Demo's raid fight, when the Demo is there
     local DM = pfUI.demo
@@ -1061,7 +1093,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       if R.Test then pcall(R.Test, seconds) end
       S.origRinse = Wrap(R, "Scan", S.rinse)
     end
-    local f = PF.stressFrame or CreateFrame("Frame")
+    local f = PF.stressFrame or CreateFrame("Frame", "pfStressTestDriver")
     PF.stressFrame = f
     local last = Ms()
     f:SetScript("OnUpdate", function()
@@ -1145,6 +1177,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       share = s.sum > 0 and (s.scan.ms + s.paint.ms) / s.sum * 100 or 0,
       rinseN = s.rinse.n, rinseMs = s.rinse.n > 0 and s.rinse.ms / s.rinse.n or 0,
       rinseShare = s.sum > 0 and s.rinse.ms / s.sum * 100 or 0,
+      top = PF.StressTop(s.byFrame, s.sum, 5),
       lines = s.lines, lframes = s.lframes, errors = s.errors, deaths = s.deaths,
       warm = s.warmWorst,
     }
@@ -1163,6 +1196,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       "  OctoDoTs: " .. r.scanN .. " passes at " .. F(r.scanMs, 2) .. " ms, " .. r.paintN .. " paints at " .. F(r.paintMs, 2)
         .. " ms = " .. F(r.share, 1) .. "% of the frame time",
       "  OctoRinse: " .. (r.rinseN or 0) .. " scans at " .. F(r.rinseMs, 2) .. " ms = " .. F(r.rinseShare, 1) .. "% of the frame time",
+      "  Busiest with the raid traffic: " .. (r.top or "(nothing timed)"),
       "  Combat log fed: " .. (r.lines or 0) .. " lines to " .. (r.lframes or 0) .. " add-on frames, " .. (r.deaths or 0)
         .. " adds died and came back" .. ((r.errors or 0) > 0 and (", |cffff5555" .. r.errors .. " add-on errors|r") or ""),
     }

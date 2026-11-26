@@ -660,7 +660,7 @@ do
     local left = 0
     for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
     ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
-    ok(table.getn(PF.StressLines(r)) == 6, "report lines")
+    ok(table.getn(PF.StressLines(r)) == 7 and r.top and string.find(r.top, "StressListenerTest"), "report lines, the busiest listener named (" .. tostring(r and r.top) .. ")")
     ok(table.getn(heard) > 100 and chatHeard == 0 and heardEv.CHAT_MSG_SPELL_FRIENDLYPLAYER_DAMAGE, "the add-on frame got raid combat lines (" .. table.getn(heard) .. "), the chat window none")
     local okLine = false
     for _, l in ipairs(heard) do if string.find(l, "'s .+ hits .+ for %d+ %a+ damage%.$") or string.find(l, "'s .+ crits ") then okLine = true end end
