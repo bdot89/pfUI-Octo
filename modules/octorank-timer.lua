@@ -151,6 +151,7 @@ pfUI:RegisterModule("octorank-timer", "vanilla:tbc", function ()
     GameTooltip:SetText("OctoRanks run timer", 1, .82, .2)
     GameTooltip:AddLine("The official time: from the first pull after you zone in to the last boss, the way the 5-man boards count it.", .9, .9, .9, 1)
     GameTooltip:AddLine("Bar: your time against your best in this dungeon (green = ahead).", .7, .7, .7, 1)
+    GameTooltip:AddLine("Click: a slim bar with only the time (click again for all of it).", .5, .7, 1, 1)
     GameTooltip:AddLine("Move it in layout mode (/moveui). Switch it off: pfUI options > OctoRanks.", .5, .7, 1, 1)
     GameTooltip:Show()
   end)
@@ -161,7 +162,43 @@ pfUI:RegisterModule("octorank-timer", "vanilla:tbc", function ()
   local SAMPLE = { state = "run", title = "Stratholme (Undead)", secs = 754, n = 3, of = 7, best = 1314, top = 1314, topName = "Ludenlord's group",
     splits = { { "Magistrate Barthilas", 198 }, { "Stonespine", 402 }, { "Baroness Anastari", 690 } } }
 
+  -- (26 Nov 2026, Lobo: "when you click it, minimize it to a bar that only shows the timer") a click swaps between the
+  -- full timer and a slim bar with the icon and the time alone (C.octorank.timermini, kept)
+  local MINI_W, MINI_H = 104, 24
+  holder:SetScript("OnMouseUp", function()
+    if arg1 ~= "LeftButton" then return end
+    CFG.timermini = (CFG.timermini == "1") and "0" or "1"
+    T.Update()
+  end)
+  local FULL_PARTS = { "title", "count", "state", "bar", "pace" }
+  local function Mini(s)
+    holder:SetWidth(MINI_W)
+    holder:SetHeight(MINI_H)
+    holder:SetScale(tonumber(CFG.scale) or 1)
+    for _, k in ipairs(FULL_PARTS) do f[k]:Hide() end
+    for i = 1, SPLITS do f.split[i]:Hide() f.split[i].right:Hide() end
+    f.icon:ClearAllPoints()
+    f.icon:SetPoint("LEFT", f, "LEFT", 7, 0)
+    f.time:ClearAllPoints()
+    f.time:SetPoint("LEFT", f.icon, "RIGHT", 6, 0)
+    f.time:SetFont(NUM, 17, "OUTLINE")
+    local done = s.state == "done"
+    if s.state == "wait" then f.time:SetText("|cff8a8c92--:--|r")
+    else f.time:SetText((done and "|cff55ff55" or "|cffffffff") .. Clock(s.secs) .. "|r") end
+  end
+  local function Full()
+    holder:SetWidth(W)
+    for _, k in ipairs(FULL_PARTS) do f[k]:Show() end
+    f.icon:ClearAllPoints()
+    f.icon:SetPoint("TOPLEFT", f, "TOPLEFT", 7, -7)
+    f.time:ClearAllPoints()
+    f.time:SetPoint("TOPLEFT", f, "TOPLEFT", 8, -24)
+    f.time:SetFont(NUM, 26, "OUTLINE")
+  end
+
   function T.Paint(s)
+    if CFG.timermini == "1" then return Mini(s) end
+    Full()
     local splits = (s.state ~= "wait" and On("splits")) and math.min(SPLITS, table.getn(s.splits or {})) or 0
     holder:SetHeight(H + (splits > 0 and (splits * 14 + 4) or 0) - (s.state == "wait" and 22 or 0))
     holder:SetScale(tonumber(CFG.scale) or 1)
