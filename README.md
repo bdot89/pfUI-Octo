@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.63
+
+- 👀 **OctoRinse is much easier to read:** the player's name is now the big top line (larger, thick outline, shadow, brighter class colours), the debuff is a small grey line under it, rows are darker and the school colour is a soft tint instead of a strong block.
+
 ## 📜 New in 1.2.62
 
 - 🛠️ **Profession windows no longer freeze:** the craft profit and missing-recipe parts redid all their work on every redraw (dozens when a window opens). They now run once when it settles, and switch themselves off with a chat line if one is ever slow.

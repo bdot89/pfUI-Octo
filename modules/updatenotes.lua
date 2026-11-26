@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.63", {
+    { "OctoRinse is much easier to read", "the player's name is now the big top line (larger, thick outline, shadow, brighter class colours), the debuff is a small grey line under it, rows are darker and the school colour is a soft tint instead of a strong block." },
+  } },
   { "1.2.62", {
     { "Profession windows no longer freeze", "the craft profit and missing-recipe parts redid all their work on every redraw (dozens when a window opens). They now run once when it settles, and switch themselves off with a chat line if one is ever slow." },
     { "ID Timer built in", "counts the 5 instances an hour, with a countdown to each free slot and your saved raid IDs. Off until you first reset an instance (it asks), or Quality of Life > ID Timer, or /idt." },
@@ -182,10 +185,5 @@ pfUI.octoNotes = {
     { "Smoother raids, round two - unit frames", "on a raid boss the target frame redrew on every aura and health change, many times a second. Every unit frame (target, raid, party...) now redraws its auras at most 10 times a second and its bars and texts at most 20 - still quicker than the eye, with no change ever lost." },
     { "Debuff timers read only what changed", "the target's debuffs are only read in full for the slots whose icon changed (usually none on a boss), with a full look on a new target and every 2 seconds." },
     { "Threat window", "redraws at most every 0.15 s - the server's numbers come about 5 times a second anyway." },
-  } },
-  { "1.2.23", {
-    { "Smoother raids - threat", "in a raid the server's threat answers reach everyone, dozens a second, and each one was read and drawn. Now the first is shown at once, a burst is read as one, and the threat window redraws at most 10 times a second. Far less work and far less memory churn, with the same quick numbers." },
-    { "Lighter debuff tracking", "DoT tick lines get a quick check before the full match, your target's debuffs are read at most 5 times a second (at once on a new target), and your own spell lines are only checked while a cast is pending." },
-    { "OctoRinse in raids", "debuff changes rescan at most 10 times a second in a raid (20 in a group) - cures still show almost instantly." },
   } },
 }
