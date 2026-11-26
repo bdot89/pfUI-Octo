@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.66
+
+- 📜 **Quest auto-complete:** no more `turtle-pfquest-questlog.lua:219` errors at quest givers, and picking the finished quest works when a quest giver has several.
+- 📊 **Meters:** after a `/reload`, meter windows shown in combat stay above the chat instead of having its text over them.
+
 ## 📜 New in 1.2.65
 
 - 🔍 **Find a setting:** no more `sct-options.lua:88` errors while typing when combat text is switched off.

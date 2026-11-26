@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.66", {
+    { "Quest auto-complete", "no more turtle-pfquest-questlog.lua:219 errors at quest givers, and picking the finished quest works when a quest giver has several." },
+    { "Meters", "after a /reload, meter windows shown in combat stay above the chat instead of having its text over them." },
+  } },
   { "1.2.65", {
     { "Find a setting", "no more sct-options.lua:88 errors while typing when combat text is switched off." },
     { "Auctions, Sell tab", "the deposit is always shown, 0c included." },
@@ -182,8 +186,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.27", {
     { "No more 1 FPS in raids with lots of add-ons", "when your add-ons together hold more memory than the ceiling (Settings Performance), the out-of-memory guard ran a full clean-up every second - the game froze again and again. Now the ceiling follows what is really in use, a forced clean-up runs at most once every 30 seconds, and you get one chat line saying how much memory your add-ons hold." },
-  } },
-  { "1.2.26", {
-    { "Threat % on your target frame", "Meters Threat Label Where On my target frame puts just your threat % on top of your target frame (pfUI's, or the game's own), moving and sizing with it - no meter window needed. X / Y nudge it." },
   } },
 }
