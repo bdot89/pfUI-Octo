@@ -188,8 +188,10 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     if not method or method == "freeforall" then return nil end
     return tonumber(_G.GetLootThreshold and _G.GetLootThreshold()) or 2
   end
+  -- (26 Nov 2026, user: "before it looted everything in range in one") a group no longer means corpse by corpse:
+  -- LootAllCorpses sweeps everything in one go (the server keeps threshold items back for the master looter / the
+  -- roll by itself); only loot filter rules need the corpse-by-corpse pass
   function AL.ItemMode()
-    if AL.Threshold() then return true end
     local LF = pfUI.lootfilter
     return LF and LF.Active and LF.Active() and true or false
   end
@@ -291,6 +293,20 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
       if worth[g] or (u.money or 0) > 0 or u.n == 0 then table.insert(st.queue, g) end
     end
     st.itemCalls = (st.itemCalls or 0) + table.getn(st.queue)
+    return table.getn(st.queue)
+  end
+  -- corpses still holding something at or over the threshold
+  function AL.MasterQueue(res)
+    local items = AL.Normalize(res)
+    local th, seen = AL.Threshold(), {}
+    st.queue = {}
+    for i = 1, table.getn(items) do
+      local it = items[i]
+      if th and it.quality and it.quality >= th and not seen[it.guid] then
+        seen[it.guid] = true
+        table.insert(st.queue, it.guid)
+      end
+    end
     return table.getn(st.queue)
   end
   -- open the next corpse of the queue
@@ -423,6 +439,20 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
         return
       end
     end
+    -- master looter: the sweep cannot hand out what is at or over the threshold - open just those corpses
+    -- and give yourself what is not bind on pickup
+    if not st.mlDone and AL.IAmMaster() and AL.Threshold() then
+      st.mlDone = true
+      if res == nil and type(_G.C_Loot.GetLastScanResults) == "function" then
+        local ok, r = pcall(_G.C_Loot.GetLastScanResults)
+        if ok then res = r end
+      end
+      if AL.MasterQueue(res) > 0 and AL.OpenNext(now) then
+        st.walkAt = now
+        return
+      end
+    end
+    st.mlDone = nil
     st.walking = false
     st.settleUntil = now + SettleTime()
     st.recordUntil = now + 3
@@ -455,7 +485,7 @@ pfUI:RegisterModule("autoloot", "vanilla", function ()
     end
     -- corpses being opened one by one: the next when this one is done or did not open in 1.5 s
     if st.walking and (st.opening or (st.queue and table.getn(st.queue) > 0)) then
-      if st.opening and now - st.openAt > 1.5 then st.opening = nil end
+      if st.opening and now - st.openAt > 1 then st.opening = nil end
       if not st.opening and now >= (st.nextAt or 0) then
         st.walkAt = now
         if not AL.OpenNext(now) then st.queue = nil Done(now) end

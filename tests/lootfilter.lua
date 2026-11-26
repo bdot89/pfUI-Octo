@@ -193,7 +193,10 @@ end
 _G.GetNumRaidMembers = function() return 10 end
 _G.GetLootMethod = function() return "master", 0 end
 _G.GetLootThreshold = function() return 2 end
-ok(AL.Threshold() == 2 and AL.ItemMode(), "master loot in a raid: corpse by corpse, threshold green")
+do local a = LF.Active LF.Active = function() return false end _G.__im = AL.ItemMode() LF.Active = a end
+ok(AL.Threshold() == 2 and not _G.__im, "master loot in a raid: one sweep, threshold green")
+ok(AL.MasterQueue({ { guid = "0xE", items = { { itemID = 2589, quality = 1 }, { itemID = 19020, quality = 4 } } }, { guid = "0xF", items = { { itemID = 2589, quality = 1 } } } }) == 1 and AL.state.queue[1] == "0xE", "master looter: only corpses with epics are opened after the sweep")
+AL.state.queue = nil
 _G.GetLootMethod = function() return "freeforall" end
 ok(AL.Threshold() == nil, "free for all: no threshold")
 _G.GetLootMethod = function() return "group" end
@@ -201,6 +204,8 @@ ok(AL.Threshold() == 2, "group loot: the roll gets them")
 
 -- a pass in item mode: scan, then open the corpses one by one
 local scans = 0
+local lfOn = LF.Active
+LF.Active = function() return true end
 _G.C_Loot.ScanNearbyLoot = function() scans = scans + 1 return true end
 _G.C_Loot.GetLastScanResults = function() return { { guid = "0x7", items = { { itemID = 2589 } } } } end
 whole, single = {}, {}
@@ -214,6 +219,7 @@ ok(table.getn(whole) == 1 and whole[1] == "0x7" and st.opening == "0x7", "when t
 AL.Step(1002.5, false)
 AL.Step(1003, false)
 ok(not st.walking, "...and the pass ends (a window that never opened is given up)")
+LF.Active = lfOn
 pfUI_config.autoloot.enable = "0"
 
 -- no group, no rules on: whole corpses as before
