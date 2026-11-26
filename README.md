@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.57
+
+- 📜 **Dungeon quests in OctoLoot:** every dungeon and raid has a Quests button ("Quests 5" = five still to do). It lists that place's quests for your side: in your log (with your progress), ready to take, needs a quest first, not your level yet, done.
+- 🧭 **A guide for every quest:** click one to see what it asks, who gives it and takes it and where they stand, the whole chain step by step (each step done or not), what to bring and the rewards. Click "Given by", "Hand in to" or "Everything on the map" and pfQuest's arrow points the way, inside or outside the dungeon. Alt-click a quest for a waypoint to its giver; `/ol clear` takes it off.
+- 👥 **Share quests** sends every quest of that dungeon in your log to your group, and walking into a dungeon tells you in chat how many of its quests you still have to do (`/ol quests` opens the guide).
+
 ## 📜 New in 1.2.56
 
 - 📖 **OctoLoot, our own loot browser:** every boss on OctoWoW and what it drops, with drop chances, from the OctoWoW database (green and better plus quest drops, never greys). Nine sections like Atlas: Dungeons, Raids, World, Events, Collections, Factions, PvP, Crafting (1720 recipes) and your Wishlist. Click any item for its own page: its set, what it swaps for, every boss or vendor it comes from, the recipe that makes it. Dungeon and raid entrances and world bosses are marked on the world map. `/octoloot`, `/ol`. It is only loaded while the window is open, so it costs nothing in raids.

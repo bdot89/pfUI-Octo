@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.57", {
+    { "Dungeon quests in OctoLoot", "every dungeon and raid has a Quests button (\"Quests 5\" = five still to do). It lists that place's quests for your side: in your log (with your progress), ready to take, needs a quest first, not your level yet, done." },
+    { "A guide for every quest", "click one to see what it asks, who gives it and takes it and where they stand, the whole chain step by step (each step done or not), what to bring and the rewards. Click \"Given by\", \"Hand in to\" or \"Everything on the map\" and pfQuest's arrow points the way, inside or outside the dungeon. Alt-click a quest for a waypoint to its giver; /ol clear takes it off." },
+    { "Share quests", "sends every quest of that dungeon in your log to your group, and walking into a dungeon tells you in chat how many of its quests you still have to do (/ol quests opens the guide)." },
+  } },
   { "1.2.56", {
     { "OctoLoot, our own loot browser", "every boss on OctoWoW and what it drops, with drop chances, from the OctoWoW database (green and better plus quest drops, never greys). Nine sections like Atlas: Dungeons, Raids, World, Events, Collections, Factions, PvP, Crafting (1720 recipes) and your Wishlist. Click any item for its own page: its set, what it swaps for, every boss or vendor it comes from, the recipe that makes it. Dungeon and raid entrances and world bosses are marked on the world map. /octoloot, /ol. It is only loaded while the window is open, so it costs nothing in raids." },
     { "Stops the white textures + error #132 crash", "with DXVK (a d3d9.dll in your game folder), \"Install pfUI Octo DLLs.bat\" now adds d3d9.textureMemory = 0 to dxvk.conf, the fix Wolfahrt confirmed. Your other lines are kept and the old file is saved as dxvk.conf.pfui-backup. The Octo DLL Installer 1.6.0 does the same." },
@@ -184,9 +189,5 @@ pfUI.octoNotes = {
     { "New leaderboards", "every board in one clean list - the three quiz runs, the six aim modes and the practice streak - with gold, silver and bronze for the top three and your own place always shown." },
     { "Realm tags", "every score shows the player's realm - NZ N'zoth, YS Y'Shaarj, CT C'thun. Players on older versions can't read the new scores until they update." },
     { "Flight launcher", "the sweep of light stays inside the sign, with a softer glow that lights up the title as it passes." },
-  } },
-  { "1.2.17", {
-    { "New flight launcher", "an arcade marquee - a lit OCTO ARCADE sign with Darkmoon tickets, chasing bulbs and a sweep of light, a blinking INSERT COIN line, and three game cards (Quiz, Aim Trainer, High Scores) with glowing icons and live info: question count or your best streak, your top aim score, how many scores are on the board. It slides in, can be dragged anywhere, and remembers where you put it." },
-    { "Flight bar", "the feather at the end of the bar no longer sits in a black square - it glows on the bar by itself." },
   } },
 }
