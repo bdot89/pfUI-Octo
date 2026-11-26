@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.60
+
+- ⚡ **Faster logins:** the options pages now start when you first open the options window, and the 40 raid frames and the party frames are made when you first need them (in a raid or party, layout mode, a demo), not at every login. The interface scale is no longer set twice. Check `/pfload` to see your own times.
+- 📜 **OctoLoot quests, easier to follow:** each quest chain is its own block ("Chain: ... 1 / 2 done") with every step in order, the steps outside the dungeon marked, and one quest per row. Done quests show a proper tick.
+- ⏱️ **Run timer fixes:** resetting the instance or a break of more than 15 minutes now starts a new run instead of counting on. Click the timer to shrink it to a slim bar with just the time.
+
 ## 📜 New in 1.2.59
 
 - ⏱️ **The dungeon run timer asks first:** the first time it would show, a Yes / No box asks whether you want it. No keeps your screen clear (runs are still timed and ranked). Switch it on any time on the OctoRanks page.

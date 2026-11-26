@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.60", {
+    { "Faster logins", "the options pages now start when you first open the options window, and the 40 raid frames and the party frames are made when you first need them (in a raid or party, layout mode, a demo), not at every login. The interface scale is no longer set twice. Check /pfload to see your own times." },
+    { "OctoLoot quests, easier to follow", "each quest chain is its own block (\"Chain: ... 1 / 2 done\") with every step in order, the steps outside the dungeon marked, and one quest per row. Done quests show a proper tick." },
+    { "Run timer fixes", "resetting the instance or a break of more than 15 minutes now starts a new run instead of counting on. Click the timer to shrink it to a slim bar with just the time." },
+  } },
   { "1.2.59", {
     { "The dungeon run timer asks first", "the first time it would show, a Yes / No box asks whether you want it. No keeps your screen clear (runs are still timed and ranked). Switch it on any time on the OctoRanks page." },
     { "/pfload shows where your loading time goes", "the total from pfUI's first file to the world, each step (pfQuest's data, its clean-ups, files, modules, skins) and the slowest modules. Send us what it prints if your loading screens feel long." },
@@ -181,10 +186,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.21", {
     { "Meters resize where they are", "resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there." },
-  } },
-  { "1.2.20", {
-    { "Fair leaderboards - the same for everyone", "the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player." },
-    { "Practice is just practice", "no clock and every category. Your best streak still shows there, but it is no longer a board, since with no clock it is not a contest. Scores now has 9 boards: Normal, Heroic, Mythic and the six aim modes." },
-    { "Flight launcher", "the quiz card shows your best score on your hardest difficulty (for example \"MYTHIC BEST 52000\")." },
   } },
 }
