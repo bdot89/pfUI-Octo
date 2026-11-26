@@ -326,7 +326,14 @@ pfUI:RegisterModule("professions-missing", "vanilla", function ()
       if not f or f.octoMissingHook then return end
       f.octoMissingHook = true
       if hooksecurefunc and _G[k.update] then
-        hooksecurefunc(k.update, PO.Guard("missing recipes", function()
+        -- (at once, cheap: the client drew its rows again - keep them hidden under an open panel; the rest waits)
+        hooksecurefunc(k.update, function()
+          local p = _G[k.frame].octoMissing
+          if p and p:IsShown() then
+            for i = 1, Rows(k) + 4 do local b = _G[k.row .. i] if b then b:Hide() end end
+          end
+        end)
+        hooksecurefunc(k.update, (PO.Later or PO.Guard)("missing recipes " .. k.frame, function()
           if not _G[k.frame].octoProf then return end
           local p = _G[k.frame].octoMissing or (On() and PM.Build(k))
           if p and p:IsShown() then

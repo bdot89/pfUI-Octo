@@ -21,6 +21,35 @@ pfUI:RegisterModule("professions-octo", "vanilla", function ()
   -- so a freeze happens once at most and says what it was.
   PO.FUSE = 250
   PO.blown = {}
+  -- (26 Nov 2026, Lobo: freezes "after a bit of time it went back to normal ... something scanning ... the whole list of
+  -- profession crafts?") opening a profession window, the client redraws its list once for every update the server sends -
+  -- dozens in a row - and the missing recipes / craft profit work ran in full on each one. PO.Later runs such a part once,
+  -- PO.LATER seconds after the last redraw of a burst (the latest call's work), never on every one.
+  PO.LATER = .1
+  local pending = {}
+  local later = CreateFrame("Frame")
+  later:Hide()
+  later:SetScript("OnUpdate", function()
+    local now = GetTime()
+    local left = false
+    for name, job in pairs(pending) do
+      if now >= job.at then
+        pending[name] = nil
+        job.fn()
+      else
+        left = true
+      end
+    end
+    if not left then this:Hide() end
+  end)
+  function PO.Later(name, fn)
+    local guarded
+    return function()
+      guarded = guarded or PO.Guard(name, fn)
+      pending[name] = { at = GetTime() + PO.LATER, fn = guarded }
+      later:Show()
+    end
+  end
   function PO.Guard(name, fn)
     local busy
     return function(a1, a2, a3)

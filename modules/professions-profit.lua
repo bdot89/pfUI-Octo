@@ -161,7 +161,7 @@ pfUI:RegisterModule("professions-profit", "vanilla", function ()
       if not f or f.octoProfitHook then return end
       f.octoProfitHook = true
       if hooksecurefunc and _G[k.update] then
-        hooksecurefunc(k.update, PO.Guard("craft profit", function() PP.Rows(k) PP.Detail(k) end))
+        hooksecurefunc(k.update, (PO.Later or PO.Guard)("craft profit " .. k.frame, function() PP.Rows(k) PP.Detail(k) end))
       end
     end
     if HookAddonOrVariable then HookAddonOrVariable(k.addon, Hook) else Hook() end
