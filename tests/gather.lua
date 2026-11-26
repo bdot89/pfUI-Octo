@@ -294,6 +294,46 @@ do
       GF.PlaceMarks()
       local wmf = rawget(_G, "WorldMapFrame")
       ok(not wmf or mb:GetParent() == wmf, "it lives on the map frame, not the zoomed map canvas")
+      -- (26 Nov 2026, Lo5t1ncyb3r: it lay over Softspoken's lore button) another add-on's small button under ours:
+      -- it steps down past it; a big frame (the map itself) never counts; a corner spot of its own on request
+      do
+        local function Fake(l, r, t, b, kind)
+          return { GetObjectType = function() return kind or "Button" end, GetName = function() return nil end,
+            IsShown = function() return true end, GetAlpha = function() return 1 end,
+            GetWidth = function() return r - l end, GetHeight = function() return t - b end,
+            GetLeft = function() return l end, GetRight = function() return r end,
+            GetTop = function() return t end, GetBottom = function() return b end, GetEffectiveScale = function() return 1 end }
+        end
+        local lore, big = Fake(150, 190, 120, 80), Fake(0, 1000, 700, 0, "Frame")
+        local f, low = GF.MarksBlocker(0, 200, 100, 80)
+        ok(f == nil, "nothing of another add-on's in the way: stays")
+        local wmf2 = rawget(_G, "WorldMapFrame")
+        if wmf2 then
+          local was = wmf2.GetChildren
+          wmf2.GetChildren = function() return big, lore end
+          f, low = GF.MarksBlocker(0, 200, 100, 80)
+          ok(f == lore and low == 80, "a lore button over ours is found, the map frame itself is not")
+          f = GF.MarksBlocker(300, 500, 100, 80)
+          ok(f == nil, "a button beside ours is not in the way")
+          wmf2.GetChildren = was
+        end
+        pfUI_config.gather.mapbtnpos = "bottomleft"
+        mb.placed = nil
+        GF.PlaceMarks()
+        ok(mb.spot == "bottomleft" and mb.under == nil, "a corner of its own: not under the quest menus")
+        pfUI_config.gather.mapbtnpos = "auto"
+        mb.placed = nil
+        GF.PlaceMarks()
+        ok(mb.spot == "auto", "back to the top right")
+      end
+      -- (26 Nov 2026, Lo5t1ncyb3r: "pfquest\map.lua:2398: attempt to perform arithmetic on field `queue_update' (a boolean
+      -- value)") pfQuest adds a delay to queue_update: nothing may set it to true
+      for _, file in ipairs({ "modules/map.lua", "pfquest/route.lua", "pfquest/map.lua" }) do
+        local fh = io.open(file, "rb")
+        local s = fh and fh:read("*a") or ""
+        if fh then fh:close() end
+        ok(s ~= "" and not string.find(s, "queue_update = true", 1, true), file .. ": queue_update is always a time")
+      end
       -- pfQuest's own quest menu too (pfquest\quest.lua, patched by tools\Sync-pfQuest.ps1)
       local h = io.open("pfquest/quest.lua", "rb")
       local src = h and h:read("*a") or ""

@@ -145,11 +145,15 @@ $patches = @{
     $t = Must $t 'fps = math.max(0.2, GetFramerate() / 30)' 'fps = math.max(0.2, math.min(GetFramerate(), 30) / 30)'
     # (20 Nov 2026, Javelin: pins outside a round minimap) pfQuest takes pfUI's minimap to be square; ask the
     # map style for its shape (minimap-style.lua PinInside)
-    Must $t '        if pfUI.minimap then' "        if pfUI.minimap and pfUI.minimap.PinInside and Minimap == pfMap.drawlayer then`r`n          -- (pfUI Octo) the map style's own shape: round, diamond... (pins sat outside a round map)`r`n          display = pfUI.minimap.PinInside(xPos, yPos, 8) and true or nil`r`n        elseif pfUI.minimap then"
+    # (26 Nov 2026, Lo5t1ncyb3r: "map.lua:2398: attempt to perform arithmetic on field `queue_update' (a boolean
+    # value)") route.lua (and once pfUI's map zoom) set it to true; a true one now draws at the next pass
+    $t = $t.Replace('  if pfMap.queue_update and pfMap.queue_update + renderDelay < GetTime() then', '  if pfMap.queue_update and (type(pfMap.queue_update) ~= "number" or pfMap.queue_update + renderDelay < GetTime()) then')
+    Must $t '        if pfUI.minimap then'"        if pfUI.minimap and pfUI.minimap.PinInside and Minimap == pfMap.drawlayer then`r`n          -- (pfUI Octo) the map style's own shape: round, diamond... (pins sat outside a round map)`r`n          display = pfUI.minimap.PinInside(xPos, yPos, 8) and true or nil`r`n        elseif pfUI.minimap then"
   }
   # (17 Nov 2026) the route reads your map position every frame: standing still (ClassicAPI's
   # PLAYER_STOPPED_MOVING, pfUI's libclient.moving) it waits for its own 1 s refresh instead
   "route.lua" = { param($t)
+    $t = $t.Replace('    pfMap.queue_update = true', '    pfMap.queue_update = GetTime()')
     Must $t "pfQuest.route:SetScript(`"OnUpdate`", function()`n  local xplayer, yplayer = GetPlayerMapPosition(`"player`")" "pfQuest.route:SetScript(`"OnUpdate`", function()`n  -- pfUI Octo: standing still (ClassicAPI PLAYER_STOPPED_MOVING) - no position to read until the 1 s refresh`n  local octoLC = pfUI and pfUI.api and pfUI.api.libclient`n  if octoLC and octoLC.moving == false and (this.tick or 5) > GetTime() then return end`n  local xplayer, yplayer = GetPlayerMapPosition(`"player`")"
   }
   # (16 Nov 2026, Wolfahrt: "pfquest\tracker.lua:313: attempt to call method 'ScheduleLayout' (a nil value)"

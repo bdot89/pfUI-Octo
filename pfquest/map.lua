@@ -2395,7 +2395,7 @@ nodeUpdateDriver:SetScript("OnUpdate", function()
   pfMap:UpdateNodeTooltip()
 
   local renderDelay = WorldMapFrame:IsShown() and 0.05 or 0.25
-  if pfMap.queue_update and pfMap.queue_update + renderDelay < GetTime() then
+  if pfMap.queue_update and (type(pfMap.queue_update) ~= "number" or pfMap.queue_update + renderDelay < GetTime()) then
     local questBusy = pfQuest and ((pfQuest.queueCount or 0) > 0
       or pfQuest.updateQuestGivers or pfQuest.updateQuestLog)
     if not questBusy then

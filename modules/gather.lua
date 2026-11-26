@@ -143,6 +143,8 @@ pfUI:RegisterModule("gather", "vanilla", function ()
   end
   GF.DEFAULTS = { ["Black Lotus"] = "prio" }
   GF.STATES = { { key = "off", label = "Off" }, { key = "show", label = "Show" }, { key = "prio", label = "Priority" } }
+  GF.MARKSPOTS = { { key = "auto", label = "Top right (makes room)" }, { key = "topleft", label = "Top left" },
+    { key = "bottomleft", label = "Bottom left" }, { key = "bottomright", label = "Bottom right" } }
 
   -- ---------------------------------------------------------- the rules
   local parsedFrom, parsed
@@ -1159,16 +1161,77 @@ pfUI:RegisterModule("gather", "vanilla", function ()
       end
       return under
     end
+    -- (26 Nov 2026, Lo5t1ncyb3r with Softspoken's lore button and Atlas-CFM: ours lay over other add-ons' map buttons)
+    -- a small button of another add-on on the map frame (or the map canvas) that our button would cover; only these
+    -- two known parents are looked at, and only small shown frames that are not ours
+    GF.MARKSOWN = { pfMapMarksButton = true, pfMapMarks = true }
+    for _, n in ipairs(GF.MAPMENUS) do GF.MARKSOWN[n] = true end
+    local function Box(f)
+      local l, r, t, b = f:GetLeft(), f:GetRight(), f:GetTop(), f:GetBottom()
+      if not (l and r and t and b) then return end
+      local s = f.GetEffectiveScale and f:GetEffectiveScale() or 1
+      return l * s, r * s, t * s, b * s
+    end
+    function GF.MarksBlocker(x1, x2, top, bottom)
+      local best, low
+      local parents = { rawget(_G, "WorldMapFrame"), rawget(_G, "WorldMapButton") }
+      for p = 1, 2 do
+        local par = parents[p]
+        local kids = par and par.GetChildren and { par:GetChildren() } or {}
+        for i = 1, table.getn(kids) do
+          local f = kids[i]
+          local kind = f and f.GetObjectType and f:GetObjectType()
+          local name = f and f.GetName and f:GetName()
+          if (kind == "Button" or kind == "Frame" or kind == "CheckButton") and not (name and GF.MARKSOWN[name])
+            and f ~= btn and f ~= marks and f.IsShown and f:IsShown() and f.GetAlpha and f:GetAlpha() > .05 then
+            local w, h = f:GetWidth() or 0, f:GetHeight() or 0
+            if w > 4 and h > 4 and w <= 100 and h <= 70 then
+              local l, r, t, b = Box(f)
+              if l and r > x1 and l < x2 and t > bottom and b < top and (not low or b < low) then best, low = f, b end
+            end
+          end
+        end
+      end
+      return best, low
+    end
+    -- where the button goes: C.gather.mapbtnpos auto (top right under the quest menus, stepping down past another
+    -- add-on's button) | topleft | bottomleft | bottomright
     function GF.PlaceMarks()
       local under = GF.MenuUnder()
-      if btn.placed and under == btn.under then return end
-      btn.placed, btn.under = true, under
-      btn:ClearAllPoints()
-      if under then
-        btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, 0)
-      else
-        btn:SetPoint("TOPRIGHT", rawget(_G, "WorldMapScrollFrame") or WorldMapButton, "TOPRIGHT", -12, -12)
+      local spot = G().mapbtnpos or "auto"
+      if spot ~= "auto" then under = nil end
+      local canvas = rawget(_G, "WorldMapScrollFrame") or WorldMapButton
+      -- the button we stepped past went away: back up
+      if btn.blocker and not (btn.blocker:IsShown() and btn.blocker:GetAlpha() > .05) then btn.placed, btn.blocker = nil, nil end
+      if not (btn.placed and under == btn.under and spot == btn.spot) then
+        btn.placed, btn.under, btn.spot, btn.drop = true, under, spot, 0
+        btn:ClearAllPoints()
+        if spot == "topleft" then btn:SetPoint("TOPLEFT", canvas, "TOPLEFT", 12, -12)
+        elseif spot == "bottomleft" then btn:SetPoint("BOTTOMLEFT", canvas, "BOTTOMLEFT", 12, 12)
+        elseif spot == "bottomright" then btn:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", -12, 12)
+        elseif under then btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, 0)
+        else btn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -12, -12) end
       end
+      if spot ~= "auto" then return end
+      -- step down past whatever sits on it (three times at most: a column of buttons). The client reports a moved
+      -- frame's edges late, so the edges are read once and moved by hand
+      local l, r, t, b = Box(btn)
+      if not l then return end
+      local s = btn:GetEffectiveScale() or 1
+      local drop = 0
+      for _ = 1, 3 do
+        local f, low = GF.MarksBlocker(l, r, t, b)
+        if not f then break end
+        local step = t - low + 2 * s
+        t, b = t - step, b - step
+        drop = drop + step / s
+        btn.blocker = f
+      end
+      if drop <= 0 then return end
+      btn.drop = (btn.drop or 0) + drop
+      btn:ClearAllPoints()
+      if under then btn:SetPoint("TOPRIGHT", under, "BOTTOMRIGHT", -16, -btn.drop)
+      else btn:SetPoint("TOPRIGHT", canvas, "TOPRIGHT", -12, -12 - btn.drop) end
     end
     GF.PlaceMarks()
     btn:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 20)

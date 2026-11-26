@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.55
+
+- 🩹 **Fixed the pfQuest map error:** "pfquest map.lua:2398: attempt to perform arithmetic on field `queue_update`" after zooming the world map (a bug from 1.2.54) is gone, and pfQuest can no longer hit it another way.
+- 🗺️ **The "Show / hide map icons" button makes room:** it moves down past other add-ons' map buttons (Softspoken's lore button, Atlas...) instead of covering them. Gathering > "Where the button goes" can put it in a corner of its own instead.
+
 ## 📜 New in 1.2.54
 
 - 🎯 **Procs in the meters:** a new Procs display (Misc > Procs) counts every proc and says what set it off, like "Engulfing Shadows <- Shadow Bolt". For your own procs it also names the weapon or enchant when its tooltip names the proc ("Holy Strength <- Melee (Arcanite Reaper)").

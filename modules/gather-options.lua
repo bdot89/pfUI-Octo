@@ -81,6 +81,10 @@ pfUI:RegisterModule("gather-options", "vanilla", function ()
       function() GF.pinsDirty = true end)
     Chk(p, "Show / hide button on the world map", "A \"Show / hide map icons\" button at the map's top right, under the quest menus: switches for your remembered herbs, ore and pools "
       .. "and for every list of the quest database (herbs, ore, chests, rares, vendors...), and Hide everything. They stay as you set them.", "mapbutton")
+    -- (26 Nov 2026, Lo5t1ncyb3r: it lay over Softspoken's lore button and Atlas-CFM's)
+    W.Dropdown(p, "Where the button goes", "Top right: under the quest menus, and it steps down past another add-on's button "
+      .. "(Softspoken, Atlas...). Or put it in a corner of its own.", GF.MARKSPOTS,
+      function() return G().mapbtnpos or "auto" end, function(v) G().mapbtnpos = v if GF.PlaceMarks then GF.PlaceMarks() end end)
     Chk(p, "Share with other pfUI Octo players", "Nodes you find go to your guild and your group, and theirs come to you, "
       .. "so one player's walk fills the map for everyone. Hover a pin to see who found it.", "share")
     Sld(p, "Pin size", nil, 6, 24, 1, "pinsize", O.Px, function() GF.pinsDirty = true end)

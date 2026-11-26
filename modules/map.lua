@@ -272,7 +272,7 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
         end
       end
       for _, pin in pairs(pm.pins) do FitPin(pin, zf) end
-      pm.queue_update = true
+      pm.queue_update = GetTime()
     end
     for i = 1, 4 do FitFrame(rawget(_G, "WorldMapParty" .. i), zf) end
     for i = 1, 40 do FitFrame(rawget(_G, "WorldMapRaid" .. i), zf) end

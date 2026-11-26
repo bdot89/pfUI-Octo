@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.55", {
+    { "Fixed the pfQuest map error", "\"pfquest map.lua:2398: attempt to perform arithmetic on field queue_update\" after zooming the world map (a bug from 1.2.54) is gone, and pfQuest can no longer hit it another way." },
+    { "The \"Show / hide map icons\" button makes room", "it moves down past other add-ons' map buttons (Softspoken's lore button, Atlas...) instead of covering them. Gathering > \"Where the button goes\" can put it in a corner of its own instead." },
+  } },
   { "1.2.54", {
     { "Procs in the meters", "a new Procs display (Misc > Procs) counts every proc and says what set it off, like \"Engulfing Shadows <- Shadow Bolt\". For your own procs it also names the weapon or enchant when its tooltip names the proc (\"Holy Strength <- Melee (Arcanite Reaper)\")." },
     { "Shorter names on nameplates", "Nameplates > Name has \"Longest name\" (in letters, 0 = any length) and \"Too long\": cut with \"...\" or turn the first words into initials (\"I. Riftweaver\")." },
@@ -182,11 +186,5 @@ pfUI.octoNotes = {
   { "1.2.16", {
     { "Aim trainer, arcade style", "modes on their own row (pick any mode at any time - a running round just stops), big stat panels, a timer bar that runs down, a scanline screen with glowing corners, 3-2-1-GO!, hit bursts, combo callouts (ON FIRE! x20, GODLIKE x50, BULLSEYE!, INTERRUPTED!), and a results card with a grade from S to D and a flashing NEW HIGH SCORE!" },
     { "Scores across the realm", "pfUI joins a hidden OctoArcade channel and says one short line with your bests once per login; everyone on the realm with pfUI Octo reads it into their Scores. You never see the channel in chat. Switch it off in Minigames Scores." },
-  } },
-  { "1.2.15", {
-    { "OctoArcade - minigames for flights", "a small launcher pops up when a flight starts (or the game you pick opens by itself), and closes when you land. Also /arcade, /quiz, /aim, key bindings, and Quality of Life Minigames. Switch it off there or in the QoL Helpers list. New files: restart the game fully once." },
-    { "Classic quiz", "660 questions of our own on lore, characters, places, dungeons, raids, classes, professions, items, PvP and the world - 10 categories you can switch on or off, a short \"did you know\" after many answers, streaks, and an optional timer." },
-    { "Aim trainer, six modes", "Gridshot, Hexakill, Reflex, Precision (centre hits score more), Tracking (keep the mouse on a moving target) and Kick! (click the casters before their cast bar fills). Targets wear the other faction's faces, creatures, class pictures, raid marks or spell icons; results show accuracy, reaction time and best combo." },
-    { "Scores shared between players", "bests go to your guild, group and battleground, and boards fill from the players they have met too." },
   } },
 }
