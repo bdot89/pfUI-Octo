@@ -1,0 +1,87 @@
+-- pfUI Octo: OctoBoards (modules/octoboards.lua, octoboards-window.lua), run by tests\run.lua
+local ok = octo_ok
+local LB = pfUI.boards
+ok(LB and LB.Add and LB.Board and LB.Awards and LB.Show, "OctoBoards loaded (pfUI.boards)")
+if not LB or not LB.Add then return end
+pfUI_cache.boards = nil
+
+-- counting from the game's own lines
+local run = LB.events:GetScript("OnEvent")
+local function Fire(e, a1)
+  local ke, ka = rawget(_G, "event"), rawget(_G, "arg1")
+  _G.event, _G.arg1 = e, a1
+  run()
+  _G.event, _G.arg1 = ke, ka
+end
+if SELFKILLOTHER then Fire("CHAT_MSG_COMBAT_HOSTILE_DEATH", string.format(SELFKILLOTHER, "Onyxian Whelp")) end
+Fire("PLAYER_DEAD")
+Fire("CHAT_MSG_MONEY", "You loot 2 Gold, 13 Silver, 5 Copper")
+local m = LB.Me()
+ok(m.all.dt == 1 and m.week.dt == 1, "a death counted, all time and this week")
+ok(m.all.gl == 21305, "coins looted read as copper (" .. tostring(m.all.gl) .. ")")
+if SELFKILLOTHER then ok(m.all.kl == 1 and m.all.kb == 1, "a kill and a killing blow from \"You have slain\"") end
+LB.Add("bc", 500) LB.Add("bc", 300)
+ok(m.all.bc == 500, "biggest crit keeps the highest")
+ok(LB.Coins("You loot 45 Copper") == 45 and LB.Coins("") == 0, "coins: copper only, nothing")
+
+-- the demo counts nothing
+pfUI.demo = pfUI.demo or {}
+local wasOn = pfUI.demo.on
+pfUI.demo.on = true
+Fire("PLAYER_DEAD")
+ok(m.all.dt == 1, "nothing counted while the demo runs")
+pfUI.demo.on = wasOn
+
+-- sharing: what goes out, what comes in
+local lines = LB.Lines()
+ok(table.getn(lines) == 2 and string.find(lines[1], "^A%^") and string.find(lines[2], "^W%^") and not string.find(lines[1] .. lines[2], "|"),
+  "two lines out, no | in them")
+local t = LB.Unpack("dt=4,gl=900,kl=12", {})
+ok(t.dt == 4 and t.gl == 900 and t.kl == 12, "packed numbers read back")
+LB.Receive("A^MAGE^60^kl=40,dt=3,gl=50000", "GUILD", "Isolde")
+LB.Receive("W^" .. LB.Week() .. "^kl=9,dt=2", "GUILD", "Isolde")
+LB.Receive("A^WARRIOR^60^kl=7", "GUILD", "Brenna")
+local o = LB.DB().others.Isolde
+ok(o and o.class == "MAGE" and o.all.kl == 40 and o.week.kl == 9 and o.guild, "another player's numbers stored, from the guild")
+local b = LB.Board("kl", "guild", "all")
+ok(b[1].name == "Isolde" and b[1].rank == 1 and table.getn(b) == 3, "the guild board: best first, you and two others")
+ok(LB.Rank("Brenna", "kl", "guild", "all") == 2, "a player's rank")
+local wb = LB.Board("kl", "guild", "week")
+ok(wb[1].name == "Isolde" and wb[1].value == 9, "this week's board reads the week's numbers")
+
+-- tonight's awards from the meters' fights
+local keepII, keepZ = rawget(_G, "IsInInstance"), rawget(_G, "GetRealZoneText")
+_G.IsInInstance = function() return 1, "raid" end
+_G.GetRealZoneText = function() return "Molten Core" end
+local seg = { boss = "Ragnaros", actors = {
+  Isolde = { class = "MAGE", damage = 90000, heal = 0, taken = 2000, interrupts = 1, dispels = 0, deaths = 0, spells = { Fireball = { name = "Fireball", cmax = 4800 } } },
+  Brenna = { class = "WARRIOR", damage = 50000, heal = 0, taken = 80000, interrupts = 9, dispels = 0, deaths = 2, spells = {} },
+  Mirelle = { class = "PRIEST", damage = 4000, heal = 120000, taken = 3000, interrupts = 0, dispels = 22, deaths = 0, spells = {} },
+} }
+LB.Fight(seg)
+local n = LB.DB().night
+ok(n and n.zone == "Molten Core" and n.bosses == 1 and n.p.Isolde.dm == 90000, "a raid fight goes into tonight")
+local aw = {}
+for _, a in ipairs(LB.Awards(n)) do aw[a.key] = a end
+ok(aw.dm.who == "Isolde" and aw.hl.who == "Mirelle" and aw.it.who == "Brenna" and aw.dp.who == "Mirelle", "awards: damage, healing, kicks, cleanses")
+ok(aw.dt.who == "Brenna" and aw.bc.who == "Isolde" and string.find(aw.bc.text, "Fireball"), "floor inspector and biggest crit (with its spell)")
+ok(LB.Podium(n)[1].name == "Isolde", "the podium")
+local dc = LB.DiscordText(n)
+ok(string.find(dc, "Molten Core") and string.find(dc, ":first_place: Isolde"), "Discord text")
+_G.IsInInstance, _G.GetRealZoneText = keepII, keepZ
+
+-- words for numbers
+ok(LB.Num(1420000, "big") == "1.42M" and LB.Num(12345, "big") == "12.3k" and LB.Num(4812) == "4,812", "big numbers")
+ok(LB.Num(3890000, "money") == "389g" and LB.Num(7800, "time") == "2h 10m", "gold and time")
+
+-- the window: every tab draws
+local okA, errA = pcall(LB.Show, "awards")
+ok(okA and pfOctoBoards and pfOctoBoards:IsShown(), "the window opens on Awards " .. tostring(errA or ""))
+local okB, errB = pcall(LB.Show, "boards")
+ok(okB, "Boards draws " .. tostring(errB or ""))
+local okP, errP = pcall(LB.Show, "player", "Isolde")
+ok(okP, "Player draws another player's card " .. tostring(errP or ""))
+local okM, errM = pcall(LB.Show, "player")
+ok(okM, "Player draws your own card " .. tostring(errM or ""))
+ok(_G.SlashCmdList.PFBOARDS and _G.SLASH_PFBOARDS1 == "/boards", "/boards")
+pfOctoBoards:Hide()
