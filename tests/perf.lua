@@ -616,3 +616,40 @@ do
     rawset(env, "UnitInRaid", keepIn)
   end
 end
+
+-- (26 Nov 2026) the raid stress test: pretend mobs on OctoDoTs, timed passes, a report, everything put back
+do
+  local D = pfUI.dots
+  local keep2 = { GetTime = rawget(_G, "GetTime"), UnitAffectingCombat = rawget(_G, "UnitAffectingCombat"), gcinfo = rawget(_G, "gcinfo") }
+  local t = 500
+  _G.GetTime = function() return t end
+  _G.UnitAffectingCombat = function() return false end
+  _G.gcinfo = function() return 90 * 1024, 200 * 1024 end
+  local dm = pfUI.demo
+  if dm then pfUI.demo = nil end
+  ok(PF.Stress and PF.StressStop and _G.SlashCmdList.PFSTRESS, "stress test there (/pfstress)")
+  if D and D.units and PF.Stress then
+    local scan0 = D.Scan
+    PF.Stress(10)
+    local n = 0
+    for _, u in pairs(D.units) do if u.stress then n = n + 1 end end
+    ok(PF.stress and n == PF.STRESS_MOBS, "stress test: 40 pretend mobs on OctoDoTs")
+    local run2 = PF.stressFrame:GetScript("OnUpdate")
+    local tick = D.events:GetScript("OnUpdate")
+    for i = 1, 400 do
+      t = t + .03
+      run2()
+      tick()
+      if not PF.stress then break end
+    end
+    local r = PF.stressLast
+    ok(not PF.stress and r and r.scanN > 0, "stress test ends by itself with OctoDoTs passes timed")
+    ok(r and r.scanN <= 10 * 10 + 5, "OctoDoTs passes held to 10 a second under 200 aura changes a second (" .. tostring(r and r.scanN) .. ")")
+    local left = 0
+    for _, u in pairs(D.units) do if u.stress then left = left + 1 end end
+    ok(left == 0 and D.Scan == scan0, "the pretend mobs and the timing wrappers are gone afterwards")
+    ok(table.getn(PF.StressLines(r)) == 4, "report lines")
+  end
+  pfUI.demo = dm
+  for k, v in pairs(keep2) do _G[k] = v end
+end

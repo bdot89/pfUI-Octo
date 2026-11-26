@@ -593,6 +593,145 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end)
   end
 
+  -- ------------------------------------------------------------ raid stress test (26 Nov 2026)
+  -- User: "a stress test ... 40 characters and a boss ... all casting spells all classes same as a raid" after a raider's
+  -- 1 FPS that stopped when OctoDoTs was switched off. PF.Stress(seconds): the Demo's raid (40 pretend players, a boss,
+  -- casts, heals, damage on the frames and meters), 40 pretend mobs on OctoDoTs with 14 debuffs each and 200 aura
+  -- changes a second (what a real 40-man pull gives it), and a frame-time recorder. At the end: FPS, worst frames,
+  -- memory, and how long OctoDoTs' passes took - said in chat and kept in PF.stressLast.
+  PF.STRESS_MOBS, PF.STRESS_EVENTS = 40, 200
+  local function Ms() return debugprofilestop and debugprofilestop() or (Now() * 1000) end
+  function PF.StressMobs(on)
+    local D = pfUI.dots
+    if not (D and D.units) then return 0 end
+    local n = 0
+    if on then
+      for i = 1, PF.STRESS_MOBS do
+        local g = string.format("0xF13000STRESS%04d", i)
+        if not D.units[g] then
+          D.units[g] = { guid = g, added = Now(), seen = Now(), auras = {}, na = 0, stress = true,
+            stressName = i == 1 and "Stress Boss" or ("Stress Add " .. i), stressMark = i <= 8 and i or nil }
+          D.n = (D.n or 0) + 1
+          n = n + 1
+        end
+      end
+    else
+      for g, u in pairs(D.units) do if u.stress then D.Remove(g) n = n + 1 end end
+    end
+    D.dirty = true
+    return n
+  end
+  -- OctoDoTs' pass and paint timed while the test runs
+  local function Wrap(t, key, rec)
+    local f = t[key]
+    if type(f) ~= "function" then return nil end
+    t[key] = function(a, b, c)
+      local s = Ms()
+      local r1, r2 = f(a, b, c)
+      rec.ms, rec.n = rec.ms + (Ms() - s), rec.n + 1
+      return r1, r2
+    end
+    return f
+  end
+  function PF.Stress(seconds)
+    if PF.stress then PF.StressStop("stopped by hand") return end
+    if _G.UnitAffectingCombat and _G.UnitAffectingCombat("player") then Say("the stress test waits until you are out of the fight.") return end
+    seconds = math.max(10, math.min(600, tonumber(seconds) or 60))
+    local S = { untilT = Now() + seconds, secs = seconds, frames = 0, sum = 0, worst = 0, over50 = 0, over100 = 0,
+      secFrames = 0, secStart = Now(), lowest = nil, kb0 = gcinfo(), peak = gcinfo(), cleans = 0,
+      scan = { ms = 0, n = 0 }, paint = { ms = 0, n = 0 }, evAcc = 0 }
+    PF.stress = S
+    -- the Demo's raid fight, when the Demo is there
+    local DM = pfUI.demo
+    if DM and DM.Start and not DM.on then S.demo = DM.Start("raid") end
+    S.mobs = PF.StressMobs(true)
+    local D = pfUI.dots
+    if D then
+      S.origScan = Wrap(D, "Scan", S.scan)
+      S.origPaint = Wrap(D, "Paint", S.paint)
+    end
+    local f = PF.stressFrame or CreateFrame("Frame")
+    PF.stressFrame = f
+    local last = Ms()
+    f:SetScript("OnUpdate", function()
+      local s = PF.stress
+      if not s then this:Hide() return end
+      local now, ms = Now(), Ms()
+      local dt = ms - last
+      last = ms
+      if s.frames > 0 or dt < 1000 then
+        s.frames, s.sum = s.frames + 1, s.sum + dt
+        if dt > s.worst then s.worst = dt end
+        if dt > 50 then s.over50 = s.over50 + 1 end
+        if dt > 100 then s.over100 = s.over100 + 1 end
+      end
+      s.secFrames = s.secFrames + 1
+      if now - s.secStart >= 1 then
+        local fps = s.secFrames / (now - s.secStart)
+        if not s.lowest or fps < s.lowest then s.lowest = fps end
+        s.secFrames, s.secStart = 0, now
+      end
+      local kb = gcinfo()
+      if kb > s.peak then s.peak = kb end
+      if s.lastKb and kb < s.lastKb - 4096 then s.cleans = s.cleans + 1 end
+      s.lastKb = kb
+      -- the raid's aura changes on the pretend mobs, through OctoDoTs' own event script
+      local ev = D and D.auraEvents and D.auraEvents:GetScript("OnEvent")
+      if ev then
+        s.evAcc = s.evAcc + PF.STRESS_EVENTS * dt / 1000
+        local keep = _G.arg1
+        while s.evAcc >= 1 do
+          s.evAcc = s.evAcc - 1
+          _G.arg1 = string.format("0xF13000STRESS%04d", math.random(1, PF.STRESS_MOBS))
+          ev()
+        end
+        _G.arg1 = keep
+      end
+      if now >= s.untilT then PF.StressStop() end
+    end)
+    f:Show()
+    Say("stress test started: " .. seconds .. " s, " .. (S.demo and "40-player raid demo, " or "") .. S.mobs
+      .. " mobs on OctoDoTs, " .. PF.STRESS_EVENTS .. " aura changes a second. /pfstress again stops it.")
+  end
+  function PF.StressStop(why)
+    local s = PF.stress
+    if not s then return end
+    PF.stress = nil
+    local D = pfUI.dots
+    if D then
+      if s.origScan then D.Scan = s.origScan end
+      if s.origPaint then D.Paint = s.origPaint end
+    end
+    PF.StressMobs(false)
+    local DM = pfUI.demo
+    if s.demo and DM and DM.Stop then DM.Stop(true) end
+    local avg = s.frames > 0 and s.sum / s.frames or 0
+    local r = {
+      why = why or "done", secs = s.secs, frames = s.frames,
+      fps = avg > 0 and 1000 / avg or 0, lowest = s.lowest or 0, worst = s.worst, over50 = s.over50, over100 = s.over100,
+      mb0 = s.kb0 / 1024, mb1 = gcinfo() / 1024, peak = s.peak / 1024, cleans = s.cleans,
+      scanN = s.scan.n, scanMs = s.scan.n > 0 and s.scan.ms / s.scan.n or 0,
+      paintN = s.paint.n, paintMs = s.paint.n > 0 and s.paint.ms / s.paint.n or 0,
+      share = s.sum > 0 and (s.scan.ms + s.paint.ms) / s.sum * 100 or 0,
+    }
+    PF.stressLast = r
+    for _, l in ipairs(PF.StressLines(r)) do DEFAULT_CHAT_FRAME:AddMessage(l) end
+  end
+  function PF.StressLines(r)
+    local function F(x, d) return string.format("%." .. (d or 0) .. "f", x or 0) end
+    local good = r.lowest >= 30 and r.over100 <= 3
+    return {
+      "|cff33ccffpfUI Octo|r stress test (" .. r.why .. ", " .. F(r.secs) .. " s): " .. (good and "|cff55ff55smooth|r" or "|cffff5555stutters|r"),
+      "  FPS: |cffffffff" .. F(r.fps) .. "|r on average, lowest second |cffffffff" .. F(r.lowest) .. "|r; worst frame |cffffffff"
+        .. F(r.worst) .. " ms|r, " .. r.over50 .. " frames over 50 ms, " .. r.over100 .. " over 100 ms",
+      "  Lua memory: " .. F(r.mb0) .. " -> " .. F(r.mb1) .. " MB (peak " .. F(r.peak) .. "), " .. r.cleans .. " clean-ups",
+      "  OctoDoTs: " .. r.scanN .. " passes at " .. F(r.scanMs, 2) .. " ms, " .. r.paintN .. " paints at " .. F(r.paintMs, 2)
+        .. " ms = " .. F(r.share, 1) .. "% of the frame time",
+    }
+  end
+  _G.SLASH_PFSTRESS1 = "/pfstress"
+  _G.SlashCmdList.PFSTRESS = function(msg) PF.Stress(msg) end
+
   -- /pfperf [on|off|reset|clean]
   _G.SLASH_PFPERF1 = "/pfperf"
   _G.SlashCmdList.PFPERF = function(msg)

@@ -238,7 +238,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     local now = GetTime()
     local tg = Guid("target")
     for g, u in pairs(D.units) do
-      if g ~= tg and g ~= "target" then
+      if g ~= tg and g ~= "target" and not u.stress then
         local ok, e = pcall(UnitExists, g)
         local okd, dead = pcall(UnitIsDead, g)
         local far
@@ -246,7 +246,8 @@ pfUI:RegisterModule("dots", "vanilla", function ()
           u.dist = D.Distance(g)
           far = u.dist and u.dist > FAR
         end
-        if not (ok and e) or (okd and dead) or far or now - u.seen > 600 then D.Remove(g) end
+        -- (26 Nov 2026: 600 s kept up to 60 old mobs in every pass for ten minutes; 90 s now)
+        if not (ok and e) or (okd and dead) or far or now - u.seen > 90 then D.Remove(g) end
       end
     end
   end
@@ -303,6 +304,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   end
   -- fills u.auras (u.na of them) from the best source there is
   function D.Read(u, now)
+    if u.stress then return D.StressRead(u, now) end -- (the stress test's pretend mobs, perf.lua)
     local g, me = u.guid, D.Me()
     u.na, u.cc, u.reflect = 0, nil, nil
     if D.Classic() then
@@ -380,6 +382,31 @@ pfUI:RegisterModule("dots", "vanilla", function ()
         end
         a.t = a.ends and a.dur and (a.ends - a.dur) or 0
       end
+    end
+    return true
+  end
+
+  -- (26 Nov 2026) the stress test's pretend mobs (pfUI.perf.Stress): a raid boss's worth of debuffs on each, renewed
+  -- all the time, so every pass does the full work a 40-man fight gives it
+  D.STRESS_AURAS = {}
+  for id, v in pairs(DATA.spells) do
+    if table.getn(D.STRESS_AURAS) < 14 then table.insert(D.STRESS_AURAS, { id = id, name = v[1], dur = v[2] or 18 }) end
+  end
+  function D.StressInfo(u)
+    u.name, u.hpmax = u.stressName or "Stress Test Mob", 1000000
+    u.hp = u.hp and u.hp > 1000 and u.hp - 137 or u.hpmax
+    u.mark, u.combat, u.hostile, u.attackable, u.player, u.reaction, u.class = u.stressMark, 1, 1, 1, nil, 2, nil
+  end
+  function D.StressRead(u, now)
+    u.na, u.cc, u.reflect = 0, nil, nil
+    local me = D.Me()
+    for i, s in ipairs(D.STRESS_AURAS) do
+      local a = Slot(u)
+      a.id, a.name, a.icon, a.stacks = s.id, s.name, "Interface\\Icons\\Spell_Shadow_ShadowWordPain", math.mod(i, 5)
+      a.dur = s.dur
+      a.ends = now + s.dur - math.mod(now * (i + 1), s.dur)
+      a.caster = (i <= 3) and me or ("0xF1400000000" .. i)
+      Kind(u, a, me)
     end
     return true
   end
@@ -477,6 +504,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
 
   -- name, health, mark, combat... of a mob (once per scan)
   function D.Info(u)
+    if u.stress then return D.StressInfo(u) end
     local g = u.guid
     u.name = Safe(UnitName, g) or u.name or UNKNOWN
     u.hp = tonumber(Safe(UnitHealth, g)) or 0
@@ -585,8 +613,11 @@ pfUI:RegisterModule("dots", "vanilla", function ()
   gev:SetScript("OnEvent", function()
     local g = arg1
     if not g then return end
-    if D.units[g] then D.auraSeen[g] = true else D.readAll = true end
-    D.dirty = true
+    -- (26 Nov 2026, a raider's 1 FPS that stopped when OctoDoTs was switched off) this fired for every aura change on
+    -- every watched mob - dozens a second in a 40-man fight - and each one forced a full pass (every mob's info and
+    -- debuffs) on the NEXT frame, skipping the 5-a-second limit. Now it only marks the mob: the next normal pass reads
+    -- it. Events for mobs we do not track are ignored (they used to make every mob be read again).
+    if D.units[g] then D.auraSeen[g] = true end
   end)
   -- register the GUIDs of the bars' mobs (only when the set changed)
   function D.WatchAuras(list)
@@ -623,7 +654,13 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     LOCKED = D.Locked()
     if not LOCKED and D.nextPlace > 0 then Wipe(D.place) D.nextPlace = 0 end
     for _, u in pairs(D.units) do
-      D.Info(u)
+      -- (26 Nov 2026) who / what a mob is changes slowly: its full info twice a second, its health every pass
+      if not u.infoAt or now - u.infoAt >= .5 or now < u.infoAt or u.guid == TG then
+        D.Info(u)
+        u.infoAt = now
+      else
+        u.hp = tonumber(Safe(UnitHealth, u.guid)) or u.hp or 0
+      end
       -- a placed row stays while the mob lives and can be attacked (the "show current target"
       -- row would otherwise vanish when you click the next one)
       if D.Wanted(u, TG) or (LOCKED and D.place[u.guid] and u.attackable and u.hp > 0
@@ -1255,7 +1292,9 @@ pfUI:RegisterModule("dots", "vanilla", function ()
     end
     -- (18 Nov 2026, user: "Show both / Show Bars only / Show Single target bar only") with the target
     -- bar only, the mob bars are not read at all
-    if (t >= nextScan or D.dirty) and (S().which ~= "target" or D.Testing()) then
+    -- (a forced pass - your own cast - at most 10 a second; see the aura event)
+    if (t >= nextScan or (D.dirty and t >= (D.lastScan or 0) + .1)) and (S().which ~= "target" or D.Testing()) then
+      D.lastScan = t
       nextScan = t + Num("rate", .2)
       D.Scan()
       D.Sounds(t)
@@ -1337,7 +1376,7 @@ pfUI:RegisterModule("dots", "vanilla", function ()
       end
       -- (25 Nov 2026, code review: casts were kept for every target, tracked or not, all session) only for tracked ones
       if not D.units[target] then D.cast[target], D.auraSeen[target] = nil, nil end
-      if caster == me then D.dirty = true D.readAll = true end
+      if caster == me then D.dirty = true D.readAll = true end -- (held to 10 a second by the loop)
     elseif e == "CHAT_MSG_SPELL_SELF_DAMAGE" then
       D.Failed(a1)
     elseif e == "PLAYER_ENTERING_WORLD" then

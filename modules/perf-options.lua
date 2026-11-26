@@ -23,6 +23,10 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
       return s
     end, 2)
     PF.Watch(true, O.frame)
+    W.Buttons(p, { { "Raid stress test (60 s)", function() PF.Stress(60) end, 170,
+      "A pretend 40-man raid fight for a minute: the Demo's raid (40 players, a boss, casts, heals, damage), 40 mobs "
+      .. "on OctoDoTs with 14 debuffs each and 200 aura changes a second. Then says your FPS, worst frames, memory and "
+      .. "OctoDoTs' share in chat. Click again to stop. Also /pfstress [seconds]." } })
     W.Buttons(p, { { "Open the live window", function() if PF.win then PF.win.Toggle(true) end end, 170,
       "A window of its own (/pfperf): FPS, memory, every script's time and memory like pfDebug, and each add-on's CPU and memory - safe to scan." } })
     Chk(p, "Performance HUD", "A small click-through text in a corner: FPS, latency, memory and the 5 busiest scripts right now, "
