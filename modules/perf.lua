@@ -633,7 +633,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     "Rejuvenation_Impact_Base", "LightningBolt_Impact_Chest", "Shadow_Nova_area", "Arcane_Missile", "Blizzard_Impact_Base",
     "Moonfire_Impact_Base", "HellFire_Area_Base", "Starfire_Area", "FireBlast_Impact_Chest" }
   PF.STRESS_CAST = { 51, 52, 53, 54, 0 } -- ready / cast directed / cast omni sequences, then stand (unknown ids just stand)
-  PF.STRESS_EFFECTS = 24
+  PF.STRESS_EFFECTS = 0 -- (spell effect files draw as black squares in a model frame on this client)
   local function Seq(m, id) if m.SetSequence then pcall(m.SetSequence, m, id) end end
   function PF.StressStage(on)
     local st = PF.stage
@@ -652,7 +652,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
       st:SetAllPoints(UIParent)
       st.models, st.fx = {}, {}
       for i = 1, 41 do
-        local dress = i > 1 and math.mod(i, 4) == 0
+        -- (26 Nov 2026, seen in game: bare race models drew white, Ragnaros a white box, spell effects black squares -
+        -- only a unit gets its skins) every one is a DressUpModel of you, in your gear
+        local dress = true
         local m = CreateFrame(dress and "DressUpModel" or "PlayerModel", nil, st)
         m:SetWidth(i == 1 and 360 or 130)
         m:SetHeight(i == 1 and 360 or 170)
@@ -672,9 +674,8 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     for i, m in ipairs(st.models) do
       m:ClearAllPoints()
       if i == 1 then
-        m:SetPoint("CENTER", st, "CENTER", 0, 20)
-        pcall(m.SetModel, m, "Creature\\Ragnaros\\Ragnaros.mdx")
-        pcall(m.SetModelScale, m, .9)
+        -- (no boss: a creature model gets no skin here and drew as a white box)
+        m:SetPoint("CENTER", st, "CENTER", 0, 0)
       else
         local k = i - 2
         local ring = k < 22 and 1 or 2
@@ -692,7 +693,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
         if m.SetFacing then pcall(m.SetFacing, m, math.mod(ang + math.pi * 1.5, 2 * math.pi)) end
       end
       m.castAt = Now() + math.random() * 2
-      m:Show()
+      if i == 1 then m:Hide() else m:Show() end
     end
     for _, m in ipairs(st.fx) do m.fxUntil = 0 m:Hide() end
     st:Show()
@@ -804,7 +805,7 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     end)
     f:Show()
     Say("stress test started: " .. seconds .. " s, " .. (S.demo and "40-player raid demo, " or "") .. S.mobs
-      .. (S.models > 0 and (S.models .. " characters and Ragnaros casting real spell effects on screen, ") or "")
+      .. (S.models > 0 and (S.models .. " copies of your character casting on screen, ") or "")
       .. " mobs on OctoDoTs, " .. PF.STRESS_EVENTS .. " aura changes a second. /pfstress again stops it.")
   end
   function PF.StressStop(why)
