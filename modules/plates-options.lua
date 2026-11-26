@@ -496,7 +496,23 @@ pfUI:RegisterModule("plates-options", "vanilla:tbc", function ()
     InColor(p, "Border colour", "The thin border round the health and cast bars.", S, "bordercolor")
     Card(p, "Health text", { on = { function() return C.nameplates.showhp == "1" end, function(v) C.nameplates.showhp = v and "1" or "0"; U() end,
       "Numbers on the health bar." } })
-    Drop(p, "Shows", nil, DD("hpformat"), N, "hptextformat")
+    -- (26 Nov 2026, Wolfahrt: "It could be great to not show anything for life") "Nothing" at the top of the list: it
+    -- is the card's own switch (C.nameplates.showhp), so the two always agree
+    local hpOpts = { { key = "none", label = "Nothing" } }
+    for _, o in ipairs(DD("hpformat")) do table.insert(hpOpts, o) end
+    W.Dropdown(p, "Shows", "What the health text says, or Nothing to hide it.", hpOpts, function()
+      if C.nameplates.showhp ~= "1" then return "none" end
+      return C.nameplates.hptextformat
+    end, function(v)
+      if v == "none" then
+        C.nameplates.showhp = "0"
+      else
+        C.nameplates.showhp = "1"
+        C.nameplates.hptextformat = v
+      end
+      U()
+      if O.Rebuild and O.current then pcall(O.Rebuild, O, (string.gsub(O.current or "", "^o:", ""))) end
+    end)
     Drop(p, "Place", nil, DD("textalign"), N, "hptextpos")
     Sld(p, "Size", "0 = a bit smaller than the name. The swatch is the text's colour.", 0, 24, 1, S, "hpsize", function(v) return v == 0 and "auto" or (v .. " px") end)
     InColor(p, "Health text colour", nil, S, "hptextcolor")
