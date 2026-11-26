@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.64
+
+- 💰 **Auto Loot works again:** the latest ClassicAPI changed how corpses are opened, which stopped Auto Loot in groups. It now sweeps everything in range in one go again, groups and raids included.
+- 👑 **Master looters:** after the sweep it goes back to the corpses that still hold epics and gives you every one that isn't bind on pickup. BoP is always left on the corpse for you to hand out.
+
 ## 📜 New in 1.2.63
 
 - 👀 **OctoRinse is much easier to read:** the player's name is now the big top line (larger, thick outline, shadow, brighter class colours), the debuff is a small grey line under it, rows are darker and the school colour is a soft tint instead of a strong block.
