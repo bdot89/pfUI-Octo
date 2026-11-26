@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.61
+
+- 🏎️ **Smoother in fights:** health and mana bars only redraw when they actually move, the swing timer draws at most 60 times a second (a landing swing still shows at once), and the action bars group their usable / cooldown checks to 20 a second. About 15-20 ms less work every second in a raid.
+
 ## 📜 New in 1.2.60
 
 - ⚡ **Faster logins:** the options pages now start when you first open the options window, and the 40 raid frames and the party frames are made when you first need them (in a raid or party, layout mode, a demo), not at every login. The interface scale is no longer set twice. Check `/pfload` to see your own times.

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.61", {
+    { "Smoother in fights", "health and mana bars only redraw when they actually move, the swing timer draws at most 60 times a second (a landing swing still shows at once), and the action bars group their usable / cooldown checks to 20 a second. About 15-20 ms less work every second in a raid." },
+  } },
   { "1.2.60", {
     { "Faster logins", "the options pages now start when you first open the options window, and the 40 raid frames and the party frames are made when you first need them (in a raid or party, layout mode, a demo), not at every login. The interface scale is no longer set twice. Check /pfload to see your own times." },
     { "OctoLoot quests, easier to follow", "each quest chain is its own block (\"Chain: ... 1 / 2 done\") with every step in order, the steps outside the dungeon marked, and one quest per row. Done quests show a proper tick." },
@@ -183,8 +186,5 @@ pfUI.octoNotes = {
   { "1.2.22", {
     { "Meters stay the size you drag them to", "the threat window and every meter window keep whatever size you give them with the grip - through fights and reloads. They no longer shrink back to the lines they show (a single line when there is no fight)." },
     { "Tiny windows come back", "a window that was saved shrunk to a line or two comes back once at the normal size, ready to drag. \"Fit the lines\" is still in Meters > Data for anyone who likes it, now off by default." },
-  } },
-  { "1.2.21", {
-    { "Meters resize where they are", "resizing the threat window or any meter window no longer throws it to the top-left corner of the screen. It stays put and grows or shrinks from its top-left corner, and is saved right there." },
   } },
 }
