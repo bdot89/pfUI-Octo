@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.59", {
+    { "The dungeon run timer asks first", "the first time it would show, a Yes / No box asks whether you want it. No keeps your screen clear (runs are still timed and ranked). Switch it on any time on the OctoRanks page." },
+    { "/pfload shows where your loading time goes", "the total from pfUI's first file to the world, each step (pfQuest's data, its clean-ups, files, modules, skins) and the slowest modules. Send us what it prints if your loading screens feel long." },
+  } },
   { "1.2.58", {
     { "Swing timer macros work without SP_SwingTimer", "the macro conditions that read the swing timer ([swingtimer], [mhswing], Slam and queue checks, [rangedtimer], [norangedclip]) now see pfUI Octo's own Swing Timer, Flurry and haste included. If SP_SwingTimer is loaded, it still wins." },
     { "OctoLoot's minimap button goes into the minimap button menu", "like every other add-on's. \"Keep the button on the map's edge\" on the OctoLoot page keeps it where it was." },
@@ -182,10 +186,5 @@ pfUI.octoNotes = {
     { "Fair leaderboards - the same for everyone", "the settings that changed scores are gone. Normal, Heroic and Mythic always use every category, every aim round is 30 seconds and every target is the same size, so a score on the board means the same thing for every player." },
     { "Practice is just practice", "no clock and every category. Your best streak still shows there, but it is no longer a board, since with no clock it is not a contest. Scores now has 9 boards: Normal, Heroic, Mythic and the six aim modes." },
     { "Flight launcher", "the quiz card shows your best score on your hardest difficulty (for example \"MYTHIC BEST 52000\")." },
-  } },
-  { "1.2.19", {
-    { "Top scores reach everyone on their own", "a new best goes out to every player on the realm with pfUI Octo a few seconds after you set it - quiz runs, aim modes and the practice streak, with your realm tag." },
-    { "Log in to full boards", "when you log in, one player who is online sends you the top 3 of every board, so your Scores are filled straight away. Everyone else hears it too, so all boards stay in step, and only one player answers so the channel stays quiet." },
-    { "Live boards", "an open Scores tab or quiz lobby updates the moment a score comes in. It all runs over the hidden OctoArcade channel; switch it off in Minigames > Scores." },
   } },
 }

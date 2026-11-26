@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.59
+
+- ⏱️ **The dungeon run timer asks first:** the first time it would show, a Yes / No box asks whether you want it. No keeps your screen clear (runs are still timed and ranked). Switch it on any time on the OctoRanks page.
+- 🐢 **`/pfload` shows where your loading time goes:** the total from pfUI's first file to the world, each step (pfQuest's data, its clean-ups, files, modules, skins) and the slowest modules. Send us what it prints if your loading screens feel long.
+
 ## 📜 New in 1.2.58
 
 - ⚔️ **Swing timer macros work without SP_SwingTimer:** the macro conditions that read the swing timer ([swingtimer], [mhswing], Slam and queue checks, [rangedtimer], [norangedclip]) now see pfUI Octo's own Swing Timer, Flurry and haste included. If SP_SwingTimer is loaded, it still wins.
