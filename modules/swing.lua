@@ -836,6 +836,10 @@ pfUI:RegisterModule("swing", "vanilla", function ()
       this.calmAt = t + .25
     else
       this.calmAt = 0
+      -- (26 Nov 2026, /pfperf in the raid demo: 10 ms a second at 134 fps) at most 60 redraws a second - smooth to the
+      -- eye, half the work on a fast PC; a swing landing still draws on the very next frame (lastSwing is new)
+      if (this.drawAt or 0) > t and (s.lastSwing or 0) < (this.drewAt or 0) then return end
+      this.drawAt, this.drewAt = t + 1 / 60, t
     end
     Run("player", not (pfUI.blizz and pfUI.blizz.IsBlizz and pfUI.blizz.IsBlizz("swing")), t, testing)
     Run("target", UnitExists("target") and UnitCanAttack("player", "target") and (s.tgSeen or 0) > 0

@@ -784,8 +784,15 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     -- buttons that can be seen; hidden ones (other pages, hidden bars) are
     -- marked stale and get a full update as soon as they show (staleAt pass)
 
+    -- (octo, 26 Nov 2026, /pfperf in the raid demo: 9 ms a second) in a fight these three events come nearly every frame
+    -- (mana ticks, cooldowns) and each pass walks every button: at most 20 passes a second, the events kept until then
+    local evDue = (self.evAt or 0) <= GetTime()
+    if evDue and (eventcache["ACTIONBAR_UPDATE_USABLE"] or eventcache["ACTIONBAR_UPDATE_COOLDOWN"] or eventcache["ACTIONBAR_UPDATE_STATE"]) then
+      self.evAt = GetTime() + .05
+    end
+
     -- run cached usable usable actions
-    if eventcache["ACTIONBAR_UPDATE_USABLE"] then
+    if evDue and eventcache["ACTIONBAR_UPDATE_USABLE"] then
       eventcache["ACTIONBAR_UPDATE_USABLE"] = nil
       for id, button in pairs(buttoncache) do
         -- (once ClassicAPI's ACTION_USABLE_CHANGED has come it redoes just the slots that changed - see below;
@@ -796,7 +803,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     end
 
     -- run cached cooldown events
-    if eventcache["ACTIONBAR_UPDATE_COOLDOWN"] then
+    if evDue and eventcache["ACTIONBAR_UPDATE_COOLDOWN"] then
       eventcache["ACTIONBAR_UPDATE_COOLDOWN"] = nil
       for id, button in pairs(buttoncache) do
         if button:IsVisible() then ButtonCooldownUpdate(button, true) else button.stale = true; stale = true end
@@ -804,7 +811,7 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     end
 
     -- run cached action state events
-    if eventcache["ACTIONBAR_UPDATE_STATE"] then
+    if evDue and eventcache["ACTIONBAR_UPDATE_STATE"] then
       eventcache["ACTIONBAR_UPDATE_STATE"] = nil
       for id, button in pairs(buttoncache) do
         if button:IsVisible() then ButtonIsActiveUpdate(button) else button.stale = true; stale = true end

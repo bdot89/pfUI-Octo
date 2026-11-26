@@ -24,13 +24,15 @@ do -- statusbars
   local animate = CreateFrame("Frame", "pfStatusBarAnimation", UIParent)
   animate:SetScript("OnUpdate", function()
     stepsize = tonumber(pfUI_config.unitframes.animation_speed)
+    -- (octo, 26 Nov 2026, /pfperf in the raid demo: 12.3 ms a second) the frame rate once a frame, not once a bar
+    local minstep = 30 / math.max(GetFramerate() or 60, 1)
 
     for bar in pairs(animations) do
       -- (octo, 25 Nov 2026, /pfperf in the raid demo) a bar nobody can see goes straight to its value: no glide frames
       if not bar.val_ or abs(bar.val_ - bar.val) < stepsize or bar.instant or not bar:IsVisible() then
         bar:DisplayValue(bar.val)
       elseif bar.val ~= bar.val_ then
-        bar:DisplayValue(bar.val_ + min((bar.val-bar.val_) / stepsize, max(bar.val-bar.val_, 30 / GetFramerate())))
+        bar:DisplayValue(bar.val_ + min((bar.val-bar.val_) / stepsize, max(bar.val-bar.val_, minstep)))
       end
     end
   end)
@@ -63,6 +65,11 @@ do -- statusbars
         -- set point to zero if value and max is zero
         if val == 0 then point = 0 end
 
+        -- (octo, 26 Nov 2026) the same tenth of a pixel as last time: nothing to move (four SetPoints a bar a frame)
+        local q = math.floor(point * 10 + .5)
+        if self.lastQ_ == q and self.lastLen_ == height and self.lastMode_ == "v" then return end
+        self.lastQ_, self.lastLen_, self.lastMode_ = q, height, "v"
+
         -- set status bar position/size
         self.bar:SetPoint("TOPLEFT", self, "TOPLEFT", 0, - height + point)
         self.bar:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
@@ -82,6 +89,10 @@ do -- statusbars
 
         -- set point to zero if value and max is zero
         if val == 0 then point = 0 end
+
+        local q = math.floor(point * 10 + .5)
+        if self.lastQ_ == q and self.lastLen_ == width and self.lastMode_ == "h" then return end
+        self.lastQ_, self.lastLen_, self.lastMode_ = q, width, "h"
 
         -- set status bar position/size
         self.bar:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
