@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.73", {
+    { "Fastest clears for every realm", "each realm's tab now shows its own fastest clear of each raid. Before, a realm only showed a raid when it held the record for all realms, so C'Thun and Y'Shaarj were empty." },
+    { "Clear times to the second", "times are exact now, and every clear under an hour reads m:ss (a 9 minute Onyxia showed as \"9m\")." },
+  } },
   { "1.2.72", {
     { "Onyxia / Nefarian buff no longer hidden", "\"Hide the tracking buff\" hid the dragon head buff along with Track Dragonkin (same icon). Only the tracking buff goes now." },
     { "Buff and debuff direction", "buffs, debuffs and weapon buffs can grow to the left or to the right, and new rows can go down or up (Buffs > Buffs and debuffs)." },
@@ -189,9 +193,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.34", {
     { "No more quest tracker error spam", "the built-in quest tracker can no longer fill your screen with \"tracker.lua:282\" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!" },
-  } },
-  { "1.2.33", {
-    { "Auto Shot in the right colour", "combat text showed Auto Shot (and wand / throw shots) in the yellow of \"Your spells\", whatever colour you set. They now use \"Your melee and Auto Shot\", as the setting says. Thanks Javelin!" },
-    { "Hex codes and a Default button on every colour", "the colour picker now has a box where you can type a colour like #ff8800 (it also shows the code of the colour picked), and a Default button that puts that setting back to its original colour. Right-click any colour square to reset it straight away. Thanks Javelin for the idea!" },
   } },
 }

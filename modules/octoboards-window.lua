@@ -760,7 +760,11 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   function UI.CValue(v, how)
     v = tonumber(v) or 0
     if how == "parse" then return string.format("%.1f", v) end
-    if how == "mins" and v ~= floor(v) then return string.format("%d:%02d", floor(v), floor((v - floor(v)) * 60 + .5)) end
+    -- (27 Nov 2026: a clear of exactly 9.0 minutes read "9m" beside "30:42") under an hour always m:ss
+    if how == "mins" and (v ~= floor(v) or v < 60) then
+      local s = floor(v * 60 + .5)
+      return string.format("%d:%02d", floor(s / 60), s - floor(s / 60) * 60)
+    end
     if how == "mins" then local h = floor(v / 60) return h > 0 and (h .. "h " .. math.mod(v, 60) .. "m") or (v .. "m") end
     if how == "none" then return "" end
     return LB.Num(v, how == "big" and "big" or nil)

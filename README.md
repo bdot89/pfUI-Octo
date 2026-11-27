@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.73
+
+- 🏁 **Fastest clears for every realm:** each realm's tab now shows its own fastest clear of each raid. Before, a realm only showed a raid when it held the record for all realms, so C'Thun and Y'Shaarj were empty.
+- ⏱️ **Clear times to the second:** times are exact now, and every clear under an hour reads m:ss (a 9 minute Onyxia showed as "9m").
+
 ## 📜 New in 1.2.72
 
 - 🐉 **Onyxia / Nefarian buff no longer hidden:** "Hide the tracking buff" hid the dragon head buff along with Track Dragonkin (same icon). Only the tracking buff goes now.

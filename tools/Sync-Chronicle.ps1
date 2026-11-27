@@ -262,17 +262,29 @@ foreach ($rn in $realms) {
 }
 $Boards["realmwar"] = @{ "all" = @($war | Sort-Object -Property v -Descending) }
 # (27 Nov 2026) the fastest full clear of each raid this week: Chronicle's own speedrun list (one request a raid)
-$speed = @()
-foreach ($inst in @("Molten Core", "Blackwing Lair", "Onyxia's Lair", "Zul'Gurub", "Ruins of Ahn'Qiraj", "Temple of Ahn'Qiraj", "Naxxramas", "Lower Tower of Karazhan")) {
-  $j = Get-Api ("/leaderboards/speedruns?instance_name={0}&timing=full&since_days={1}&page_size=5" -f [Uri]::EscapeDataString($inst), $Days)
-  $best = @($j.entries | Where-Object { $_ -and $_.canonical }) | Sort-Object { [double]$_.canonical.duration_ms } | Select-Object -First 1
-  if ($best) {
-    $speed += [pscustomobject]@{ n = $inst; c = ""; g = $best.guild_name; r = $best.realm_name
-      v = [Math]::Round([double]$best.canonical.duration_ms / 60000, 1); x = ("{0} players" -f $best.player_count) }
-  }
+# (27 Nov 2026, user: "why is our realm empty and NZ isnt?") each realm tab used to filter the overall record list,
+# so a realm showed a raid only when it held the record for every realm - N'Zoth held them all, Y'Shaarj and C'Thun
+# were empty. Each realm now gets its own best clear per raid (the API takes realm_name).
+# Minutes keep 3 decimals so the board's m:ss is exact to the second (1 decimal = 6 s steps).
+$SPEEDRAIDS = @("Molten Core", "Blackwing Lair", "Onyxia's Lair", "Zul'Gurub", "Ruins of Ahn'Qiraj", "Temple of Ahn'Qiraj", "Naxxramas", "Lower Tower of Karazhan")
+function Get-SpeedBest([string]$inst, [string]$realm) {
+  $q = "/leaderboards/speedruns?instance_name={0}&timing=full&since_days={1}&page_size=5" -f [Uri]::EscapeDataString($inst), $Days
+  if ($realm) { $q += "&realm_name=" + [Uri]::EscapeDataString($realm) }
+  $j = Get-Api $q
+  $best = @($j.entries | Where-Object { $_ -and $_.canonical -and (-not $realm -or $_.realm_name -eq $realm) }) |
+    Sort-Object { [double]$_.canonical.duration_ms } | Select-Object -First 1
+  if (-not $best) { return $null }
+  return [pscustomobject]@{ n = $inst; c = ""; g = $best.guild_name; r = $best.realm_name
+    v = [Math]::Round([double]$best.canonical.duration_ms / 60000, 3); x = ("{0} players" -f $best.player_count) }
 }
+$speed = @()
+foreach ($inst in $SPEEDRAIDS) { $b = Get-SpeedBest $inst ""; if ($b) { $speed += $b } }
 $Boards["speed"] = @{ "all" = @($speed) }
-foreach ($rn in $realms) { $Boards["speed"][$rn] = @($speed | Where-Object { $_.r -eq $rn }) }
+foreach ($rn in $realms) {
+  $mine = @()
+  foreach ($inst in $SPEEDRAIDS) { $b = Get-SpeedBest $inst $rn; if ($b) { $mine += $b } }
+  $Boards["speed"][$rn] = @($mine)
+}
 # the boss that killed the most raiders
 $bb = @{}
 foreach ($sc in $bossDeaths.Keys) {
@@ -312,7 +324,8 @@ foreach ($key in $Boards.Keys) {
     [void]$sb.Append("      [" + (Q $sc) + "] = { ")
     foreach ($row in @($scopes[$sc])) {
       if (-not $row) { continue }
-      $v = [Math]::Round([double]$row.v, 1)
+      # (27 Nov 2026) clear times keep 3 decimals (exact seconds), every other board 1
+      $v = [Math]::Round([double]$row.v, $(if ($key -eq "speed") { 3 } else { 1 }))
       [void]$sb.Append("{ " + (Q $row.n) + ", " + (Q $row.c) + ", " + (Q $row.g) + ", " + (Q $row.r) + ", " +
         $v.ToString([Globalization.CultureInfo]::InvariantCulture) + ", " + (Q ([string]$row.x)) + " }, ")
     }
