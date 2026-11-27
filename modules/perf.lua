@@ -35,6 +35,13 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   local function Now() return GetTime and GetTime() or 0 end
   local function Say(t) DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffpfUI Octo|r performance: " .. t) end
   PF.cleans, PF.held = 0, false
+  -- (27 Nov 2026, Lobo: the game ran out of its 4 GB on a boat) tighter defaults: 48 MB of garbage outside fights (was
+  -- 64), a 450 MB ceiling (was 600). Players still on the old defaults are moved once; a value they picked stays.
+  if G().gcmig ~= "1" then
+    if G().gcroom == "64" then G().gcroom = "48" end
+    if G().gcmax == "600" then G().gcmax = "450" end
+    G().gcmig = "1"
+  end
 
   -- ---------------------------------------------------------------- memory: no clean-up in a fight
   function PF.CanGC() return type(collectgarbage) == "function" and type(gcinfo) == "function" end
@@ -45,9 +52,9 @@ pfUI:RegisterModule("perf", "vanilla", function ()
   -- With DXVK's own ~1 GB that runs the 32-bit game out of room. So: a ceiling. Out of a fight garbage may grow by
   -- C.perf.gcroom MB (not double), in a fight by gcextra, and never past C.perf.gcmax MB in all.
   PF.live = nil   -- Lua memory right after the last clean-up (KB): what is really in use
-  function PF.Ceiling() return Num("gcmax", 600) * 1024 end
+  function PF.Ceiling() return Num("gcmax", 450) * 1024 end
   -- the most garbage allowed now (KB above PF.live)
-  function PF.Room() return (PF.held and Num("gcextra", 150) or Num("gcroom", 64)) * 1024 end
+  function PF.Room() return (PF.held and Num("gcextra", 150) or Num("gcroom", 48)) * 1024 end
   -- lower Lua's own threshold to live + room (never past the ceiling); clean at once if already past the ceiling
   PF.FORCE_GAP = 30
   function PF.Steer()
@@ -62,18 +69,18 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     -- ceiling, a clean-up cannot bring it under: it ran a full collectgarbage() - over half a second on 600 MB -
     -- EVERY second. A ceiling below the real use is no ceiling: it moves up to live + room, and a forced
     -- clean-up runs at most once every PF.FORCE_GAP seconds.
-    if PF.live and PF.live + Num("gcroom", 64) * 1024 > ceiling then
+    if PF.live and PF.live + Num("gcroom", 48) * 1024 > ceiling then
       ceiling = PF.live + PF.Room()
       if not PF.toldBig then
         PF.toldBig = true
-        Say("your add-ons hold " .. math.floor(PF.live / 1024) .. " MB of Lua memory, more than the " .. Num("gcmax", 600) ..
+        Say("your add-ons hold " .. math.floor(PF.live / 1024) .. " MB of Lua memory, more than the " .. Num("gcmax", 450) ..
           " MB ceiling (Settings > Performance). Turning off add-ons you do not use (or pfQuest's database) frees the most.")
       end
     end
     if kb >= ceiling and Now() - (PF.forcedAt or -1000) >= PF.FORCE_GAP then
       PF.forcedAt = Now()
       -- a hitch now is better than the game crashing out of memory, in a fight too
-      PF.Clean("over the " .. Num("gcmax", 600) .. " MB ceiling")
+      PF.Clean("over the " .. Num("gcmax", 450) .. " MB ceiling")
       PF.live = gcinfo()
       PF.lastKb = PF.live
       return
@@ -103,6 +110,23 @@ pfUI:RegisterModule("perf", "vanilla", function ()
     PF.lastKb = PF.live
     PF.cleans = PF.cleans + 1
     PF.last = { why = why, freed = before - gcinfo(), ms = math.floor((Now() - t0) * 1000 + .5), at = Now() }
+    PF.WarnHigh()
+  end
+
+  -- (27 Nov 2026, Lobo: "Not enough memory resources" on a boat - the game used all of its 4 GB) add-ons cannot read the
+  -- game's own memory (no call for it in the client, ClassicAPI, SuperWoW, nampower or UnitXP), only their Lua memory.
+  -- What is really in use after a clean-up over C.perf.memwarn MB (350) = one chat line per session saying what helps,
+  -- and again when it grew another 100 MB. Off: C.perf.memwarn = "0".
+  function PF.WarnHigh()
+    local limit = Num("memwarn", 350)
+    if limit <= 0 or not PF.live then return end
+    local mb = math.floor(PF.live / 1024)
+    if mb < limit or mb < (PF.warnedAt or 0) + 100 then return end
+    PF.warnedAt = mb
+    Say("|cffffaa33add-ons are holding " .. mb .. " MB of memory|r (the game has 4 GB for everything: world, textures, "
+      .. "graphics and add-ons). If the game ever says \"Not enough memory\": turn off add-ons you do not use, check "
+      .. "d3d9.textureMemory = 0 in dxvk.conf (Octo DLL Installer 1.6.0+), and switch off overlays (Discord, AMD, Steam). "
+      .. "/pfperf shows what uses it.")
   end
 
   -- ---------------------------------------------------------------- raid graphics

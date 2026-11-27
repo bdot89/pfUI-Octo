@@ -142,8 +142,12 @@ pfUI:RegisterModule("perf-options", "vanilla", function ()
       .. "only grow by the room below, and never past the ceiling - in a fight too.", "gccap", function() PF.Steer() end)
     O.PfSld(p, "Room outside fights", "How much garbage may pile up before a clean-up when you are not fighting. Smaller = less "
       .. "memory, a short hitch a little more often.", 32, 256, 8, G, "gcroom", function() PF.Steer() end, function(v) return v .. " MB" end)
-    O.PfSld(p, "Ceiling", "Lua memory never goes past this: at it, a clean-up runs at once, even in a fight.", 400, 1200, 50, G,
+    O.PfSld(p, "Ceiling", "Lua memory never goes past this: at it, a clean-up runs at once, even in a fight.", 300, 1200, 50, G,
       "gcmax", function() PF.Steer() end, function(v) return v .. " MB" end)
+    -- (27 Nov 2026) the chat warning when add-ons hold a lot
+    O.PfSld(p, "Warn in chat above", "When add-ons hold more than this (after a clean-up), one chat line says so and what "
+      .. "helps - the game has 4 GB for everything, and running out crashes it (\"Not enough memory\"). 0 = never.", 0, 800, 50, G,
+      "memwarn", nil, function(v) return tonumber(v) == 0 and "Off" or (v .. " MB") end)
     Chk(p, "Clean up two seconds after a fight", nil, "gcafter")
     Chk(p, "Clean up after a loading screen", nil, "gcload")
     W.Buttons(p, { { "Clean up now", function() PF.Clean("by hand") end, 130, "Runs the clean-up at once (a short hitch)." } })

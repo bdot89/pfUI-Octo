@@ -443,6 +443,25 @@ if not pfQuestOctoSkip and (pfMap == nil or brokenTracker or (loadErrors and loa
   end)
 end
 
+-- (27 Nov 2026, Lobo's out-of-memory crash) turtle-patchtable.lua copies Turtle's extra tables into pfQuest's own
+-- (items, units, quests, objects, zones... and their enUS names); the "-turtle" copies stayed in memory after that.
+-- They are emptied here, only where the table they were merged into exists (their entries live on in it). An empty
+-- table stays, so "is Turtle data there" checks (/db version) still work. Nothing is removed from the database.
+if not pfQuestOctoSkip and type(pfDB) == "table" then
+  for _, t in pairs(pfDB) do
+    if type(t) == "table" then
+      for k, v in pairs(t) do
+        if type(k) == "string" and type(v) == "table" then
+          local _, _, base = string.find(k, "^(.+)%-turtle$")
+          if base and type(t[base]) == "table" then t[k] = {} end
+        end
+      end
+    end
+  end
+  for _, k in ipairs({ "minimap", "meta" }) do
+    if type(pfDB[k .. "-turtle"]) == "table" and type(pfDB[k]) == "table" then pfDB[k .. "-turtle"] = {} end
+  end
+end
 -- (18 Nov 2026) out-of-memory crashes (#132 in DXVK's d3d9.dll at logins and after /reload): reading pfQuest's 32 MB
 -- of data leaves its read-in garbage behind; Lua 5.0 would let it pile up to twice the database before cleaning.
 -- Cleaned here once, during the loading screen (gcmid.lua does the same after the base database).

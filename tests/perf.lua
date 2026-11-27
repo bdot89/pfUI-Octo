@@ -53,11 +53,11 @@ ok(table.getn(limits) == before, "switched off: the game's own clean-up")
 S.gc = "1"
 
 -- (18 Nov 2026) the memory ceiling: out-of-memory crashes (#132 in d3d9.dll) when Lua's garbage doubled the 290 MB
-ok(S.gccap == "1" and S.gcroom == "64" and S.gcmax == "600", "ceiling defaults: on, 64 MB room, 600 MB")
+ok(S.gccap == "1" and S.gcroom == "48" and S.gcmax == "450" and S.gcmig == "1", "ceiling defaults: on, 48 MB room, 450 MB (old defaults moved once)")
 PF.held, PF.live, PF.lastKb = false, nil, nil
 kb, th = 290 * 1024, 580 * 1024
 PF.Steer()
-ok(th == 290 * 1024 + 64 * 1024, "out of a fight: garbage may grow 64 MB, not double (threshold " .. math.floor(th / 1024) .. " MB)")
+ok(th == 290 * 1024 + 48 * 1024, "out of a fight: garbage may grow 48 MB, not double (threshold " .. math.floor(th / 1024) .. " MB)")
 PF.held = true
 PF.Steer()
 ok(th == 290 * 1024 + 150 * 1024, "in a fight: the fight's room (150 MB)")
@@ -693,4 +693,18 @@ do
   local s = PF.StressErrors({ A = 5, B = 30 }, { A = "UNIT_AURA: a.lua:3: boom", B = "CHAT_MSG_LOOT: b.lua:9: bad" }, 3)
   ok(s and string.find(s, "^B 30x %(CHAT_MSG_LOOT: b.lua:9: bad%)") and string.find(s, "A 5x"), "errors: worst first, with the first message")
   ok(PF.StressErrors({}, {}, 3) == nil, "no errors: no line")
+end
+
+-- (27 Nov 2026) the memory warning: once over C.perf.memwarn, again only after another 100 MB
+do
+  local said = 0
+  local keepMsg = DEFAULT_CHAT_FRAME.AddMessage
+  DEFAULT_CHAT_FRAME.AddMessage = function(self, t) if string.find(t or "", "add%-ons are holding") then said = said + 1 end end
+  PF.warnedAt = nil
+  PF.live = 360 * 1024 PF.WarnHigh()
+  PF.live = 380 * 1024 PF.WarnHigh()
+  PF.live = 470 * 1024 PF.WarnHigh()
+  PF.live = 200 * 1024 PF.WarnHigh()
+  DEFAULT_CHAT_FRAME.AddMessage = keepMsg
+  ok(said == 2, "memory warning: at 360 MB, not again at 380, again at 470 (" .. said .. ")")
 end
