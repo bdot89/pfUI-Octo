@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.69
+
+- 🏆 **OctoBoards tabs make sense now:** This Week, Realm Boards, Tonight, Guild Boards and Player Cards (were Realm, Community, Awards, Boards, Player). Chronicle's every-realm pages come first, then your own group's. Each tab has a picture, the open one is gold, and the line under the title says what it shows.
+- 🏰 **This Week page:** opens first with every realm's top DPS, healer and parser, the realm war bar, guild of the week and fastest clear. New Top DPS, Top healer and Fastest clears boards. "Realm Leaderboards" sits above OctoRanks in the options sidebar.
+- 📊 **Realm wars bar fixed:** small realms' names and kills no longer print over each other, and the bar reaches the end of its card.
+
 ## 📜 New in 1.2.68
 
 - 🎯 **Enemy nameplates are back in battlegrounds:** without SuperWoW, the battleground filter took enemy players nobody had targeted yet for NPCs and hid them, so only your target had a plate. Now only plates known to be NPCs are hidden; an enemy it can't place yet stays, since it may be a player.

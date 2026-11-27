@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.69", {
+    { "OctoBoards tabs make sense now", "This Week, Realm Boards, Tonight, Guild Boards and Player Cards (were Realm, Community, Awards, Boards, Player). Chronicle's every-realm pages come first, then your own group's. Each tab has a picture, the open one is gold, and the line under the title says what it shows." },
+    { "This Week page", "opens first with every realm's top DPS, healer and parser, the realm war bar, guild of the week and fastest clear. New Top DPS, Top healer and Fastest clears boards. \"Realm Leaderboards\" sits above OctoRanks in the options sidebar." },
+    { "Realm wars bar fixed", "small realms' names and kills no longer print over each other, and the bar reaches the end of its card." },
+  } },
   { "1.2.68", {
     { "Enemy nameplates are back in battlegrounds", "without SuperWoW, the battleground filter took enemy players nobody had targeted yet for NPCs and hid them, so only your target had a plate. Now only plates known to be NPCs are hidden; an enemy it can't place yet stays, since it may be a player." },
   } },
@@ -182,8 +187,5 @@ pfUI.octoNotes = {
   { "1.2.30", {
     { "See everyone on the realm running pfUI Octo", "every pfUI Octo now joins the hidden realm channel at login and says its version there. The About page's \"online now\" counts everyone in that channel - the whole realm, older versions (1.2.16 on) included - and hovering it shows who and which version (older ones in red)." },
     { "Update popup from anywhere on the realm", "a newer version heard on the channel opens the update window, not only one heard in your guild or group. When someone older logs in, one player with a newer version answers them, so they find out at once - the channel stays quiet otherwise and never shows in chat. Switch it off with Minigames > \"Share on the realm channel\"." },
-  } },
-  { "1.2.29", {
-    { "Left chat no longer goes blank", "when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second." },
   } },
 }
