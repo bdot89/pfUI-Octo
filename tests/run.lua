@@ -4602,7 +4602,7 @@ do
       end
       -- (16 Nov 2026) five: Quality of Life under Install; (24 Nov 2026) six: OctoRanks above Move Frames;
       -- (26 Nov 2026) seven: OctoLoot under OctoRanks
-      ok(glyphs == 7, "the seven big entries wear our white glyphs (" .. glyphs .. ")")
+      ok(glyphs == 8, "the eight big entries wear our white glyphs (" .. glyphs .. ")")
       -- the faint Octo mark: the page panel's own BACKGROUND texture (under every card and preview), can be hidden
       local mk = O.mark
       -- (the mock keeps no draw layers: the texture belonging to the page panel is what it can check)

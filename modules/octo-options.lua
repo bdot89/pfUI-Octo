@@ -101,7 +101,8 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
   -- (16 Nov 2026: a fifth big entry - Quality of Life - under Install; the entries 22 px apart, was 26)
   -- (24 Nov 2026: a sixth - OctoRanks - above Move Frames; the entries 20 px apart)
   -- (26 Nov 2026: a seventh - OctoLoot - under OctoRanks; the entries 18 px apart, so the list starts where it did)
-  local NAV_TOP, TAB_TOP, FOOT = 184, 88, 34
+  -- (27 Nov 2026: an eighth - Realm Leaderboards - above OctoRanks; the entries 16 px apart, the list starts 2 px lower)
+  local NAV_TOP, TAB_TOP, FOOT = 186, 88, 34
   -- the sidebar's small headings: { heading, { section titles from O.NAV } };
   -- sections not named here go under the last heading
   -- (in O.NAV's order: a heading shows above the first section it holds)
@@ -1230,37 +1231,6 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     ver:SetPoint("BOTTOMLEFT", nav, "BOTTOMLEFT", 10, 6)
     ver:SetText("v" .. ((pfUI.version and pfUI.version.octo) or "?"))
     self.logo = logo
-    -- (27 Nov 2026, user: "add a shortcut in pfUI interface an icon ... Saying Realm Leaderboards! with a cool icon")
-    -- OctoBoards' realm page, right of the title
-    local lb = CreateFrame("Button", nil, nav)
-    lb:SetWidth(88) lb:SetHeight(40)
-    lb:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, -10)
-    lb.icon = lb:CreateTexture(nil, "ARTWORK")
-    lb.icon:SetTexture("Interface\\Icons\\INV_Crown_01")
-    lb.icon:SetTexCoord(.08, .92, .08, .92)
-    lb.icon:SetWidth(24) lb.icon:SetHeight(24)
-    lb.icon:SetPoint("TOP", lb, "TOP", 0, 0)
-    lb.ring = lb:CreateTexture(nil, "BORDER")
-    lb.ring:SetTexture("Interface\\Buttons\\WHITE8X8")
-    lb.ring:SetVertexColor(1, .82, .3, 1)
-    lb.ring:SetPoint("TOPLEFT", lb.icon, "TOPLEFT", -1, 1)
-    lb.ring:SetPoint("BOTTOMRIGHT", lb.icon, "BOTTOMRIGHT", 1, -1)
-    lb.text = W.Font(lb:CreateFontString(nil, "OVERLAY"), 9, 1, .82, .3)
-    lb.text:SetPoint("TOP", lb.icon, "BOTTOM", 0, -2)
-    lb.text:SetText("Realm Leaderboards!")
-    lb:SetScript("OnClick", function()
-      GameTooltip:Hide()
-      if pfUI.boards and pfUI.boards.Show then pfUI.boards.Show("realm") end
-    end)
-    lb:SetScript("OnEnter", function()
-      lb.text:SetTextColor(1, 1, 1)
-      GameTooltip:SetOwner(lb, "ANCHOR_RIGHT")
-      GameTooltip:SetText("Realm Leaderboards", 1, .82, .3)
-      GameTooltip:AddLine("This week's top DPS, healers and parsers on every realm, from Chronicle's uploaded logs - plus your guild's boards and tonight's awards. Also /boards.", .85, .86, .9, 1)
-      GameTooltip:Show()
-    end)
-    lb:SetScript("OnLeave", function() lb.text:SetTextColor(1, .82, .3) GameTooltip:Hide() end)
-    self.leaderboards = lb
     local function Rule(y)
       local l = W.Fill(nav, K.line, 1, "ARTWORK")
       l:SetHeight(1)
@@ -1272,7 +1242,7 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
     local function Entry(text, icon, tip, fn)
       local b = CreateFrame("Button", nil, nav)
       -- (26 Nov 2026: 18 px apart, was 20 - seven entries in the room of six, so a 600 px window keeps every row)
-      b:SetHeight(18)
+      b:SetHeight(16)
       b:SetPoint("TOPLEFT", nav, "TOPLEFT", 6, y)
       b:SetPoint("TOPRIGHT", nav, "TOPRIGHT", -6, y)
       local hl = W.Fill(b, { 1, 1, 1 }, 0.05, "HIGHLIGHT")
@@ -1281,15 +1251,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
       -- (8 Nov 2026, user: the item icons "look childish": our own white line glyphs, img\octo\icons)
       b.pic:SetTexture("Interface\\AddOns\\pfUI\\img\\octo\\icons\\" .. icon)
       b.pic:SetVertexColor(.86, .87, .9, 1)
-      b.pic:SetWidth(17)
-      b.pic:SetHeight(17)
+      b.pic:SetWidth(15)
+      b.pic:SetHeight(15)
       b.pic:SetPoint("LEFT", b, "LEFT", 8, 0)
       b.text = W.Font(b:CreateFontString(nil, "OVERLAY"), 13, K.text[1], K.text[2], K.text[3])
       b.text:SetPoint("LEFT", b.pic, "RIGHT", 9, 0)
       b.text:SetText(text)
       b:SetScript("OnClick", function() GameTooltip:Hide() fn() end)
       QuickTip(b, text, tip)
-      y = y - 18
+      y = y - 16
       return b
     end
     -- a section opened from a big entry: the page last seen there, else its first
@@ -1302,6 +1272,15 @@ pfUI:RegisterModule("octo-options", "vanilla:tbc", function ()
         end
       end
     end
+    -- (27 Nov 2026, user: "the crown should be an Icon like the other icons ... put it at the top of octoranks ... look
+    -- inplace") OctoBoards' Realm page: gold like OctoRanks, our own crown glyph (tools\mkicons.c)
+    local lbe = Entry("Realm Leaderboards", "crown", "This week's top DPS, healers and parsers on every realm, from "
+      .. "Chronicle's uploaded logs - plus your guild's boards and tonight's awards. Also /boards.", function()
+      if pfUI.boards and pfUI.boards.Show then g:Hide() pfUI.boards.Show("realm") end
+    end)
+    lbe.pic:SetVertexColor(1, .82, .2, 1)
+    lbe.text:SetTextColor(1, .82, .2)
+    self.leaderboards = lbe
     -- (24 Nov 2026, user: "a big feature ... above move frames ... in its own section saying OctoRanks") gold, first
     local rk = Entry("OctoRanks", "rank", "Your 5-man runs timed and ranked by themselves - from the first pull to the last boss - "
       .. "and shared with the realm, plus every guild's raid times. Works as one with WhoDidIt.", function() OpenGroup("OctoRanks") end)

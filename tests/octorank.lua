@@ -64,9 +64,11 @@ if O and O.navFrame then
     return (pa and pa[5] or 0) > (pb and pb[5] or 0)
   end)
   -- (26 Nov 2026) OctoLoot sits between them
-  ok(entries[1] and string.find(entries[1].pic.texture, "icons\\rank", 1, true) and entries[3]
-    and string.find(entries[2].pic.texture, "icons\\loot", 1, true)
-    and string.find(entries[3].pic.texture, "icons\\move", 1, true), "OctoRanks is the first big entry, then OctoLoot, above Move Frames")
+  -- (27 Nov 2026) Realm Leaderboards first, above OctoRanks
+  ok(entries[1] and string.find(entries[1].pic.texture, "icons\\crown", 1, true) and entries[4]
+    and string.find(entries[2].pic.texture, "icons\\rank", 1, true)
+    and string.find(entries[3].pic.texture, "icons\\loot", 1, true)
+    and string.find(entries[4].pic.texture, "icons\\move", 1, true), "Realm Leaderboards, then OctoRanks and OctoLoot, above Move Frames")
   ok(O.TOPENTRY["OctoRanks"] and O.BUILD["orank"], "its page exists and opens from the big entry")
 end
 

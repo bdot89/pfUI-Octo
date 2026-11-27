@@ -124,5 +124,11 @@ int main(void) {
   line(26, 29, 38, 29); line(26, 29, 26, 41); line(38, 29, 38, 41); line(26, 41, 38, 41);
   W = 3.0f; line(32, 33, 32, 37); W = 4.6f;
   save("loot.tga");
+  /* Realm Leaderboards: a crown - three points with a ball on each, and a band (27 Nov 2026) */
+  line(13, 44, 10, 20); line(10, 20, 23, 33); line(23, 33, 32, 14); line(32, 14, 41, 33); line(41, 33, 54, 20);
+  line(54, 20, 51, 44);
+  line(13, 44, 51, 44); line(13, 52, 51, 52); line(13, 44, 13, 52); line(51, 44, 51, 52);
+  W = 3.4f; ring(10, 15, 3.2f, 0); ring(32, 9, 3.2f, 0); ring(54, 15, 3.2f, 0); W = 4.6f;
+  save("crown.tga");
   return 0;
 }
