@@ -15,11 +15,11 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
   local function Build(p)
     W.Heading(p, "Data sharing", {
       about = "pfUI Octo shares small pieces of crowd data with other pfUI Octo players, so everyone's prices, timers and "
-        .. "boards are better. It goes over a hidden addon channel to your guild, your raid and the whole realm - short "
-        .. "text only, a few times a minute at most, no personal data and nothing that affects your game. It is paced so "
-        .. "it can never make the server throttle your chat, and it stops entirely while you are in combat.\n\nThis page "
-        .. "lists everything that is shared and lets you turn any of it, or the lot, off. Nothing identifies you beyond "
-        .. "your character name on public counts you already broadcast." })
+        .. "boards are better. It goes over the hidden addon channel to your guild and raid - short text only, a few times "
+        .. "a minute at most, no personal data and nothing that affects your game. It is paced so it can never make the "
+        .. "server throttle your chat, and it stops entirely while you are in combat.\n\nThis page lists everything that "
+        .. "is shared and lets you turn any of it, or the lot, off. Nothing identifies you beyond your character name on "
+        .. "public counts you already broadcast." })
 
     W.Live(p, function()
       local os = OS()
@@ -62,10 +62,12 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
       .. "the server's limit. Lower it only if you know what you are doing.", 1, 6, .5,
       function() return tonumber(C.octoshare and C.octoshare.gap) or 2 end,
       function(v) if C.octoshare then C.octoshare.gap = tostring(v) end end, function(v) return v .. " s" end)
-    W.Edit(p, "Realm channel", "The hidden channel every pfUI Octo user shares, so the data reaches the whole realm and "
-      .. "not just your guild. Joined quietly and kept out of your chat windows. Empty = guild / raid only. Needs a reload.",
-      function() return C.octoshare and C.octoshare.channel or "" end,
-      function(v) if C.octoshare then C.octoshare.channel = v or "" end end, 200)
+    W.Edit(p, "Master character", "For realm-wide reach: the collector character every pfUI Octo user quietly whispers "
+      .. "(an invisible addon whisper, not a chat message). Leave empty for guild / raid only. Set it to your collector's "
+      .. "name on all clients to gather the whole realm - but test first that it does not print a 'no such player' line "
+      .. "when the master is offline. Needs a reload.",
+      function() return C.octoshare and C.octoshare.master or "" end,
+      function(v) if C.octoshare then C.octoshare.master = v or "" end end, 200)
 
     -- the collector + new feeds (for the person running the master database)
     W.Card(p, "Collector", { icon = "Interface\\Icons\\INV_Misc_Note_01",

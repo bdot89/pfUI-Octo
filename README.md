@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.76
+
+- 🧹 **Fixes the "Unknown addon chat type" errors** from 1.2.74/75: this client doesn't carry addon messages over a custom channel, so that's gone. Sharing is back to guild and raid, which work cleanly, with no error spam.
+- 📨 **Realm-wide, the right way:** set your collector's name as the "Master character" on the Data sharing page and every client quietly whispers it (invisible) - off by default until you set it.
+
 ## 📜 New in 1.2.75
 
 - ⚔️ **Battleground queue times:** pfUI Octo now shares how long your BG queues take and who won, so the boards can show which brackets pop fast and how each realm is doing. Opt out on the Data sharing page.

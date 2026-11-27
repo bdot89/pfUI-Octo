@@ -338,8 +338,8 @@ pfUI:RegisterModule("octoboards", "vanilla", function ()
     local os = pfUI.octoshare
     if os and os.Send then os.Send(LB.PREFIX, msg, chan)
     elseif SendAddonMessage then pcall(SendAddonMessage, LB.PREFIX, msg, chan) end
-    local x = os and os.ExtraChannel and os.ExtraChannel()
-    if x and os and os.Send then os.Send(LB.PREFIX, msg, x[1], x[2]) end
+    local m = os and os.Master and os.Master()
+    if m and os.Send then os.Send(LB.PREFIX, msg, "WHISPER", m) end
   end
   local function Send(chan)
     for _, l in ipairs(LB.Lines()) do OSend(l, chan) end

@@ -86,35 +86,23 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   end
 
   -- ------------------------------------------------------------------ custom channel (realm-wide)
-  OS.channelIndex = nil
-  -- join the shared channel and HIDE it from every chat window, so it is never seen or in the way (the user: "none
-  -- noticable"). Addon messages ride it invisibly; no one has to see a channel. Re-tried from the drain if it drops.
-  function OS.JoinChannel()
-    local name = Cfg().channel
-    if not name or name == "" or not JoinChannelByName then OS.channelIndex = nil return end
-    pcall(JoinChannelByName, name)
-    local id = GetChannelName and GetChannelName(name)
-    OS.channelIndex = (id and type(id) == "number" and id > 0) and id or nil
-    if OS.channelIndex and _G.ChatFrame_RemoveChannel then
-      for i = 1, (_G.NUM_CHAT_WINDOWS or 10) do
-        local cf = _G["ChatFrame" .. i]
-        if cf then pcall(_G.ChatFrame_RemoveChannel, cf, name) end
-      end
-    end
-  end
-  -- the custom channel as a { "CHANNEL", index } pair, or nil - the feed modules add this to their own channel lists
-  function OS.ExtraChannel()
-    if OS.channelIndex then return { "CHANNEL", OS.channelIndex } end
+  -- ------------------------------------------------------------------ realm-wide reach: whisper the master
+  -- (27 Nov 2026, seen in game) A custom chat CHANNEL does NOT carry addon messages on this client: every CHANNEL send
+  -- printed a red "Unknown addon chat type (prefix ...)". So the channel is gone. Guild / raid / party work (proven).
+  -- For realm-wide, each client also sends an ADDON WHISPER to the master's collector character (whisper IS a valid
+  -- addon chat type here, and it is invisible), but only when its name is set - off until the master fills it in and
+  -- confirms it does not error (an addon whisper to an offline name may draw a "no such player" line).
+  function OS.Master()
+    local m = Cfg().master
+    if m and m ~= "" and (not UnitName or m ~= UnitName("player")) then return m end
     return nil
   end
-  -- where OctoShare's own feeds go: guild / raid / party, plus the custom channel when set
+  -- where OctoShare's own feeds go: guild / raid / party (string channels)
   function OS.Channels()
     local list = {}
-    if IsInGuild and IsInGuild() then table.insert(list, { "GUILD" }) end
-    if GetNumRaidMembers and GetNumRaidMembers() > 0 then table.insert(list, { "RAID" })
-    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(list, { "PARTY" }) end
-    local x = OS.ExtraChannel()
-    if x then table.insert(list, x) end
+    if IsInGuild and IsInGuild() then table.insert(list, "GUILD") end
+    if GetNumRaidMembers and GetNumRaidMembers() > 0 then table.insert(list, "RAID")
+    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(list, "PARTY") end
     return list
   end
 
@@ -147,8 +135,8 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- cover every feed at once.
   function OS.Broadcast(prefix, msg, chans)
     if type(chans) == "table" then for _, c in ipairs(chans) do OS.Send(prefix, msg, c) end end
-    local x = OS.ExtraChannel()
-    if x then OS.Send(prefix, msg, x[1], x[2]) end
+    local m = OS.Master()
+    if m then OS.Send(prefix, msg, "WHISPER", m) end
   end
 
   -- Emit: a NEW feed's record (BG queues, population...). kind is a short tag, payload is "^"-joined, never "|".
@@ -158,7 +146,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     payload = payload or ""
     local msg = kind .. "^" .. payload
     if string.len(msg) > 240 then msg = string.sub(msg, 1, 240) end
-    for _, c in ipairs(OS.Channels()) do OS.Send(OS.PREFIX, msg, c[1], c[2]) end
+    OS.Broadcast(OS.PREFIX, msg, OS.Channels())
   end
 
   -- the server's "too quickly" warnings (strings vary by core): any of these backs us off hard
@@ -171,15 +159,12 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
 
   local ev = CreateFrame("Frame")
   ev:RegisterEvent("CHAT_MSG_ADDON")
-  ev:RegisterEvent("PLAYER_ENTERING_WORLD")
   ev:RegisterEvent("PLAYER_REGEN_DISABLED")   -- entered combat
   ev:RegisterEvent("PLAYER_REGEN_ENABLED")    -- left combat
   ev:RegisterEvent("CHAT_MSG_SYSTEM")
   ev:SetScript("OnEvent", function()
     if event == "CHAT_MSG_ADDON" then
       OS.Log(arg1, arg2, arg3, arg4)
-    elseif event == "PLAYER_ENTERING_WORLD" then
-      if not this.joined then this.joined = true OS.JoinChannel() end
     elseif event == "PLAYER_REGEN_DISABLED" then
       OS.combatUntil = (GetTime and GetTime() or 0) + 99999        -- in combat: hold (cleared on regen enabled)
     elseif event == "PLAYER_REGEN_ENABLED" then
@@ -196,11 +181,6 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- the drain: one message per gap, never in combat, never during a backoff
   ev:SetScript("OnUpdate", function()
     local now = GetTime and GetTime() or 0
-    -- re-join the shared channel if it is set but we are not on it (a channel can drop on a loading screen)
-    if Cfg().channel ~= "" and not OS.channelIndex and (this.joinAt or 0) <= now then
-      this.joinAt = now + 15
-      OS.JoinChannel()
-    end
     if OS.qn <= 0 then return end
     if now < OS.silentUntil then return end
     if now < OS.combatUntil then return end
@@ -225,7 +205,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     local d = DB()
     Say("collector: " .. (OS.Collecting() and "|cff55ff55ON|r" or "off") .. "  new feeds: "
       .. (OS.Enabled() and "|cff55ff55ON|r" or "off")
-      .. "  channel: " .. ((Cfg().channel ~= "" and Cfg().channel or "guild / raid only")))
+      .. "  master: " .. (OS.Master() or "none (guild / raid only)"))
     Say("logged: " .. table.getn(d.log) .. " of " .. OS.MAXLOG .. " (seen " .. (d.n or 0) .. " total).  /octoshare clear empties it.")
     Say("send queue: " .. OS.qn .. "  one message every " .. OS.Gap() .. "s, paused in combat (throttle-safe).")
   end

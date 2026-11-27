@@ -50,16 +50,16 @@ S.enable = "1"
 OS.Emit("bgq", "wsg^alliance^45")
 ok(OS.qn >= 1 and OS.q[1][2] == "bgq^wsg^alliance^45", "Emit on: the record is queued through the governor")
 
--- Broadcast reaches each channel (realm channel added when one is joined)
+-- Broadcast reaches each channel; the realm-wide master is an addon WHISPER (CHANNEL is unsupported on this client)
+S.master = ""
 OS.q, OS.qn = {}, 0
-OS.channelIndex = nil
 OS.Broadcast("pfAP", "prices", { "GUILD", "RAID" })
-ok(OS.qn == 2, "Broadcast queues one per channel (no realm channel joined)")
+ok(OS.qn == 2, "Broadcast queues one per channel (no master set)")
+S.master = "Errorbot"
 OS.q, OS.qn = {}, 0
-OS.channelIndex = 7
 OS.Broadcast("pfAP", "prices", { "GUILD" })
-ok(OS.qn == 2 and OS.q[2][3] == "CHANNEL" and OS.q[2][4] == 7, "Broadcast adds the realm channel when joined")
-OS.channelIndex = nil
+ok(OS.qn == 2 and OS.q[2][3] == "WHISPER" and OS.q[2][4] == "Errorbot", "Broadcast whispers the master when set")
+S.master = ""
 
 -- the trim keeps the log under the cap
 S.collect = "1"

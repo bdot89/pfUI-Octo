@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.76", {
+    { "Fixes the \"Unknown addon chat type\" errors", "from 1.2.74/75: this client doesn't carry addon messages over a custom channel, so that's gone. Sharing is back to guild and raid, which work cleanly, with no error spam." },
+    { "Realm-wide, the right way", "set your collector's name as the \"Master character\" on the Data sharing page and every client quietly whispers it (invisible) - off by default until you set it." },
+  } },
   { "1.2.75", {
     { "Battleground queue times", "pfUI Octo now shares how long your BG queues take and who won, so the boards can show which brackets pop fast and how each realm is doing. Opt out on the Data sharing page." },
     { "Where is everyone", "a tiny, occasional note of your zone (never in combat) feeds an activity heatmap. No names, just a head count." },
@@ -191,9 +195,5 @@ pfUI.octoNotes = {
   { "1.2.37", {
     { "Minimap glow, even all the way round", "a new Glow card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. New pictures: restart the game, not just /reload." },
     { "pfQuest load errors are caught", "if part of pfQuest fails while the game loads, chat says so at login with the first error in red (also saved for bug reports), and a half-loaded quest tracker is switched off instead of spamming tracker.lua errors." },
-  } },
-  { "1.2.36", {
-    { "Installer once per character", "the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install." },
-    { "Minimap button in the addon bar", "with the addon button bar switched on, the pfUI Octo minimap button goes into it like every other add-on's button." },
   } },
 }
