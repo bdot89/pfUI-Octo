@@ -122,6 +122,19 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.67
+
+- 🏆 **OctoBoards, the leaderboards (`/boards`):** one window, four tabs.
+  - **Awards:** tonight's raid or dungeon on its own loading-screen art, with a damage podium and cards for Top healing, Kick champion, Cleanse champion, Biggest crit, Iron wall and Floor inspector. Copy for Discord.
+  - **Boards:** 27 boards (kills, deaths, gold looted, flights, jumps, duels and more) for your guild, raid or friends, this week or all time, shared between pfUI Octo users.
+  - **Community:** fun boards for each realm and all realms together from Chronicle's uploaded logs (Realm wars, Guild of the week, Top parse, Never dies, Glass cannon, Night owls and more), refreshed every day.
+  - **Player:** anyone's card, with crowns for every board they lead.
+- ⚡ **No more 1 FPS in raids from OctoDoTs:** debuff changes no longer force a full scan every frame.
+- 🧪 **Raid stress test (`/pfstress`, Settings > Performance):** a pretend 40-player raid with a boss, adds, Fire Novas, AoE and a raid's combat log fed to every add-on, then a report of FPS, memory and which add-ons are busiest or erroring.
+- 🎬 **Demo mode:** OctoRinse, proc alerts and the threat label now take part.
+- 🧠 **Less memory:** pfQuest's leftover Turtle tables are freed after loading, the memory ceiling is 450 MB (was 600), and a chat line warns when add-ons hold over 350 MB.
+- 📦 **Launcher installs:** the launcher's copy now has game files only (28 MB to download instead of 37).
+
 ## 📜 New in 1.2.66
 
 - 📜 **Quest auto-complete:** no more `turtle-pfquest-questlog.lua:219` errors at quest givers, and picking the finished quest works when a quest giver has several.

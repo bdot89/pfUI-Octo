@@ -2,6 +2,14 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.67", {
+    { "OctoBoards, the leaderboards (/boards)", "one window, four tabs." },
+    { "No more 1 FPS in raids from OctoDoTs", "debuff changes no longer force a full scan every frame." },
+    { "Raid stress test (/pfstress, Settings > Performance)", "a pretend 40-player raid with a boss, adds, Fire Novas, AoE and a raid's combat log fed to every add-on, then a report of FPS, memory and which add-ons are busiest or erroring." },
+    { "Demo mode", "OctoRinse, proc alerts and the threat label now take part." },
+    { "Less memory", "pfQuest's leftover Turtle tables are freed after loading, the memory ceiling is 450 MB (was 600), and a chat line warns when add-ons hold over 350 MB." },
+    { "Launcher installs", "the launcher's copy now has game files only (28 MB to download instead of 37)." },
+  } },
   { "1.2.66", {
     { "Quest auto-complete", "no more turtle-pfquest-questlog.lua:219 errors at quest givers, and picking the finished quest works when a quest giver has several." },
     { "Meters", "after a /reload, meter windows shown in combat stay above the chat instead of having its text over them." },
@@ -183,8 +191,5 @@ pfUI.octoNotes = {
     { "Raid frames", "the aggro glow / square is one shared pass a second (it walked ~190 unit names for each frame, ~7,600 checks a second in a raid), heal prediction 10 times a second like the bars, and the raid sorter sleeps outside a raid." },
     { "Timers everywhere", "buff timers and cooldown numbers only rebuild their text when the shown time changes; the player frame's aura swipes only restart when the aura changes." },
     { "The game's own world frame script", "no longer looks over its popups every frame while the interface is showing (Settings Performance Lighter world frame script). Minimap art only spins its loop while something spins." },
-  } },
-  { "1.2.27", {
-    { "No more 1 FPS in raids with lots of add-ons", "when your add-ons together hold more memory than the ceiling (Settings Performance), the out-of-memory guard ran a full clean-up every second - the game froze again and again. Now the ceiling follows what is really in use, a forced clean-up runs at most once every 30 seconds, and you get one chat line saying how much memory your add-ons hold." },
   } },
 }
