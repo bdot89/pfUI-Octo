@@ -128,6 +128,14 @@ do
       guildweek = { all = { { "Oktagon", "", "", "N'Zoth", 120, "6 raids" } } }, speed = { all = { { "Molten Core", "", "Skull Emoji", "N'Zoth", 30.7, "33 players" } } } } }
   local okR, errR = pcall(LB.Show)
   ok(okR and LB.ui.tab == "realm" and LB.ui.frame.pages.realm:IsShown(), "OctoBoards opens on the Realm page " .. tostring(errR or ""))
+  -- (27 Nov 2026, user: "REORDER THE BAR AND RENAME STUFF TO MAKE SENSE ... Community means nothing")
+  do
+    local names, keys = {}, {}
+    for i, t in ipairs(LB.ui.TABS) do names[i] = LB.ui.frame.tabs[t[1]].text:GetText() keys[i] = t[1] end
+    ok(table.concat(names, ",") == "This Week,Realm Boards,Tonight,Guild Boards,Player Cards"
+      and table.concat(keys, ",") == "realm,community,awards,boards,player", "tabs named for what they show, Chronicle's two first")
+    ok(LB.ui.frame.sub:GetText() == LB.ui.TABS[1][4], "the line under the title says what the open tab shows")
+  end
   local p = LB.ui.frame.pages.realm
   ok(p.hero[1].name:GetText() == "Dushegub" and p.hero[2].name:GetText() == "Nobody yet", "top DPS card filled, an empty board says so")
   ok(LB.ui.CValue(30.7, "mins") == "30:42", "a clear time reads as minutes:seconds")

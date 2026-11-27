@@ -118,6 +118,14 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   UI.Chip = Chip
 
   -- ------------------------------------------------------------------ the window
+  -- the tabs, left to right: key (kept, other code opens them by it), name, picture, what it shows (title line + tooltip)
+  UI.TABS = {
+    { "realm", "This Week", "INV_Crown_01", "The best of every realm this week - from Chronicle's uploaded logs" },
+    { "community", "Realm Boards", "INV_BannerPVP_02", "Every Chronicle board: realm wars, guild of the week, top parses and more" },
+    { "awards", "Tonight", "Spell_Holy_SealOfMight", "Your group's podium and awards for tonight's raid" },
+    { "boards", "Guild Boards", "INV_Misc_Book_09", "Your guild, raid and friends - this week and all time" },
+    { "player", "Player Cards", "INV_Misc_Note_01", "One player's records, crowns and best nights" },
+  }
   function UI.Build()
     if UI.frame then return UI.frame end
     local f = CreateFrame("Frame", "pfOctoBoards", UIParent)
@@ -165,34 +173,47 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     x:SetScript("OnClick", function() f:Hide() end)
     x:SetScript("OnEnter", function() x.text:SetTextColor(1, .4, .35) end)
     x:SetScript("OnLeave", function() x.text:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3]) end)
-    -- tabs: words on the banner, the open one white with an accent line under it
+    -- tabs (27 Nov 2026, user: "REORDER THE BAR AND RENAME STUFF TO MAKE SENSE ... PLAIN WHITE BORING ... Community
+    -- means nothing"): named for what they show, the two Chronicle (every realm) pages first, then your own group's;
+    -- each with a picture; the open one gold with a gold line and a soft wash, the line under the title says what it is
     f.tabs = {}
     local prev
-    for _, t in ipairs({ { "realm", "Realm" }, { "awards", "Awards" }, { "boards", "Boards" }, { "community", "Community" }, { "player", "Player" } }) do
-      local key, label = t[1], t[2]
+    for _, t in ipairs(UI.TABS) do
+      local key, label, icon = t[1], t[2], t[3]
       local b = CreateFrame("Button", nil, f)
-      b:SetHeight(30)
-      b.text = Text(b, 17, TITLE)
-      b.text:SetPoint("CENTER", b, "CENTER", 0, 2)
+      b:SetHeight(32)
+      b.wash = Fill(b, GOLD, .1, "BACKGROUND")
+      b.wash:SetAllPoints(b)
+      b.icon = b:CreateTexture(nil, "ARTWORK")
+      b.icon:SetWidth(18) b.icon:SetHeight(18)
+      b.icon:SetTexCoord(.08, .92, .08, .92)
+      b.icon:SetTexture(ICON .. icon)
+      b.icon:SetPoint("LEFT", b, "LEFT", 10, 1)
+      b.text = Text(b, 15, TITLE)
+      b.text:SetPoint("LEFT", b.icon, "RIGHT", 6, 0)
       b.text:SetText(label)
-      b:SetWidth(b.text:GetStringWidth() + 26)
-      b.line = Fill(b, PAL.accent, 1, "ARTWORK")
-      b.line:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 8, 0)
-      b.line:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -8, 0)
+      b:SetWidth(10 + 18 + 6 + b.text:GetStringWidth() + 12)
+      b.line = Fill(b, GOLD, 1, "ARTWORK")
+      b.line:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 0, 0)
+      b.line:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 0, 0)
       b.line:SetHeight(3)
-      if prev then b:SetPoint("RIGHT", prev, "LEFT", -2, 0) else b:SetPoint("TOPRIGHT", f, "TOPRIGHT", -46, -16) end
+      if prev then b:SetPoint("LEFT", prev, "RIGHT", 4, 0) end
       prev = b
       b:SetScript("OnClick", function() UI.Open(key) end)
-      b:SetScript("OnEnter", function() if UI.tab ~= key then b.text:SetTextColor(1, 1, 1) end end)
-      b:SetScript("OnLeave", function() UI.PaintTabs() end)
+      b:SetScript("OnEnter", function()
+        if UI.tab ~= key then b.text:SetTextColor(1, 1, 1) b.icon:SetAlpha(1) end
+        GameTooltip:SetOwner(b, "ANCHOR_BOTTOM")
+        GameTooltip:AddLine(label, GOLD[1], GOLD[2], GOLD[3])
+        GameTooltip:AddLine(t[4], .85, .85, .88, 1)
+        GameTooltip:Show()
+      end)
+      b:SetScript("OnLeave", function() GameTooltip:Hide() UI.PaintTabs() end)
       f.tabs[key] = b
     end
-    -- (tabs read left to right: Realm Awards Boards Community Player - the loop placed them right to left)
-    f.tabs.player:ClearAllPoints() f.tabs.player:SetPoint("TOPRIGHT", f, "TOPRIGHT", -46, -16)
-    f.tabs.community:ClearAllPoints() f.tabs.community:SetPoint("RIGHT", f.tabs.player, "LEFT", -2, 0)
-    f.tabs.boards:ClearAllPoints() f.tabs.boards:SetPoint("RIGHT", f.tabs.community, "LEFT", -2, 0)
-    f.tabs.awards:ClearAllPoints() f.tabs.awards:SetPoint("RIGHT", f.tabs.boards, "LEFT", -2, 0)
-    f.tabs.realm:ClearAllPoints() f.tabs.realm:SetPoint("RIGHT", f.tabs.awards, "LEFT", -2, 0)
+    -- the row ends at the close button
+    local rowW = 0
+    for _, t in ipairs(UI.TABS) do rowW = rowW + f.tabs[t[1]]:GetWidth() + 4 end
+    f.tabs[UI.TABS[1][1]]:SetPoint("TOPRIGHT", f, "TOPRIGHT", -46 - (rowW - 4) + f.tabs[UI.TABS[1][1]]:GetWidth(), -14)
     -- pages
     f.pages = {}
     for _, k in ipairs({ "realm", "awards", "boards", "community", "player" }) do
@@ -218,8 +239,14 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   end
   function UI.PaintTabs()
     for k, b in pairs(UI.frame.tabs) do
-      if k == UI.tab then b.text:SetTextColor(1, 1, 1) b.line:Show()
-      else b.text:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3]) b.line:Hide() end
+      if k == UI.tab then
+        b.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3]) b.line:Show() b.wash:Show() b.icon:SetAlpha(1)
+      else
+        b.text:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3]) b.line:Hide() b.wash:Hide() b.icon:SetAlpha(.55)
+      end
+    end
+    for _, t in ipairs(UI.TABS) do
+      if t[1] == UI.tab then UI.frame.sub:SetText(t[4]) end
     end
   end
   function UI.Open(tab, who)
