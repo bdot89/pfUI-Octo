@@ -1678,6 +1678,17 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("tooltip",    nil,           "x_skin",           "1")
   pfUI:UpdateConfig("tooltip",    nil,           "x_mobstats",       "1")
   pfUI:UpdateConfig("tooltip",    nil,           "x_resistform",     "both") -- raw | pct | both
+  -- (27 Nov 2026, Lobo: "turn off like the resistance numbers but not the armor value") each mob line on its own
+  pfUI:UpdateConfig("tooltip",    nil,           "x_mobhits",        "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_mobarmor",       "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_mobresist",      "1")
+  pfUI:UpdateConfig("tooltip",    nil,           "x_srcrows",        "3")   -- drops listed before "N more - hold Shift"
+  -- OctoLoot's item tooltip lines (octoloot.lua OL.Tooltip): "1" always, "shift" with Shift, "0" never
+  pfUI:UpdateConfig("octoloot",   nil,           "tip",              "1")
+  pfUI:UpdateConfig("octoloot",   nil,           "tipswap",          "1")
+  pfUI:UpdateConfig("octoloot",   nil,           "tippages",         "1")
+  pfUI:UpdateConfig("octoloot",   nil,           "tipreagent",       "1")
+  pfUI:UpdateConfig("octoloot",   nil,           "tipmine",          "0")
   pfUI:UpdateConfig("tooltip",    nil,           "alpha",            "0.8")
   pfUI:UpdateConfig("tooltip",    nil,           "alwaysperc",       "0")
   pfUI:UpdateConfig("tooltip",    "compare",     "basestats",        "1")

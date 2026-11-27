@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.78
+
+- ✂️ **Shorter tooltips, your way:** every extra tooltip part now has its own switch on one card (Quality of Life > Tooltips > Tooltip extras). Mob hits, armor and resists each on their own (resists off, armor kept), how many creatures "Drops from" lists, and OctoLoot's Swaps, pages and the long "Used in" line - each Always, only while Shift is held, or Never. The auction price is there too.
+
 ## 📜 New in 1.2.77
 
 - 💬 **System messages can be turned back on:** logins, logouts, rolls and /played vanished from chat for some, and the game's own menu has no switch for them. Right-click a chat tab > Filters > System Messages now starts with a **Show system messages** tick box, and the Chat page has a **System** switch for the main chat.

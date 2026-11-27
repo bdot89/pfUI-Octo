@@ -117,3 +117,32 @@ ok(TX.SkinSkill(5) == 1 and TX.SkinSkill(15) == 50 and TX.SkinSkill(60) == 300, 
 ok(math.floor(TX.ArmorCut(3731, 60) + .5) == 40, "armour 3731 against a 60: 40% physical")
 ok(math.floor(TX.Resist(0, 60, 63, 2) + .5) == 6, "a level 63 boss with no fire resistance: 6% resisted")
 ok(math.floor(TX.Resist(300, 60, 60, 4) + .5) == 69, "300 frost resistance at 60: 69%")
+
+-- (27 Nov 2026, Lobo) each mob line has its own switch: resists off, armor kept
+do
+  local keep = { UnitCanAttack = _G.UnitCanAttack, UnitIsFriend = _G.UnitIsFriend, UnitIsPlayer = _G.UnitIsPlayer,
+    UnitResistance = _G.UnitResistance, UnitLevel = _G.UnitLevel, UnitDamage = _G.UnitDamage, UnitAttackSpeed = _G.UnitAttackSpeed,
+    UnitHealthMax = _G.UnitHealthMax, UnitClassification = _G.UnitClassification }
+  _G.UnitCanAttack = function() return true end
+  _G.UnitIsFriend = function() return false end
+  _G.UnitIsPlayer = function() return false end
+  _G.UnitResistance = function(_, school) if school == 0 then return 3000, 3000 end return 75, 75 end
+  _G.UnitLevel = function() return 60 end
+  _G.UnitDamage = function() return 500, 700 end
+  _G.UnitAttackSpeed = function() return 2 end
+  _G.UnitHealthMax = function() return 5000 end
+  _G.UnitClassification = function() return "elite" end
+  ok(CT.x_mobhits == "1" and CT.x_mobarmor == "1" and CT.x_mobresist == "1" and CT.x_srcrows == "3", "mob line defaults on, 3 drops")
+  local t = Tip()
+  TX.MobStats(t, "target")
+  ok(t:Has("Hits") and t:Has("Armor") and t:Has("Resists"), "all three mob lines by default")
+  CT.x_mobresist = "0"
+  t = Tip()
+  TX.MobStats(t, "target")
+  ok(t:Has("Armor") and t:Has("Hits") and not t:Has("Resists"), "resists off: armor and hits stay")
+  CT.x_mobhits, CT.x_mobarmor = "0", "0"
+  t = Tip()
+  ok(not TX.MobStats(t, "target") and t:NumLines() == 0, "all three off: no mob lines")
+  CT.x_mobhits, CT.x_mobarmor, CT.x_mobresist = "1", "1", "1"
+  for k, v in pairs(keep) do _G[k] = v end
+end

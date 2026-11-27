@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.78", {
+    { "Shorter tooltips, your way", "every extra tooltip part now has its own switch on one card (Quality of Life > Tooltips > Tooltip extras). Mob hits, armor and resists each on their own (resists off, armor kept), how many creatures \"Drops from\" lists, and OctoLoot's Swaps, pages and the long \"Used in\" line - each Always, only while Shift is held, or Never. The auction price is there too." },
+  } },
   { "1.2.77", {
     { "System messages can be turned back on", "logins, logouts, rolls and /played vanished from chat for some, and the game's own menu has no switch for them. Right-click a chat tab > Filters > System Messages now starts with a Show system messages tick box, and the Chat page has a System switch for the main chat." },
     { "Chat settings are back in the new chat bar", "right-click General for the game's own window menu (font size, filters, channels, colours, lock, rename). Left-click it to pick a chat window (General, Combat Log); Whispers has its own button." },
@@ -189,11 +192,5 @@ pfUI.octoNotes = {
     { "In the whisper window", "History at the top of the list opens a menu of everyone you whispered with, newest first, with a filter - pick one for the whole conversation. The G O P R B S row at the bottom opens Guild, Officer, Party, Raid, Battleground or Say history, new lines come in live, and the box below talks in that channel. Days are split by \"-- Monday 23 November --\" lines. A small arrow on the dividing line hides the list and brings it back." },
     { "/chathistory (or /chist) opens guild history; /chathistory raid, pa...", "/chathistory (or /chist) opens guild history; /chathistory raid, party... the others. Options: Chat > Whispers > Chat history." },
     { "New file: restart the game, not just /reload", "" },
-  } },
-  { "1.2.38", {
-    { "Honor tab rebuilt, battle-worn", "your PvP tab now has the battleground scene behind it, worn and burnt, with a big faction crest and your rank badge. A big rank progress bar (0 / 25 / 50 / 75 / 100 with glowing marks, today's gain lit) shows your exact rank %, and under it about how much honor the next rank still takes, learnt from your own kills at your rank. This week shows your honor against the 20 000 cap with the reset countdown and your session's honor per hour. Kills and honor for today / yesterday / this week / last week, and your last days in one tidy table: honor, kills, battlegrounds won-lost and rank % gained (hover a day for where the honor came from)." },
-    { "Honor history built in (HonorSpy merged)", "every honor gain, battleground win / loss and step of rank % is kept per character. If you use TurtleHonorSpyEnhanced, its history is copied in once so your past days show straight away. /honor opens the tab. Options: Quality of Life > Honor." },
-    { "Character window in the same look", "worn and burnt edges on every tab, your faction's crest glowing behind your character, your name in gold with your rank badge, a soft glow round rare and better gear, and worn panels under the stats. All of it can be switched off (Quality of Life > Honor > Character window)." },
-    { "New pictures and files: restart the game, not just /reload", "" },
   } },
 }

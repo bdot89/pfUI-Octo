@@ -159,7 +159,7 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
     local s = TX.Sources(id)
     if not s then return end
     local more = IsShiftKeyDown()
-    local max = more and 8 or 3
+    local max = more and 8 or math.max(1, tonumber(C.tooltip.x_srcrows) or 3)
     local top = s.drops[1]
     if top and not (Said(tt, top[1]) and not more) then
       -- a world drop: many creatures, each a sliver
@@ -508,7 +508,7 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
       mlevel = UnitClassification(unit) == "worldboss" and 63 or math.min(plevel + 10, 60)
     end
     local shown = false
-    if UnitDamage and UnitAttackSpeed then
+    if Want("x_mobhits") and UnitDamage and UnitAttackSpeed then
       local lo, hi = UnitDamage(unit)
       local speed = UnitAttackSpeed(unit)
       lo, hi, speed = tonumber(lo), tonumber(hi), tonumber(speed)
@@ -525,8 +525,11 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
         shown = true
       end
     end
-    local _, armor = UnitResistance(unit, 0)
-    armor = tonumber(armor)
+    local armor
+    if Want("x_mobarmor") then
+      local _, a = UnitResistance(unit, 0)
+      armor = tonumber(a)
+    end
     if armor then
       armor = math.max(0, armor)
       local right = armor == 0 and (DIM .. "none|r") or (Thousands(armor) .. DIM .. "  stops " .. math.floor(TX.ArmorCut(armor, plevel) + .5) .. "% of physical|r")
@@ -538,7 +541,7 @@ pfUI:RegisterModule("tooltip-extras", "vanilla:tbc", function ()
     -- pct = the share your spells lose (as before), raw = the resistance itself, both = "Fire 75 (20%)"
     local form = C.tooltip.x_resistform or "both"
     local list, same, first, firstRaw = {}, true, nil, nil
-    for _, s in ipairs(SCHOOLS) do
+    for _, s in ipairs(Want("x_mobresist") and SCHOOLS or {}) do
       local _, eff = UnitResistance(unit, s[1])
       local raw = math.max(0, math.floor(tonumber(eff) or 0))
       local p = math.floor(TX.Resist(raw, plevel, mlevel, s[1]) + .5)

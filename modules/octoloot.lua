@@ -2195,8 +2195,15 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       end
     end
     if fx.set then Head() tt:AddDoubleLine("  Set", fx.set.name .. " (" .. fx.set.n .. ")", .7, .7, .7, .4, .8, 1) end
-    if fx.swaps > 0 then Head() tt:AddDoubleLine("  Swaps for", fx.swaps .. (fx.swaps == 1 and " item" or " items"), .7, .7, .7, .4, .8, 1) end
-    if fx.from > 0 then Head() tt:AddDoubleLine("  Swapped from", fx.from .. (fx.from == 1 and " item" or " items"), .7, .7, .7, .4, .8, 1) end
+    -- (27 Nov 2026, Lobo: tooltips too long) each part "1" always, "shift" only with Shift, "0" never
+    local function Part(k)
+      local v = S(k, "1")
+      return v == "1" or (v == "shift" and IsShiftKeyDown()) or false
+    end
+    local swap = Part("tipswap")
+    if swap and fx.swaps > 0 then Head() tt:AddDoubleLine("  Swaps for", fx.swaps .. (fx.swaps == 1 and " item" or " items"), .7, .7, .7, .4, .8, 1) end
+    if swap and fx.from > 0 then Head() tt:AddDoubleLine("  Swapped from", fx.from .. (fx.from == 1 and " item" or " items"), .7, .7, .7, .4, .8, 1) end
+    local pages = Part("tippages")
     -- the server's drop chances, only while pfUI's own "where it drops" lines are off
     if C.tooltip and C.tooltip.x_sources == "0" then
       for _, d in ipairs(fx.drops) do
@@ -2207,7 +2214,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
         rows = rows + 1
       end
     end
-    for _, pg in ipairs(fx.pages) do
+    for _, pg in ipairs(pages and fx.pages or {}) do
       if rows >= max then break end
       Head()
       local where = pg.group
@@ -2219,7 +2226,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       Head()
       tt:AddDoubleLine("  Made with", OL.SKILLNAME[fx.made.skill or 0] or "a recipe", .7, .7, .7, 1, 1, 1)
     end
-    if S("tipreagent", "1") == "1" then
+    if Part("tipreagent") then
       local mine = S("tipmine", "0") == "1" and OL.MyProfessions() or nil
       local parts = {}
       for sk, n in pairs(fx.used) do

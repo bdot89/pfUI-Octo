@@ -165,19 +165,38 @@ pfUI:RegisterModule("qol-options", "vanilla:tbc", function ()
     Drop(p, "Item level", "An item's level beside its name (ClassicAPI).", SHOWN, "tooltip", nil, "x_ilvl", Live)
     Drop(p, "Where it drops", "Who drops the item and how often, where it is found, who sells it (pfQuest's "
       .. "database). Hold Shift for more of them.", SHOWN, "tooltip", nil, "x_sources", Live)
+    -- (27 Nov 2026, Lobo: "some mobs take almost the whole screen long with how much info they get in there")
+    Drop(p, "Drops listed", "How many creatures \"Drops from\" names before \"N more - hold Shift\".",
+      { { key = "1", label = "1" }, { key = "2", label = "2" }, { key = "3", label = "3" }, { key = "5", label = "5" }, { key = "8", label = "8" } },
+      "tooltip", nil, "x_srcrows", Live)
     Drop(p, "Disenchants into", "What the item turns into, the Enchanting it needs and what that is worth at the "
       .. "auction house.", DE, "tooltip", nil, "x_disenchant", Live)
     Drop(p, "Herbs and ore", "On a herb or ore node: the skill it needs against yours (red can't, orange / yellow / "
       .. "green how often it teaches you) and what it gives.", PROF, "tooltip", nil, "x_gather", Live)
     Drop(p, "Skinning", "On a creature you can skin: the Skinning it needs and, once it is dead, what it gives.",
       PROF, "tooltip", nil, "x_skin", Live)
-    Drop(p, "Mob armor, hits and resists", "An enemy's armor and how much of your physical damage it takes off, its "
-      .. "melee hits and speed, and how much of your spells each school's resistance takes on average (MobStats' "
-      .. "formulas; MobStats' own lines are hidden while these are on).", SHOWN, "tooltip", nil, "x_mobstats", Live)
+    Drop(p, "Mob stats (all three)", "An enemy's melee hits, armor and resistances (MobStats' formulas; MobStats' own "
+      .. "lines are hidden while these are on). Never = none of the three below.", SHOWN, "tooltip", nil, "x_mobstats", Live)
+    Drop(p, "  Mob hits", "Its melee hit, how often and its damage per second, coloured by how hard it hits you.",
+      SHOWN, "tooltip", nil, "x_mobhits", Live)
+    Drop(p, "  Mob armor", "Its armor and how much of your physical damage that takes off.", SHOWN, "tooltip", nil, "x_mobarmor", Live)
+    Drop(p, "  Mob resists", "How much of your spells each school's resistance takes on average.", SHOWN, "tooltip", nil, "x_mobresist", Live)
     -- (20 Nov 2026, Wolfahrt: resistances in % "and not raw values. I did not find where to configure it")
     Drop(p, "Resists shown as", "The resistance itself (75), the share of your spells it takes (20%), or both: "
       .. "Fire 75 (20%).", { { key = "both", label = "Both: 75 (20%)" }, { key = "raw", label = "Resistance: 75" },
       { key = "pct", label = "Spell share: 20%" } }, "tooltip", nil, "x_resistform", Live)
+    -- the other add-on lines in item tooltips, here too so every part is in one place (also on their own pages)
+    if C.octoloot then
+      Drop(p, "OctoLoot lines", "The OctoLoot block: set, swaps, pages, recipe, what it is used in. Never = none of it "
+        .. "(also on the OctoLoot page).", { { key = "1", label = "Always" }, { key = "0", label = "Never" } }, "octoloot", nil, "tip", Live)
+      Drop(p, "  Swaps for / Swapped from", "What the item swaps for and what swaps into it.", SHOWN, "octoloot", nil, "tipswap", Live)
+      Drop(p, "  Faction / PvP / event pages", "The OctoLoot pages the item is on.", SHOWN, "octoloot", nil, "tippages", Live)
+      Drop(p, "  Used in", "\"Used in Alchemy 3, Blacksmithing 11 ...\" on reagents (the long one).", SHOWN, "octoloot", nil, "tipreagent", Live)
+      Chk(p, "  Used in: only my professions", "\"Used in\" names only the professions this character has.", "octoloot", nil, "tipmine", Live)
+    end
+    if C.auction then
+      Chk(p, "Auction price", "\"Auction:\" - the item's usual price at the auction house (also on the Auctions page).", "auction", nil, "tooltip", Live)
+    end
 
     W.Card(p, "Screen and messages")
     Chk(p, "Glow: in combat", "A soft glow round the screen's edge while you fight.", "appearance", "infight", "screen")
