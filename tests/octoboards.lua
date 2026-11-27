@@ -117,3 +117,30 @@ do
   ok(d.others.Old == nil and d.others.New and n == LB.KEEP_MAX, "players unseen 60 days go, at most " .. LB.KEEP_MAX .. " kept (" .. n .. ")")
   d.others = keep
 end
+
+-- (27 Nov 2026) the Realm page (first tab) and the options shortcut
+do
+  local keep = rawget(pfUI, "boardsChronicle")
+  pfUI.boardsChronicle = { updated = "27 Nov 2026 06:00", days = 7, raids = 563, players = 2830, realms = { "C'Thun", "N'Zoth", "Y'Shaarj" },
+    boards = { realmwar = { all = { { "N'Zoth", "", "", "N'Zoth", 2680, "517 raids" }, { "Y'Shaarj", "", "", "Y'Shaarj", 271, "37 raids" }, { "C'Thun", "", "", "C'Thun", 49, "9 raids" } } },
+      topdps = { all = { { "Dushegub", "WARLOCK", "Sons of Mukla", "Y'Shaarj", 2431, "on Ragnaros" }, { "Kael", "MAGE", "X", "N'Zoth", 2200, "on Garr" } } },
+      tophps = { all = {} }, topparse = { all = { { "Shikiwa", "PALADIN", "Ost Ardent", "N'Zoth", 99.9, "14 boss kills" } } },
+      guildweek = { all = { { "Oktagon", "", "", "N'Zoth", 120, "6 raids" } } }, speed = { all = { { "Molten Core", "", "Skull Emoji", "N'Zoth", 30.7, "33 players" } } } } }
+  local okR, errR = pcall(LB.Show)
+  ok(okR and LB.ui.tab == "realm" and LB.ui.frame.pages.realm:IsShown(), "OctoBoards opens on the Realm page " .. tostring(errR or ""))
+  local p = LB.ui.frame.pages.realm
+  ok(p.hero[1].name:GetText() == "Dushegub" and p.hero[2].name:GetText() == "Nobody yet", "top DPS card filled, an empty board says so")
+  ok(LB.ui.CValue(30.7, "mins") == "30:42", "a clear time reads as minutes:seconds")
+  LB.ui.cscope = "N'Zoth"
+  local okS = pcall(LB.ui.PaintRealm)
+  ok(okS, "a realm chip repaints the page")
+  LB.ui.cscope = "all"
+  pcall(LB.Show, "awards")
+  local hidden = true
+  for _, b in pairs(p.scopes) do if b:IsShown() then hidden = false end end
+  ok(hidden, "the realm chips go away on the other tabs")
+  local O = pfUI.octoui and pfUI.octoui.Options
+  ok(not O or not O.logo or O.leaderboards, "Realm Leaderboards shortcut in the options sidebar")
+  pfUI.boardsChronicle = keep
+  pfOctoBoards:Hide()
+end

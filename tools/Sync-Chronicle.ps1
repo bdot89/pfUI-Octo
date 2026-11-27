@@ -91,7 +91,8 @@ foreach ($r in $unique) {
   $n++
   $file = Join-Path $Cache ($r.id + ".json")
   $rec = $null
-  if (Test-Path $file) {
+  # (27 Nov 2026) a cached raid from before hps / duration were kept is read again once
+  if ((Test-Path $file) -and ((Get-Content $file -TotalCount 1 -Encoding UTF8) -match '"hps"')) {
     $rec = Get-Content $file -Raw -Encoding UTF8 | ConvertFrom-Json
   } else {
     $rec = Get-Api ("/raidlogs/instances/{0}/ranking-records" -f $r.id)
@@ -100,7 +101,7 @@ foreach ($r in $unique) {
     $slim = @($rec | Where-Object { $_ } | ForEach-Object {
       [pscustomobject]@{ e = $_.encounter_name; g = $_.player_guid; n = $_.player_name; c = $_.player_class; s = $_.player_spec
         ro = $_.player_role; dm = $_.damage_done; hl = $_.healing_done; ab = $_.absorbed_done; al = $_.alive_percentage
-        de = $_.player_deaths; dps = $_.dps; t = $_.killed_at
+        de = $_.player_deaths; dps = $_.dps; hps = $_.hps; du = $_.duration_secs; t = $_.killed_at
         dp = $(if ($_.dps_parse) { $_.dps_parse.display_score } else { $null })
         hp = $(if ($_.hps_parse) { $_.hps_parse.display_score } else { $null }) }
     })
@@ -140,7 +141,7 @@ foreach ($item in $records) {
   $seenKill[$kk] = $true
   $pk = $realm + "/" + $x.n
   if (-not $PL.ContainsKey($pk)) {
-    $PL[$pk] = @{ n = $x.n; c = $x.c; g = $r.guild.name; r = $realm; kills = 0; dsum = 0.0; dn = 0; hsum = 0.0; hn = 0; perfect = 0
+    $PL[$pk] = @{ n = $x.n; c = $x.c; g = $r.guild.name; r = $realm; kills = 0; bestDps = 0.0; bestDpsOn = ""; bestHps = 0.0; bestHpsOn = ""; dsum = 0.0; dn = 0; hsum = 0.0; hn = 0; perfect = 0
       alive = 0; ab = 0.0; hl = 0.0; dm = 0.0; de = 0; raids = @{}; role = $x.ro }
   }
   $p = $PL[$pk]
@@ -150,6 +151,8 @@ foreach ($item in $records) {
   if ([double]$x.al -ge 100) { $p.alive++ }
   $p.ab += [double]$x.ab; $p.hl += [double]$x.hl; $p.dm += [double]$x.dm; $p.de += [int]$x.de
   $p.raids[$r.id] = $true
+  if ([double]$x.dps -gt $p.bestDps -and $x.ro -ne "heal") { $p.bestDps = [double]$x.dps; $p.bestDpsOn = $x.e }
+  if ([double]$x.hps -gt $p.bestHps) { $p.bestHps = [double]$x.hps; $p.bestHpsOn = $x.e }
   if ($x.ro) { $p.role = $x.ro }
   if ([int]$x.de -gt 0) { Add-To $bossDeaths $realm $x.e @{ n = $x.e } "de" ([int]$x.de) }
 }
@@ -179,6 +182,9 @@ $Boards["pacifist"] = Top @($players | Where-Object { $_.role -eq "heal" -and $_
 $Boards["floor"] = Top $players { param($p) $p.de } { param($p) "in {0} kills" -f $p.kills }
 $Boards["glass"] = Top @($players | Where-Object { (& $avgD $_) -ge 75 }) { param($p) $p.de } { param($p) "avg parse {0}" -f (& $avgD $p) }
 $Boards["loyal"] = Top $players { param($p) $p.raids.Count } { param($p) "{0} boss kills" -f $p.kills }
+# (27 Nov 2026, user: "First page should be top DPS this week etc top parser") best single boss kill this week
+$Boards["topdps"] = Top $players { param($p) [Math]::Round($p.bestDps) } { param($p) "on " + $p.bestDpsOn }
+$Boards["tophps"] = Top $players { param($p) [Math]::Round($p.bestHps) } { param($p) "on " + $p.bestHpsOn }
 # best of each class
 $classTop = @{}
 foreach ($sc in @("all") + $realms) {
@@ -224,6 +230,18 @@ foreach ($rn in $realms) {
   $war += [pscustomobject]@{ n = $rn; c = ""; g = ""; r = $rn; v = [double]$k; x = ("{0} raids" -f @($unique | Where-Object { $_.realm.name -eq $rn }).Count) }
 }
 $Boards["realmwar"] = @{ "all" = @($war | Sort-Object -Property v -Descending) }
+# (27 Nov 2026) the fastest full clear of each raid this week: Chronicle's own speedrun list (one request a raid)
+$speed = @()
+foreach ($inst in @("Molten Core", "Blackwing Lair", "Onyxia's Lair", "Zul'Gurub", "Ruins of Ahn'Qiraj", "Temple of Ahn'Qiraj", "Naxxramas", "Lower Tower of Karazhan")) {
+  $j = Get-Api ("/leaderboards/speedruns?instance_name={0}&timing=full&since_days={1}&page_size=5" -f [Uri]::EscapeDataString($inst), $Days)
+  $best = @($j.entries | Where-Object { $_ -and $_.canonical }) | Sort-Object { [double]$_.canonical.duration_ms } | Select-Object -First 1
+  if ($best) {
+    $speed += [pscustomobject]@{ n = $inst; c = ""; g = $best.guild_name; r = $best.realm_name
+      v = [Math]::Round([double]$best.canonical.duration_ms / 60000, 1); x = ("{0} players" -f $best.player_count) }
+  }
+}
+$Boards["speed"] = @{ "all" = @($speed) }
+foreach ($rn in $realms) { $Boards["speed"][$rn] = @($speed | Where-Object { $_.r -eq $rn }) }
 # the boss that killed the most raiders
 $bb = @{}
 foreach ($sc in $bossDeaths.Keys) {

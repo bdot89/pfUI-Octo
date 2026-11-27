@@ -168,7 +168,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     -- tabs: words on the banner, the open one white with an accent line under it
     f.tabs = {}
     local prev
-    for _, t in ipairs({ { "awards", "Awards" }, { "boards", "Boards" }, { "community", "Community" }, { "player", "Player" } }) do
+    for _, t in ipairs({ { "realm", "Realm" }, { "awards", "Awards" }, { "boards", "Boards" }, { "community", "Community" }, { "player", "Player" } }) do
       local key, label = t[1], t[2]
       local b = CreateFrame("Button", nil, f)
       b:SetHeight(30)
@@ -187,16 +187,17 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
       b:SetScript("OnLeave", function() UI.PaintTabs() end)
       f.tabs[key] = b
     end
-    -- (tabs read left to right: Awards Boards Player - the loop placed them right to left)
+    -- (tabs read left to right: Realm Awards Boards Community Player - the loop placed them right to left)
     f.tabs.player:ClearAllPoints() f.tabs.player:SetPoint("TOPRIGHT", f, "TOPRIGHT", -46, -16)
     f.tabs.community:ClearAllPoints() f.tabs.community:SetPoint("RIGHT", f.tabs.player, "LEFT", -2, 0)
     f.tabs.boards:ClearAllPoints() f.tabs.boards:SetPoint("RIGHT", f.tabs.community, "LEFT", -2, 0)
     f.tabs.awards:ClearAllPoints() f.tabs.awards:SetPoint("RIGHT", f.tabs.boards, "LEFT", -2, 0)
+    f.tabs.realm:ClearAllPoints() f.tabs.realm:SetPoint("RIGHT", f.tabs.awards, "LEFT", -2, 0)
     -- pages
     f.pages = {}
-    for _, k in ipairs({ "awards", "boards", "community", "player" }) do
+    for _, k in ipairs({ "realm", "awards", "boards", "community", "player" }) do
       local p = CreateFrame("Frame", nil, f)
-      p:SetPoint("TOPLEFT", f, "TOPLEFT", 18, k == "awards" and (-BANNER - 6) or -92)
+      p:SetPoint("TOPLEFT", f, "TOPLEFT", 18, (k == "awards" or k == "realm") and (-BANNER - 6) or -92)
       -- (26 Nov 2026, seen in game: an empty band under the art and the last cards past the bottom) Boards and Player
       -- start over the faded part of the banner
       p:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -18, 16)
@@ -207,6 +208,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     UI.BuildBoards(f.pages.boards)
     UI.BuildPlayer(f.pages.player)
     UI.BuildCommunity(f.pages.community)
+    UI.BuildRealm(f.pages.realm)
     f:SetScript("OnUpdate", function()
       if (this.at or 0) > GetTime() then return end
       this.at = GetTime() + 2
@@ -222,7 +224,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   end
   function UI.Open(tab, who)
     local f = UI.Build()
-    UI.tab = tab or UI.tab or "awards"
+    UI.tab = tab or "realm"
     if who then UI.who = who end
     for k, p in pairs(f.pages) do if k == UI.tab then p:Show() else p:Hide() end end
     UI.PaintTabs()
@@ -232,7 +234,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   LB.Show = UI.Open
   function UI.Refresh()
     if not UI.frame or not UI.frame:IsShown() then return end
-    if UI.tab == "awards" then UI.PaintAwards() elseif UI.tab == "boards" then UI.PaintBoards() elseif UI.tab == "community" then UI.PaintCommunity() else UI.PaintPlayer() end
+    if UI.tab == "realm" then UI.PaintRealm() elseif UI.tab == "awards" then UI.PaintAwards() elseif UI.tab == "boards" then UI.PaintBoards() elseif UI.tab == "community" then UI.PaintCommunity() else UI.PaintPlayer() end
   end
   -- the banner's art and its big line
   function UI.Banner(zone, kind, line)
@@ -277,8 +279,10 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
       p.podium[i] = col
     end
     p.podiumLabel = Text(p, 11, BODY, PAL.label[1], PAL.label[2], PAL.label[3])
-    p.podiumLabel:SetPoint("TOP", p, "TOP", 0, -2)
-    p.podiumLabel:SetText("TOP DAMAGE")
+    -- (27 Nov 2026, seen in game: the crown sat over the centred label) the label at the left, in gold
+    p.podiumLabel:SetPoint("TOPLEFT", p, "TOPLEFT", 2, -2)
+    p.podiumLabel:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+    p.podiumLabel:SetText("TONIGHT'S TOP DAMAGE")
     -- the award cards, three to a row
     p.cards = {}
     local cw, ch = 274, 62
@@ -705,6 +709,8 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     { "guildweek", "Guild of the week", "INV_Misc_Head_Dragon_01", "Realm wars", "n", "guild", "Most bosses killed" },
     { "turnout", "Biggest turnout", "Spell_Holy_PrayerOfHealing02", "Realm wars", "n", "raid", "The most players in one raid" },
     { "unfinished", "Unfinished business", "Spell_Shadow_DeathScream", "Realm wars", "n", "guild", "Bosses pulled but not killed - the most stubborn guilds" },
+    { "topdps", "Top DPS", "Spell_Fire_Fireball02", "Hall of fame", "n", "player", "The highest damage per second on one boss this week" },
+    { "tophps", "Top healer", "Spell_Holy_Heal", "Hall of fame", "n", "player", "The highest healing per second on one boss this week" },
     { "topparse", "Top parse", "Spell_Fire_Fireball02", "Hall of fame", "parse", "player", "Best average score (out of 100) against their class, 4+ boss kills" },
     { "classtop", "Best of each class", "INV_Crown_01", "Hall of fame", "parse", "player", "The number one of every class" },
     { "perfect", "Perfect 99", "Spell_Holy_SealOfMight", "Hall of fame", "n", "player", "Boss kills with a score of 99 or more" },
@@ -715,6 +721,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
     { "floor", "Floor inspector", "INV_Misc_Bone_HumanSkull_01", "Hall of fame", "n", "player", "Most deaths on bosses" },
     { "rising", "Rising star", "Ability_Rogue_Sprint", "Hall of fame", "parse", "player", "Biggest jump in average score since last week" },
     { "loyal", "Loyal raider", "INV_Misc_Book_09", "Hall of fame", "n", "player", "Most raids this week" },
+    { "speed", "Fastest clears", "Ability_Rogue_Sprint", "Raid life", "mins", "raid", "Each raid's fastest full clear this week (Chronicle's speedruns)" },
     { "nightowl", "Night owls", "Spell_Nature_Sleep", "Raid life", "none", "raid", "The latest raid starts (server time)" },
     { "marathon", "Marathon", "Ability_Mount_Gryphon_01", "Raid life", "mins", "raid", "The longest raid nights" },
     { "bossbully", "Boss of the week", "Spell_Fire_Fireball02", "Raid life", "n", "boss", "The boss that killed the most raiders" },
@@ -726,6 +733,7 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
   function UI.CValue(v, how)
     v = tonumber(v) or 0
     if how == "parse" then return string.format("%.1f", v) end
+    if how == "mins" and v ~= floor(v) then return string.format("%d:%02d", floor(v), floor((v - floor(v)) * 60 + .5)) end
     if how == "mins" then local h = floor(v / 60) return h > 0 and (h .. "h " .. math.mod(v, 60) .. "m") or (v .. "m") end
     if how == "none" then return "" end
     return LB.Num(v, how == "big" and "big" or nil)
@@ -744,20 +752,20 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
         y = y + 16
       end
       local b = CreateFrame("Button", nil, p)
-      b:SetWidth(186) b:SetHeight(22)
+      b:SetWidth(186) b:SetHeight(19)
       b:SetPoint("TOPLEFT", p, "TOPLEFT", 0, -y)
       b.bg = Fill(b, PAL.card, .9)
       b.bg:SetAllPoints(b)
       b.edge = Fill(b, PAL.accent, 1, "BORDER")
       b.edge:SetPoint("TOPLEFT", b, "TOPLEFT") b.edge:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT") b.edge:SetWidth(3)
-      b.icon = Icon(b, 18, ICON .. d[3])
-      b.icon:SetPoint("LEFT", b, "LEFT", 6, 0)
-      b.text = Text(b, 13, TITLE)
+      b.icon = Icon(b, 16, ICON .. d[3])
+      b.icon:SetPoint("LEFT", b, "LEFT", 5, 0)
+      b.text = Text(b, 12, TITLE)
       b.text:SetPoint("LEFT", b.icon, "RIGHT", 7, 0)
       b.text:SetText(d[2])
       b:SetScript("OnClick", function() UI.cboard = key UI.PaintCommunity() end)
       p.list[key] = b
-      y = y + 24
+      y = y + 21
     end
     p.right = CreateFrame("Frame", nil, p)
     p.right:SetPoint("TOPLEFT", p, "TOPLEFT", 202, 0)
@@ -910,6 +918,9 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
         .. (e[6] ~= "" and (" (" .. e[6] .. ")") or ""))
     end
     table.insert(lines, "_from Chronicle via pfUI Octo's OctoBoards_")
+    UI.CopyLines(lines)
+  end
+  function UI.CopyLines(lines)
     local text = table.concat(lines, "\n")
     local lc = pfUI.api and pfUI.api.libclient
     if lc and lc.Copy and lc.Copy(text, true) then
@@ -918,5 +929,259 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ccffOctoBoards|r: copying needs ClassicAPI. The text:")
       for l in string.gfind(text, "[^\n]+") do DEFAULT_CHAT_FRAME:AddMessage(l) end
     end
+  end
+
+  -- ------------------------------------------------------------------ Realm (the first page)
+  -- (27 Nov 2026, user: "First page should be top DPS this week etc top parser ... live correct and from the source ...
+  -- interactive") this week's champions from Chronicle (pfUI.boardsChronicle, tools\Sync-Chronicle.ps1): three big cards
+  -- (Top DPS, Top healer, Top parser) with their runners-up, the realm war as one bar, then four small cards. Every card
+  -- opens its board on the Community tab; names open their player card when we know them. Realm chips on the banner.
+  UI.HERO = {
+    { "topdps", "TOP DPS", "Spell_Fire_Fireball02", "dps" },
+    { "tophps", "TOP HEALER", "Spell_Holy_Heal", "hps" },
+    { "topparse", "TOP PARSER", "INV_Crown_01", "score" },
+  }
+  UI.SMALL = {
+    { "guildweek", "GUILD OF THE WEEK", "INV_Misc_Head_Dragon_01" },
+    { "speed", "FASTEST CLEAR", "Ability_Rogue_Sprint" },
+    { "alive", "NEVER DIES", "Spell_Holy_DispelMagic" },
+    { "floor", "FLOOR INSPECTOR", "INV_Misc_Bone_HumanSkull_01" },
+  }
+  local function Hover(f, bg, c)
+    f:SetScript("OnEnter", function() bg:SetVertexColor(c[1] + .05, c[2] + .05, c[3] + .06, 1) end)
+    f:SetScript("OnLeave", function() bg:SetVertexColor(c[1], c[2], c[3], .95) end)
+  end
+  function UI.BuildRealm(p)
+    local W3, H1 = 274, 172
+    p.hero = {}
+    for i, d in ipairs(UI.HERO) do
+      local key = d[1]
+      local c = CreateFrame("Button", nil, p)
+      c:SetWidth(W3) c:SetHeight(H1)
+      c:SetPoint("TOPLEFT", p, "TOPLEFT", (i - 1) * (W3 + 11), 0)
+      local bg = Fill(c, PAL.card, .95)
+      bg:SetAllPoints(c)
+      Hover(c, bg, PAL.card)
+      c.top = Fill(c, GOLD, 1, "BORDER")
+      c.top:SetPoint("TOPLEFT", c, "TOPLEFT") c.top:SetPoint("TOPRIGHT", c, "TOPRIGHT") c.top:SetHeight(2)
+      c.kind = Icon(c, 20, ICON .. d[3])
+      c.kind:SetPoint("TOPLEFT", c, "TOPLEFT", 12, -12)
+      c.label = Text(c, 12, TITLE, GOLD[1], GOLD[2], GOLD[3])
+      c.label:SetPoint("LEFT", c.kind, "RIGHT", 8, 0)
+      c.label:SetText(d[2])
+      c.icon = Icon(c, 44)
+      c.icon:SetPoint("TOPLEFT", c, "TOPLEFT", 12, -42)
+      c.ring = CreateFrame("Frame", nil, c)
+      c.ring:SetPoint("TOPLEFT", c.icon, "TOPLEFT", -1, 1) c.ring:SetPoint("BOTTOMRIGHT", c.icon, "BOTTOMRIGHT", 1, -1)
+      Edge(c.ring, GOLD, 1)
+      c.name = Text(c, 20, TITLE)
+      c.name:SetPoint("TOPLEFT", c.icon, "TOPRIGHT", 10, 0)
+      c.guild = Text(c, 11, BODY, PAL.dim[1], PAL.dim[2], PAL.dim[3])
+      c.guild:SetPoint("TOPLEFT", c.name, "BOTTOMLEFT", 1, -1)
+      c.value = Text(c, 26, TITLE, 1, 1, 1)
+      c.value:SetPoint("TOPLEFT", c.icon, "BOTTOMLEFT", 0, -8)
+      c.unit = Text(c, 12, BODY, PAL.dim[1], PAL.dim[2], PAL.dim[3])
+      c.unit:SetPoint("BOTTOMLEFT", c.value, "BOTTOMRIGHT", 6, 4)
+      c.extra = Text(c, 11, BODY, PAL.dim[1], PAL.dim[2], PAL.dim[3])
+      c.extra:SetPoint("TOPLEFT", c.value, "BOTTOMLEFT", 1, -2)
+      c.runners = Text(c, 11, BODY, .8, .81, .85)
+      c.runners:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 12, 10)
+      c.runners:SetPoint("RIGHT", c, "RIGHT", -10, 0)
+      c.runners:SetJustifyH("LEFT")
+      c:SetScript("OnClick", function() UI.cboard = key UI.Open("community") end)
+      p.hero[i] = c
+    end
+    -- the realm war: one bar, a part per realm
+    p.war = CreateFrame("Button", nil, p)
+    p.war:SetHeight(54)
+    p.war:SetPoint("TOPLEFT", p, "TOPLEFT", 0, -(H1 + 12))
+    p.war:SetPoint("RIGHT", p, "RIGHT", 0, 0)
+    local wbg = Fill(p.war, PAL.card, .95)
+    wbg:SetAllPoints(p.war)
+    p.war.label = Text(p.war, 12, TITLE, GOLD[1], GOLD[2], GOLD[3])
+    p.war.label:SetPoint("TOPLEFT", p.war, "TOPLEFT", 12, -6)
+    p.war.label:SetText("REALM WARS  -  BOSS KILLS THIS WEEK")
+    p.war.parts = {}
+    for i = 1, 4 do
+      local seg = p.war:CreateTexture(nil, "ARTWORK")
+      seg:SetTexture(WHITE)
+      seg:SetHeight(20)
+      local t = Text(p.war, 13, TITLE, 1, 1, 1)
+      t:SetPoint("LEFT", seg, "LEFT", 8, 0)
+      p.war.parts[i] = { bar = seg, text = t }
+    end
+    p.war:SetScript("OnClick", function() UI.cboard = "realmwar" UI.Open("community") end)
+    -- four small cards
+    p.small = {}
+    local W4 = 205
+    for i, d in ipairs(UI.SMALL) do
+      local key = d[1]
+      local c = CreateFrame("Button", nil, p)
+      c:SetWidth(W4) c:SetHeight(76)
+      c:SetPoint("TOPLEFT", p, "TOPLEFT", (i - 1) * (W4 + 8.6), -(H1 + 12 + 54 + 12))
+      local bg = Fill(c, PAL.card, .95)
+      bg:SetAllPoints(c)
+      Hover(c, bg, PAL.card)
+      c.icon = Icon(c, 36, ICON .. d[3])
+      c.icon:SetPoint("TOPLEFT", c, "TOPLEFT", 10, -10)
+      c.label = Text(c, 11, BODY, PAL.label[1], PAL.label[2], PAL.label[3])
+      c.label:SetPoint("TOPLEFT", c.icon, "TOPRIGHT", 8, 1)
+      c.label:SetText(d[2])
+      c.name = Text(c, 15, TITLE)
+      c.name:SetPoint("LEFT", c.icon, "RIGHT", 8, -3)
+      c.name:SetPoint("RIGHT", c, "RIGHT", -6, 0)
+      c.name:SetJustifyH("LEFT")
+      c.value = Text(c, 11, BODY, .85, .86, .9)
+      c.value:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 10, 8)
+      c.value:SetPoint("RIGHT", c, "RIGHT", -6, 0)
+      c.value:SetJustifyH("LEFT")
+      c:SetScript("OnClick", function() UI.cboard = key UI.Open("community") end)
+      p.small[i] = c
+    end
+    p.empty = Text(p, 14, BODY, PAL.dim[1], PAL.dim[2], PAL.dim[3])
+    p.empty:SetPoint("CENTER", p, "CENTER", 0, 0)
+    p.foot = Text(p, 11, BODY, PAL.label[1], PAL.label[2], PAL.label[3])
+    p.foot:SetPoint("BOTTOMLEFT", p, "BOTTOMLEFT", 0, 4)
+    p.copy = Chip(p, "Copy for Discord", 140, function() UI.CopyRealm() end, "This week's champions as text with emojis, ready for Discord.")
+    p.copy:SetPoint("BOTTOMRIGHT", p, "BOTTOMRIGHT", 0, 0)
+    -- realm chips on the banner
+    p.scopes = {}
+  end
+  function UI.RealmChips(p)
+    local data = Data()
+    local names = { "all" }
+    for _, r in ipairs(data and data.realms or {}) do table.insert(names, r) end
+    if p.scopeKey == table.concat(names, "^") then return end
+    p.scopeKey = table.concat(names, "^")
+    for _, b in pairs(p.scopes) do b:Hide() end
+    p.scopes = {}
+    local prev
+    for i = table.getn(names), 1, -1 do
+      local key = names[i]
+      local b = Chip(UI.frame, key == "all" and "All realms" or key, key == "all" and 84 or 74, function() UI.cscope = key UI.PaintRealm() end)
+      b:SetFrameLevel(UI.frame:GetFrameLevel() + 5)
+      if prev then b:SetPoint("RIGHT", prev, "LEFT", -4, 0) else b:SetPoint("BOTTOMRIGHT", UI.frame.art, "BOTTOMRIGHT", -18, 30) end
+      prev = b
+      p.scopes[key] = b
+    end
+  end
+  local function Who(e)
+    if not e then return "" end
+    return e[1]
+  end
+  function UI.PaintRealm()
+    local p = UI.frame.pages.realm
+    local data = Data()
+    UI.RealmChips(p)
+    for k, b in pairs(p.scopes) do b.Lit(k == UI.cscope) b:Show() end
+    local scope = UI.cscope or "all"
+    local raids = 0
+    for _, e in ipairs(UI.CRows("realmwar", "all")) do if scope == "all" or e[1] == scope then local _, _, n = string.find(e[6] or "", "(%d+)") raids = raids + (tonumber(n) or 0) end end
+    UI.Banner(nil, nil, data and ((scope == "all" and "All realms" or scope) .. "  -  this week  -  " .. raids .. " raids uploaded to Chronicle") or "")
+    UI.frame.art:SetTexture(GLUE .. "LoadScreenBlackWingLair")
+    UI.frame.place:SetText("Realm Leaderboards")
+    if not data then
+      p.empty:SetText("No Chronicle data yet - it comes with pfUI Octo's updates (or run tools\\Sync-Chronicle.ps1).")
+      for _, c in ipairs(p.hero) do c:Hide() end
+      for _, c in ipairs(p.small) do c:Hide() end
+      p.war:Hide()
+      return
+    end
+    p.empty:SetText("")
+    p.war:Show()
+    for i, d in ipairs(UI.HERO) do
+      local c = p.hero[i]
+      local rows = UI.CRows(d[1], scope)
+      local e = rows[1]
+      c:Show()
+      if e then
+        ClassIcon(c.icon.tex, e[2])
+        c.name:SetText(e[1])
+        c.name:SetTextColor(LB.ClassColor(e[2]))
+        c.guild:SetText((e[3] ~= "" and ("<" .. e[3] .. ">") or "") .. (scope == "all" and ("  " .. e[4]) or ""))
+        c.value:SetText(d[4] == "score" and string.format("%.1f", tonumber(e[5]) or 0) or LB.Num(e[5]))
+        c.unit:SetText(d[4] == "score" and "avg score" or d[4])
+        c.extra:SetText(e[6] or "")
+        local r = {}
+        for k = 2, 3 do
+          local x = rows[k]
+          if x then table.insert(r, "|cff" .. LB.ClassHex(x[2]) .. k .. ". " .. x[1] .. "|r  " .. (d[4] == "score" and string.format("%.1f", tonumber(x[5]) or 0) or LB.Num(x[5]))) end
+        end
+        c.runners:SetText(table.concat(r, "     "))
+      else
+        c.icon.tex:SetTexture(ICON .. "INV_Misc_QuestionMark")
+        c.name:SetText("Nobody yet") c.name:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3])
+        c.guild:SetText("") c.value:SetText("") c.unit:SetText("") c.extra:SetText("") c.runners:SetText("")
+      end
+    end
+    -- the war bar
+    local war = UI.CRows("realmwar", "all")
+    local total = 0
+    for _, e in ipairs(war) do total = total + (tonumber(e[5]) or 0) end
+    local width = (p.war:GetWidth() or 844) - 24
+    local x = 12
+    local idx = {}
+    for i, r in ipairs(data.realms or {}) do idx[r] = i end
+    for i = 1, 4 do
+      local part, e = p.war.parts[i], war[i]
+      if e and total > 0 then
+        local w = math.max(60, width * (tonumber(e[5]) or 0) / total)
+        if i == table.getn(war) then w = math.max(60, width + 12 - x) end
+        local col = UI.REALMCOL[idx[e[1]] or i]
+        part.bar:ClearAllPoints()
+        part.bar:SetPoint("BOTTOMLEFT", p.war, "BOTTOMLEFT", x, 8)
+        part.bar:SetWidth(w - 2)
+        part.bar:SetVertexColor(col[1], col[2], col[3], (scope == "all" or scope == e[1]) and .85 or .3)
+        part.text:SetText(e[1] .. "  " .. LB.Num(e[5]))
+        part.bar:Show() part.text:Show()
+        x = x + w
+      else
+        part.bar:Hide() part.text:Hide()
+      end
+    end
+    for i, d in ipairs(UI.SMALL) do
+      local c = p.small[i]
+      local rows = UI.CRows(d[1], scope)
+      local e = rows[1]
+      if d[1] == "speed" then
+        -- the fastest of all raids' best clears shown: Molten Core first when it is there
+        for _, x2 in ipairs(rows) do if x2[1] == "Molten Core" then e = x2 end end
+      end
+      if e then
+        if d[1] == "guildweek" then c.name:SetText("<" .. e[1] .. ">") c.name:SetTextColor(1, .82, .4)
+          c.value:SetText(LB.Num(e[5]) .. " bosses  -  " .. (e[6] or "") .. (scope == "all" and ("  -  " .. e[4]) or ""))
+        elseif d[1] == "speed" then c.name:SetText("<" .. e[3] .. ">") c.name:SetTextColor(1, .82, .4)
+          c.value:SetText(e[1] .. " in " .. UI.CValue(e[5], "mins"))
+        else c.name:SetText(e[1]) c.name:SetTextColor(LB.ClassColor(e[2]))
+          c.value:SetText(LB.Num(e[5]) .. "  " .. (e[6] or "")) end
+      else
+        c.name:SetText("Nobody yet") c.name:SetTextColor(PAL.dim[1], PAL.dim[2], PAL.dim[3]) c.value:SetText("")
+      end
+      c:Show()
+    end
+    p.foot:SetText("Live from Chronicle (octo.chronicleclassic.com) - " .. (data.raids or 0) .. " raids, " .. (data.players or 0)
+      .. " players, last " .. (data.days or 7) .. " days - updated " .. (data.updated or "?") .. ". Click any card for its full board.")
+  end
+  -- hide the banner chips on the other tabs
+  local openTab = UI.Open
+  UI.Open = function(tab, who)
+    openTab(tab, who)
+    local p = UI.frame and UI.frame.pages.realm
+    if p then for _, b in pairs(p.scopes) do if UI.tab == "realm" then b:Show() else b:Hide() end end end
+  end
+  LB.Show = UI.Open
+  function UI.CopyRealm()
+    local scope = UI.cscope or "all"
+    local lines = { ":trophy: **Realm Leaderboards** - " .. (scope == "all" and "all realms" or scope) .. " - this week" }
+    for _, d in ipairs(UI.HERO) do
+      local e = UI.CRows(d[1], scope)[1]
+      if e then table.insert(lines, ":crown: " .. d[2] .. ": **" .. e[1] .. "**" .. (e[3] ~= "" and (" <" .. e[3] .. ">") or "") .. " - "
+        .. (d[4] == "score" and string.format("%.1f", tonumber(e[5]) or 0) or LB.Num(e[5])) .. " " .. (d[4] == "score" and "avg score" or d[4])
+        .. (e[6] ~= "" and (" (" .. e[6] .. ")") or "")) end
+    end
+    local g = UI.CRows("guildweek", scope)[1]
+    if g then table.insert(lines, ":european_castle: Guild of the week: **<" .. g[1] .. ">** - " .. LB.Num(g[5]) .. " bosses") end
+    table.insert(lines, "_live from Chronicle via pfUI Octo's OctoBoards_")
+    UI.CopyLines(lines)
   end
 end)
