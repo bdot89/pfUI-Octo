@@ -131,6 +131,25 @@ do
   local p = LB.ui.frame.pages.realm
   ok(p.hero[1].name:GetText() == "Dushegub" and p.hero[2].name:GetText() == "Nobody yet", "top DPS card filled, an empty board says so")
   ok(LB.ui.CValue(30.7, "mins") == "30:42", "a clear time reads as minutes:seconds")
+  -- (27 Nov 2026, user's screenshot: "Y'Shaarj 22" ran into "C'Thun 47", the bar stopped short) each part fits its
+  -- words, none overlaps the next, and the last reaches the end
+  do
+    local parts, prevEnd, fits, apart = p.war.parts, nil, true, true
+    local lastEnd
+    for i = 1, 3 do
+      local b = parts[i].bar
+      local _, _, _, x = b:GetPoint(1)
+      local w = b:GetWidth() + 2
+      if (parts[i].text:GetStringWidth() + 14) > w then fits = false end
+      if prevEnd and x < prevEnd - .5 then apart = false end
+      prevEnd = x + w
+      lastEnd = x + w
+    end
+    local full = (p.war:GetWidth() or 844) - 24
+    if full < 200 then full = 820 end
+    ok(fits and apart, "realm wars: every part fits its name and kills, none runs into the next")
+    ok(math.abs(lastEnd - (full + 12)) < 1, "realm wars: the bar reaches the end (" .. tostring(lastEnd) .. " of " .. (full + 12) .. ")")
+  end
   LB.ui.cscope = "N'Zoth"
   local okS = pcall(LB.ui.PaintRealm)
   ok(okS, "a realm chip repaints the page")

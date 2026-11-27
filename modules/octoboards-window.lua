@@ -1115,24 +1115,39 @@ pfUI:RegisterModule("octoboards-window", "vanilla", function ()
       end
     end
     -- the war bar
+    -- (27 Nov 2026, user's screenshot: "Y'Shaarj 22" ran into "C'Thun 47" and the bar stopped short) every part is
+    -- at least as wide as its words, the rest of the width is shared by kills, and the last part always reaches the
+    -- end (only the first four realms are drawn, so "the last" is the fourth when there are more)
     local war = UI.CRows("realmwar", "all")
+    local n = math.min(4, table.getn(war))
     local total = 0
-    for _, e in ipairs(war) do total = total + (tonumber(e[5]) or 0) end
+    for i = 1, n do total = total + (tonumber(war[i][5]) or 0) end
     local width = (p.war:GetWidth() or 844) - 24
-    local x = 12
+    if width < 200 then width = 844 - 24 end
     local idx = {}
     for i, r in ipairs(data.realms or {}) do idx[r] = i end
+    -- the words first, so each part knows the room it needs
+    local need, needSum = {}, 0
     for i = 1, 4 do
       local part, e = p.war.parts[i], war[i]
-      if e and total > 0 then
-        local w = math.max(60, width * (tonumber(e[5]) or 0) / total)
-        if i == table.getn(war) then w = math.max(60, width + 12 - x) end
+      if e and i <= n and total > 0 then
+        part.text:SetText(e[1] .. "  " .. LB.Num(e[5]))
+        need[i] = math.ceil((part.text:GetStringWidth() or 60) + 16)
+        needSum = needSum + need[i]
+      end
+    end
+    local spare = math.max(0, width - needSum)
+    local x = 12
+    for i = 1, 4 do
+      local part, e = p.war.parts[i], war[i]
+      if need[i] then
+        local w = need[i] + spare * (tonumber(e[5]) or 0) / total
+        if i == n then w = math.max(need[i], width + 12 - x) end
         local col = UI.REALMCOL[idx[e[1]] or i]
         part.bar:ClearAllPoints()
         part.bar:SetPoint("BOTTOMLEFT", p.war, "BOTTOMLEFT", x, 8)
-        part.bar:SetWidth(w - 2)
+        part.bar:SetWidth(math.max(1, w - 2))
         part.bar:SetVertexColor(col[1], col[2], col[3], (scope == "all" or scope == e[1]) and .85 or .3)
-        part.text:SetText(e[1] .. "  " .. LB.Num(e[5]))
         part.bar:Show() part.text:Show()
         x = x + w
       else
