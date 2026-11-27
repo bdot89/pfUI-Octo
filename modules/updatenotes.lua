@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.71", {
+    { "OctoBoards' realm boards count raids only", "Guild of the week, Unfinished business, Biggest turnout, Longest raid, Night owls and Realm wars no longer count dungeon runs (BRS, BRD, Black Morass...)." },
+    { "Real raid lengths", "a raid now lasts from its first boss pull to its last boss kill. A log left running for days showed Blackrock Spire at 72 hours." },
+    { "A raid uploaded twice counts once,", "even when the two uploads start a few seconds apart. Boards rebuilt with the latest uploads." },
+  } },
   { "1.2.70", {
     { "Translations, second round", "about 19,500 new texts in German, Spanish, French, Korean, Russian and both Chinese - OctoBoards, the auction and mail windows, OctoLoot, meter breakdowns, the minigames, OctoRinse and CooldownManager options, layout mode and the first-run setup." },
     { "Translated everywhere", "pfUI Octo's own windows, buttons and tooltips now use the translations too, not only the options pages." },
@@ -184,8 +189,5 @@ pfUI.octoNotes = {
   { "1.2.32", {
     { "Spells drag off your bars again", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!" },
     { "\"Already built in\" check knows more add-ons", "at login pfUI Octo now also offers to switch off aux, Auctionator, TurtleMail, Postal, CT_MailMod, LazyPig, DPSMate, Details, KLHThreatMeter, MikScrollingBattleText, OneBag, SwingTimer and consume trackers - all built in already. Thanks Wolfahrt!" },
-  } },
-  { "1.2.31", {
-    { "Map ping in the right place", "after using the world map zoom, the ping that marks you when the map opens could show up somewhere else. It now always lands on your arrow, zoomed in or not. Thanks mechanism for the report!" },
   } },
 }

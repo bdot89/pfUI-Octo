@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.71
+
+- 🏆 **OctoBoards' realm boards count raids only:** Guild of the week, Unfinished business, Biggest turnout, Longest raid, Night owls and Realm wars no longer count dungeon runs (BRS, BRD, Black Morass...).
+- ⏱️ **Real raid lengths:** a raid now lasts from its first boss pull to its last boss kill. A log left running for days showed Blackrock Spire at 72 hours.
+- 🔁 **A raid uploaded twice counts once,** even when the two uploads start a few seconds apart. Boards rebuilt with the latest uploads.
+
 ## 📜 New in 1.2.70
 
 - 🌍 **Translations, second round:** about 19,500 new texts in German, Spanish, French, Korean, Russian and both Chinese - OctoBoards, the auction and mail windows, OctoLoot, meter breakdowns, the minigames, OctoRinse and CooldownManager options, layout mode and the first-run setup.
