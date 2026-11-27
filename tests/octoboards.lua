@@ -171,3 +171,23 @@ do
   pfUI.boardsChronicle = keep
   pfOctoBoards:Hide()
 end
+
+-- (27 Nov 2026) for other languages every text setter looks the English text up (not only W.Font's)
+do
+  local W = pfUI.octoui and pfUI.octoui.W
+  ok(W and W.HookAll, "W.HookAll there")
+  if W and W.HookAll then
+    local keepLang = pfUI_config.global.language
+    pfUI_translation.ruRU = pfUI_translation.ruRU or {}
+    local had = rawget(pfUI_translation.ruRU, "Realm Leaderboards")
+    pfUI_translation.ruRU["Realm Leaderboards"] = had or "Таблицы лидеров мира"
+    pfUI_config.global.language = "ruRU"
+    W.hooked = nil
+    local okH, errH = pcall(W.HookAll)
+    ok(okH, "hooking the text setters works " .. tostring(errH or ""))
+    ok(W.Tr and W.Tr("Realm Leaderboards") == pfUI_translation.ruRU["Realm Leaderboards"] and W.Tr("Not a key 123") == "Not a key 123",
+      "an exact English text is translated, anything else left as it is")
+    pfUI_config.global.language = keepLang
+    if not had then pfUI_translation.ruRU["Realm Leaderboards"] = nil end
+  end
+end

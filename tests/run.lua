@@ -7746,5 +7746,11 @@ do
     rawset(_G, "IsAddOnLoaded", wasIA)
   end
 end
+-- (27 Nov 2026) PFUI_DUMP_ALL=<file>: every text shown anywhere in the run, tab-separated: file, text
+if os.getenv("PFUI_DUMP_ALL") and Mock.texts then
+  local out = io.open(os.getenv("PFUI_DUMP_ALL"), "w")
+  for t, src in pairs(Mock.texts) do out:write(src, "\t", (string.gsub(t, "\n", "\\n")), "\n") end
+  out:close()
+end
 print(string.format("%d checks, %d failed", checks, fails))
 if fails > 0 then os.exit(1) end

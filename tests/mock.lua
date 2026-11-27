@@ -154,7 +154,20 @@ function methods:SetAlpha(a) self.alpha = a end
 function methods:GetAlpha() return self.alpha or 1 end
 function methods:CreateTexture(name, layer) return New("Texture", name, self) end
 function methods:CreateFontString(name, layer, inherits) return New("FontString", name, self) end
+-- (27 Nov 2026) PFUI_DUMP_ALL=<file>: every text set anywhere, with the file it came from (the full list to translate)
+Mock.texts = {}
+local function Saw(t)
+  if not os.getenv("PFUI_DUMP_ALL") or type(t) ~= "string" or t == "" then return end
+  local src = "?"
+  for lvl = 3, 6 do
+    local i = debug.getinfo(lvl, "S")
+    if i and i.short_src and not string.find(i.short_src, "mock") then src = i.short_src break end
+  end
+  Mock.texts[t] = Mock.texts[t] or src
+end
+Mock.Saw = Saw
 function methods:SetText(t)
+  if self.kind ~= "EditBox" then Saw(t) end
   assert(t == nil or type(t) == "string" or type(t) == "number", "SetText needs a string, got " .. type(t))
   self.text = t and tostring(t)
   if self.kind == "EditBox" then Run(self, "OnTextChanged") end
@@ -216,11 +229,11 @@ function methods:IsObjectType(t) return self.kind == t end
 function methods:GetModel() return self.model end
 function methods:GetFacing() return 0.3 end
 function methods:SetOwner(o, a) self.owner = o self.lines = {} end
-function methods:AddLine(t) table.insert(self.lines or {}, t) end
-function methods:AddDoubleLine(a, b) table.insert(self.lines or {}, tostring(a) .. " " .. tostring(b)) end
+function methods:AddLine(t) Saw(t) table.insert(self.lines or {}, t) end
+function methods:AddDoubleLine(a, b) Saw(a) Saw(b) table.insert(self.lines or {}, tostring(a) .. " " .. tostring(b)) end
 function methods:IsOwned(f) return self.owner == f end
 function methods:ClearLines() self.lines = {} end
-function methods:AddMessage(t) table.insert(Mock.printed, tostring(t)) end
+function methods:AddMessage(t) Saw(t) table.insert(Mock.printed, tostring(t)) end
 function methods:GetNumRegions() return 0 end
 function methods:UpdateScrollChildRect() end
 

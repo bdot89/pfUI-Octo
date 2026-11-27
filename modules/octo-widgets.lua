@@ -184,6 +184,54 @@ function W.T(s)
   return s
 end
 
+-- (27 Nov 2026, a Russian player: "66% are not translated") only text drawn through W.Font went through W.T, so
+-- pfUI Octo's own windows (OctoBoards, OctoRinse, OctoLoot, the auction and mail windows, meter breakdowns...) and
+-- their tooltips stayed English even where a translation exists. For any language but English the text setters of
+-- every font string, button and the game tooltip look the exact English text up in the same table at login. Only
+-- an exact key is replaced, so the game's own (already translated) text is never touched. English: nothing hooked.
+function W.HookAll()
+  if W.hooked then return end
+  local lang = W.Lang()
+  local t = pfUI_translation and pfUI_translation[lang]
+  if lang == "enUS" or lang == "enGB" or not t then return end
+  W.hooked = true
+  local function Tr(s)
+    if type(s) ~= "string" then return s end
+    local v = rawget(t, s)
+    return v or s
+  end
+  W.Tr = Tr
+  local function Wrap(obj, name)
+    local mt = obj and getmetatable(obj)
+    local idx = mt and mt.__index
+    if type(idx) ~= "table" or type(idx[name]) ~= "function" or idx["octo" .. name] then return end
+    local raw = idx[name]
+    idx["octo" .. name] = raw
+    idx[name] = function(self, s, a, b, c, d, e) return raw(self, Tr(s), a, b, c, d, e) end
+  end
+  local probe = CreateFrame("Frame")
+  Wrap(probe:CreateFontString(), "SetText")
+  Wrap(CreateFrame("Button"), "SetText")
+  local tips = { GameTooltip }
+  for _, tip in ipairs(tips) do
+    if tip then
+      for _, m in ipairs({ "SetText", "AddLine" }) do
+        local raw = tip[m]
+        if type(raw) == "function" then tip[m] = function(self, s, a, b, c, d, e) return raw(self, Tr(s), a, b, c, d, e) end end
+      end
+      local dbl = tip.AddDoubleLine
+      if type(dbl) == "function" then
+        tip.AddDoubleLine = function(self, l, r, a, b, c, d, e, f, g) return dbl(self, Tr(l), Tr(r), a, b, c, d, e, f, g) end
+      end
+    end
+  end
+end
+do
+  local hookFrame = CreateFrame("Frame")
+  hookFrame:RegisterEvent("PLAYER_LOGIN")
+  hookFrame:SetScript("OnEvent", function() pcall(W.HookAll) end)
+end
+
 function W.UIFont()
   if not fontChecked then
     fontChecked = true
