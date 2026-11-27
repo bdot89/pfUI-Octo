@@ -3,8 +3,8 @@ pfUI:RegisterModule("chat-bar", "vanilla:tbc", function ()
   -- the original window ... with a new top bar on the chat", then "keep this optional in chat options make it clear at
   -- the top OLD CHAT OR NEW STYLE"). C.chat.style = "old" (pfUI's chat + the floating whisper window) | "new":
   --   a bar across the top of the left chat, in place of the tab strip that only showed on mouse-over:
-  --     [General v]    your chat (right-click: pick a docked window). Click it while a conversation shows = back to
-  --                    chat; click it on chat = back to the last conversation (quick toggle)
+  --     [General v]    your chat. Click: pick a docked window (back to chat while a conversation shows);
+  --                    right-click: the game's window menu (filters, channels, colours) - 27 Nov 2026, see CB.WindowMenu
   --     [Whispers +3]  the whisper window over the chat (chat-whispers.lua WH.Embed): the oldest new one first
   --     G O P R B S    guild / officer / party / raid / battleground / say history (chat-history.lua), live, talk there
   --     + T ?          invite / target / who, while a whisper shows
@@ -178,27 +178,45 @@ pfUI:RegisterModule("chat-bar", "vanilla:tbc", function ()
     return (name and name ~= "") and name or "Chat"
   end
 
+  -- (27 Nov 2026, Javelin on Discord: no way to the channel settings / colours in the new chat; right-click only
+  -- listed General, Combat Log, Whispers. His fix, taken: left-click = pick a chat window (Whispers left out, it has
+  -- its own button), right-click = the game's own window menu (lock, rename, font size, filters, channels, colours) -
+  -- the menu the hidden tab strip used to give.)
+  function CB.WindowMenu(self)
+    local frame = _G.SELECTED_CHAT_FRAME or _G.ChatFrame1
+    local id = frame and frame.GetID and frame:GetID()
+    local dd = id and _G["ChatFrame" .. id .. "TabDropDown"]
+    if not dd or not _G.ToggleDropDownMenu then return false end
+    if CB.menu then CB.menu:Hide() end
+    ToggleDropDownMenu(1, nil, dd, "cursor", 0, 0)
+    return true
+  end
   Button("chat", "Chat", function()
-    return "Left-click: your chat - or, when it already shows, back to the last conversation (quick toggle).\n"
-      .. "Right-click: pick a chat window (General, Combat Log ...)."
+    return "Left-click: pick a chat window (General, Combat Log ...) - or, while a conversation shows, back to chat.\n"
+      .. "Right-click: the chat window's settings (font size, filters, channels, colours, lock, rename)."
   end, function(self, button)
     local w = WH()
     if button == "RightButton" then
-      local W = pfUI.octoui and pfUI.octoui.W
-      local list = CB.Docked()
-      if W and W.Menu and table.getn(list) > 0 then
-        if CB.menu then CB.menu:Hide() end
-        CB.menu = W.Menu(self, list, 140, function(k) CB.ShowChat(k) end)
-        if CB.menu then CB.menu:Show() end
-      end
+      CB.WindowMenu(self)
       return
     end
     if w and w.Showing() then
       CB.ShowChat()
-    elseif w and w.lastView and w.windows[w.lastView] and w.windows[w.lastView].open then
-      if w.windows[w.lastView].chan then w.OpenChannel(w.windows[w.lastView].chan.key) else w.Open(w.lastView, true) end
+      return
     end
-    CB.Paint()
+    if _G.CloseDropDownMenus then CloseDropDownMenus() end
+    local W = pfUI.octoui and pfUI.octoui.W
+    local list = {}
+    local whispers = pfUI.chatOcto and pfUI.chatOcto.WHISPERS or "Whispers"
+    for _, e in ipairs(CB.Docked()) do if e.label ~= whispers then table.insert(list, e) end end
+    if W and W.Menu and table.getn(list) > 1 then
+      if CB.menu and CB.menu:IsShown() then CB.menu:Hide() return end
+      if CB.menu then CB.menu:Hide() end
+      CB.menu = W.Menu(self, list, 140, function(k) CB.ShowChat(k) end)
+      if CB.menu then CB.menu:Show() end
+    else
+      CB.ShowChat()
+    end
   end, .85, .85, .88, "Interface\\Icons\\INV_Misc_Note_01")
 
   Button("whispers", "Whispers", function()

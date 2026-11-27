@@ -198,8 +198,20 @@ if WH and WH.Embed and pfUI.module and pfUI.module["chat-bar"] then
     _G.this, _G.arg1 = CB.btns.chat, "LeftButton"
     CB.btns.chat:GetScript("OnClick")()
     ok(not WH.hub:IsShown(), "Chat goes back to your chat")
+    -- (27 Nov 2026, Javelin: left-click on chat picks a window, right-click = the game's window menu)
     CB.btns.chat:GetScript("OnClick")()
-    ok(WH.hub:IsShown() and WH.active == "Quietguy", "Chat again flips back to the last conversation")
+    ok(not WH.hub:IsShown(), "Chat again stays on your chat (no flip back to the conversation)")
+    local ddOpened
+    local keepTDD, keepDD = _G.ToggleDropDownMenu, _G.ChatFrame1TabDropDown
+    _G.ChatFrame1TabDropDown = CreateFrame("Frame", "ChatFrame1TabDropDown")
+    _G.ToggleDropDownMenu = function(lvl, val, dd) ddOpened = dd end
+    local keepSel = _G.SELECTED_CHAT_FRAME
+    _G.SELECTED_CHAT_FRAME = _G.ChatFrame1
+    _G.arg1 = "RightButton"
+    CB.btns.chat:GetScript("OnClick")()
+    _G.arg1 = "LeftButton"
+    ok(ddOpened == _G.ChatFrame1TabDropDown, "right-click on chat opens the game's window menu (filters, channels, colours)")
+    _G.ToggleDropDownMenu, _G.ChatFrame1TabDropDown, _G.SELECTED_CHAT_FRAME = keepTDD, keepDD, keepSel
     -- a channel button
     CB.btns["#guild"]:GetScript("OnClick")()
     ok(WH.Showing() == "#guild", "G opens guild history in the chat")
