@@ -115,6 +115,14 @@ function pfUI:LoadConfig()
   -- octo (28 Oct 2026; brues-code's fork): a sweep on your buffs, and the sweep's
   -- direction (needs ClassicAPI's cooldown frames) per kind of icon
   pfUI:UpdateConfig("buffs",      nil,           "hidetracking",     "0")
+  pfUI:UpdateConfig("buffs",      nil,           "buffgrow",         "left")
+  pfUI:UpdateConfig("buffs",      nil,           "debuffgrow",       "left")
+  pfUI:UpdateConfig("buffs",      nil,           "wepgrow",          "left")
+  pfUI:UpdateConfig("buffs",      nil,           "rowgrow",          "down")
+  pfUI:UpdateConfig("buffs",      nil,           "consolidate",      "0")
+  pfUI:UpdateConfig("buffs",      nil,           "consmin",          "10")
+  pfUI:UpdateConfig("buffs",      nil,           "consnotimer",      "1")
+  pfUI:UpdateConfig("buffs",      nil,           "consrowsize",      "8")
   pfUI:UpdateConfig("buffs",      nil,           "cooldown_anim",    "1")
   pfUI:UpdateConfig("buffs",      nil,           "cooldown_reverse", "1")
   pfUI:UpdateConfig("appearance", "bags",        "cooldown_reverse", "0")
@@ -1030,6 +1038,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("appearance", "worldmap",    "zoom",             "1")    -- wheel zooms inside the map (Magnify built in)
   pfUI:UpdateConfig("appearance", "worldmap",    "ping",             "1")    -- the game's ping on you when the map opens
   pfUI:UpdateConfig("appearance", "worldmap",    "nobattlemap",      "1")
+  pfUI:UpdateConfig("appearance", "worldmap",    "fullscreen",       "0")    -- map fills the screen (button by its close button)
   pfUI:UpdateConfig("appearance", "worldmap",    "groupcircles",     "3")
   pfUI:UpdateConfig("appearance", "worldmap",    "colornames",       "1")
 

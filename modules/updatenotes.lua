@@ -2,6 +2,14 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.72", {
+    { "Onyxia / Nefarian buff no longer hidden", "\"Hide the tracking buff\" hid the dragon head buff along with Track Dragonkin (same icon). Only the tracking buff goes now." },
+    { "Buff and debuff direction", "buffs, debuffs and weapon buffs can grow to the left or to the right, and new rows can go down or up (Buffs > Buffs and debuffs)." },
+    { "Consolidated buffs, like WotLK", "long buffs (raid buffs, world buffs, food) go into one icon with a count. Hover it to see them, click to keep the box open, right-click a buff to cancel it. They come back out when they run low. Off as it comes: Buffs > Consolidated." },
+    { "Map ping on you, in the right place", "the pulse when you open the map now sits right on your arrow at any map size and zoom." },
+    { "Quest dots stay the right size", "taking a quest while the map was zoomed in made the dots tiny." },
+    { "Fullscreen map", "a Fullscreen button next to the map's close button fills the screen (and back). It stays that way between openings." },
+  } },
   { "1.2.71", {
     { "OctoBoards' realm boards count raids only", "Guild of the week, Unfinished business, Biggest turnout, Longest raid, Night owls and Realm wars no longer count dungeon runs (BRS, BRD, Black Morass...)." },
     { "Real raid lengths", "a raid now lasts from its first boss pull to its last boss kill. A log left running for days showed Blackrock Spire at 72 hours." },
@@ -185,9 +193,5 @@ pfUI.octoNotes = {
   { "1.2.33", {
     { "Auto Shot in the right colour", "combat text showed Auto Shot (and wand / throw shots) in the yellow of \"Your spells\", whatever colour you set. They now use \"Your melee and Auto Shot\", as the setting says. Thanks Javelin!" },
     { "Hex codes and a Default button on every colour", "the colour picker now has a box where you can type a colour like #ff8800 (it also shows the code of the colour picked), and a Default button that puts that setting back to its original colour. Right-click any colour square to reset it straight away. Thanks Javelin for the idea!" },
-  } },
-  { "1.2.32", {
-    { "Spells drag off your bars again", "if the built-in SuperCleveRoidMacros does not load fully on your PC, it now hands everything back to the game when it switches off - moving spells, /cast and /use work as normal, and pfUI's own macro handling takes over. Its chat line now shows the real error, so it can be fixed for good. Thanks DaddyWeeds for the report!" },
-    { "\"Already built in\" check knows more add-ons", "at login pfUI Octo now also offers to switch off aux, Auctionator, TurtleMail, Postal, CT_MailMod, LazyPig, DPSMate, Details, KLHThreatMeter, MikScrollingBattleText, OneBag, SwingTimer and consume trackers - all built in already. Thanks Wolfahrt!" },
   } },
 }

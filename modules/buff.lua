@@ -18,7 +18,23 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
       buff.id = buff.gid
     end
     -- (octo: a tracking ability's buff can be left out - pfUI.api.PlayerBuffIndex)
-    buff.bid = GetPlayerBuff(PLAYER_BUFF_START_ID + pfUI.api.PlayerBuffIndex(buff.id, buff.btype), buff.btype)
+    -- (octo, 27 Nov 2026: consolidated buffs - long buffs go into one box, as in
+    -- WotLK. The box takes the first buff place; the rest come from mainList.)
+    local slot
+    if buff.cons then
+      slot = pfUI.buff.consList[buff.gid] or 33
+    elseif buff.btype == "HELPFUL" and buff.id > 0 and pfUI.buff.consOn then
+      if buff.id == 1 then
+        buff.bid = -1
+        buff.mode = nil
+        buff:Hide()
+        return
+      end
+      slot = pfUI.buff.mainList[buff.id - 1] or 33
+    else
+      slot = pfUI.api.PlayerBuffIndex(buff.id, buff.btype)
+    end
+    buff.bid = GetPlayerBuff(PLAYER_BUFF_START_ID + slot, buff.btype)
 
     if not buff.backdrop then
       CreateBackdrop(buff)
@@ -26,7 +42,7 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     end
 
     --detect weapon buffs
-    if buff.btype == "HELPFUL" and ((C.buffs.separateweapons == "0" and buff.gid <= pfUI.buff.wepbuffs.count) or (pfUI.buff.wepbuffs.count > 0 and buff.weapon ~= nil)) then
+    if buff.btype == "HELPFUL" and not buff.cons and ((C.buffs.separateweapons == "0" and buff.gid <= pfUI.buff.wepbuffs.count) or (pfUI.buff.wepbuffs.count > 0 and buff.weapon ~= nil)) then
         local mh, mhtime, mhcharge, oh, ohtime, ohcharge = GetWeaponEnchantInfo()
         if pfUI.buff.wepbuffs.count == 2 then
           if buff.gid == 1 then
@@ -84,9 +100,12 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     buff:Show()
   end
 
-  local function CreateBuffButton(i, btype, weapon)
+  local function CreateBuffButton(i, btype, weapon, cons)
     local buttonName, buttonParent
-    if btype == "HELPFUL" then
+    if cons then
+      buttonName = "pfConsBuffFrameBuff" .. i
+      buttonParent = pfUI.buff.cons
+    elseif btype == "HELPFUL" then
       if weapon == 1 then
         buttonName = "pfWepBuffFrame" .. i
         buttonParent = pfUI.buff.wepbuffs
@@ -130,6 +149,7 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     buff.weapon = weapon
     buff.btype = btype
     buff.gid = i
+    buff.cons = cons
 
     buff:SetScript("OnUpdate", function()
       if not this.next then this.next = GetTime() + .1 end
@@ -261,6 +281,37 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
   end
 
   pfUI.buff = CreateFrame("Frame", "pfGlobalBuffFrame", UIParent)
+  pfUI.buff.mainList, pfUI.buff.consList, pfUI.buff.consSig = {}, {}, ""
+
+  -- (octo, 27 Nov 2026; Andayko: "consolidation buffs ... as in VCB") which buff
+  -- slots go into the box: more time left than the set minutes, or (optional)
+  -- buffs that never run out (auras, tracking). Returns a string that changes
+  -- whenever the split does, so the once-a-second check knows when to redraw.
+  local function BuildLists()
+    local main, cons = {}, {}
+    local sig = ""
+    if C.buffs.consolidate == "1" and C.buffs.buffs == "1" then
+      local lim = (tonumber(C.buffs.consmin) or 10) * 60
+      for n = 1, 32 do
+        local k = pfUI.api.PlayerBuffIndex(n, "HELPFUL")
+        if k > 32 then break end
+        local bid = GetPlayerBuff(PLAYER_BUFF_START_ID + k, "HELPFUL")
+        if not bid or bid < 0 then break end
+        local tl = GetPlayerBuffTimeLeft(bid) or 0
+        if tl > lim or (tl <= 0 and C.buffs.consnotimer == "1") then
+          table.insert(cons, k)
+          sig = sig .. "c" .. k
+        else
+          table.insert(main, k)
+          sig = sig .. "m" .. k
+        end
+      end
+    end
+    pfUI.buff.mainList, pfUI.buff.consList = main, cons
+    pfUI.buff.consOn = table.getn(cons) > 0
+    return sig
+  end
+
   pfUI.buff:RegisterEvent("PLAYER_AURAS_CHANGED")
   pfUI.buff:RegisterEvent("UNIT_INVENTORY_CHANGED")
   pfUI.buff:RegisterEvent("UNIT_MODEL_CHANGED")
@@ -271,6 +322,8 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     else
       pfUI.buff.wepbuffs.count = 0
     end
+
+    pfUI.buff.consSig = BuildLists()
 
     for i=1,32 do
       RefreshBuffButton(pfUI.buff.buffs.buttons[i])
@@ -284,6 +337,19 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
       for i=1,2 do
         RefreshBuffButton(pfUI.buff.wepbuffs.buttons[i])
       end
+    end
+
+    pfUI.buff:UpdateCons()
+  end)
+
+  -- a buff runs down past the box's minutes without an event: look once a second
+  pfUI.buff:SetScript("OnUpdate", function()
+    if C.buffs.consolidate ~= "1" then return end
+    if (this.nextCons or 0) > GetTime() then return end
+    this.nextCons = GetTime() + 1
+    local old = pfUI.buff.consSig
+    if BuildLists() ~= old then
+      pfUI.buff:GetScript("OnEvent")()
     end
   end)
 
@@ -309,33 +375,149 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     pfUI.buff.debuffs.buttons[i] = CreateBuffButton(i, "HARMFUL")
   end
 
+  -- Consolidated buffs: one icon in the buff row; hover it (or click to keep it
+  -- open) for a box with the long buffs. Right-click a buff there to cancel it.
+  local function MouseOver(f)
+    if not f or not f:IsVisible() or not f:GetLeft() then return nil end
+    local x, y = GetCursorPosition()
+    local s = f:GetEffectiveScale()
+    x, y = x / s, y / s
+    return x >= f:GetLeft() and x <= f:GetRight() and y >= f:GetBottom() and y <= f:GetTop()
+  end
+
+  pfUI.buff.consbtn = CreateFrame("Button", "pfConsBuffButton", pfUI.buff.buffs)
+  local cb = pfUI.buff.consbtn
+  cb:SetFrameLevel(pfUI.buff.buffs:GetFrameLevel() + 4)
+  cb.texture = cb:CreateTexture(nil, "BACKGROUND")
+  cb.texture:SetTexCoord(.07, .93, .07, .93)
+  cb.texture:SetAllPoints(cb)
+  cb.count = cb:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+  cb.count:SetPoint("BOTTOMRIGHT", cb, "BOTTOMRIGHT", -1, 2)
+  cb.count:SetTextColor(1, .82, 0, 1)
+  CreateBackdrop(cb)
+  CreateBackdropShadow(cb)
+  cb:RegisterForClicks("LeftButtonUp")
+  cb:Hide()
+  cb:SetScript("OnEnter", function()
+    pfUI.buff.cons:Show()
+    GameTooltip:SetOwner(this, "ANCHOR_BOTTOMLEFT")
+    GameTooltip:AddLine(T["Consolidated buffs"] or "Consolidated buffs")
+    GameTooltip:AddLine(T["Click: keep the box open"] or "Click: keep the box open", 1, 1, 1)
+    GameTooltip:Show()
+  end)
+  cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  cb:SetScript("OnClick", function()
+    local box = pfUI.buff.cons
+    box.pinned = not box.pinned
+    if box.pinned then box:Show() end
+  end)
+
+  pfUI.buff.cons = CreateFrame("Frame", "pfConsBuffFrame", UIParent)
+  local box = pfUI.buff.cons
+  box:SetFrameStrata("DIALOG")
+  box:SetClampedToScreen(true)
+  box:Hide()
+  CreateBackdrop(box)
+  CreateBackdropShadow(box)
+  box:SetScript("OnUpdate", function()
+    if this.pinned then this.away = nil return end
+    if MouseOver(this) or MouseOver(pfUI.buff.consbtn) then
+      this.away = nil
+    else
+      this.away = this.away or (GetTime() + .4)
+      if GetTime() > this.away then this.away = nil this:Hide() end
+    end
+  end)
+  box.buttons = {}
+  for i=1,32 do
+    box.buttons[i] = CreateBuffButton(i, "HELPFUL", nil, true)
+  end
+
+  function pfUI.buff:UpdateCons()
+    local cb, box = pfUI.buff.consbtn, pfUI.buff.cons
+    local n = table.getn(pfUI.buff.consList)
+    for i=1,32 do RefreshBuffButton(box.buttons[i]) end
+    if not pfUI.buff.consOn then
+      cb:Hide()
+      box:Hide()
+      box.pinned = nil
+      return
+    end
+    -- the box's place = the first buff place (after weapon buffs in the row)
+    local first = 1
+    if C.buffs.separateweapons ~= "1" then first = pfUI.buff.wepbuffs.count + 1 end
+    local anchor = pfUI.buff.buffs.buttons[first]
+    cb:ClearAllPoints()
+    cb:SetAllPoints(anchor)
+    local bid = GetPlayerBuff(PLAYER_BUFF_START_ID + pfUI.buff.consList[1], "HELPFUL")
+    cb.texture:SetTexture(GetPlayerBuffTexture(bid))
+    cb.count:SetText(n)
+    cb.backdrop:SetBackdropBorderColor(1, .82, 0, 1)
+    cb:Show()
+
+    -- the box: a grid of the buffs, growing the same way as the buff row
+    local size = tonumber(C.buffs.size)
+    local sp = tonumber(C.buffs.spacing)
+    local fontsize = C.buffs.fontsize == "-1" and C.global.font_size or C.buffs.fontsize
+    local rowh = (C.buffs.textinside == "1" and 0 or (fontsize * 1.5)) + size + 2 * sp
+    local cell = size + 2 * sp
+    local perRow = math.min(n, math.max(1, tonumber(C.buffs.consrowsize) or 8))
+    local rows = math.ceil(n / perRow)
+    local right = C.buffs.buffgrow == "right"
+    local up = C.buffs.rowgrow == "up"
+    box:SetWidth(perRow * cell + 2 * sp)
+    box:SetHeight(rows * rowh + 2 * sp)
+    box:SetScale(pfUI.buff.buffs:GetEffectiveScale() / UIParent:GetEffectiveScale())
+    box:ClearAllPoints()
+    local h = right and "LEFT" or "RIGHT"
+    if up then
+      box:SetPoint("BOTTOM" .. h, cb, "TOP" .. h, 0, 8)
+    else
+      box:SetPoint("TOP" .. h, cb, "BOTTOM" .. h, 0, C.buffs.textinside == "1" and -8 or -(fontsize * 1.5 + 8))
+    end
+    for i=1,32 do
+      local b = box.buttons[i]
+      local row = floor((i - 1) / perRow)
+      local col = i - 1 - row * perRow
+      b:ClearAllPoints()
+      b:SetPoint("TOP" .. h, box, "TOP" .. h, (right and 1 or -1) * (col * cell + 2 * sp), -(row * rowh + 2 * sp))
+    end
+  end
+
   -- config loading
   function pfUI.buff:UpdateConfigBuffButton(buff)
     local fontsize = C.buffs.fontsize == "-1" and C.global.font_size or C.buffs.fontsize
-    local rowcount, relFrame, offsetX, offsetY
+    -- (octo, 27 Nov 2026; Andayko, "as in VCB") each row grows left (pfUI's way)
+    -- or right, and rows stack down or up: buffs.buffgrow / debuffgrow / wepgrow,
+    -- buffs.rowgrow. The frames keep their size and place, so movers stay put.
+    local perRow, relFrame, grow
     if buff.btype == "HELPFUL" then
       if buff.weapon == 1 and C.buffs.separateweapons == "1" then
-        rowcount = floor((buff.gid-1) / tonumber(C.buffs.wepbuffrowsize))
-        relFrame = pfUI.buff.wepbuffs
-        offsetX = -(buff.gid-1-rowcount*tonumber(C.buffs.wepbuffrowsize))*(tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
-        offsetY = -(rowcount) * ((C.buffs.textinside == "1" and 0 or (fontsize*1.5))+tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
+        perRow, relFrame, grow = tonumber(C.buffs.wepbuffrowsize), pfUI.buff.wepbuffs, C.buffs.wepgrow
       else
-        rowcount = floor((buff.gid-1) / tonumber(C.buffs.buffrowsize))
-        relFrame = pfUI.buff.buffs
-        offsetX = -(buff.gid-1-rowcount*tonumber(C.buffs.buffrowsize))*(tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
-        offsetY = -(rowcount) * ((C.buffs.textinside == "1" and 0 or (fontsize*1.5))+tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
+        perRow, relFrame, grow = tonumber(C.buffs.buffrowsize), pfUI.buff.buffs, C.buffs.buffgrow
       end
     else
-      rowcount = floor((buff.gid-1) / tonumber(C.buffs.debuffrowsize))
-      relFrame = pfUI.buff.debuffs
-      offsetX = -(buff.gid-1-rowcount*tonumber(C.buffs.debuffrowsize))*(tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
-      offsetY = -(rowcount) * ((C.buffs.textinside == "1" and 0 or (fontsize*1.5))+tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing))
+      perRow, relFrame, grow = tonumber(C.buffs.debuffrowsize), pfUI.buff.debuffs, C.buffs.debuffgrow
     end
 
     buff:SetWidth(tonumber(C.buffs.size))
     buff:SetHeight(tonumber(C.buffs.size))
-    buff:ClearAllPoints()
-    buff:SetPoint("TOPRIGHT", relFrame, "TOPRIGHT",offsetX, offsetY)
+
+    if not buff.cons then
+      local textrow = C.buffs.textinside == "1" and 0 or (fontsize*1.5)
+      local cell = tonumber(C.buffs.size)+2*tonumber(C.buffs.spacing)
+      local rowh = textrow + cell
+      local rowcount = floor((buff.gid-1) / perRow)
+      local col = buff.gid-1-rowcount*perRow
+      local right = grow == "right"
+      local up = C.buffs.rowgrow == "up"
+      local point = (up and "BOTTOM" or "TOP") .. (right and "LEFT" or "RIGHT")
+      local offsetX = (right and 1 or -1) * col * cell
+      local offsetY = up and (rowcount * rowh + textrow) or -(rowcount * rowh)
+      buff:ClearAllPoints()
+      buff:SetPoint(point, relFrame, point, offsetX, offsetY)
+    end
 
     buff.timer:SetFont(pfUI.font_default, fontsize, "OUTLINE")
     buff.stacks:SetFont(pfUI.font_default, fontsize+1, "OUTLINE")
@@ -386,6 +568,11 @@ pfUI:RegisterModule("buff", "vanilla:tbc", function ()
     for i=1,2 do
       pfUI.buff:UpdateConfigBuffButton(pfUI.buff.wepbuffs.buttons[i])
     end
+
+    for i=1,32 do
+      pfUI.buff:UpdateConfigBuffButton(pfUI.buff.cons.buttons[i])
+    end
+    pfUI.buff.consbtn.count:SetFont(pfUI.font_default, fontsize+1, "OUTLINE")
 
     pfUI.buff:GetScript("OnEvent")()
   end

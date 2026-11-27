@@ -62,7 +62,9 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
   local BARS = { { key = "pbuff", label = "Your buffs" }, { key = "pdebuff", label = "Your debuffs" },
                  { key = "tdebuff", label = "Target's debuffs" } }
   local CARD = { buffs = "Buffs and debuffs", debuffs = "Buffs and debuffs", weapons = "Weapon buffs",
-                 bar = "Buff bars", totems = "Totems" }
+                 bar = "Buff bars", totems = "Totems", cons = "Consolidated buffs" }
+  local GROW = { { key = "left", label = "To the left" }, { key = "right", label = "To the right" } }
+  local ROWS = { { key = "down", label = "Down" }, { key = "up", label = "Up" } }
   function BO.Open(card)
     if pfUI.plates and pfUI.plates.OpenSection then pfUI.plates.OpenSection("bfbuffs", card) else O:Open("bfbuffs") end
   end
@@ -209,7 +211,7 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
         local cell = size + 2 * sp
         local rowh = (inside and 0 or fontsize * 1.5) + cell
         local boxw = (box:GetWidth() or 600) - 30
-        local function Place(g, n, perRow, shown, top)
+        local function Place(g, n, perRow, shown, top, grow)
           perRow = math.max(1, tonumber(perRow) or 16)
           local cols = math.min(n, perRow)
           local rows = math.ceil(n / perRow)
@@ -226,7 +228,9 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
             ic:SetWidth(size)
             ic:SetHeight(size)
             ic:ClearAllPoints()
-            ic:SetPoint("TOPRIGHT", g, "TOPRIGHT", -col * cell, -row * rowh)
+            local right, up = grow == "right", s.rowgrow == "up"
+            local pt = (up and "BOTTOM" or "TOP") .. (right and "LEFT" or "RIGHT")
+            ic:SetPoint(pt, g, pt, (right and 1 or -1) * col * cell, up and (row * rowh + (inside and 0 or fontsize * 1.5)) or -row * rowh)
             ic.timer:SetFont(pfUI.font_default, fontsize, "OUTLINE")
             ic.timer:ClearAllPoints()
             if inside then ic.timer:SetPoint("CENTER", ic, "CENTER", 0, 0)
@@ -235,8 +239,8 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
           g:SetAlpha(shown and 1 or .25)
           return top - h * scale - 6
         end
-        local y = Place(parts.buffs, table.getn(BUFFS), s.buffrowsize, s.buffs == "1", -10)
-        y = Place(parts.debuffs, table.getn(DEBUFFS), s.debuffrowsize, s.debuffs == "1", y)
+        local y = Place(parts.buffs, table.getn(BUFFS), s.buffrowsize, s.buffs == "1", -10, s.buffgrow)
+        y = Place(parts.debuffs, table.getn(DEBUFFS), s.debuffrowsize, s.debuffs == "1", y, s.debuffgrow)
         for i, ic in ipairs(parts.debuffs.icons) do
           local c = DebuffTypeColor and DebuffTypeColor[DTYPES[i]]
           ic.edge:SetVertexColor(c and c.r or .8, c and c.g or 0, c and c.b or 0, 1)
@@ -244,7 +248,7 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
         for _, ic in ipairs(parts.buffs.icons) do ic.edge:SetVertexColor(0, 0, 0, 1) end
         for _, ic in ipairs(parts.weapons.icons) do ic.edge:SetVertexColor(.5, 0, 1, 1) end
         if s.separateweapons == "1" then
-          Place(parts.weapons, table.getn(WEAPONS), s.wepbuffrowsize, s.weapons == "1", y)
+          Place(parts.weapons, table.getn(WEAPONS), s.wepbuffrowsize, s.weapons == "1", y, s.wepgrow)
         else
           -- in the buff row, first
           Place(parts.weapons, table.getn(WEAPONS), 2, s.weapons == "1", -10)
@@ -343,6 +347,7 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     O.CardTabs(p, {
       { "buffs", "Buffs and debuffs", "Spell_Holy_WordFortitude", { CARD.buffs } },
       { "weapons", "Weapon buffs", "INV_Stone_SharpeningStone_01", { CARD.weapons } },
+      { "cons", "Consolidated", "INV_Misc_Bag_10", { CARD.cons } },
       { "bar", "Buff bars", "INV_Misc_PocketWatch_01", { CARD.bar } },
       { "totems", "Totems", "Spell_Nature_StoneSkinTotem", { CARD.totems } },
     })
@@ -354,6 +359,9 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     Sld(p, "Spacing", nil, 0, 20, 1, B, "spacing", UB, Px)
     Sld(p, "Buffs per row", nil, 1, 32, 1, B, "buffrowsize", UB)
     Sld(p, "Debuffs per row", nil, 1, 16, 1, B, "debuffrowsize", UB)
+    Drop(p, "Buffs grow", "Which way a row of buffs fills from its first icon.", GROW, B, "buffgrow", UB)
+    Drop(p, "Debuffs grow", nil, GROW, B, "debuffgrow", UB)
+    Drop(p, "New rows go", "Under the first row, or above it (for buffs at the bottom of the screen).", ROWS, B, "rowgrow", UB)
     Chk(p, "Time inside the icon", "Off: under it.", B, "textinside", UB)
     Chk(p, "Hide the tracking buff", "Find Herbs, Find Minerals, Track Beasts... count as buffs on 1.12. On: they stay off the buff bar and your player frame (the tracking button by the map still shows them).", B, "hidetracking", function() UB() if pfUI.uf and pfUI.uf.player and pfUI.uf.player.UpdateConfig then pfUI.uf.player:UpdateConfig() end end)
     Chk(p, "Time left as a sweep", "A clock wipe over each buff as it runs out.", B, "cooldown_anim", UB)
@@ -365,6 +373,14 @@ pfUI:RegisterModule("buffs-options", "vanilla", function ()
     Chk(p, "Show weapon buffs", nil, B, "weapons", UB)
     Chk(p, "In a row of their own", "Off: first in the buff row.", B, "separateweapons", UB)
     Sld(p, "Per row", nil, 1, 2, 1, B, "wepbuffrowsize", UB)
+    Drop(p, "Weapon buffs grow", "In a row of their own.", GROW, B, "wepgrow", UB)
+
+    W.Card(p, CARD.cons, { tip = "Like WotLK: long buffs go into one icon in the buff row. Hover it to see them, click it to keep the box open." })
+    Chk(p, "Consolidate long buffs", "Raid buffs, world buffs and food go into one icon, so the short ones stand out.", B, "consolidate", UB)
+    Sld(p, "Longer than", "Buffs with more time left than this go into the icon. When they run lower they come back out, so you see them run out.", 1, 60, 1, B, "consmin", UB,
+      function(v) return v .. " min" end)
+    Chk(p, "Buffs without a timer too", "Auras, stances, tracking and other buffs that never run out.", B, "consnotimer", UB)
+    Sld(p, "Per row in the box", nil, 1, 16, 1, B, "consrowsize", UB)
 
     W.Card(p, CARD.bar, { tip = "Bars with each aura's time left, on your unit frames. Switching a bar on or off needs a reload." })
     local btns = {}

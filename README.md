@@ -122,6 +122,15 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.72
+
+- 🐉 **Onyxia / Nefarian buff no longer hidden:** "Hide the tracking buff" hid the dragon head buff along with Track Dragonkin (same icon). Only the tracking buff goes now.
+- ↔️ **Buff and debuff direction:** buffs, debuffs and weapon buffs can grow to the left or to the right, and new rows can go down or up (Buffs > Buffs and debuffs).
+- 📦 **Consolidated buffs, like WotLK:** long buffs (raid buffs, world buffs, food) go into one icon with a count. Hover it to see them, click to keep the box open, right-click a buff to cancel it. They come back out when they run low. Off as it comes: Buffs > Consolidated.
+- 📍 **Map ping on you, in the right place:** the pulse when you open the map now sits right on your arrow at any map size and zoom.
+- 🔎 **Quest dots stay the right size:** taking a quest while the map was zoomed in made the dots tiny.
+- 🖥️ **Fullscreen map:** a Fullscreen button next to the map's close button fills the screen (and back). It stays that way between openings.
+
 ## 📜 New in 1.2.71
 
 - 🏆 **OctoBoards' realm boards count raids only:** Guild of the week, Unfinished business, Biggest turnout, Longest raid, Night owls and Realm wars no longer count dungeon runs (BRS, BRD, Black Morass...).

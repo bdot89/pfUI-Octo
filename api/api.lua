@@ -726,11 +726,17 @@ function pfUI.api.PlayerBuffIndex(n, btype)
   if btype ~= "HELPFUL" or not C.buffs or C.buffs.hidetracking ~= "1" or not GetTrackingTexture then return n end
   local track = GetTrackingTexture()
   if not track then return n end
-  local seen = 0
+  local seen, skipped = 0, nil
   for k = 1, 32 do
     local bid = GetPlayerBuff(PLAYER_BUFF_START_ID + k, "HELPFUL")
     if not bid or bid < 0 then return k end
-    if GetPlayerBuffTexture(bid) ~= track then
+    -- (27 Nov 2026, Javelin: Track Dragonkin shares its icon with the Onyxia /
+    -- Nefarian head buff, which was hidden too.) A tracking buff never runs out:
+    -- only skip a same-icon buff with no time left, and only one of them.
+    local tl = GetPlayerBuffTimeLeft and GetPlayerBuffTimeLeft(bid) or 0
+    local istrack = not skipped and GetPlayerBuffTexture(bid) == track and (not tl or tl <= 0)
+    if istrack then skipped = true end
+    if not istrack then
       seen = seen + 1
       if seen == n then return k end
     end

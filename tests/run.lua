@@ -7594,6 +7594,9 @@ dofile(DIR .. "/tests/octoloot.lua")
 -- ID Timer: the user's IDTimer add-on built in, off until asked (26 Nov 2026)
 dofile(DIR .. "/tests/idtimer.lua")
 
+-- Buffs: tracking filter keeps the Onyxia buff, consolidated buffs, grow direction (27 Nov 2026)
+dofile(DIR .. "/tests/buffs-cons.lua")
+
 local started, broken = 0, 0
 for _, m in ipairs(pfUI.modules) do
   if failedModules[m] then broken = broken + 1 else started = started + 1 end

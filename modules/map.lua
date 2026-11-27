@@ -52,11 +52,16 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
         this:EnableKeyboard(false)
         this:EnableMouseWheel(1)
 
-        -- set back to default scale
-        WorldMapFrame:SetScale(scale or .85)
+        -- set back to default scale (or fill the screen: fullscreen map, below)
+        if pfUI.map.fullscreen and pfUI.map.fullscreen.On() then
+          pfUI.map.fullscreen.Apply()
+        else
+          WorldMapFrame:SetScale(scale or .85)
+        end
       end)
 
       HookScript(WorldMapFrame, "OnMouseWheel", function()
+        if pfUI.map.fullscreen and pfUI.map.fullscreen.On() then return end
         if IsShiftKeyDown() then
           alpha = clamp(WorldMapFrame:GetAlpha() + arg1/10, 0.1, 1.0)
           WorldMapFrame:SetAlpha(alpha)
@@ -82,10 +87,12 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
       end)
 
       HookScript(WorldMapFrame, "OnDragStart", function()
+        if pfUI.map.fullscreen and pfUI.map.fullscreen.On() then return end
         pfUI.api.DragStart(WorldMapFrame)
       end)
 
       HookScript(WorldMapFrame, "OnDragStop",function()
+        if pfUI.map.fullscreen and pfUI.map.fullscreen.On() then return end
         pfUI.api.DragStop(WorldMapFrame)
         SaveMovable(this, true)
       end)
@@ -127,6 +134,7 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     -- (the zoom's scroll frame, else WorldMapButton): your own position bottom left, the cursor's bottom right. The
     -- cursor's are read from WorldMapButton, which is zoomed and moved with the picture, so they are right at any zoom.
     pfUI.map.Coords()
+    if pfUI.map.fullscreen then pfUI.map.fullscreen.Setup() end
   end)
 
   function pfUI.map.Coords()
@@ -254,10 +262,21 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     pin:SetHeight(pin.defsize)
   end
   Z.FitPin = FitPin
+  -- (27 Nov 2026, mechanism: "if you accept a quest while your map is zoomed in it still makes the dots ultra tiny")
+  -- pfQuest's turtle-pfQuest-worldmap.lua (in pfquest\, it sets pfMap.customContinentTransforms) already sizes every
+  -- world map pin by 1 / WorldMapButton's effective scale - which takes in our zoom, through its SetScale hook on
+  -- WorldMapDetailFrame. Our 1 / zoom on top made them 1 / zoom squared each time pfQuest redrew its pins (a new
+  -- quest). With that file the pins are left to it; we only ask for the redraw at once (its own waits up to 1 s).
+  function Z.PinsSelfScale()
+    local pm = rawget(_G, "pfMap")
+    return pm and pm.customContinentTransforms ~= nil
+  end
   function Z.Markers()
     local zf = Z.zoom or 1
     local pm = rawget(_G, "pfMap")
-    if pm and type(pm.pins) == "table" then
+    if pm and type(pm.pins) == "table" and Z.PinsSelfScale() then
+      Z.pinsDirty = true
+    elseif pm and type(pm.pins) == "table" then
       if not pm.octoZoomWrapped and type(pm.UpdateNode) == "function" then
         pm.octoZoomWrapped = true
         local orig = pm.UpdateNode
@@ -333,13 +352,7 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
     -- location") The game places WorldMapPing (a Model) by the player's map position against the picture's top-left,
     -- in units that do not follow the picture's zoom. The player marker (WorldMapPlayer) is placed right at every zoom,
     -- so the ping is hung on it after the game's own update each frame (-7 / -9 = the game's own nudge).
-    Z.FixPing = function()
-      local ping, me = _G.WorldMapPing, _G.WorldMapPlayer
-      if not ping or not me or not ping:IsVisible() then return end
-      ping:ClearAllPoints()
-      ping:SetPoint("CENTER", me, "CENTER", -7, -9)
-    end
-    HookScript(WorldMapButton, "OnUpdate", Z.FixPing)
+    -- (27 Nov 2026: still wrong for mechanism and Javelin - Z.PingCheck below now replaces the game's ping)
     local click = WorldMapButton:GetScript("OnClick")
     WorldMapButton:SetScript("OnClick", function()
       if Z.dragged then Z.dragged = nil return end
@@ -368,6 +381,13 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
       local key = tostring(c) .. ":" .. tostring(zn)
       if Z.mapKey and Z.mapKey ~= key and Z.zoom ~= 1 then Z.Reset() end
       Z.mapKey = key
+      -- pfQuest's pins after a zoom step (Z.PinsSelfScale), at most ~6 times a second
+      if Z.pinsDirty and GetTime() > (Z.pinsNext or 0) then
+        Z.pinsDirty = nil
+        Z.pinsNext = GetTime() + .15
+        local pm = rawget(_G, "pfMap")
+        if pm and type(pm.UpdateNodes) == "function" then pcall(pm.UpdateNodes, pm) end
+      end
     end)
   end
   -- the plain wheel zooms (Shift / Ctrl + wheel are pfUI's opacity and size, above)
@@ -415,17 +435,119 @@ pfUI:RegisterModule("map", "vanilla:tbc", function ()
   end
   if _G.WorldMapFrame then HookScript(WorldMapFrame, "OnShow", Z.RaiseMenus) end
 
-  function Z.PingCheck()
-    local ping, me = _G.WorldMapPing, _G.WorldMapPlayer
-    if not ping or not ping:IsVisible() then return end
-    if C.appearance.worldmap.ping == "0" then ping:Hide() return end
-    if me then
-      ping:ClearAllPoints()
-      ping:SetPoint("CENTER", me, "CENTER", -7, -9)
+  -- (27 Nov 2026, mechanism + Javelin: the ping is "still in the wrong place") Moving the model never worked: a 1.12
+  -- Model draws by its own rules whatever its frame's scale and place. The game's ping is hidden now and our own
+  -- pulse - plain textures, which do follow the map's size and zoom - plays on the centre of your arrow instead.
+  local P = {}
+  Z.ping = P
+  function P.Make()
+    if P.f or not _G.WorldMapButton then return P.f end
+    local f = CreateFrame("Frame", "pfWorldMapPing", WorldMapButton)
+    P.f = f
+    f:SetFrameLevel((WorldMapButton:GetFrameLevel() or 1) + 30)
+    f:SetWidth(1)
+    f:SetHeight(1)
+    f.rings = {}
+    for i = 1, 2 do
+      local t = f:CreateTexture(nil, "OVERLAY")
+      t:SetTexture(pfUI.media["img:circleparty"])
+      t:SetBlendMode("ADD")
+      t:SetVertexColor(1, .82, .2, 1)
+      t:SetPoint("CENTER", f, "CENTER", 0, 0)
+      f.rings[i] = t
     end
+    f:Hide()
+    f:SetScript("OnUpdate", function()
+      local me = _G.WorldMapPlayer
+      local t = GetTime() - (this.start or 0)
+      if t > 3 or not me or not me:IsVisible() then this:Hide() return end
+      this:ClearAllPoints()
+      this:SetPoint("CENTER", me, "CENTER", 0, 0)
+      -- the size on screen stays the same at any map zoom
+      local zf = (Z.scroll and Z.zoom) or 1
+      for i, ring in ipairs(this.rings) do
+        local p = math.mod(t + (i - 1) * .5, 1)
+        local size = (12 + 44 * p) / zf
+        ring:SetWidth(size)
+        ring:SetHeight(size)
+        ring:SetAlpha((1 - p) * .9)
+      end
+    end)
+    return f
+  end
+  -- once per opening of the map (the game may show its ping again every frame while it runs)
+  function P.Play()
+    if P.played then return end
+    local f = P.Make()
+    if not f then return end
+    P.played = true
+    f.start = GetTime()
+    f:Show()
+  end
+  function Z.PingCheck()
+    local ping = _G.WorldMapPing
+    if not ping or not ping:IsVisible() then return end
+    ping:Hide()
+    if C.appearance.worldmap.ping ~= "0" then P.Play() end
   end
   if _G.WorldMapFrame then
     local pw = CreateFrame("Frame", nil, WorldMapFrame)
     pw:SetScript("OnUpdate", Z.PingCheck)
+    HookScript(WorldMapFrame, "OnHide", function() P.played = nil if P.f then P.f:Hide() end end)
+  end
+
+  -- ---------------------------------------------------------------- fullscreen map
+  -- (27 Nov 2026, mechanism: "should be a button to make map fullscreen too ... like in newer clients") A button
+  -- by the close button blows the window up to fill the screen (and back). The window's own size, place and opacity
+  -- are kept for when you go back; Ctrl + wheel and dragging wait while it is full. Kept on between openings
+  -- (C.appearance.worldmap.fullscreen).
+  local FS = {}
+  pfUI.map.fullscreen = FS
+  function FS.On() return C.appearance.worldmap.fullscreen == "1" end
+  function FS.Apply()
+    local wm = _G.WorldMapFrame
+    if not wm or not wm:GetWidth() or wm:GetWidth() <= 0 then return end
+    if FS.On() then
+      local pw, ph = UIParent:GetWidth(), UIParent:GetHeight()
+      local s = math.min(pw / wm:GetWidth(), ph / wm:GetHeight())
+      wm:SetScale(s)
+      wm:ClearAllPoints()
+      wm:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+      wm:SetAlpha(1)
+    else
+      wm:SetScale(scale or .85)
+      wm:SetAlpha(alpha or 1)
+      wm:ClearAllPoints()
+      wm:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+      LoadMovable(wm)
+    end
+    UpdateTooltipScale()
+    if FS.button then FS.button.text:SetText(FS.On() and T["Window"] or T["Fullscreen"]) end
+    if Z.Markers then pcall(Z.Markers) end
+  end
+  function FS.Toggle()
+    C.appearance.worldmap.fullscreen = FS.On() and "0" or "1"
+    FS.Apply()
+  end
+  function FS.Setup()
+    if FS.button or not _G.WorldMapFrame or not _G.WorldMapFrameCloseButton then return end
+    local b = CreateFrame("Button", "pfWorldMapFullscreenButton", WorldMapFrame)
+    FS.button = b
+    b:SetWidth(70)
+    b:SetHeight(18)
+    b:SetFrameLevel((WorldMapFrameCloseButton:GetFrameLevel() or 1))
+    b:SetPoint("RIGHT", WorldMapFrameCloseButton, "LEFT", -6, 0)
+    b.text = b:CreateFontString(nil, "OVERLAY")
+    b.text:SetFont(pfUI.font_default, C.global.font_size, "OUTLINE")
+    b.text:SetAllPoints(b)
+    SkinButton(b)
+    b:SetScript("OnClick", FS.Toggle)
+    b:SetScript("OnEnter", function()
+      GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+      GameTooltip:AddLine(FS.On() and T["Back to the window"] or T["Map fills the screen"])
+      GameTooltip:Show()
+    end)
+    b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    FS.Apply()
   end
 end)
