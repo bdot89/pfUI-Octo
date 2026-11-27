@@ -1848,6 +1848,12 @@ pfUI:RegisterModule("plates", "vanilla:tbc", function ()
       if isPlayer then return "enemyplayer" end
       if isTotem then return "enemytotem" end
       if isPet then return "enemypet" end
+      -- (27 Nov 2026, Khijazi: "Can't see nameplates on enemies ... unless I have them targeted") without SuperWoW an
+      -- enemy player nobody targeted or moused over is unknown, and counted as an NPC it was hidden. Only a plate
+      -- known to be an NPC (pfUI's cache from target / mouseover, or SuperWoW's GUID) is one; an unknown red
+      -- plate stays, since it may be a player
+      local npc = (plate.cache and plate.cache.player == "NPC") or (guid and UnitExists(guid) and not UnitIsPlayer(guid))
+      if not npc then return "enemyplayer" end
       return "enemynpc"
     elseif side == "friend" then
       if isPlayer then return "friendplayer" end

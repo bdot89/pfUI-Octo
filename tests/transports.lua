@@ -235,6 +235,8 @@ if PL and PL.Filtered then
   pfUI.context.Zone = function() return "bg" end
   ok(PL.Filtered(Plate(1, 0, 0, "Guard", "NPC")) == true, "bg: enemy NPC hidden")
   ok(PL.Filtered(Plate(1, 0, 0, "Bob", "PLAYER")) == false, "bg: enemy player kept")
+  -- (27 Nov 2026, Khijazi) an enemy nobody targeted yet (no SuperWoW): may be a player, so it stays
+  ok(PL.Filtered(Plate(1, 0, 0, "Stranger")) == false, "bg: an unknown enemy plate is kept (may be a player)")
   ok(PL.Filtered(Plate(0, 0, 1, "Ally")) == false, "bg: friendly players kept by default")
   ok(PL.Filtered(Plate(0, 1, 0, "Herald")) == true, "bg: friendly NPC hidden")
   local tp = Plate(1, 0, 0, "Guard", "NPC") tp.istarget = true
