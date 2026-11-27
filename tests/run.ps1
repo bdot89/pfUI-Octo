@@ -13,5 +13,8 @@ try {
   # the character stats (charstats\, EvenBetterCharacterStats merged in) run on their own mock
   & $exe "tests/charstats.lua" | Select-Object -Last 1
   $stats = $LASTEXITCODE
-  if ($main -ne 0) { exit $main } else { exit $stats }
+  # OctoShare death / crit feeds: their own tiny host (combat-log patterns)
+  & $exe "tests/octoshare-deaths.lua" | Select-Object -Last 1
+  $deaths = $LASTEXITCODE
+  if ($main -ne 0) { exit $main } elseif ($stats -ne 0) { exit $stats } else { exit $deaths }
 } finally { Pop-Location }

@@ -49,8 +49,9 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
     Feed("Gathering nodes", "Herb and ore spots you pass, for the shared map nodes.", "gather", "share")
     Feed("World buffs", "Rend, Onyxia and Nefarian head drops as they happen, for the world-buff board.", "worldbuffs", "share")
     Feed("Leaderboards", "Your OctoBoards counts (kills, flights, gold...) to rank against guild and raid.", nil, nil)
-    Feed("Battlegrounds & population", "Your BG queue waits and win/loss, and your current zone now and then - for "
-      .. "queue-time, realm win-rate and 'where is everyone' boards. Nothing but the public count and your side.", "octoshare", "enable")
+    Feed("Battlegrounds, population, deaths & records", "Your BG queue waits and win/loss, your current zone now and "
+      .. "then, where you died and what hit you last, and a new best crit or crit heal (amount and spell) - for "
+      .. "queue-time, win-rate, 'where is everyone', death and record boards.", "octoshare", "enable")
 
     -- how it is sent: the throttle-safe governor
     W.Card(p, "How it is sent", { icon = "Interface\\Icons\\Spell_Nature_WispSplode" })
@@ -77,8 +78,8 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
       .. "Turn this on only on your own master character.",
       function() return OS() and OS().Collecting() end,
       function(v) if C.octoshare then C.octoshare.collect = v and "1" or "0" end end)
-    W.Check(p, "Send new feeds", "Lets pfUI Octo broadcast extra records (battleground queues, population and more) once "
-      .. "they are built. Off until then.",
+    W.Check(p, "Send new feeds", "Lets pfUI Octo broadcast the extra records: battleground queues and results, "
+      .. "population pings, deaths (zone, level, last attacker) and new personal crit records.",
       function() return OS() and OS().Enabled() end,
       function(v) if C.octoshare then C.octoshare.enable = v and "1" or "0" end end)
     W.Buttons(p, {
