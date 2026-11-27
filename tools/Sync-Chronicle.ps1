@@ -78,9 +78,16 @@ Write-Host ("  {0} uploads" -f $raids.Count)
 # the same raid uploaded twice: one guild, one zone, starting the same minute
 $seenRaid = @{}
 $unique = New-Object System.Collections.ArrayList
+# (27 Nov 2026: two uploads of one raid starting seconds apart across a minute were both kept - the same guild twice
+# on Longest raid) one guild, one zone, starting within 10 minutes of each other = the same raid
 foreach ($r in $raids) {
-  $k = "{0}|{1}|{2}|{3}" -f $r.realm.name, $r.guild.name, $r.name, ([string]$r.started_at).Substring(0, [Math]::Min(16, ([string]$r.started_at).Length))
-  if (-not $seenRaid.ContainsKey($k)) { $seenRaid[$k] = $true; [void]$unique.Add($r) }
+  $k = "{0}|{1}|{2}" -f $r.realm.name, $r.guild.name, $r.name
+  $st = $null
+  try { $st = [DateTime]::Parse([string]$r.started_at).ToUniversalTime() } catch { }
+  if (-not $seenRaid.ContainsKey($k)) { $seenRaid[$k] = New-Object System.Collections.ArrayList }
+  $dup = $false
+  foreach ($t in $seenRaid[$k]) { if ($st -and [Math]::Abs(($t - $st).TotalMinutes) -lt 10) { $dup = $true; break } }
+  if (-not $dup) { if ($st) { [void]$seenRaid[$k].Add($st) }; [void]$unique.Add($r) }
 }
 Write-Host ("  {0} different raids" -f $unique.Count)
 
@@ -201,11 +208,33 @@ foreach ($sc in @("all") + $realms) {
 $Boards["classtop"] = $classTop
 
 # raids and guilds
+# (27 Nov 2026, user: "why is these BRD runs on this list?" - Longest raid showed Blackrock Spire at 72 h and BRD at 3 h)
+# Chronicle's uploads are dungeons too: the raid and guild boards (guild of the week, unfinished business, turnout,
+# longest raid, night owls, realm wars) count raids only. And its start / end can span days (a log left running from
+# 21 to 24 Nov), so a raid lasts from its first boss pull to its last boss kill; with no boss kills it is left off the
+# longest-raid board.
+$RAIDS = @{ "Molten Core" = 1; "Blackwing Lair" = 1; "Onyxia's Lair" = 1; "Zul'Gurub" = 1; "Ruins of Ahn'Qiraj" = 1
+  "Temple of Ahn'Qiraj" = 1; "Naxxramas" = 1; "Lower Tower of Karazhan" = 1; "Emerald Sanctum" = 1; "Upper Tower of Karazhan" = 1 }
+$span = @{}
+foreach ($item in $records) {
+  $x = $item.x
+  if (-not $x.t -or $x.e -eq "Trash") { continue }
+  $id = $item.raid.id
+  $kt = $null
+  try { $kt = [DateTime]::Parse([string]$x.t).ToUniversalTime() } catch { continue }
+  $pull = $kt.AddSeconds(-[double]$x.du)
+  if (-not $span.ContainsKey($id)) { $span[$id] = @{ a = $pull; b = $kt } }
+  else {
+    if ($pull -lt $span[$id].a) { $span[$id].a = $pull }
+    if ($kt -gt $span[$id].b) { $span[$id].b = $kt }
+  }
+}
 $G = @{}
 $raidRows = @()
 foreach ($r in $unique) {
   $gk = $r.realm.name + "/" + $r.guild.name
   if (-not $r.guild.name) { continue }
+  if (-not $RAIDS.ContainsKey([string]$r.name)) { continue }
   if (-not $G.ContainsKey($gk)) { $G[$gk] = @{ n = $r.guild.name; c = ""; g = ""; r = $r.realm.name; kills = 0; open = 0; raids = 0 } }
   $G[$gk].kills += [int]$r.boss_kills
   $G[$gk].open += [Math]::Max(0, [int]$r.boss_count - [int]$r.boss_kills)
@@ -213,21 +242,23 @@ foreach ($r in $unique) {
   $st = [DateTime]::Parse([string]$r.started_at).ToUniversalTime()
   $en = $(if ($r.ended_at) { [DateTime]::Parse([string]$r.ended_at).ToUniversalTime() } else { $st })
   $late = ($st.Hour + $(if ($st.Hour -lt 6) { 24 } else { 0 })) * 60 + $st.Minute
+  $mins = 0
+  if ($span.ContainsKey($r.id)) { $mins = [Math]::Round(($span[$r.id].b - $span[$r.id].a).TotalMinutes) }
   $raidRows += [pscustomobject]@{ n = $r.guild.name; c = ""; g = $r.name; r = $r.realm.name; players = [int]$r.player_count
-    mins = [Math]::Round(($en - $st).TotalMinutes); late = $late; start = $st.ToString("HH:mm") }
+    mins = $mins; late = $late; start = $st.ToString("HH:mm") }
 }
 $guilds = @($G.Values)
 $Boards["guildweek"] = Top $guilds { param($g) $g.kills } { param($g) "{0} raids" -f $g.raids }
 $Boards["unfinished"] = Top $guilds { param($g) $g.open } { param($g) "{0} bosses killed" -f $g.kills }
 $Boards["turnout"] = Top $raidRows { param($x) $x.players } { param($x) $x.g }
-$Boards["marathon"] = Top $raidRows { param($x) $x.mins } { param($x) $x.g }
+$Boards["marathon"] = Top @($raidRows | Where-Object { $_.mins -gt 0 }) { param($x) $x.mins } { param($x) $x.g }
 $Boards["nightowl"] = Top @($raidRows | Where-Object { $_.late -ge 21 * 60 }) { param($x) $x.late } { param($x) "{0}, started {1} server time" -f $x.g, $x.start }
 # the realms against each other
 $war = @()
 foreach ($rn in $realms) {
   $k = 0
   foreach ($gg in $guilds) { if ($gg.r -eq $rn) { $k += $gg.kills } }
-  $war += [pscustomobject]@{ n = $rn; c = ""; g = ""; r = $rn; v = [double]$k; x = ("{0} raids" -f @($unique | Where-Object { $_.realm.name -eq $rn }).Count) }
+  $war += [pscustomobject]@{ n = $rn; c = ""; g = ""; r = $rn; v = [double]$k; x = ("{0} raids" -f @($unique | Where-Object { $_.realm.name -eq $rn -and $RAIDS.ContainsKey([string]$_.name) }).Count) }
 }
 $Boards["realmwar"] = @{ "all" = @($war | Sort-Object -Property v -Descending) }
 # (27 Nov 2026) the fastest full clear of each raid this week: Chronicle's own speedrun list (one request a raid)
