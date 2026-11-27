@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.74
+
+- 🔗 **Data sharing, one honest place:** a new Data sharing page (Quality of Life) lists everything pfUI Octo shares with other players - prices, flight and transport times, gathering nodes, world buffs, board counts - each with its own switch, and you can turn the lot off. Nothing hidden, nothing personal.
+- 🛡️ **Never spams the server:** every share message is now paced onto one slow stream, so all the feeds together can never trip the chat throttle. It goes completely silent while you are in combat and backs off if the server ever complains. You will not notice it.
+- 🌍 **Realm-wide, not just your guild:** the feeds now reach the whole realm over a hidden channel that joins quietly and stays out of your chat windows, so the shared prices and timers are fuller for everyone.
+
 ## 📜 New in 1.2.73
 
 - 🏁 **Fastest clears for every realm:** each realm's tab now shows its own fastest clear of each raid. Before, a realm only showed a raid when it held the record for all realms, so C'Thun and Y'Shaarj were empty.

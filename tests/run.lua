@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "octoboards", "octoboards-window", "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "minigames", "minigames-options", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "professions-missing", "professions-profit", "octorank", "octorank-timer", "octorank-options", "octoloot", "octoloot-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix", "octoshare", "octoshare-options" }
 
 -- ---------------------------------------------------------------- load
 
@@ -4580,7 +4580,7 @@ do
       for _, b in ipairs(qgrp and qgrp.buttons or {}) do table.insert(labels, b.text:GetText() or "") end
       -- (26 Nov 2026) ID Timer after Screenshots
       ok(qgrp and qgrp.name == "Quality of Life" and labels[1] == "QoL" and labels[2] == "Raid Tools" and labels[3] == "Screenshots"
-        and labels[4] == "ID Timer" and labels[5] == "Minigames" and labels[6] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
+        and labels[4] == "ID Timer" and labels[5] == "Data sharing" and labels[6] == "Minigames" and labels[7] == "Auto Loot", "Quality of Life tabs: " .. table.concat(labels, ", "))
       for _, k in ipairs({ "qolgeneral", "qolraid", "qolshots" }) do
         local okq, errq = pcall(function() O:Select("o:" .. k) end)
         ok(okq and O.pages[k], "QoL page " .. k .. " builds: " .. tostring(errq))
@@ -7596,6 +7596,9 @@ dofile(DIR .. "/tests/idtimer.lua")
 
 -- Buffs: tracking filter keeps the Onyxia buff, consolidated buffs, grow direction (27 Nov 2026)
 dofile(DIR .. "/tests/buffs-cons.lua")
+
+-- OctoShare: disclosed collector + new-feed Emit (27 Nov 2026)
+dofile(DIR .. "/tests/octoshare.lua")
 
 local started, broken = 0, 0
 for _, m in ipairs(pfUI.modules) do

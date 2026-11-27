@@ -102,6 +102,10 @@ view = FL.View(now)
 ok(view and view.prog and view.prog > .2 and view.prog < .3 and view.left, "by the clock: " .. tostring(view and view.prog))
 
 -- landing: timed and kept; the next flight uses it
+-- (27 Nov 2026) bypass OctoShare's send governor so this tests the flight module's own packing, not the paced queue
+-- (the governor has its own checks in tests\octoshare.lua); the module then falls back to a direct SendAddonMessage
+local _keepOS = pfUI.octoshare
+pfUI.octoshare = nil
 local sent = {}
 _G.SendAddonMessage = function(prefix, msg, chan) table.insert(sent, { prefix, msg, chan }) end
 _G.IsInGuild = function() return 1 end
@@ -168,4 +172,5 @@ FL.now, FL.pending, FL.nodes, FL.paths = nil, nil, nil, nil
 for _, k in ipairs({ "flighttimes", "flightnow", "flightrate", "flightcut" }) do pfUI_cache[k] = cache[k] end
 for k, v in pairs(keep) do _G[k] = v end
 for _, k in ipairs({ "C_TaxiMap", "UnitPosition" }) do if keep[k] == nil then _G[k] = nil end end
+pfUI.octoshare = _keepOS
 bar:Hide()

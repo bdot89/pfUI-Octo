@@ -62,9 +62,14 @@ pfUI:RegisterModule("worldbuffs", "vanilla", function ()
   function WB.Share(d, secs)
     if not On("share") or type(SendAddonMessage) ~= "function" then return end
     local msg = "D^" .. d.key .. "^" .. math.floor(secs + .5)
-    if IsInGuild and IsInGuild() then pcall(SendAddonMessage, WB.PREFIX, msg, "GUILD") end
-    if GetNumRaidMembers and GetNumRaidMembers() > 0 then pcall(SendAddonMessage, WB.PREFIX, msg, "RAID")
-    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then pcall(SendAddonMessage, WB.PREFIX, msg, "PARTY") end
+    local chans = {}
+    if IsInGuild and IsInGuild() then table.insert(chans, "GUILD") end
+    if GetNumRaidMembers and GetNumRaidMembers() > 0 then table.insert(chans, "RAID")
+    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(chans, "PARTY") end
+    -- (27 Nov 2026) through OctoShare's governor (throttle-safe) + the realm channel when set
+    local os = pfUI.octoshare
+    if os and os.Broadcast then os.Broadcast(WB.PREFIX, msg, chans)
+    else for _, c in ipairs(chans) do pcall(SendAddonMessage, WB.PREFIX, msg, c) end end
   end
   function WB.Receive(msg, sender)
     if type(msg) ~= "string" or sender == UnitName("player") then return end

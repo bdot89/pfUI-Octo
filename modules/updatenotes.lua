@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.74", {
+    { "Data sharing, one honest place", "a new Data sharing page (Quality of Life) lists everything pfUI Octo shares with other players - prices, flight and transport times, gathering nodes, world buffs, board counts - each with its own switch, and you can turn the lot off. Nothing hidden, nothing personal." },
+    { "Never spams the server", "every share message is now paced onto one slow stream, so all the feeds together can never trip the chat throttle. It goes completely silent while you are in combat and backs off if the server ever complains. You will not notice it." },
+    { "Realm-wide, not just your guild", "the feeds now reach the whole realm over a hidden channel that joins quietly and stays out of your chat windows, so the shared prices and timers are fuller for everyone." },
+  } },
   { "1.2.73", {
     { "Fastest clears for every realm", "each realm's tab now shows its own fastest clear of each raid. Before, a realm only showed a raid when it held the record for all realms, so C'Thun and Y'Shaarj were empty." },
     { "Clear times to the second", "times are exact now, and every clear under an hour reads m:ss (a 9 minute Onyxia showed as \"9m\")." },
@@ -190,8 +195,5 @@ pfUI.octoNotes = {
     { "pfUI Octo minimap button", "click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips." },
     { "pfUI button stays in the Esc menu", "with the Game Menu skin switched off, the \"pfUI Config\" button used to vanish too. It is now always there." },
     { "Installer only at login", "closing the installer with its X made it come back after every loading screen. It now only asks again at your next login or reload. Thanks Barbeque_Squirrel for both reports!" },
-  } },
-  { "1.2.34", {
-    { "No more quest tracker error spam", "the built-in quest tracker can no longer fill your screen with \"tracker.lua:282\" errors if pfQuest's helper table is missing - it now just uses the game's own quest watch window. If you saw this error, also make sure you are on the latest version. Thanks Mr_Rosh for the report!" },
   } },
 }

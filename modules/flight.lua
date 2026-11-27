@@ -329,9 +329,14 @@ pfUI:RegisterModule("flight", "vanilla", function ()
     if not On("share") or type(SendAddonMessage) ~= "function" or not secs then return end
     local msg = key .. "^" .. secs
     if string.len(msg) > 240 then return end
-    if IsInGuild and IsInGuild() then SendAddonMessage(PREFIX, msg, "GUILD") end
-    if GetNumRaidMembers and GetNumRaidMembers() > 0 then SendAddonMessage(PREFIX, msg, "RAID")
-    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then SendAddonMessage(PREFIX, msg, "PARTY") end
+    local chans = {}
+    if IsInGuild and IsInGuild() then table.insert(chans, "GUILD") end
+    if GetNumRaidMembers and GetNumRaidMembers() > 0 then table.insert(chans, "RAID")
+    elseif GetNumPartyMembers and GetNumPartyMembers() > 0 then table.insert(chans, "PARTY") end
+    -- (27 Nov 2026) through OctoShare's governor (throttle-safe) + the realm channel when set
+    local os = pfUI.octoshare
+    if os and os.Broadcast then os.Broadcast(PREFIX, msg, chans)
+    else for _, c in ipairs(chans) do SendAddonMessage(PREFIX, msg, c) end end
   end
   -- another player's time for a route: kept when you have none of your own
   function FL.Receive(msg, from)

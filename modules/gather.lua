@@ -967,7 +967,10 @@ pfUI:RegisterModule("gather", "vanilla", function ()
     if out[1] and now >= sendAt then
       sendAt = now + GAP
       local msg = table.remove(out, 1)
-      for _, chan in ipairs(Channels()) do SendAddonMessage(PREFIX, msg, chan) end
+      -- (27 Nov 2026) paced through OctoShare's governor (throttle-safe) + the realm channel when set
+      local os = pfUI.octoshare
+      if os and os.Broadcast then os.Broadcast(PREFIX, msg, Channels())
+      else for _, chan in ipairs(Channels()) do SendAddonMessage(PREFIX, msg, chan) end end
     end
   end
   local share = CreateFrame("Frame")

@@ -16,6 +16,10 @@ if WB then
 
   local keep = { send = rawget(_G, "SendAddonMessage"), guild = rawget(_G, "IsInGuild"), buff = rawget(_G, "UnitBuff"),
     gt = rawget(_G, "GetTime"), un = rawget(_G, "UnitName") }
+  -- (27 Nov 2026) bypass OctoShare's send governor (its own checks are in tests\octoshare.lua); the module then falls
+  -- back to a direct SendAddonMessage, which this test captures
+  local keepOS = pfUI.octoshare
+  pfUI.octoshare = nil
   local sent = {}
   _G.SendAddonMessage = function(p, m, c) table.insert(sent, { p, m, c }) end
   _G.IsInGuild = function() return 1 end
@@ -59,6 +63,7 @@ if WB then
   ok(WB.pending.zg == nil, "switched off: nothing")
   pfUI_config.worldbuffs.enable = "1"
   _G.SendAddonMessage, _G.IsInGuild, _G.UnitBuff, _G.GetTime = keep.send, keep.guild, keep.buff, keep.gt
+  pfUI.octoshare = keepOS
   WB.pending, pfUI_cache.wbdelay = {}, nil
 end
 

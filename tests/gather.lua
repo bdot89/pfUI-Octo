@@ -364,6 +364,10 @@ do
   -- sharing (15 Nov 2026): found nodes go out, others' come in checked
   do
     local sent = {}
+    -- (27 Nov 2026) bypass OctoShare's send governor (its own checks are in tests\octoshare.lua); the module falls
+    -- back to a direct SendAddonMessage here
+    local keepOS = pfUI.octoshare
+    pfUI.octoshare = nil
     local sam, guild, wasShare, wasRec = _G.SendAddonMessage, _G.IsInGuild, pfUI_config.gather.share, pfUI_config.gather.record
     _G.SendAddonMessage = function(prefix, msg, chan) if chan == "GUILD" then table.insert(sent, { prefix, msg, chan }) end end
     _G.IsInGuild = function() return 1 end
@@ -406,6 +410,7 @@ do
     Drain()
     ok(table.getn(sent) == n and GF.Count() == before + 3, "sharing off: nothing sent, nothing taken")
     _G.SendAddonMessage, _G.IsInGuild, pfUI_config.gather.share, pfUI_config.gather.record = sam, guild, wasShare, wasRec
+    pfUI.octoshare = keepOS
   end
   GF.Forget(true)
   ok(GF.Count() == 0, "Forget all empties it")

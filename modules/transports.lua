@@ -516,7 +516,10 @@ pfUI:RegisterModule("transports", "vanilla", function ()
     if out[1] and clock >= sendAt and type(SendAddonMessage) == "function" then
       sendAt = clock + 1
       local m = table.remove(out, 1)
-      for _, chan in ipairs(Channels()) do pcall(SendAddonMessage, TR.PREFIX, m, chan) end
+      -- (27 Nov 2026) through OctoShare's governor (throttle-safe) + the realm channel when set
+      local os = pfUI.octoshare
+      if os and os.Broadcast then os.Broadcast(TR.PREFIX, m, Channels())
+      else for _, chan in ipairs(Channels()) do pcall(SendAddonMessage, TR.PREFIX, m, chan) end end
     end
   end
 

@@ -332,9 +332,17 @@ pfUI:RegisterModule("octoboards", "vanilla", function ()
     local m = LB.Me()
     return { "A^" .. (m.class or "") .. "^" .. (m.level or 0) .. "^" .. Pack(m.all), "W^" .. m.wk .. "^" .. Pack(m.week) }
   end
+  -- (27 Nov 2026) one addon message, paced through OctoShare's governor so the feeds together never trip the chat
+  -- throttle, and to the realm channel when one is set; plain send as the fallback
+  local function OSend(msg, chan)
+    local os = pfUI.octoshare
+    if os and os.Send then os.Send(LB.PREFIX, msg, chan)
+    elseif SendAddonMessage then pcall(SendAddonMessage, LB.PREFIX, msg, chan) end
+    local x = os and os.ExtraChannel and os.ExtraChannel()
+    if x and os and os.Send then os.Send(LB.PREFIX, msg, x[1], x[2]) end
+  end
   local function Send(chan)
-    if not SendAddonMessage then return end
-    for _, l in ipairs(LB.Lines()) do pcall(SendAddonMessage, LB.PREFIX, l, chan) end
+    for _, l in ipairs(LB.Lines()) do OSend(l, chan) end
   end
   LB.Send = Send
   local shared = { login = nil, at = 0, raid = nil, asked = 0, answer = nil }
@@ -345,7 +353,7 @@ pfUI:RegisterModule("octoboards", "vanilla", function ()
     if guild and shared.login and now >= shared.login then
       shared.login = false
       Send("GUILD")
-      pcall(SendAddonMessage, LB.PREFIX, "Q", "GUILD")
+      OSend("Q", "GUILD")
       shared.at = now
     elseif guild and LB.dirty and now - shared.at > 900 then
       LB.dirty = nil
@@ -353,7 +361,7 @@ pfUI:RegisterModule("octoboards", "vanilla", function ()
       shared.at = now
     end
     local raid = GetNumRaidMembers and GetNumRaidMembers() > 0
-    if raid and not shared.raid then shared.raid = true Send("RAID") pcall(SendAddonMessage, LB.PREFIX, "Q", "RAID")
+    if raid and not shared.raid then shared.raid = true Send("RAID") OSend("Q", "RAID")
     elseif not raid then shared.raid = nil end
     if shared.answer and now >= shared.answer.at then
       Send(shared.answer.chan)

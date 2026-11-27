@@ -321,7 +321,13 @@ pfUI:RegisterModule("auction-ledger", "vanilla", function ()
         L.out, L.outN = {}, 0
       else
         local msg = L.Pack()
-        if msg then for _, c in ipairs(chans) do SendAddonMessage(PREFIX, msg, c) end end
+        -- (27 Nov 2026) through OctoShare's governor so the feeds together never trip the chat throttle, and to the
+        -- realm channel when one is set; plain send as the fallback if OctoShare is somehow absent
+        if msg then
+          local os = pfUI.octoshare
+          if os and os.Broadcast then os.Broadcast(PREFIX, msg, chans)
+          else for _, c in ipairs(chans) do SendAddonMessage(PREFIX, msg, c) end end
+        end
       end
     end
   end)
