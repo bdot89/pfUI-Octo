@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.68", {
+    { "Enemy nameplates are back in battlegrounds", "without SuperWoW, the battleground filter took enemy players nobody had targeted yet for NPCs and hid them, so only your target had a plate. Now only plates known to be NPCs are hidden; an enemy it can't place yet stays, since it may be a player." },
+  } },
   { "1.2.67", {
     { "OctoBoards, the leaderboards (/boards)", "one window, four tabs." },
     { "No more 1 FPS in raids from OctoDoTs", "debuff changes no longer force a full scan every frame." },
@@ -182,14 +185,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.29", {
     { "Left chat no longer goes blank", "when you shut the right window with the arrow at the bottom right: Loot & Spam moves into the left chat as a tab and General stays on screen (both windows got hidden before). If the left chat's picked window is ever hidden by something else, it comes back within a second." },
-  } },
-  { "1.2.28", {
-    { "OctoRinse, five new looks", "Timer bars (each row drains as its debuff runs out, seconds on the icon), Health bars (rows filled with the player's health in their class colour - save the one who is dying), Spotlight (the next cure large on top, the rest slim), Calm (soft colours, no pulse or sound, rows stay put) and Tiles (big icons in rows, set the Columns)." },
-    { "OctoRinse, less stress", "new card Order and calm - sort by lowest health or shortest time left, Rows stay put (nothing jumps under your mouse), Out of range at the bottom, and seconds left on the icons in any look." },
-    { "OctoRinse and the DoT tracker read less", "a player's (or mob's) debuffs are only read again when the game says they changed (ClassicAPI GUID events for the DoT tracker), with a safety read every 1-2 s. OctoRinse no longer reads all 40 raiders four times a second, and its loop runs 30 times a second instead of every frame. In encounters it reads the bosses from the new boss1-boss5 units." },
-    { "Action bars", "with ClassicAPI only the buttons whose usable state changed are redone (it was every button on every mana tick), cooldowns are only redrawn for buttons whose cooldown changed (it was every button on every global cooldown), and Shift / Ctrl / Alt page switching waits for a key change instead of looking every frame." },
-    { "Raid frames", "the aggro glow / square is one shared pass a second (it walked ~190 unit names for each frame, ~7,600 checks a second in a raid), heal prediction 10 times a second like the bars, and the raid sorter sleeps outside a raid." },
-    { "Timers everywhere", "buff timers and cooldown numbers only rebuild their text when the shown time changes; the player frame's aura swipes only restart when the aura changes." },
-    { "The game's own world frame script", "no longer looks over its popups every frame while the interface is showing (Settings Performance Lighter world frame script). Minimap art only spins its loop while something spins." },
   } },
 }

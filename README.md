@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.68
+
+- 🎯 **Enemy nameplates are back in battlegrounds:** without SuperWoW, the battleground filter took enemy players nobody had targeted yet for NPCs and hid them, so only your target had a plate. Now only plates known to be NPCs are hidden; an enemy it can't place yet stays, since it may be a player.
+
 ## 📜 New in 1.2.67
 
 - 🏆 **OctoBoards, the leaderboards (`/boards`):** one window, four tabs.
