@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.70", {
+    { "Translations, second round", "about 19,500 new texts in German, Spanish, French, Korean, Russian and both Chinese - OctoBoards, the auction and mail windows, OctoLoot, meter breakdowns, the minigames, OctoRinse and CooldownManager options, layout mode and the first-run setup." },
+    { "Translated everywhere", "pfUI Octo's own windows, buttons and tooltips now use the translations too, not only the options pages." },
+  } },
   { "1.2.69", {
     { "OctoBoards tabs make sense now", "This Week, Realm Boards, Tonight, Guild Boards and Player Cards (were Realm, Community, Awards, Boards, Player). Chronicle's every-realm pages come first, then your own group's. Each tab has a picture, the open one is gold, and the line under the title says what it shows." },
     { "This Week page", "opens first with every realm's top DPS, healer and parser, the realm war bar, guild of the week and fastest clear. New Top DPS, Top healer and Fastest clears boards. \"Realm Leaderboards\" sits above OctoRanks in the options sidebar." },
@@ -183,9 +187,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.31", {
     { "Map ping in the right place", "after using the world map zoom, the ping that marks you when the map opens could show up somewhere else. It now always lands on your arrow, zoomed in or not. Thanks mechanism for the report!" },
-  } },
-  { "1.2.30", {
-    { "See everyone on the realm running pfUI Octo", "every pfUI Octo now joins the hidden realm channel at login and says its version there. The About page's \"online now\" counts everyone in that channel - the whole realm, older versions (1.2.16 on) included - and hovering it shows who and which version (older ones in red)." },
-    { "Update popup from anywhere on the realm", "a newer version heard on the channel opens the update window, not only one heard in your guild or group. When someone older logs in, one player with a newer version answers them, so they find out at once - the channel stays quiet otherwise and never shows in chat. Switch it off with Minigames > \"Share on the realm channel\"." },
   } },
 }

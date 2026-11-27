@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.70
+
+- 🌍 **Translations, second round:** about 19,500 new texts in German, Spanish, French, Korean, Russian and both Chinese - OctoBoards, the auction and mail windows, OctoLoot, meter breakdowns, the minigames, OctoRinse and CooldownManager options, layout mode and the first-run setup.
+- 🗣️ **Translated everywhere:** pfUI Octo's own windows, buttons and tooltips now use the translations too, not only the options pages.
+
 ## 📜 New in 1.2.69
 
 - 🏆 **OctoBoards tabs make sense now:** This Week, Realm Boards, Tonight, Guild Boards and Player Cards (were Realm, Community, Awards, Boards, Player). Chronicle's every-realm pages come first, then your own group's. Each tab has a picture, the open one is gold, and the line under the title says what it shows.
