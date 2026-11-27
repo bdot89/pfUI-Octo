@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.77", {
+    { "System messages can be turned back on", "logins, logouts, rolls and /played vanished from chat for some, and the game's own menu has no switch for them. Right-click a chat tab > Filters > System Messages now starts with a Show system messages tick box, and the Chat page has a System switch for the main chat." },
+  } },
   { "1.2.76", {
     { "Fixes the \"Unknown addon chat type\" errors", "from 1.2.74/75: this client doesn't carry addon messages over a custom channel, so that's gone. Sharing is back to guild and raid, which work cleanly, with no error spam." },
     { "Realm-wide, the right way", "set your collector's name as the \"Master character\" on the Data sharing page and every client quietly whispers it (invisible) - off by default until you set it." },
@@ -191,9 +194,5 @@ pfUI.octoNotes = {
     { "Honor history built in (HonorSpy merged)", "every honor gain, battleground win / loss and step of rank % is kept per character. If you use TurtleHonorSpyEnhanced, its history is copied in once so your past days show straight away. /honor opens the tab. Options: Quality of Life > Honor." },
     { "Character window in the same look", "worn and burnt edges on every tab, your faction's crest glowing behind your character, your name in gold with your rank badge, a soft glow round rare and better gear, and worn panels under the stats. All of it can be switched off (Quality of Life > Honor > Character window)." },
     { "New pictures and files: restart the game, not just /reload", "" },
-  } },
-  { "1.2.37", {
-    { "Minimap glow, even all the way round", "a new Glow card on Minimap > Map. Our own glows are drawn from the map's exact shape, so they sit evenly round every shape (the game's glow pictures used to sit further out on one side). 7 styles (Soft, Tight, Wide, Neon line, Halo ring, Double ring, Inner glow), colour from your own pick, class, accent, shifting between two colours or rainbow, animations (Pulse, Breathe, Heartbeat, Flicker, a Running light round the round map) with speed and how far it dims, a combat colour, show only in / out of combat, a flash when the map is pinged, and a Normal blend for a dark drop shadow. Six new looks: Soft glow, Neon accent, Halo breathing, Running light, Rainbow neon, Square soft shadow. New pictures: restart the game, not just /reload." },
-    { "pfQuest load errors are caught", "if part of pfQuest fails while the game loads, chat says so at login with the first error in red (also saved for bug reports), and a half-loaded quest tracker is switched off instead of spamming tracker.lua errors." },
   } },
 }

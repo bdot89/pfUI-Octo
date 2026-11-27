@@ -105,8 +105,44 @@ pfUI:RegisterModule("chat-options", "vanilla:tbc", function ()
     SetChatWindowShown(i, nil)
   end
 
+  -- system messages (logins / logouts, rolls, /played, level ups ...)
+  -- (27 Nov 2026, mechanism on Discord: "system messages in chat are off and cannot be turned on". OctoWoW's
+  -- FloatingChatFrame (patch-4.mpq) lists System Messages as colour swatches only - notClickable, notCheckable -
+  -- so a window that lost the SYSTEM group had no way back, and FCF_OpenNewWindow never adds it. A tick box
+  -- goes at the top of that menu, and the Chat page has a switch for the main window.)
+  function CH.HasSystem(f)
+    if not f or not f.messageTypeList then return false end
+    for _, m in pairs(f.messageTypeList) do if m == "SYSTEM" then return true end end
+    return false
+  end
+  function CH.SetSystem(f, on)
+    if not f then return end
+    local has = CH.HasSystem(f)
+    if on and not has then ChatFrame_AddMessageGroup(f, "SYSTEM")
+    elseif not on and has then ChatFrame_RemoveMessageGroup(f, "SYSTEM") end
+  end
+  if type(_G.FCF_LoadChatSubTypes) == "function" and _G.UIDropDownMenu_AddButton then
+    local origSub = _G.FCF_LoadChatSubTypes
+    _G.FCF_LoadChatSubTypes = function(chatGroup)
+      if chatGroup == "SYSTEM" and _G.FCF_GetCurrentChatFrame then
+        local f = FCF_GetCurrentChatFrame()
+        if f then
+          local info = _G.UIDropDownMenu_CreateInfo and UIDropDownMenu_CreateInfo() or {}
+          info.text = "Show system messages"
+          info.checked = CH.HasSystem(f) and 1 or nil
+          info.func = function() CH.SetSystem(f, not CH.HasSystem(f)) end
+          UIDropDownMenu_AddButton(info, UIDROPDOWNMENU_MENU_LEVEL)
+        end
+      end
+      return origSub(chatGroup)
+    end
+  end
+
   CH.WHISPERS = "Whispers"
   CH.TOGGLES = {
+    { key = "system", label = "System", tip = "System messages in the main chat: logins and logouts, rolls, /played and other game lines.",
+      on = function() return CH.HasSystem(DEFAULT_CHAT_FRAME or ChatFrame1) end,
+      set = function(v) CH.SetSystem(DEFAULT_CHAT_FRAME or ChatFrame1, v) end },
     { key = "spam", label = "Loot & Spam window", tip = "The second chat panel, with loot, experience and reputation.",
       on = function() return RT().enable == "1" end,
       set = function(v) if pfUI.chat and pfUI.chat.SetupRightChat then pfUI.chat.SetupRightChat(v) end Refresh() end },

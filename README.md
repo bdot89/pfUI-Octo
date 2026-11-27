@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.77
+
+- 💬 **System messages can be turned back on:** logins, logouts, rolls and /played vanished from chat for some, and the game's own menu has no switch for them. Right-click a chat tab > Filters > System Messages now starts with a **Show system messages** tick box, and the Chat page has a **System** switch for the main chat.
+
 ## 📜 New in 1.2.76
 
 - 🧹 **Fixes the "Unknown addon chat type" errors** from 1.2.74/75: this client doesn't carry addon messages over a custom channel, so that's gone. Sharing is back to guild and raid, which work cleanly, with no error spam.
