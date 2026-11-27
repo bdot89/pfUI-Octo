@@ -49,6 +49,8 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
     Feed("Gathering nodes", "Herb and ore spots you pass, for the shared map nodes.", "gather", "share")
     Feed("World buffs", "Rend, Onyxia and Nefarian head drops as they happen, for the world-buff board.", "worldbuffs", "share")
     Feed("Leaderboards", "Your OctoBoards counts (kills, flights, gold...) to rank against guild and raid.", nil, nil)
+    Feed("Battlegrounds & population", "Your BG queue waits and win/loss, and your current zone now and then - for "
+      .. "queue-time, realm win-rate and 'where is everyone' boards. Nothing but the public count and your side.", "octoshare", "enable")
 
     -- how it is sent: the throttle-safe governor
     W.Card(p, "How it is sent", { icon = "Interface\\Icons\\Spell_Nature_WispSplode" })

@@ -11,7 +11,10 @@
 
   Output (default %LOCALAPPDATA%\pfUI-Octo\octoshare):
     prices.csv   realm,faction,day,itemkey,copper,sender,ts     (from the pfAP auction-price feed)
-    events.csv   ts,kind,sender,channel,payload                 (every other feed, raw - nothing is lost)
+    bgq.csv      map,faction,seconds,sender,ts                  (battleground queue waits, pfOS bgq)
+    bgr.csv      map,faction,win,sender,ts                      (battleground results 1/0, pfOS bgr)
+    pop.csv      zone,faction,sender,ts                         (population pings, pfOS pop)
+    events.csv   ts,kind,sender,channel,payload                 (every feed, raw - nothing is lost)
     seen.txt     hashes already ingested (the dedupe state)
   Load, e.g.:  sqlite3 boards.db ".mode csv" ".import prices.csv prices"
 #>
@@ -46,10 +49,20 @@ function Hash([string]$s) { return [Convert]::ToBase64String($md5.ComputeHash([T
 # CSV writers (header only when the file is new)
 $pricesPath = Join-Path $Out "prices.csv"
 $eventsPath = Join-Path $Out "events.csv"
+$bgqPath = Join-Path $Out "bgq.csv"
+$bgrPath = Join-Path $Out "bgr.csv"
+$popPath = Join-Path $Out "pop.csv"
 $prices = New-Object System.Text.StringBuilder
 $events = New-Object System.Text.StringBuilder
+$bgq = New-Object System.Text.StringBuilder
+$bgr = New-Object System.Text.StringBuilder
+$pop = New-Object System.Text.StringBuilder
+$newBgq = 0; $newBgr = 0; $newPop = 0
 if (-not (Test-Path $pricesPath)) { [void]$prices.AppendLine("realm,faction,day,itemkey,copper,sender,ts") }
 if (-not (Test-Path $eventsPath)) { [void]$events.AppendLine("ts,kind,sender,channel,payload") }
+if (-not (Test-Path $bgqPath)) { [void]$bgq.AppendLine("map,faction,seconds,sender,ts") }
+if (-not (Test-Path $bgrPath)) { [void]$bgr.AppendLine("map,faction,win,sender,ts") }
+if (-not (Test-Path $popPath)) { [void]$pop.AppendLine("zone,faction,sender,ts") }
 function Csv([string]$s) { if ($null -eq $s) { $s = "" }; if ($s -match '[,"\r\n]') { return '"' + ($s -replace '"', '""') + '"' } return $s }
 
 # a SavedVariables Lua string: "..." with \" and \\ escapes. Our log entries never contain a quote, so a plain
@@ -92,6 +105,19 @@ foreach ($file in $files) {
         $newPrices++
       }
     }
+    # the new OctoShare feeds (pfOS): payload is "subkind^field^field..."
+    elseif ($kind -eq "pfOS") {
+      $sh = $payload.IndexOf('^'); if ($sh -lt 0) { continue }
+      $sub = $payload.Substring(0, $sh)
+      $f = $payload.Substring($sh + 1).Split('^')
+      if ($sub -eq "bgq" -and $f.Count -ge 3) {
+        if ($f[2] -match '^\d+$') { [void]$bgq.AppendLine((Csv $f[0]) + "," + (Csv $f[1]) + "," + $f[2] + "," + (Csv $sender) + "," + (Csv $ts)); $newBgq++ }
+      } elseif ($sub -eq "bgr" -and $f.Count -ge 3) {
+        if ($f[2] -match '^[01]$') { [void]$bgr.AppendLine((Csv $f[0]) + "," + (Csv $f[1]) + "," + $f[2] + "," + (Csv $sender) + "," + (Csv $ts)); $newBgr++ }
+      } elseif ($sub -eq "pop" -and $f.Count -ge 2) {
+        [void]$pop.AppendLine((Csv $f[0]) + "," + (Csv $f[1]) + "," + (Csv $sender) + "," + (Csv $ts)); $newPop++
+      }
+    }
   }
 }
 
@@ -103,6 +129,9 @@ function Append([string]$path, [string]$text) {
 if ($newRows -gt 0) {
   Append $eventsPath $events.ToString()
   if ($newPrices -gt 0) { Append $pricesPath $prices.ToString() }
+  if ($newBgq -gt 0) { Append $bgqPath $bgq.ToString() }
+  if ($newBgr -gt 0) { Append $bgrPath $bgr.ToString() }
+  if ($newPop -gt 0) { Append $popPath $pop.ToString() }
   [IO.File]::WriteAllLines($seenPath, $seen, $utf8)
 }
-Write-Host ("OctoShare: {0} file(s), {1} new record(s) ({2} price rows). Written to {3}" -f $files.Count, $newRows, $newPrices, $Out)
+Write-Host ("OctoShare: {0} file(s), {1} new record(s) - {2} prices, {3} bg-queues, {4} bg-results, {5} pop. Written to {6}" -f $files.Count, $newRows, $newPrices, $newBgq, $newBgr, $newPop, $Out)

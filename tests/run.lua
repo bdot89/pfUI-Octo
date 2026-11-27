@@ -132,7 +132,7 @@ ChatTypeInfo = setmetatable({}, { __index = function(t, k) local v = { r = 1, g 
 local MUST_LOAD = { "octoboards", "octoboards-window", "transports", "tooltip-extras", "unitframes-blizz", "unlock", "gui", "qol-options", "firstrun", "share", "meters", "meters-clog", "meters-threat", "meters-window", "minigames", "minigames-options", "meters-capi", "sct", "octo-options", "sct-options", "keymap", "keybinds",
   "nameplates", "plates", "plates-options", "sct-preview", "actionbar", "actionbar-octo", "actionbar-options",
   "unitframes-options", "unitframes-octo", "castbar-options", "meters-options", "meters-breakdown", "meters-test", "plates-fx", "combo", "combo-options", "professions-octo", "professions-missing", "professions-profit", "octorank", "octorank-timer", "octorank-options", "octoloot", "octoloot-options", "chat-options", "chat-plus", "chat-history", "chat-whispers", "chat-bar", "chat-raid", "swing", "swing-options",
-  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix", "octoshare", "octoshare-options" }
+  "minimap", "minimap-style", "minimap-options", "buffs-options", "gear", "gear-sheet", "gear-slots", "gear-options", "gear-events", "gear-queue", "gear-specs", "octo-context", "octo-layouts", "bags-octo", "bags-options", "bagcategories", "bagcategories-options", "raidtools", "consumes", "consumes-options", "cdm", "cdm-options", "dots", "dots-target", "dots-options", "rinse", "rinse-options", "octototems", "octototems-options", "bulwark", "bulwark-options", "flight", "flight-options", "framefade", "framefade-options", "honor", "charframe", "honor-options", "auction", "auction-ledger", "auction-window", "auction-options", "octolazy", "octolazy-options", "perf", "perf-options", "movers", "movers-options", "perf-window", "autoattack", "escapefix", "octoshare", "octoshare-feeds", "octoshare-options" }
 
 -- ---------------------------------------------------------------- load
 
@@ -7599,6 +7599,7 @@ dofile(DIR .. "/tests/buffs-cons.lua")
 
 -- OctoShare: disclosed collector + new-feed Emit (27 Nov 2026)
 dofile(DIR .. "/tests/octoshare.lua")
+dofile(DIR .. "/tests/octoshare-feeds.lua")
 
 local started, broken = 0, 0
 for _, m in ipairs(pfUI.modules) do

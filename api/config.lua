@@ -968,7 +968,7 @@ function pfUI:LoadConfig()
   -- OctoShare (27 Nov 2026): the realm-wide share pipe (disclosed on the Data sharing page). Every broadcast is paced
   -- through its governor so the feeds together can never trip the chat throttle, and it goes quiet in combat.
   pfUI:UpdateConfig("octoshare",  nil,           "collect",          "0")        -- log every share message heard (the master only)
-  pfUI:UpdateConfig("octoshare",  nil,           "enable",           "0")        -- broadcast NEW OctoShare.Emit feeds (none built yet)
+  pfUI:UpdateConfig("octoshare",  nil,           "enable",           "1")        -- broadcast the new OctoShare.Emit feeds (BG queues, results, population)
   pfUI:UpdateConfig("octoshare",  nil,           "channel",          "OctoShare") -- shared channel joined quietly + hidden, for realm-wide reach
   pfUI:UpdateConfig("octoshare",  nil,           "gap",              "2")         -- seconds between outbound messages (lower = faster, riskier)
   pfUI:UpdateConfig("auction",    nil,           "dealpct",          "70")

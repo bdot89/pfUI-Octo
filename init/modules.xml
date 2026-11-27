@@ -125,6 +125,7 @@
   <Include file="..\modules\idtimer.lua"/>
   <Include file="..\modules\idtimer-options.lua"/>
   <Include file="..\modules\octoshare.lua"/>
+  <Include file="..\modules\octoshare-feeds.lua"/>
   <Include file="..\modules\octoshare-options.lua"/>
   <Include file="..\modules\octoloot-data.lua"/>
   <Include file="..\modules\octoloot-items.lua"/>

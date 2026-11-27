@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.75
+
+- ⚔️ **Battleground queue times:** pfUI Octo now shares how long your BG queues take and who won, so the boards can show which brackets pop fast and how each realm is doing. Opt out on the Data sharing page.
+- 🗺️ **Where is everyone:** a tiny, occasional note of your zone (never in combat) feeds an activity heatmap. No names, just a head count.
+- 🛡️ All of it rides the same throttle-safe, combat-silent sharing from 1.2.74 - you won't notice it.
+
 ## 📜 New in 1.2.74
 
 - 🔗 **Data sharing, one honest place:** a new Data sharing page (Quality of Life) lists everything pfUI Octo shares with other players - prices, flight and transport times, gathering nodes, world buffs, board counts - each with its own switch, and you can turn the lot off. Nothing hidden, nothing personal.

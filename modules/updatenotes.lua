@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.75", {
+    { "Battleground queue times", "pfUI Octo now shares how long your BG queues take and who won, so the boards can show which brackets pop fast and how each realm is doing. Opt out on the Data sharing page." },
+    { "Where is everyone", "a tiny, occasional note of your zone (never in combat) feeds an activity heatmap. No names, just a head count." },
+    { "All of it rides the same throttle-safe, combat-silent sharing from ...", "All of it rides the same throttle-safe, combat-silent sharing from 1.2.74 - you won't notice it." },
+  } },
   { "1.2.74", {
     { "Data sharing, one honest place", "a new Data sharing page (Quality of Life) lists everything pfUI Octo shares with other players - prices, flight and transport times, gathering nodes, world buffs, board counts - each with its own switch, and you can turn the lot off. Nothing hidden, nothing personal." },
     { "Never spams the server", "every share message is now paced onto one slow stream, so all the feeds together can never trip the chat throttle. It goes completely silent while you are in combat and backs off if the server ever complains. You will not notice it." },
@@ -190,10 +195,5 @@ pfUI.octoNotes = {
   { "1.2.36", {
     { "Installer once per character", "the installer now only shows the first time you log in on a new character. Finish it, skip it or close it and it never comes back by itself - not after updates either. Characters that already went through it are not asked again. Run it any time with /pfui install." },
     { "Minimap button in the addon bar", "with the addon button bar switched on, the pfUI Octo minimap button goes into it like every other add-on's button." },
-  } },
-  { "1.2.35", {
-    { "pfUI Octo minimap button", "click it to open the options, right-click to move frames, drag it round the map. Switch it off under Quality of Life > Map and tooltips." },
-    { "pfUI button stays in the Esc menu", "with the Game Menu skin switched off, the \"pfUI Config\" button used to vanish too. It is now always there." },
-    { "Installer only at login", "closing the installer with its X made it come back after every loading screen. It now only asks again at your next login or reload. Thanks Barbeque_Squirrel for both reports!" },
   } },
 }
