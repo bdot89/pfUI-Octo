@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.81
+
+- 📡 **Y'Shaarj Alliance data bot:** Alliance players on Y'Shaarj now share with their own faction's data bot, Octopfui, the same way Horde players share with Errorgchat. It is invisible and has the same off switch on the Data sharing page.
+
 ## 📜 New in 1.2.80
 
 - 🤖 **Realm-wide boards through the realm's data bot:** the feeds you already share with your guild (prices, flights, nodes, world buffs, boards, BG queues...) now also go to your realm's OctoWoW data bot as an invisible addon whisper - no chat line, no reply - so the realm-wide boards and Discord stats get everyone, not just one guild. Only your own faction's bot. If the bot is offline, the "No player named" line is hidden and pfUI waits 10 minutes before trying again. Off with one switch: Quality of Life > Data sharing > "Share with the realm's data bot".

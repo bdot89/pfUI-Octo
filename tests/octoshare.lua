@@ -71,7 +71,10 @@ S.realmbots = "1"
 OS.masterDownUntil = 0
 ok(OS.Master() == "Errorgchat", "Y'Shaarj Horde whispers the realm bot (" .. tostring(OS.Master()) .. ")")
 _G.UnitFactionGroup = function() return "Alliance", "Alliance" end
-ok(OS.Master() == nil, "the other faction does not (a whisper to it would fail)")
+ok(OS.Master() == "Octopfui", "Y'Shaarj Alliance whispers its own bot, never the Horde one")
+_G.GetRealmName = function() return "C'Thun" end
+ok(OS.Master() == nil, "a realm with no bot yet sends nothing")
+_G.GetRealmName = function() return "Y'Shaarj" end
 _G.UnitFactionGroup = function() return "Horde", "Horde" end
 _G.GetRealmName = function() return "Somewhere Else" end
 ok(OS.Master() == nil, "an unknown realm has no bot")

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.81", {
+    { "Y'Shaarj Alliance data bot", "Alliance players on Y'Shaarj now share with their own faction's data bot, Octopfui, the same way Horde players share with Errorgchat. It is invisible and has the same off switch on the Data sharing page." },
+  } },
   { "1.2.80", {
     { "Realm-wide boards through the realm's data bot", "the feeds you already share with your guild (prices, flights, nodes, world buffs, boards, BG queues...) now also go to your realm's OctoWoW data bot as an invisible addon whisper - no chat line, no reply - so the realm-wide boards and Discord stats get everyone, not just one guild. Only your own faction's bot. If the bot is offline, the \"No player named\" line is hidden and pfUI waits 10 minutes before trying again. Off with one switch: Quality of Life > Data sharing > \"Share with the realm's data bot\"." },
   } },
@@ -181,9 +184,5 @@ pfUI.octoNotes = {
     { "New profession windows (trade skills and Enchanting)", "the search box and the \"have materials\" / \"skill-up\" ticks sit above the list instead of on it (thanks Wolfahrt), categories as gold bars, the picked recipe lit, the profession's picture behind the recipe, the skill bar across the top." },
     { "The worn look on every character window", "spellbook, talents, quest log and the profession windows too (Quality of Life > Honor > Character window)." },
     { "Click casting", "pfUI's built-in SCRM no longer wipes Puppeteer's mouse-over, and a new \"Left-click spells also target\" option." },
-  } },
-  { "1.2.41", {
-    { "NEW STYLE chat fix", "clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back." },
-    { "Chat options, calmer", "\"Style: Old chat / New style\" sits in the strip at the top beside Chat and Panels; the big preview is gone from the chat pages (\"Show test lines in my chat\" fills your real chat instead), and its switches are a plain Windows card." },
   } },
 }

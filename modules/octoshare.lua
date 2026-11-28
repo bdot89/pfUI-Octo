@@ -99,7 +99,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- own faction's bot (a whisper to the other faction fails). If the bot is offline the server answers "No player named
   -- ..." - that one line is hidden for the bot's name and sending to it pauses for OS.DOWNFOR seconds.
   OS.BOTS = {
-    ["Y'Shaarj"] = { Horde = "Errorgchat" },
+    ["Y'Shaarj"] = { Horde = "Errorgchat", Alliance = "Octopfui" },
     ["C'Thun"]   = {},
     ["N'Zoth"]   = {},                    -- cross-faction: { any = "Name" }
   }
