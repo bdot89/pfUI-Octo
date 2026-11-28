@@ -101,7 +101,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   OS.BOTS = {
     ["Y'Shaarj"] = { Horde = "Errorgchat", Alliance = "Octopfui" },
     ["C'Thun"]   = {},
-    ["N'Zoth"]   = {},                    -- cross-faction: { any = "Name" }
+    ["N'Zoth"]   = { any = "Pfuiocto" },   -- cross-faction: one bot hears both factions
   }
   OS.DOWNFOR = 600
   OS.masterDownUntil = 0

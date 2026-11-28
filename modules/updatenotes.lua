@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.82", {
+    { "N'Zoth data bot", "players on N'Zoth, Horde and Alliance alike, now share with the realm's data bot, Pfuiocto. It is invisible and has the same off switch on the Data sharing page." },
+  } },
   { "1.2.81", {
     { "Y'Shaarj Alliance data bot", "Alliance players on Y'Shaarj now share with their own faction's data bot, Octopfui, the same way Horde players share with Errorgchat. It is invisible and has the same off switch on the Data sharing page." },
   } },
@@ -176,13 +179,5 @@ pfUI.octoNotes = {
   { "1.2.43", {
     { "OctoRanks built in", "your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold OctoRanks entry at the top of the options (/ranks). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart." },
     { "Profession windows fixed", "the Enchant / Create button is back, the \"have materials\" / \"skill-up\" ticks no longer run into the Engineering filter menus, and the open filter list is solid." },
-  } },
-  { "1.2.42", {
-    { "NEW STYLE chat, working and looking right", "the lines in Guild, Raid, Whispers and the rest were drawn under the view's own dark background (faint, \"nothing shows\") - now full brightness; your chat no longer shows through an open conversation, and a conversation opens at its newest line." },
-    { "The chat bar rebuilt", "no more overlapping text, every channel shows from the first load (no folding needed), icons on Chat / Whispers / History, a coloured orb per channel - each its own colour now (Battleground red, Officer teal) - dividers and a glowing underline. Invite / target / who sit in the conversation, so the bar never jumps." },
-    { "Look back in time", "a Days picker on every page jumps to any day; Shift + mouse wheel down = the newest line, up = the oldest. Channel pages use the full width (the people list is only for whispers)." },
-    { "New profession windows (trade skills and Enchanting)", "the search box and the \"have materials\" / \"skill-up\" ticks sit above the list instead of on it (thanks Wolfahrt), categories as gold bars, the picked recipe lit, the profession's picture behind the recipe, the skill bar across the top." },
-    { "The worn look on every character window", "spellbook, talents, quest log and the profession windows too (Quality of Life > Honor > Character window)." },
-    { "Click casting", "pfUI's built-in SCRM no longer wipes Puppeteer's mouse-over, and a new \"Left-click spells also target\" option." },
   } },
 }

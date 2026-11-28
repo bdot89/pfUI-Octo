@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.82
+
+- 📡 **N'Zoth data bot:** players on N'Zoth, Horde and Alliance alike, now share with the realm's data bot, Pfuiocto. It is invisible and has the same off switch on the Data sharing page.
+
 ## 📜 New in 1.2.81
 
 - 📡 **Y'Shaarj Alliance data bot:** Alliance players on Y'Shaarj now share with their own faction's data bot, Octopfui, the same way Horde players share with Errorgchat. It is invisible and has the same off switch on the Data sharing page.

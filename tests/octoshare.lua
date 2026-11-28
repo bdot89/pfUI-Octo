@@ -74,6 +74,11 @@ _G.UnitFactionGroup = function() return "Alliance", "Alliance" end
 ok(OS.Master() == "Octopfui", "Y'Shaarj Alliance whispers its own bot, never the Horde one")
 _G.GetRealmName = function() return "C'Thun" end
 ok(OS.Master() == nil, "a realm with no bot yet sends nothing")
+_G.GetRealmName = function() return "N'Zoth" end
+ok(OS.Master() == "Pfuiocto", "N'Zoth (cross-faction): Alliance whispers its one bot")
+_G.UnitFactionGroup = function() return "Horde", "Horde" end
+ok(OS.Master() == "Pfuiocto", "N'Zoth (cross-faction): Horde whispers the same bot")
+_G.UnitFactionGroup = function() return "Alliance", "Alliance" end
 _G.GetRealmName = function() return "Y'Shaarj" end
 _G.UnitFactionGroup = function() return "Horde", "Horde" end
 _G.GetRealmName = function() return "Somewhere Else" end
