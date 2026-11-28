@@ -122,6 +122,11 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.85
+
+- 📜 **OctoLoot scroll bars:** the instance, boss and loot lists show a thin bar on the right when there is more to scroll. Drag it or click it to jump.
+- ✨ **Enchant tooltips in OctoLoot:** hovering an enchant recipe shows what the enchant does, as an enchant link does, above the skill levels and reagents.
+
 ## 📜 New in 1.2.84
 
 - 💓 **Heartbeat to the realm data bot:** with the zone ping every few minutes, pfUI Octo tells your realm's data bot your zone, level, class, latency, pfUI Octo version and whether you are AFK, DND, queued for a battleground or in an instance. It goes to the bot only, never to guild or raid, is held in combat like all sharing, and switches off with "Battlegrounds, population, deaths & records" on the Data sharing page. pfUI only reports; it never takes commands.

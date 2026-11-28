@@ -2,6 +2,10 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.85", {
+    { "OctoLoot scroll bars", "the instance, boss and loot lists show a thin bar on the right when there is more to scroll. Drag it or click it to jump." },
+    { "Enchant tooltips in OctoLoot", "hovering an enchant recipe shows what the enchant does, as an enchant link does, above the skill levels and reagents." },
+  } },
   { "1.2.84", {
     { "Heartbeat to the realm data bot", "with the zone ping every few minutes, pfUI Octo tells your realm's data bot your zone, level, class, latency, pfUI Octo version and whether you are AFK, DND, queued for a battleground or in an instance. It goes to the bot only, never to guild or raid, is held in combat like all sharing, and switches off with \"Battlegrounds, population, deaths & records\" on the Data sharing page. pfUI only reports; it never takes commands." },
   } },
@@ -175,8 +179,5 @@ pfUI.octoNotes = {
   { "1.2.46", {
     { "OctoRanks run timer", "a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode." },
     { "You'll know the clock is on", "entering a 5-man at 60 says \"the run timer starts at your first pull\", and the pull says it started." },
-  } },
-  { "1.2.45", {
-    { "Auction house, one line per seller's batch (thanks Wolfahrt)", "the same item from the same seller at the same stack and price is one line with how many (\"9x\"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings (\"One line for the same auctions\")." },
   } },
 }

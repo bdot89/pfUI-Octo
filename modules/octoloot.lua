@@ -389,6 +389,11 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       local ok = false
       if GameTooltip.SetItemByID then ok = pcall(GameTooltip.SetItemByID, GameTooltip, it.id) end
       if not ok then pcall(GameTooltip.SetHyperlink, GameTooltip, "item:" .. it.id .. ":0:0:0") end
+    elseif recipe and recipe.id then
+      -- (28 Nov 2026, Discord) an enchant makes no item: the client's own enchant tooltip (what it does), as a
+      -- chat enchant link shows it; ClassicAPI's spell tooltip when that gives nothing
+      pcall(GameTooltip.SetHyperlink, GameTooltip, "enchant:" .. recipe.id)
+      if GameTooltip:NumLines() == 0 and GameTooltip.SetSpellByID then pcall(GameTooltip.SetSpellByID, GameTooltip, recipe.id) end
     end
     if GameTooltip:NumLines() == 0 then
       local c = OL.QCOLOR[it.q] or OL.QCOLOR[1]
@@ -751,6 +756,59 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
       t:SetVertexColor(r, g, b, math.max(a1, a2))
     end
   end
+  -- (28 Nov 2026, Discord: "an arrow that showed there's further to scroll or just a scroll bar to the right")
+  -- a thin bar on a list's right edge, only when the list is longer than its rows: the thumb shows where you are,
+  -- drag it or click the track to jump. scroll(top) sets the list's first line and repaints.
+  local function ScrollBar(parent, scroll, x, y1, y2)
+    local bar = CreateFrame("Button", nil, parent)
+    bar:SetWidth(6)
+    bar:SetPoint("TOPRIGHT", parent, "TOPRIGHT", x or -3, y1 or -4)
+    bar:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", x or -3, y2 or 4)
+    bar:SetFrameLevel(parent:GetFrameLevel() + 5)
+    local track = Fill(bar, { 1, 1, 1 }, .06, "BACKGROUND")
+    track:SetAllPoints(bar)
+    local thumb = Fill(bar, { 1, .82, .2 }, .55, "ARTWORK")
+    thumb:SetWidth(6)
+    bar.thumb = thumb
+    bar.top, bar.total, bar.vis = 0, 0, 1
+    local function Max() return math.max(0, bar.total - bar.vis) end
+    -- the top line for the cursor's height on the track (the thumb's middle follows the cursor)
+    local function AtCursor()
+      local _, cy = GetCursorPosition()
+      cy = cy / (bar:GetEffectiveScale() or 1)
+      local top, h = bar:GetTop() or 0, bar:GetHeight() or 1
+      local th = thumb:GetHeight() or 0
+      local room = h - th
+      if room <= 0 then return 0 end
+      local frac = (top - cy - th / 2) / room
+      return math.floor(math.max(0, math.min(1, frac)) * Max() + .5)
+    end
+    bar:SetScript("OnMouseDown", function() this.drag = true scroll(AtCursor()) end)
+    bar:SetScript("OnMouseUp", function() this.drag = nil end)
+    bar:SetScript("OnHide", function() this.drag = nil end)
+    bar:SetScript("OnUpdate", function()
+      if this.drag then
+        local t = AtCursor()
+        if t ~= this.top then scroll(t) end
+      end
+    end)
+    bar:SetScript("OnEnter", function() thumb:SetAlpha(1) end)
+    bar:SetScript("OnLeave", function() thumb:SetAlpha(.7) end)
+    function bar.Set(top, total, vis)
+      bar.top, bar.total, bar.vis = top or 0, total or 0, math.max(1, vis or 1)
+      if bar.total <= bar.vis then bar:Hide() return end
+      bar:Show()
+      local h = bar:GetHeight() or 0
+      if h <= 0 then h = 200 end
+      local th = math.max(18, h * bar.vis / bar.total)
+      thumb:SetHeight(th)
+      thumb:ClearAllPoints()
+      thumb:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, -((h - th) * bar.top / Max()))
+    end
+    bar:Hide()
+    return bar
+  end
+
   local function Tip(f, title, text)
     f:SetScript("OnEnter", function()
       GameTooltip:SetOwner(this, "ANCHOR_RIGHT")
@@ -1012,6 +1070,10 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     end
     left:EnableMouseWheel(true)
     left:SetScript("OnMouseWheel", function() OL.ScrollList(arg1) end)
+    f.listBar = ScrollBar(left, function(t) OL.listTop = t OL.PaintList() end)
+    f.listBar:ClearAllPoints()
+    f.listBar:SetPoint("TOPRIGHT", f.rows[1], "TOPRIGHT", 2, 0)
+    f.listBar:SetPoint("BOTTOMRIGHT", f.rows[table.getn(f.rows)], "BOTTOMRIGHT", 2, 0)
 
     -- ---- right: banner
     local main = CreateFrame("Frame", nil, f)
@@ -1135,6 +1197,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     end
     bosses:EnableMouseWheel(true)
     bosses:SetScript("OnMouseWheel", function() OL.ScrollBosses(arg1) end)
+    f.bossBar = ScrollBar(bosses, function(t) OL.bossTop = t OL.PaintBosses() end, -4, -6, 6)
 
     local loot = CreateFrame("Frame", nil, main)
     loot:SetPoint("TOPLEFT", bosses, "TOPRIGHT", 0, 0)
@@ -1260,6 +1323,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     f.perCol = per
     loot:EnableMouseWheel(true)
     loot:SetScript("OnMouseWheel", function() OL.ScrollItems(arg1) end)
+    f.itemBar = ScrollBar(loot, function(t) OL.itemTop = t OL.PaintItems() end, -4, -40, 26)
 
     -- the map: Atlas-CFM's picture, fitted into the loot area
     local map = CreateFrame("Frame", nil, main)
@@ -1315,6 +1379,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     local n = table.getn(f.rows)
     local maxTop = math.max(0, table.getn(list) - n)
     OL.listTop = math.max(0, math.min(OL.listTop or 0, maxTop))
+    if f.listBar then f.listBar.Set(OL.listTop, table.getn(list), n) end
     local here = OL.Here()
     local r1, g1, b1 = Accent()
     for i = 1, n do
@@ -1515,6 +1580,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     local list = {}
     if OL.results then
       for i = 1, table.getn(rows) do rows[i]:Hide() end
+      if f.bossBar then f.bossBar:Hide() end
       return
     end
     -- "Everything here" for dungeons, raids and world bosses; a section's pages stand on their own
@@ -1522,6 +1588,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     for _, b in ipairs(inst and inst.bosses or {}) do table.insert(list, b) end
     local n = table.getn(rows)
     OL.bossTop = math.max(0, math.min(OL.bossTop or 0, table.getn(list) - n))
+    if f.bossBar then f.bossBar.Set(OL.bossTop, table.getn(list), n) end
     local r1, g1, b1 = Accent()
     for i = 1, n do
       local r = rows[i]
@@ -1737,6 +1804,7 @@ pfUI:RegisterModule("octoloot", "vanilla:tbc", function ()
     local lines = OL.lines or {}
     local n = table.getn(f.heads)
     OL.itemTop = math.max(0, math.min(OL.itemTop or 0, math.max(0, table.getn(lines) - n)))
+    if f.itemBar then f.itemBar.Set(OL.itemTop, table.getn(lines), n) end
     OL.missing = false
     for i = 1, n do
       local line = lines[i + OL.itemTop]
