@@ -440,6 +440,14 @@ end
 
 -- ---------------------------------------------------------------- basics
 
+-- (27 Nov 2026, tuki on Discord: "Test" put text on plates, real hits showed nothing) your damage, heals and misses
+-- come only from nampower's events; without nampower only the test, messages and alerts show. "" when all is well.
+function CT.NeedsNampower()
+  if rawget(_G, "GetNampowerVersion") then return "" end
+  return "|cffff6a55nampower is not installed|r - your hits, heals and misses come from it, so only Test, messages and "
+    .. "alerts show. Install it with the pfUI Octo DLL installer (or the Octo DLL Installer), then restart the game."
+end
+
 BUILD.ctgeneral = function(p)
   W.Heading(p, "Combat text", {
     on = MASTER,
@@ -449,6 +457,7 @@ BUILD.ctgeneral = function(p)
       .. "the areas as blue boxes to drag and size.\n\nThe other combat text pages: Scroll areas (where and how text "
       .. "moves, how crits appear there), Nameplates (crits and teammates' damage too), Messages and sounds (what shows, its colour, where "
       .. "it comes from), Text and filters, Threat." })
+  W.Live(p, function() return CT.NeedsNampower() end)
   W.Live(p, function()
     local s = {}
     if CT:Testing() then table.insert(s, "|cff55ff55Test running|r (" .. math.ceil(CT.testUntil - GetTime()) .. " s)") end
@@ -604,6 +613,8 @@ BUILD.ctplates = function(p)
       .. "to the fallback area. Works with pfUI's nameplates.\n\nTeammates: the damage your party deals rises from the "
       .. "plate of whoever they hit - smaller, in their class colour, in a column beside your own numbers. Your own "
       .. "damage is never shown twice, and teammates' text never goes to the screen areas." })
+  -- (27 Nov 2026, tuki: "test" showed text on plates, real hits nothing) your hits come only from nampower's events
+  W.Live(p, function() return CT.NeedsNampower() end)
   -- (16 Nov 2026) in use or not, first thing on the page, with the three setups to change it
   W.Live(p, function()
     local u = CT.Usage().plate

@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.79", {
+    { "OctoLoot trash drops (thanks Lobo)", "every dungeon and raid with trash loot now has a \"Trash mobs\" entry - Dragonmaw Retreat shows the Dragonmaw Bulwark and the Dragonmaw set pieces." },
+    { "Nameplate combat text (thanks tuki)", "the combat text pages now say plainly when nampower is missing - your hits come from it, so without it only Test shows." },
+    { "pfQuest missing its database", "instead of an error to report, pfUI says the files are missing and to reinstall pfUI." },
+  } },
   { "1.2.78", {
     { "Shorter tooltips, your way", "every extra tooltip part now has its own switch on one card (Quality of Life > Tooltips > Tooltip extras). Mob hits, armor and resists each on their own (resists off, armor kept), how many creatures \"Drops from\" lists, and OctoLoot's Swaps, pages and the long \"Used in\" line - each Always, only while Shift is held, or Never. The auction price is there too." },
   } },
@@ -186,11 +191,5 @@ pfUI.octoNotes = {
     { "Map fixes", "the ping on you when the map opens sits on your arrow at any zoom (and can be switched off: Quality of Life > Map); pfQuest's \"Current Zone Only\" button works again; mailbox, bank and auction house icons tracked with the old standalone pfQuest show their pictures again instead of plain dots." },
     { "Auctions", "the Sell tab's list shows \"Of usual\" (% of the usual price), and after posting full stacks the leftover goes straight into the stack size." },
     { "New files and pictures: restart the game, not just /reload", "" },
-  } },
-  { "1.2.39", {
-    { "Chat history, 30 days", "whispers (both ways, per person), guild, officer, party, raid (raid warnings marked) and battleground chat are kept per character for 30 days (say and yell too if you switch them on). Kept small: one short string a line, at most 4 000 lines a channel." },
-    { "In the whisper window", "History at the top of the list opens a menu of everyone you whispered with, newest first, with a filter - pick one for the whole conversation. The G O P R B S row at the bottom opens Guild, Officer, Party, Raid, Battleground or Say history, new lines come in live, and the box below talks in that channel. Days are split by \"-- Monday 23 November --\" lines. A small arrow on the dividing line hides the list and brings it back." },
-    { "/chathistory (or /chist) opens guild history; /chathistory raid, pa...", "/chathistory (or /chist) opens guild history; /chathistory raid, party... the others. Options: Chat > Whispers > Chat history." },
-    { "New file: restart the game, not just /reload", "" },
   } },
 }

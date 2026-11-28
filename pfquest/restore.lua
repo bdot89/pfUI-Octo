@@ -67,6 +67,13 @@ if not pfQuestOctoSkip and (pfMap == nil or brokenTracker or (loadErrors and loa
       pfUI_cache.pfquesterror = first and (date("%Y-%m-%d %H:%M") .. " " .. first) or nil
     end
     if DEFAULT_CHAT_FRAME then
+      -- (27 Nov 2026, Kahno: "overwrites.lua:10: attempt to index global pfDB") no database file loaded at all: files
+      -- missing from pfUIpfquestdb (a download that stopped, or antivirus) - say what to do, not an error to report
+      if pfDB == nil then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: |cffff6666pfQuest's database files are missing|r from Interface\\AddOns\\pfUI\\pfquest\\db, so quests and map pins are off. "
+          .. "Close the game, delete the pfUI folder and install pfUI Octo again (the launcher, or the pfUI.zip download).")
+        return
+      end
       local what = (pfMap == nil or brokenTracker) and "pfQuest could not fully load, so quest pins or the quest tracker are off."
         or "pfQuest had an error while loading."
       DEFAULT_CHAT_FRAME:AddMessage("|cff33ffccpfUI Octo|r: " .. what .. (first

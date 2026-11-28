@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.79
+
+- 🗡️ **OctoLoot trash drops (thanks Lobo):** every dungeon and raid with trash loot now has a "Trash mobs" entry - Dragonmaw Retreat shows the Dragonmaw Bulwark and the Dragonmaw set pieces.
+- 💥 **Nameplate combat text (thanks tuki):** the combat text pages now say plainly when nampower is missing - your hits come from it, so without it only Test shows.
+- 🗺️ **pfQuest missing its database:** instead of an error to report, pfUI says the files are missing and to reinstall pfUI.
+
 ## 📜 New in 1.2.78
 
 - ✂️ **Shorter tooltips, your way:** every extra tooltip part now has its own switch on one card (Quality of Life > Tooltips > Tooltip extras). Mob hits, armor and resists each on their own (resists off, armor kept), how many creatures "Drops from" lists, and OctoLoot's Swaps, pages and the long "Used in" line - each Always, only while Shift is held, or Never. The auction price is there too.

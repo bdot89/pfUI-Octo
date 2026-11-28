@@ -248,3 +248,14 @@ ok(meta and meta.name == "Onyxia's Lair" and meta.players == 40 and OL.Meta("Bla
   "a pin's tooltip reads only its instance's line (first line too)")
 local okPin, errPin = pcall(OL.PaintPins)
 ok(okPin, "pins paint (or stay hidden) without the map open: " .. tostring(errPin))
+
+-- (27 Nov 2026, Lobo: "there isnt a trash drop section for Dragonmaw Retreat ... Dragonmaw Bulwark or the pieces")
+do
+  local tdb = OL.Load()
+  local dr = tdb and tdb.by and tdb.by["DragonmawRetreat"]
+  local trash
+  for _, b in ipairs(dr and dr.bosses or {}) do if b.name == "Trash mobs" then trash = b end end
+  local has = {}
+  for _, g in ipairs(trash and OL.Loot(trash) or {}) do for _, e in ipairs(g.items) do has[e.id] = e.pct end end
+  ok(trash and has[58102] and has[58111] == 1.35 and has[58115], "Dragonmaw Retreat has its trash mobs: the Bulwark and the Dragonmaw pieces")
+end

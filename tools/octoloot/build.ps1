@@ -144,6 +144,52 @@ foreach ($inst in $atlas) {
     $stats.boss++
     if (-not $loot) { $stats.empty++ }
   }
+  # (27 Nov 2026, Lobo: "there isnt a trash drop section for Dragonmaw Retreat ... Dragonmaw Bulwark or the pieces")
+  # Atlas-CFM's trash lists (an entry id = "...Trash...") have no NPC to fetch, so they were left out: their items
+  # and chances (each item's dropRate, else the list's default) as a "Trash mobs" entry, kind t
+  $afile = Join-Path "C:\Games\OctoWoW\Interface\AddOns\Atlas-CFM\CFMLoot\Data" (Join-Path $(if ($inst.kind -eq "World") { "World" } else { "Instances" }) ($inst.file + ".lua"))
+  if (Test-Path $afile) {
+    $atext = Get-Content -Raw $afile
+    $mi = [regex]::Match($atext, "InstanceData\.$($inst.key)\s*=\s*\{")
+    if ($mi.Success) {
+      $nx = [regex]::Match($atext.Substring($mi.Index + 10), "InstanceData\.\w+\s*=\s*\{")
+      $iblk = $(if ($nx.Success) { $atext.Substring($mi.Index, $nx.Index + 10) } else { $atext.Substring($mi.Index) })
+      foreach ($tm in [regex]::Matches($iblk, 'id\s*=\s*"(\w*Trash\w*)"([\s\S]*?)loot\s*=\s*\{([\s\S]*?)\n\s*\},')) {
+        $def = [regex]::Match($tm.Groups[2].Value, 'defaults\s*=\s*\{\s*dropRate\s*=\s*([\d.]+)')
+        $defRate = $(if ($def.Success) { $def.Groups[1].Value } else { "" })
+        $items = @()
+        foreach ($im in [regex]::Matches($tm.Groups[3].Value, '\{\s*id\s*=\s*(\d+)([^\n]*)')) {
+          $iid = [int]$im.Groups[1].Value
+          if ($iid -lt 1000) { continue }   # (Atlas-CFM's small ids are its own page links, not items)
+          $r = [regex]::Match($im.Groups[2].Value, 'dropRate\s*=\s*([\d.]+)')
+          $rate = $(if ($r.Success) { $r.Groups[1].Value } else { $defRate })
+          # its name / quality / icon from the database's item list (items.ps1), as the drops get theirs from their pages;
+          # like the bosses' drops: green and better only, and only items the database knows
+          if (-not $names.ContainsKey($iid)) {
+            if (-not $script:tsv) {
+              $script:tsv = @{}
+              $tf = Join-Path $here "items.tsv"
+              if (Test-Path $tf) {
+                foreach ($tl in [IO.File]::ReadAllLines($tf)) {
+                  $c = $tl.TrimStart([char]0xFEFF) -split "`t"
+                  if ($c.Count -ge 8) { $script:tsv[[int]$c[0]] = $c }
+                }
+              }
+            }
+            $c = $script:tsv[$iid]
+            if (-not $c -or [int]$c[1] -lt 2) { continue }
+            $names[$iid] = [pscustomobject]@{ id = $iid; q = [int]$c[1]; name = $c[2]; il = $c[4]; rl = $c[5]; cl = $c[6]; sc = $c[7]; pct = 0 }
+            if (-not $icons[$iid]) { $icons[$iid] = $c[3] }
+          } elseif ($names[$iid].q -lt 2) { continue }
+          if (-not ($items | ? { $_ -like "$($iid):*" -or $_ -eq "$iid" })) { $items += $(if ($rate) { "$($iid):$rate" } else { "$iid" }) }
+        }
+        if ($items.Count -gt 0) {
+          [void]$lines.Add(("B^^Trash mobs^t^0^{0}" -f ($items -join ",")))
+          $stats.boss++
+        }
+      }
+    }
+  }
   # bosses the server lists in this zone that Atlas-CFM does not know
   if ($zref -and $zoneUse[$zref] -eq 1) {
     foreach ($r in (Rows (Page $zref) "template:'npc'")) {
