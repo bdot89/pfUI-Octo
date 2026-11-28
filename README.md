@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.83
+
+- 🔒 **Realm data bots are fixed:** pfUI Octo now picks the data bot by realm and faction (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto), and nothing can change it. The "Master character" box and the bot on/off switch are gone; the Data sharing page shows your realm's bot. To share nothing, turn the feeds off.
+
 ## 📜 New in 1.2.82
 
 - 📡 **N'Zoth data bot:** players on N'Zoth, Horde and Alliance alike, now share with the realm's data bot, Pfuiocto. It is invisible and has the same off switch on the Data sharing page.

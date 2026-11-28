@@ -98,33 +98,41 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- On by default (octoshare.realmbots, a switch on the Data sharing page); a master typed in by hand wins. Only your
   -- own faction's bot (a whisper to the other faction fails). If the bot is offline the server answers "No player named
   -- ..." - that one line is hidden for the bot's name and sending to it pauses for OS.DOWNFOR seconds.
-  OS.BOTS = {
+  --
+  -- (28 Nov 2026, user: "make them not changeable it should be hardset in nobody should be able to change it") The
+  -- masters are FIXED per realm + faction. No option, no saved setting (octoshare.master / realmbots are ignored, and
+  -- dropped from saved configs), and the list is a local here - OS.BOTS is only a copy for display, so neither another
+  -- addon nor a profile import can redirect the data. A new bot = a new pfUI Octo release.
+  local BOTS = {
     ["Y'Shaarj"] = { Horde = "Errorgchat", Alliance = "Octopfui" },
     ["C'Thun"]   = {},
     ["N'Zoth"]   = { any = "Pfuiocto" },   -- cross-faction: one bot hears both factions
   }
+  OS.BOTS = {}
+  for realm, list in pairs(BOTS) do
+    OS.BOTS[realm] = {}
+    for k, v in pairs(list) do OS.BOTS[realm][k] = v end
+  end
+  Cfg().master, Cfg().realmbots = nil, nil                -- the old changeable settings, gone for good
   OS.DOWNFOR = 600
   OS.masterDownUntil = 0
   function OS.RealmBot()
-    if Cfg().realmbots == "0" then return nil end
     local realm = GetRealmName and GetRealmName()
-    local bots = realm and OS.BOTS[realm]
+    local bots = realm and BOTS[realm]
     if not bots then return nil end
     local faction = UnitFactionGroup and (UnitFactionGroup("player"))
     return (faction and bots[faction]) or bots.any
   end
   function OS.Master()
     if (GetTime and GetTime() or 0) < OS.masterDownUntil then return nil end   -- offline: paused
-    local m = Cfg().master
-    if not m or m == "" then m = OS.RealmBot() end
+    local m = OS.RealmBot()
     if m and m ~= "" and (not UnitName or m ~= (UnitName("player"))) then return m end
     return nil
   end
   -- the server's "No player named 'X' is currently playing." for the master: true = it was about our master
   function OS.MasterNotFound(text)
     if type(text) ~= "string" then return false end
-    local m = Cfg().master
-    if not m or m == "" then m = OS.RealmBot() end
+    local m = OS.RealmBot()
     if not m or m == "" then return false end
     local lower, name = string.lower(text), string.lower(m)
     if not string.find(lower, "no player named", 1, true) and not string.find(lower, "not found", 1, true) then return false end
@@ -256,7 +264,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     local d = DB()
     Say("collector: " .. (OS.Collecting() and "|cff55ff55ON|r" or "off") .. "  new feeds: "
       .. (OS.Enabled() and "|cff55ff55ON|r" or "off")
-      .. "  master: " .. (OS.Master() or ((GetTime and GetTime() or 0) < OS.masterDownUntil and "offline - paused"
+      .. "  realm data bot: " .. (OS.Master() or ((GetTime and GetTime() or 0) < OS.masterDownUntil and "offline - paused"
       or "none (guild / raid only)")))
     Say("logged: " .. table.getn(d.log) .. " of " .. OS.MAXLOG .. " (seen " .. (d.n or 0) .. " total).  /octoshare clear empties it.")
     Say("send queue: " .. OS.qn .. "  one message every " .. OS.Gap() .. "s, paused in combat (throttle-safe).")

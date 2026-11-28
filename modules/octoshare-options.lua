@@ -63,16 +63,15 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
       .. "the server's limit. Lower it only if you know what you are doing.", 1, 6, .5,
       function() return tonumber(C.octoshare and C.octoshare.gap) or 2 end,
       function(v) if C.octoshare then C.octoshare.gap = tostring(v) end end, function(v) return v .. " s" end)
-    W.Check(p, "Share with the realm's data bot", "Also sends the shared feeds above to your realm's OctoWoW data bot "
-      .. "(the same data your guild already gets), as an invisible addon whisper - no chat line, no reply. It feeds the "
-      .. "realm-wide boards and Discord stats. Only your own faction's bot; if it is offline, the 'No player named' line is "
-      .. "hidden and pfUI waits 10 minutes before trying again. Turn off to share with guild / raid only.",
-      function() return not C.octoshare or C.octoshare.realmbots ~= "0" end,
-      function(v) if C.octoshare then C.octoshare.realmbots = v and "1" or "0" end end)
-    W.Edit(p, "Master character", "Instead of the realm's data bot, whisper this character (an invisible addon whisper). "
-      .. "Leave empty to use the data bot (above). Needs a reload.",
-      function() return C.octoshare and C.octoshare.master or "" end,
-      function(v) if C.octoshare then C.octoshare.master = v or "" end end, 200)
+    W.Live(p, function()
+      local os = OS()
+      local bot = os and os.RealmBot and os.RealmBot()
+      return "Realm data bot: " .. (bot and ("|cffffffff" .. bot .. "|r") or "|cff9a9ca3none on this realm yet|r")
+    end)
+    W.Note(p, "The shared feeds above also go to your realm's OctoWoW data bot (fixed by pfUI Octo: Y'Shaarj Horde = "
+      .. "Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto), as an invisible addon whisper - no chat line, no "
+      .. "reply. It feeds the realm-wide boards and Discord stats. If the bot is offline, the 'No player named' line is "
+      .. "hidden and pfUI waits 10 minutes before trying again. To share nothing at all, turn the feeds above off.", 0, false)
 
     -- the collector + new feeds (for the person running the master database)
     W.Card(p, "Collector", { icon = "Interface\\Icons\\INV_Misc_Note_01",

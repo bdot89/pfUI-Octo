@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.83", {
+    { "Realm data bots are fixed", "pfUI Octo now picks the data bot by realm and faction (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto), and nothing can change it. The \"Master character\" box and the bot on/off switch are gone; the Data sharing page shows your realm's bot. To share nothing, turn the feeds off." },
+  } },
   { "1.2.82", {
     { "N'Zoth data bot", "players on N'Zoth, Horde and Alliance alike, now share with the realm's data bot, Pfuiocto. It is invisible and has the same off switch on the Data sharing page." },
   } },
@@ -175,9 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.44", {
     { "OctoRanks on WhoDidIt 1.30.2", "a character below the server's chat level no longer gets \"You are unable to speak yet.\" - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn)." },
-  } },
-  { "1.2.43", {
-    { "OctoRanks built in", "your level-60 5-man runs are timed and ranked by themselves - from the first pull to the last boss - and shared with everyone on the realm, plus every guild's raid times. Gold OctoRanks entry at the top of the options (/ranks). Works as one with WhoDidIt and the OctoRank add-on: one channel, times copied both ways, nothing lost. Needs a full game restart." },
-    { "Profession windows fixed", "the Enchant / Create button is back, the \"have materials\" / \"skill-up\" ticks no longer run into the Engineering filter menus, and the open filter list is solid." },
   } },
 }

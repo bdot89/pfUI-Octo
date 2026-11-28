@@ -58,7 +58,7 @@ ok(OS.qn == 2, "Broadcast queues one per channel (no master set)")
 S.master = "Errorbot"
 OS.q, OS.qn = {}, 0
 OS.Broadcast("pfAP", "prices", { "GUILD" })
-ok(OS.qn == 2 and OS.q[2][3] == "WHISPER" and OS.q[2][4] == "Errorbot", "Broadcast whispers the master when set")
+ok(OS.qn == 1, "a typed master is ignored - the masters are hard-set per realm")
 S.master = ""
 
 -- (28 Nov 2026) the realm's built-in data bot: own faction only, a typed master wins, offline = hidden line + pause
@@ -85,12 +85,14 @@ _G.GetRealmName = function() return "Somewhere Else" end
 ok(OS.Master() == nil, "an unknown realm has no bot")
 _G.GetRealmName = function() return "Y'Shaarj" end
 S.realmbots = "0"
-ok(OS.Master() == nil, "the switch turns the realm bot off")
-S.realmbots = "1"
+ok(OS.Master() == "Errorgchat", "the old realmbots switch can't turn the bot off (hard-set)")
+S.realmbots = nil
 S.master = "Mycollector"
-ok(OS.Master() == "Mycollector", "a master typed in by hand wins over the realm bot")
+ok(OS.Master() == "Errorgchat", "a master typed in by hand can't redirect it (hard-set)")
 S.master = ""
-ok(OS.MasterNotFound("No player named 'Errorgchat' is currently playing.") and true or false, "the bot's not-found line is recognised")
+OS.BOTS["Y'Shaarj"].Horde = "Hijacker"
+ok(OS.Master() == "Errorgchat", "changing OS.BOTS from outside changes nothing (it is only a copy)")
+OS.BOTS["Y'Shaarj"].Horde = "Errorgchat"ok(OS.MasterNotFound("No player named 'Errorgchat' is currently playing.") and true or false, "the bot's not-found line is recognised")
 ok(not OS.MasterNotFound("No player named 'Someone' is currently playing."), "someone else's not-found line is left alone")
 ok(not OS.MasterNotFound("Errorgchat has come online."), "other lines with the bot's name are left alone")
 OS.q, OS.qn = {}, 0
