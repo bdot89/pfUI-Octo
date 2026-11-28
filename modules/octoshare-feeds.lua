@@ -141,7 +141,7 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   -- User / emp: pfUI players report the OTHER players their game sees, so the realm boards never miss anyone the bots'
   -- /who does not catch. Only what /who already shows: name, level, class, race, guild, and your zone - never positions,
   -- gear or anything inspected. From your target, mouseover and their target, your party, and (with SuperWoW) the
-  -- nameplates on screen. Each name at most once per 10 min; sent to the realm data bot only (never guild / raid), in
+  -- nameplates on screen. Each name at most once per 5 min; sent to the realm data bot only (never guild / raid), in
   -- one compact line of up to ~12 players:
   --   "sg^<zone>^<guild1>;<guild2>...^<name>.<level>.<class>.<race>.<guild#>,<name>...."
   --   class 1-9 = WARRIOR PALADIN HUNTER ROGUE PRIEST SHAMAN MAGE WARLOCK DRUID; race 1-10 = Human Orc Dwarf NightElf
@@ -149,11 +149,25 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   F.CLASS = { WARRIOR = 1, PALADIN = 2, HUNTER = 3, ROGUE = 4, PRIEST = 5, SHAMAN = 6, MAGE = 7, WARLOCK = 8, DRUID = 9 }
   F.RACE = { Human = 1, Orc = 2, Dwarf = 3, NightElf = 4, Scourge = 5, Tauren = 6, Gnome = 7, Troll = 8, Goblin = 9,
     BloodElf = 10, HighElf = 10 }
-  F.SEEN_AGAIN = 600
+  -- (28 Nov 2026, user: "scan them as players run past and collect data to send us quick ... no addon needed by the
+  -- people getting scanned"): the scanned player needs nothing. The scanner's own DLLs find them: ClassicAPI's
+  -- NAME_PLATE_UNIT_ADDED the moment a plate appears (and its plate list), SuperWoW's UNIT_CASTEVENT for anyone casting
+  -- nearby (GUIDs work as units there), plus target / mouseover / party on a plain client. Sent after 45 s, or at once
+  -- when the realm bot pings.
+  F.SEEN_AGAIN = 300
   F.SG_MAX = 12
-  F.SG_WAIT = 60
-  F.seen, F.sg, F.sgAt = {}, {}, nil
+  F.SG_WAIT = 45          -- 45 s (user), not less: the server limits how fast anyone may whisper (a full batch of 12 goes at once)
+  F.SG_GAP = 15           -- a full batch never goes sooner than this after the last one
+  F.seen, F.seenG, F.sg, F.sgAt, F.sgSent = {}, {}, {}, nil, -1000
   local function Safe(s) return (string.gsub(s or "", "[%^|,`;%.~}]", " ")) end
+  -- a GUID seen lately is skipped before any unit call (UNIT_CASTEVENT fires a lot in a fight)
+  function F.SightGUID(guid)
+    if type(guid) ~= "string" or guid == "" or guid == "0x0000000000000000" then return end
+    local now = GetTime and GetTime() or 0
+    if F.seenG[guid] and now - F.seenG[guid] < F.SEEN_AGAIN then return end
+    F.seenG[guid] = now
+    if F.Sight(guid) == "full" then F.seenG[guid] = nil end   -- the batch was full: look again next sweep
+  end
   function F.Sight(unit)
     if not unit or not UnitExists or not UnitExists(unit) or not UnitIsPlayer or not UnitIsPlayer(unit) then return end
     if UnitIsUnit and UnitIsUnit(unit, "player") then return end
@@ -161,6 +175,12 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     if not name or name == "" or name == UNKNOWNOBJECT or name == "Unknown" then return end
     local now = GetTime and GetTime() or 0
     if F.seen[name] and now - F.seen[name] < F.SEEN_AGAIN then return end
+    -- a full batch goes at once, but never sooner than SG_GAP after the last one: in a crowded city the rest simply
+    -- wait (not marked seen, so the next sweep finds them again) - the whisper rate to the bot stays capped
+    if table.getn(F.sg) >= F.SG_MAX then
+      if now - F.sgSent < F.SG_GAP then return "full" end
+      F.FlushSightings()
+    end
     F.seen[name] = now
     local level = UnitLevel and UnitLevel(unit) or 0
     if level < 0 then level = 0 end
@@ -170,7 +190,7 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     local guild = GetGuildInfo and (GetGuildInfo(unit)) or ""
     table.insert(F.sg, { Safe(name), level, F.CLASS[class or ""] or 0, F.RACE[race or ""] or 0, Safe(guild) })
     F.sgAt = F.sgAt or now
-    if table.getn(F.sg) >= F.SG_MAX then F.FlushSightings() end
+    if table.getn(F.sg) >= F.SG_MAX and now - F.sgSent >= F.SG_GAP then F.FlushSightings() end
   end
   function F.SightingsLine(zone, list)
     local guilds, gi, rows = {}, {}, {}
@@ -189,23 +209,48 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     local zone = (GetRealZoneText and GetRealZoneText()) or (GetZoneText and GetZoneText()) or ""
     local list = F.sg
     F.sg, F.sgAt = {}, nil
+    local now = GetTime and GetTime() or 0
+    F.sgSent = now
     if OS.EmitBot then OS.EmitBot("sg", F.SightingsLine(zone, list)) end
     -- forget names not seen for a long while (the table stays small)
-    local now = GetTime and GetTime() or 0
     for n, t in pairs(F.seen) do if now - t > F.SEEN_AGAIN * 3 then F.seen[n] = nil end end
+    for g, t in pairs(F.seenG) do if now - t > F.SEEN_AGAIN * 3 then F.seenG[g] = nil end end
   end
-  -- SuperWoW: each nameplate's frame gives the unit's GUID, and a GUID works as a unit (pfUI's own plate list)
+  -- every nameplate on screen. SuperWoW: a GUID works as a unit - ClassicAPI's GUID list, else pfUI's own plates.
+  -- ClassicAPI without SuperWoW: its "nameplateN" tokens.
   function F.ScanPlates()
-    if not rawget(_G, "SUPERWOW_VERSION") then return end
-    local np = pfUI.nameplates
-    if not np or type(np.registry) ~= "table" then return end
-    for plate in pairs(np.registry) do
-      local parent = plate.parent
-      if parent and parent.IsShown and parent:IsShown() and parent.GetName then
-        local ok, guid = pcall(parent.GetName, parent, 1)
-        if ok and type(guid) == "string" and guid ~= "" then F.Sight(guid) end
+    local sw = rawget(_G, "SUPERWOW_VERSION")
+    local cnp = rawget(_G, "C_NamePlate")
+    if sw and type(cnp) == "table" and type(cnp.GetNamePlateGUIDs) == "function" then
+      local ok, list = pcall(cnp.GetNamePlateGUIDs)
+      if ok and type(list) == "table" then
+        for _, guid in pairs(list) do F.SightGUID(guid) end
+        return
       end
     end
+    if sw then
+      local np = pfUI.nameplates
+      if np and type(np.registry) == "table" then
+        for plate in pairs(np.registry) do
+          local parent = plate.parent
+          if parent and parent.IsShown and parent:IsShown() and parent.GetName then
+            local ok, guid = pcall(parent.GetName, parent, 1)
+            if ok then F.SightGUID(guid) end
+          end
+        end
+      end
+      return
+    end
+    if type(cnp) == "table" then
+      for i = 1, 40 do F.Sight("nameplate" .. i) end
+    end
+  end
+  -- the realm bot's ping: look at everything around you now, and send it with the heartbeat
+  function F.ScanNow()
+    F.ScanPlates()
+    F.ScanGroup()
+    F.Sight("target")
+    F.Sight("mouseover")
   end
   function F.ScanGroup()
     for i = 1, 4 do F.Sight("party" .. i) end
@@ -283,10 +328,15 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   ev:RegisterEvent("PLAYER_TARGET_CHANGED")
   ev:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
   ev:RegisterEvent("PARTY_MEMBERS_CHANGED")
+  -- the DLLs' own events (a plain client has neither; registering an unknown event is harmless, pcall for safety)
+  if rawget(_G, "C_NamePlate") then pcall(ev.RegisterEvent, ev, "NAME_PLATE_UNIT_ADDED") end
+  if rawget(_G, "SUPERWOW_VERSION") then pcall(ev.RegisterEvent, ev, "UNIT_CASTEVENT") end
   ev:SetScript("OnEvent", function()
     if event == "CHAT_MSG_SYSTEM" then F.System(arg1) return end
     if not OS.Enabled() then return end
-    if event == "CHAT_MSG_ADDON" then F.Pinged(arg1, arg2, arg3, arg4)
+    if event == "NAME_PLATE_UNIT_ADDED" then F.Sight(arg1)
+    elseif event == "UNIT_CASTEVENT" then F.SightGUID(arg1) F.SightGUID(arg2)
+    elseif event == "CHAT_MSG_ADDON" then F.Pinged(arg1, arg2, arg3, arg4)
     elseif event == "PLAYER_TARGET_CHANGED" then F.Sight("target")
     elseif event == "UPDATE_MOUSEOVER_UNIT" then F.Sight("mouseover") F.Sight("mouseovertarget")
     elseif event == "PARTY_MEMBERS_CHANGED" then F.ScanGroup()
@@ -301,10 +351,13 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     if not OS.Enabled() then return end
     local now = GetTime and GetTime() or 0
     -- the bot's ping, answered after its random delay
-    if F.pingDue and now >= F.pingDue then F.pingDue = nil F.Heartbeat() end
-    -- sightings: nameplates every 5 s out of combat (SuperWoW), and whatever was collected goes out after a minute
+    if F.pingDue and now >= F.pingDue then
+      F.pingDue = nil
+      F.ScanNow() F.FlushSightings() F.Heartbeat()
+    end
+    -- sightings: nameplates every 3 s out of combat, and whatever was collected goes out after 45 s
     if (this.plateAt or 0) <= now then
-      this.plateAt = now + 5
+      this.plateAt = now + 3
       if not (UnitAffectingCombat and UnitAffectingCombat("player")) then F.ScanPlates() end
     end
     if F.sgAt and now - F.sgAt >= F.SG_WAIT then F.FlushSightings() end

@@ -122,6 +122,14 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.91
+
+- 🔇 **No more "You cannot whisper yet (too low level)":** pfUI Octo sends nothing to the realm data bot below level 5, and if the server still refuses, it hides the line and waits until your next level.
+- 🚫 **Everything off means nothing sent:** with every switch on the Data sharing page off, nothing goes to the data bot (the leaderboards included).
+- ⌨️ **Your chat comes first:** sharing pauses while a chat box is open and for 10 seconds after you say anything, so it never uses the server's chat speed you need.
+- 👁️ **Threat window Hide works:** the Hide choice on Meters > Threat window now saves for any window showing threat (it was stuck on Always shown).
+- 👥 **Nearby players found faster:** players around you are picked up as their nameplates appear or as they cast, sent in capped batches.
+
 ## 📜 New in 1.2.90
 
 - 👀 **The realm boards miss nobody:** pfUI Octo now tells your realm's data bot about the other players your game sees around you (target, mouseover, party, and nameplates with SuperWoW) - only what /who shows anyway: name, level, class, race, guild and your zone, never positions or gear, each name at most once per 10 minutes. Listed on the Data sharing page; turn the feeds off there to stop it.

@@ -139,8 +139,29 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   function OS.ChatWhisperOn() return true end
   -- AFK as the feeds module saw it (the game's "You are now AFK" line; 1.12 has no UnitIsAFK)
   function OS.IsAfk() return OS.feeds and OS.feeds.afk and true or false end
+  -- (28 Nov 2026, LazyBones: "You cannot whisper yet (too low level)" at login, even with every feed off) new characters
+  -- may not whisper on this server: no bot whisper below OS.MINLEVEL, and when the server still refuses one, none until
+  -- the next level up (OS.LowLevelRefused). Nothing is queued for the bot meanwhile.
+  OS.MINLEVEL = 5                                     -- the server lets you whisper from level 5 (user, 28 Nov)
+  OS.refusedAt = nil                                     -- the level the server last said "too low level" at
+  function OS.AnyFeedOn()
+    if OS.Enabled() then return true end
+    for _, g in ipairs({ "auction", "flight", "transports", "gather", "worldbuffs" }) do
+      if C[g] and C[g].share == "1" then return true end
+    end
+    return false
+  end
+  function OS.LevelOk()
+    local lvl = UnitLevel and UnitLevel("player") or 0
+    if type(lvl) ~= "number" or lvl < OS.MINLEVEL then return false end
+    if OS.refusedAt and lvl <= OS.refusedAt then return false end
+    return true
+  end
   function OS.Master()
     if not OS.ChatWhisperOn() then return nil end
+    if not OS.LevelOk() then return nil end
+    -- every switch on the Data sharing page off = nothing to the bot either (the leaderboards have no switch of their own)
+    if not OS.AnyFeedOn() then return nil end
     if (GetTime and GetTime() or 0) < OS.masterDownUntil then return nil end   -- offline: paused
     local m = OS.RealmBot()
     if m and m ~= "" and (not UnitName or m ~= (UnitName("player"))) then return m end
@@ -213,13 +234,47 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     if string.len(t) > 250 then t = string.sub(t, 1, 250) end
     return t
   end
+  -- the server's "You cannot whisper yet (too low level)" right after one of OUR whispers (within 5 s): no bot whispers
+  -- until the next level, the queued ones dropped, the line hidden. After the player's own whisper it stays in chat.
+  OS.lastBotWhisper = 0
+  function OS.LowLevelRefused(text)
+    if type(text) ~= "string" or not string.find(string.lower(text), "cannot whisper yet", 1, true) then return false end
+    if (GetTime and GetTime() or 0) - (OS.lastBotWhisper or 0) > 5 then return false end
+    OS.refusedAt = UnitLevel and UnitLevel("player") or 0
+    local keep = {}
+    for _, item in ipairs(OS.q) do if item[3] ~= "WHISPER" then table.insert(keep, item) end end
+    OS.q, OS.qn = keep, table.getn(keep)
+    return true
+  end
+  -- the player talking: the last time they sent any chat line (not ours), and whether a chat box is open
+  OS.TALKHOLD = 10
+  OS.userChatAt = 0
+  local origSend = _G.SendChatMessage
+  if type(origSend) == "function" and not OS.sendWrapped then
+    OS.sendWrapped = true
+    _G.SendChatMessage = function(msg, chan, lang, target)
+      if not OS.IsOurWhisper(msg) then OS.userChatAt = GetTime and GetTime() or 0 end
+      return origSend(msg, chan, lang, target)
+    end
+  end
+  function OS.UserBusy(now)
+    now = now or (GetTime and GetTime() or 0)
+    if now - (OS.userChatAt or 0) < OS.TALKHOLD then return true end
+    for i = 1, (NUM_CHAT_WINDOWS or 7) do
+      local box = _G["ChatFrame" .. i .. "EditBox"]
+      if box and box.IsVisible and box:IsVisible() then return true end
+    end
+    local box = _G.ChatFrameEditBox
+    if box and box.IsVisible and box:IsVisible() then return true end
+    return false
+  end
   -- hide that line from every chat frame (1.12 has no message filters: wrap the chat frame's event handler once)
   local origChatEvent = _G.ChatFrame_OnEvent
   if type(origChatEvent) == "function" and not OS.chatWrapped then
     OS.chatWrapped = true
     _G.ChatFrame_OnEvent = function(ev, a2, a3, a4, a5)
       local e = ev or _G.event
-      if e == "CHAT_MSG_SYSTEM" and (OS.MasterNotFound(_G.arg1) or OS.AddonRefused(_G.arg1)) then return end
+      if e == "CHAT_MSG_SYSTEM" and (OS.MasterNotFound(_G.arg1) or OS.AddonRefused(_G.arg1) or OS.LowLevelRefused(_G.arg1)) then return end
       if (e == "CHAT_MSG_WHISPER_INFORM" or e == "CHAT_MSG_WHISPER") and OS.IsOurWhisper(_G.arg1) then return end
       return origChatEvent(ev, a2, a3, a4, a5)
     end
@@ -325,6 +380,10 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     -- a late safety net in case an event was missed
     if (UnitAffectingCombat and UnitAffectingCombat("player")) or (InCombatLockdown and InCombatLockdown()) then return end
     if (this.sendAt or 0) > now then return end
+    -- (28 Nov 2026, user: "make sure this isn't flooding peoples chats to lock them out from talking if they are typing")
+    -- nothing goes out while you type (a chat box open) or for OS.TALKHOLD seconds after you said anything, so the
+    -- server's chat speed limit is always yours to use
+    if OS.UserBusy(now) then return end
     -- a data whisper waits while you are AFK (talking may clear AFK); guild / raid lines go on as before
     local item = OS.q[1]
     if item[3] == "WHISPER" and OS.IsAfk() then
@@ -339,7 +398,8 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     this.sendAt = now + OS.Gap()
     if item[3] == "WHISPER" then
       -- addon whispers are refused here: a normal whisper the bot understands (hidden on our side)
-      if OS.ChatWhisperOn() and item[4] and SendChatMessage then
+      if OS.ChatWhisperOn() and item[4] and SendChatMessage and OS.LevelOk() then
+        OS.lastBotWhisper = now
         local text = OS.TakeBundle(item) or OS.WhisperText(item[1], item[2])
         pcall(SendChatMessage, text, "WHISPER", nil, item[4])
       end

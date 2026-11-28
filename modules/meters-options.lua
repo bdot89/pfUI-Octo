@@ -1297,19 +1297,28 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
     })
     -- (28 Nov 2026, NoFaTe: "the damage meter has an option to hide out of combat. is there a similar option for the
     -- threat meter?") the same window setting (Meters > Windows > Hide), here where threat people look for it
+    local function ThreatWins()
+      local out, locked = {}, M.ThreatWindow and M.ThreatWindow(false)
+      if locked then table.insert(out, locked) end
+      for _, w in ipairs(M.windows or {}) do
+        if w ~= locked and w.mode == "threat" then table.insert(out, w) end
+      end
+      return out
+    end
     W.Dropdown(p, "Hide", "Keep the threat window off the screen out of combat (or in combat). Same as Hide on its "
       .. "Windows tab.", { { key = "never", label = "Always shown" }, { key = "outofcombat", label = "Hide out of combat" },
       { key = "incombat", label = "Hide in combat" } },
       function()
-        local w = M.ThreatWindow and M.ThreatWindow(false)
-        local s = w and C.meters["win" .. (w.cfg or w.id)]
+        local list = ThreatWins()
+        local s = list[1] and M.S(list[1])
         return s and s.autohide or "never"
       end,
       function(v)
-        local w = M.ThreatWindow and M.ThreatWindow(false)
-        local s = w and C.meters["win" .. (w.cfg or w.id)]
-        if not s then return end
-        s.autohide = v
+        -- (28 Nov, NoFaTe: "stuck on always shown") a window showing threat that was never made THE threat window
+        -- (Open my threat window) was not found, so nothing was saved: every window showing threat now, else one is opened
+        local list = ThreatWins()
+        if not list[1] and M.ThreatWindow then list = { M.ThreatWindow() } end
+        for _, w in ipairs(list) do local s = M.S(w) if s then s.autohide = v end end
         if M.CombatLook then M.CombatLook() end
       end)
 

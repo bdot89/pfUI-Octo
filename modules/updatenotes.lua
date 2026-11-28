@@ -2,6 +2,13 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.91", {
+    { "No more \"You cannot whisper yet (too low level)\"", "pfUI Octo sends nothing to the realm data bot below level 5, and if the server still refuses, it hides the line and waits until your next level." },
+    { "Everything off means nothing sent", "with every switch on the Data sharing page off, nothing goes to the data bot (the leaderboards included)." },
+    { "Your chat comes first", "sharing pauses while a chat box is open and for 10 seconds after you say anything, so it never uses the server's chat speed you need." },
+    { "Threat window Hide works", "the Hide choice on Meters > Threat window now saves for any window showing threat (it was stuck on Always shown)." },
+    { "Nearby players found faster", "players around you are picked up as their nameplates appear or as they cast, sent in capped batches." },
+  } },
   { "1.2.90", {
     { "The realm boards miss nobody", "pfUI Octo now tells your realm's data bot about the other players your game sees around you (target, mouseover, party, and nameplates with SuperWoW) - only what /who shows anyway: name, level, class, race, guild and your zone, never positions or gear, each name at most once per 10 minutes. Listed on the Data sharing page; turn the feeds off there to stop it." },
     { "emp's ping, merged with the heartbeat", "when your realm's bot pings the guild, pfUI answers with its heartbeat right away (only that bot, at most once a minute, report only - pfUI never takes commands). The heartbeat now also says which client DLLs you run (SuperWoW, nampower, ClassicAPI, UnitXP)." },
@@ -172,8 +179,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.52", {
     { "Nameplate distance margin (thanks Javelin)", "plates set to 41 yd went at 38.9 while his shots still reached 41. A \"Margin\" slider (0 - 6 yd) now goes on top of the distance, so plates stay up as far as your spells reach (Nameplates > Target & casts > How far away plates show)." },
-  } },
-  { "1.2.51", {
-    { "Always sell / Never sell (thanks )", "items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), /sell add | never | remove | list | purge, or Quality of Life > Vendor and loot." },
   } },
 }
