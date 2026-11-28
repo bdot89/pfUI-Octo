@@ -59,12 +59,13 @@ IsInInstance = function() return nil end
 sent = {}
 F.Ping()
 ok(sent[1] == "pop^Durotar^Horde", "the zone ping still goes to everyone: " .. tostring(sent[1]))
-ok(bot[1] == "hb^Durotar^41^WARRIOR^87^1.2.84^afk,bgq", "heartbeat to the bot: " .. tostring(bot[1]))
+-- (28 Nov 2026) the 7th field = client DLL letters (none in this test host)
+ok(bot[1] == "hb^Durotar^41^WARRIOR^87^1.2.84^afk,bgq^", "heartbeat to the bot: " .. tostring(bot[1]))
 ok(table.getn(sent) == 1, "the heartbeat is not broadcast to guild / raid")
 GetNetStats, UnitIsAFK, UnitIsDND, GetBattlefieldStatus, IsInInstance = nil, nil, nil, nil, nil
 bot = {}
 F.Ping()
-ok(bot[1] == "hb^Durotar^41^WARRIOR^^1.2.84^", "without those calls it still sends, fields empty: " .. tostring(bot[1]))
+ok(bot[1] == "hb^Durotar^41^WARRIOR^^1.2.84^^", "without those calls it still sends, fields empty: " .. tostring(bot[1]))
 -- the 1.12 client has no UnitIsAFK: the system lines set it
 F.System("You are now AFK: Away from Keyboard")
 F.System("You are now DND: Do not Disturb.")

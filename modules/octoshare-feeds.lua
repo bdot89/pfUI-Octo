@@ -7,7 +7,9 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   --   pop  where you are, now and then: an activity heatmap   ->  "pop^<zone>^<faction>"
   --   death  you died: where, your level, what hit you last   ->  "death^<zone>^<level>^<killer>"   (28 Nov 2026)
   --   crit   you beat your own biggest crit / crit heal       ->  "crit^<amount>^<spell>^<dmg|heal>"
-  --   hb     heartbeat with the zone ping, realm data bot ONLY ->  "hb^<zone>^<level>^<class>^<ms>^<version>^<status>"
+  --   hb     heartbeat with the zone ping, realm data bot ONLY ->  "hb^<zone>^<level>^<class>^<ms>^<version>^<status>^<dlls>"
+  --          (also sent when the realm bot pings the guild - emp's ping, 28 Nov 2026)
+  --   sg     players seen nearby, realm data bot ONLY            ->  "sg^<zone>^<guilds>^<name.level.class.race.guild#,...>"
   -- The master turns these into "queues are fast now", realm PvP win rates and a where-is-everyone heatmap.
   local OS = pfUI.octoshare
   if not OS or not OS.Emit then return end
@@ -94,13 +96,119 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     lat = ok and tonumber(lat)
     return lat and lat > 0 and lat < 100000 and tostring(math.floor(lat)) or ""
   end
+  -- (28 Nov 2026) which client DLLs this game runs, as letters: S SuperWoW, N nampower, C ClassicAPI, U UnitXP SP3.
+  -- Only "is it there" (no versions, paths or machine data) - so the boards can show who has what.
+  function F.Dlls()
+    local s = ""
+    if rawget(_G, "SUPERWOW_VERSION") then s = s .. "S" end
+    if rawget(_G, "GetNampowerVersion") then s = s .. "N" end
+    if rawget(_G, "C_UnitAuras") then s = s .. "C" end
+    local lc = pfUI.api and pfUI.api.libclient
+    if lc and lc.hasSP3 == nil and lc.Distance then pcall(lc.Distance, "player") end
+    if lc and lc.hasSP3 then s = s .. "U" end
+    return s
+  end
+  F.hbAt = 0
   function F.Heartbeat(zone)
     if not OS.EmitBot then return end
+    zone = zone or (GetRealZoneText and GetRealZoneText()) or (GetZoneText and GetZoneText()) or ""
     local _, class
     if UnitClass then _, class = UnitClass("player") end
     local ver = pfUI.version and pfUI.version.octo or "?"
+    F.hbAt = GetTime and GetTime() or 0
+    -- the 7th field (DLL letters) is new in 1.2.90; older workers read only the first six
     OS.EmitBot("hb", Clean(zone) .. "^" .. (UnitLevel and UnitLevel("player") or 0) .. "^" .. Clean(class or "")
-      .. "^" .. F.Latency() .. "^" .. Clean(tostring(ver)) .. "^" .. F.Status())
+      .. "^" .. F.Latency() .. "^" .. Clean(tostring(ver)) .. "^" .. F.Status() .. "^" .. F.Dlls())
+  end
+
+  -- ---------------------------------------------------------------- emp's ping (28 Nov 2026)
+  -- User: merge emp's "a ping goes out, clients answer" with the heartbeat. The realm data bot sends "ping^<n>" on the
+  -- guild addon channel every few minutes; pfUI answers with a heartbeat. Rules: only the realm's hard-set bot is
+  -- answered (OS.RealmBot - nobody else can make the guild send), at most once a minute, after a random 2-20 s so a
+  -- whole guild does not answer at once, through the governor (never in combat). It only REPORTS: a ping can make pfUI
+  -- do nothing else.
+  F.pingDue = nil
+  function F.Pinged(prefix, msg, chan, sender)
+    if prefix ~= OS.PREFIX or chan ~= "GUILD" or type(msg) ~= "string" or string.sub(msg, 1, 5) ~= "ping^" then return end
+    local bot = OS.RealmBot and OS.RealmBot()
+    if not bot or sender ~= bot then return end
+    local now = GetTime and GetTime() or 0
+    if now - F.hbAt < 60 or F.pingDue then return end
+    F.pingDue = now + 2 + math.random() * 18
+  end
+
+  -- ---------------------------------------------------------------- players seen nearby (28 Nov 2026)
+  -- User / emp: pfUI players report the OTHER players their game sees, so the realm boards never miss anyone the bots'
+  -- /who does not catch. Only what /who already shows: name, level, class, race, guild, and your zone - never positions,
+  -- gear or anything inspected. From your target, mouseover and their target, your party, and (with SuperWoW) the
+  -- nameplates on screen. Each name at most once per 10 min; sent to the realm data bot only (never guild / raid), in
+  -- one compact line of up to ~12 players:
+  --   "sg^<zone>^<guild1>;<guild2>...^<name>.<level>.<class>.<race>.<guild#>,<name>...."
+  --   class 1-9 = WARRIOR PALADIN HUNTER ROGUE PRIEST SHAMAN MAGE WARLOCK DRUID; race 1-10 = Human Orc Dwarf NightElf
+  --   Scourge Tauren Gnome Troll Goblin BloodElf (High Elf); 0 = unknown. guild# 0 = no guild.
+  F.CLASS = { WARRIOR = 1, PALADIN = 2, HUNTER = 3, ROGUE = 4, PRIEST = 5, SHAMAN = 6, MAGE = 7, WARLOCK = 8, DRUID = 9 }
+  F.RACE = { Human = 1, Orc = 2, Dwarf = 3, NightElf = 4, Scourge = 5, Tauren = 6, Gnome = 7, Troll = 8, Goblin = 9,
+    BloodElf = 10, HighElf = 10 }
+  F.SEEN_AGAIN = 600
+  F.SG_MAX = 12
+  F.SG_WAIT = 60
+  F.seen, F.sg, F.sgAt = {}, {}, nil
+  local function Safe(s) return (string.gsub(s or "", "[%^|,`;%.~}]", " ")) end
+  function F.Sight(unit)
+    if not unit or not UnitExists or not UnitExists(unit) or not UnitIsPlayer or not UnitIsPlayer(unit) then return end
+    if UnitIsUnit and UnitIsUnit(unit, "player") then return end
+    local name = UnitName and (UnitName(unit))
+    if not name or name == "" or name == UNKNOWNOBJECT or name == "Unknown" then return end
+    local now = GetTime and GetTime() or 0
+    if F.seen[name] and now - F.seen[name] < F.SEEN_AGAIN then return end
+    F.seen[name] = now
+    local level = UnitLevel and UnitLevel(unit) or 0
+    if level < 0 then level = 0 end
+    local _, class, race
+    if UnitClass then _, class = UnitClass(unit) end
+    if UnitRace then _, race = UnitRace(unit) end           -- the English file name: "NightElf", "Scourge"...
+    local guild = GetGuildInfo and (GetGuildInfo(unit)) or ""
+    table.insert(F.sg, { Safe(name), level, F.CLASS[class or ""] or 0, F.RACE[race or ""] or 0, Safe(guild) })
+    F.sgAt = F.sgAt or now
+    if table.getn(F.sg) >= F.SG_MAX then F.FlushSightings() end
+  end
+  function F.SightingsLine(zone, list)
+    local guilds, gi, rows = {}, {}, {}
+    for _, s in ipairs(list) do
+      local g = 0
+      if s[5] ~= "" then
+        if not gi[s[5]] then table.insert(guilds, s[5]) gi[s[5]] = table.getn(guilds) end
+        g = gi[s[5]]
+      end
+      table.insert(rows, s[1] .. "." .. s[2] .. "." .. s[3] .. "." .. s[4] .. "." .. g)
+    end
+    return Safe(zone) .. "^" .. table.concat(guilds, ";") .. "^" .. table.concat(rows, ",")
+  end
+  function F.FlushSightings()
+    if table.getn(F.sg) == 0 then F.sgAt = nil return end
+    local zone = (GetRealZoneText and GetRealZoneText()) or (GetZoneText and GetZoneText()) or ""
+    local list = F.sg
+    F.sg, F.sgAt = {}, nil
+    if OS.EmitBot then OS.EmitBot("sg", F.SightingsLine(zone, list)) end
+    -- forget names not seen for a long while (the table stays small)
+    local now = GetTime and GetTime() or 0
+    for n, t in pairs(F.seen) do if now - t > F.SEEN_AGAIN * 3 then F.seen[n] = nil end end
+  end
+  -- SuperWoW: each nameplate's frame gives the unit's GUID, and a GUID works as a unit (pfUI's own plate list)
+  function F.ScanPlates()
+    if not rawget(_G, "SUPERWOW_VERSION") then return end
+    local np = pfUI.nameplates
+    if not np or type(np.registry) ~= "table" then return end
+    for plate in pairs(np.registry) do
+      local parent = plate.parent
+      if parent and parent.IsShown and parent:IsShown() and parent.GetName then
+        local ok, guid = pcall(parent.GetName, parent, 1)
+        if ok and type(guid) == "string" and guid ~= "" then F.Sight(guid) end
+      end
+    end
+  end
+  function F.ScanGroup()
+    for i = 1, 4 do F.Sight("party" .. i) end
   end
 
   -- ---------------------------------------------------------------- deaths
@@ -171,10 +279,18 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   ev:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
   ev:RegisterEvent("CHAT_MSG_SPELL_SELF_BUFF")
   ev:RegisterEvent("CHAT_MSG_SYSTEM")
+  ev:RegisterEvent("CHAT_MSG_ADDON")
+  ev:RegisterEvent("PLAYER_TARGET_CHANGED")
+  ev:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+  ev:RegisterEvent("PARTY_MEMBERS_CHANGED")
   ev:SetScript("OnEvent", function()
     if event == "CHAT_MSG_SYSTEM" then F.System(arg1) return end
     if not OS.Enabled() then return end
-    if event == "UPDATE_BATTLEFIELD_STATUS" then F.CheckQueues()
+    if event == "CHAT_MSG_ADDON" then F.Pinged(arg1, arg2, arg3, arg4)
+    elseif event == "PLAYER_TARGET_CHANGED" then F.Sight("target")
+    elseif event == "UPDATE_MOUSEOVER_UNIT" then F.Sight("mouseover") F.Sight("mouseovertarget")
+    elseif event == "PARTY_MEMBERS_CHANGED" then F.ScanGroup()
+    elseif event == "UPDATE_BATTLEFIELD_STATUS" then F.CheckQueues()
     elseif event == "UPDATE_BATTLEFIELD_SCORE" then F.CheckResult()
     elseif event == "PLAYER_DEAD" then F.Died()
     elseif event == "CHAT_MSG_COMBAT_SELF_HITS" or event == "CHAT_MSG_SPELL_SELF_DAMAGE" then F.Crit(arg1, false)
@@ -184,6 +300,14 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   ev:SetScript("OnUpdate", function()
     if not OS.Enabled() then return end
     local now = GetTime and GetTime() or 0
+    -- the bot's ping, answered after its random delay
+    if F.pingDue and now >= F.pingDue then F.pingDue = nil F.Heartbeat() end
+    -- sightings: nameplates every 5 s out of combat (SuperWoW), and whatever was collected goes out after a minute
+    if (this.plateAt or 0) <= now then
+      this.plateAt = now + 5
+      if not (UnitAffectingCombat and UnitAffectingCombat("player")) then F.ScanPlates() end
+    end
+    if F.sgAt and now - F.sgAt >= F.SG_WAIT then F.FlushSightings() end
     if (this.popAt or 0) > now then return end
     this.popAt = now + F.POP_EVERY + math.random() * 60   -- jitter so a whole guild logging in together does not ping at once
     F.Ping()

@@ -176,9 +176,36 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     OS.q, OS.qn = keep, table.getn(keep)
     return true
   end
-  -- one of our data whispers ("To <bot>: ~OS~pfLB~...") - hidden everywhere
+  -- one of our data whispers ("To <bot>: ~OS~pfLB~..." or a bundle "~O2~...") - hidden everywhere
+  OS.BUNDLE = "~O2~"
   function OS.IsOurWhisper(text)
-    return type(text) == "string" and string.sub(text, 1, string.len(OS.MARK)) == OS.MARK
+    return type(text) == "string" and (string.sub(text, 1, string.len(OS.MARK)) == OS.MARK
+      or string.sub(text, 1, string.len(OS.BUNDLE)) == OS.BUNDLE)
+  end
+  -- (28 Nov 2026, user: "make the hidden whispers carry more info by making it a code") a BUNDLE: the first waiting
+  -- line for the bot plus every next one that still fits, as "~O2~" .. "prefix~msg}prefix~msg..." (the bot splits on
+  -- "}"; no feed uses that sign). One whisper instead of several, so the same data costs far fewer chat lines. A line
+  -- with "}" in it, or a lone line, goes the old way ("~OS~prefix~msg") - bots from before still read those.
+  OS.BUNDLEMAX = 250
+  function OS.TakeBundle(first)
+    local recs, len = { first[1] .. "~" .. first[2] }, string.len(OS.BUNDLE) + string.len(first[1]) + 1 + string.len(first[2])
+    if string.find(first[2], "}", 1, true) then return nil end
+    local i = 1
+    while i <= OS.qn do
+      local it = OS.q[i]
+      if it[3] == "WHISPER" and it[4] == first[4] and not string.find(it[2], "}", 1, true) then
+        local add = 1 + string.len(it[1]) + 1 + string.len(it[2])
+        if len + add > OS.BUNDLEMAX then break end
+        table.insert(recs, it[1] .. "~" .. it[2])
+        len = len + add
+        table.remove(OS.q, i)
+        OS.qn = OS.qn - 1
+      else
+        i = i + 1
+      end
+    end
+    if table.getn(recs) < 2 then return nil end
+    return OS.BUNDLE .. table.concat(recs, "}")
   end
   -- the text of a data whisper (under the 255 a chat line may hold)
   function OS.WhisperText(prefix, msg)
@@ -313,7 +340,8 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     if item[3] == "WHISPER" then
       -- addon whispers are refused here: a normal whisper the bot understands (hidden on our side)
       if OS.ChatWhisperOn() and item[4] and SendChatMessage then
-        pcall(SendChatMessage, OS.WhisperText(item[1], item[2]), "WHISPER", nil, item[4])
+        local text = OS.TakeBundle(item) or OS.WhisperText(item[1], item[2])
+        pcall(SendChatMessage, text, "WHISPER", nil, item[4])
       end
     elseif item[4] then pcall(SendAddonMessage, item[1], item[2], item[3], item[4])
     else pcall(SendAddonMessage, item[1], item[2], item[3]) end

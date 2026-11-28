@@ -1221,6 +1221,8 @@ pfUI:RegisterModule("nameplates", "vanilla:tbc", function ()
   end
 
   pfUI.nameplates = nameplates
+  -- (28 Nov 2026) the plates pfUI already tracks, for OctoShare's nearby-player sightings (read it, never change it)
+  nameplates.registry = registry
 
   -- octo (25 Nov 2026, Wolfahrt: "a maximum number of characters ... to not take too much space with long names").
   -- C.plates.namemax letters at most (0 = any length; letters, not bytes: names can have accents), shortened by

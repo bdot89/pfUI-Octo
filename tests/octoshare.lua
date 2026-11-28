@@ -147,6 +147,28 @@ OS.masterDownUntil = 0
 OS.noWhisper = noWhisperWas
 _G.GetRealmName, _G.UnitFactionGroup, _G.GetTime = realmWas, factionWas, timeWas
 
+-- (28 Nov 2026) bundles: waiting lines for the bot share one whisper; a lone line or one with "}" goes the old way
+OS.q, OS.qn = {}, 0
+OS.Send("pfOS", "hb^Orgrimmar^60", "WHISPER", "Errorgchat")
+OS.Send("pfLB", "Q", "WHISPER", "Errorgchat")
+OS.Send("pfAP", "prices", "GUILD")
+OS.Send("pfOS", "sg^Orgrimmar^^A.1.1.1.0", "WHISPER", "Errorgchat")
+local first = table.remove(OS.q, 1) OS.qn = OS.qn - 1
+local b = OS.TakeBundle(first)
+ok(b == "~O2~pfOS~hb^Orgrimmar^60}pfLB~Q}pfOS~sg^Orgrimmar^^A.1.1.1.0", "three bot lines in one bundle (" .. tostring(b) .. ")")
+ok(OS.qn == 1 and OS.q[1][3] == "GUILD", "the guild line stays queued")
+ok(OS.IsOurWhisper(b), "a bundle is hidden like the other data whispers")
+OS.q, OS.qn = {}, 0
+ok(OS.TakeBundle({ "pfOS", "hb^x", "WHISPER", "Errorgchat" }) == nil, "a lone line is not a bundle")
+OS.Send("pfOS", "a}b", "WHISPER", "Errorgchat")
+ok(OS.TakeBundle({ "pfOS", "hb^x", "WHISPER", "Errorgchat" }) == nil, "a line with } is never bundled")
+OS.q, OS.qn = {}, 0
+for i = 1, 30 do OS.Send("pfOS", "hb^" .. string.rep("z", 30) .. i, "WHISPER", "Errorgchat") end
+first = table.remove(OS.q, 1) OS.qn = OS.qn - 1
+b = OS.TakeBundle(first)
+ok(b and string.len(b) <= OS.BUNDLEMAX and OS.qn > 0, "a bundle stops at " .. OS.BUNDLEMAX .. " characters (" .. string.len(b or "") .. "), the rest waits")
+OS.q, OS.qn = {}, 0
+
 -- the trim keeps the log under the cap
 S.collect = "1"
 local savedMax = OS.MAXLOG

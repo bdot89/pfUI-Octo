@@ -53,8 +53,12 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
       .. "then, where you died and what hit you last, and a new best crit or crit heal (amount and spell) - for "
       .. "queue-time, win-rate, 'where is everyone', death and record boards. With the zone ping, a heartbeat goes to "
       .. "your realm's data bot only (zone, level, class, your latency, your pfUI Octo version, and AFK / DND / BG queue "
-      .. "/ in an instance) - for the 'who runs pfUI Octo' list and version counts. pfUI only reports: it never takes "
-      .. "commands from anyone.", "octoshare", "enable")
+      .. "/ in an instance, and which client DLLs you run: SuperWoW, nampower, ClassicAPI, UnitXP - no versions or "
+      .. "machine data) - for the 'who runs pfUI Octo' list and version counts. When the realm bot pings your guild, "
+      .. "that heartbeat is sent at once (at most once a minute). Also to the data bot only: the other players your game "
+      .. "sees around you (target, mouseover, party, nameplates) - just what /who shows anyway: name, level, class, "
+      .. "race, guild and your zone, never positions or gear - each name at most once per 10 minutes, so the realm "
+      .. "boards miss nobody. pfUI only reports: it never takes commands from anyone.", "octoshare", "enable")
 
     -- how it is sent: the throttle-safe governor
     W.Card(p, "How it is sent", { icon = "Interface\\Icons\\Spell_Nature_WispSplode" })

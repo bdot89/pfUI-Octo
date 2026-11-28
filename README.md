@@ -122,6 +122,12 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.90
+
+- 👀 **The realm boards miss nobody:** pfUI Octo now tells your realm's data bot about the other players your game sees around you (target, mouseover, party, and nameplates with SuperWoW) - only what /who shows anyway: name, level, class, race, guild and your zone, never positions or gear, each name at most once per 10 minutes. Listed on the Data sharing page; turn the feeds off there to stop it.
+- 📡 **emp's ping, merged with the heartbeat:** when your realm's bot pings the guild, pfUI answers with its heartbeat right away (only that bot, at most once a minute, report only - pfUI never takes commands). The heartbeat now also says which client DLLs you run (SuperWoW, nampower, ClassicAPI, UnitXP).
+- 📦 **Fewer whispers:** the hidden lines to the data bot are packed together, several in one whisper, so the same data costs far fewer chat lines.
+
 ## 📜 New in 1.2.89
 
 - 🛠️ **Action bar errors fixed:** when something cleared the action bar page, every button errored non-stop (ActionButton.lua:460 / :68). pfUI Octo now puts the page back to 1 on its own.

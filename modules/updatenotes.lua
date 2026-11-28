@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.90", {
+    { "The realm boards miss nobody", "pfUI Octo now tells your realm's data bot about the other players your game sees around you (target, mouseover, party, and nameplates with SuperWoW) - only what /who shows anyway: name, level, class, race, guild and your zone, never positions or gear, each name at most once per 10 minutes. Listed on the Data sharing page; turn the feeds off there to stop it." },
+    { "emp's ping, merged with the heartbeat", "when your realm's bot pings the guild, pfUI answers with its heartbeat right away (only that bot, at most once a minute, report only - pfUI never takes commands). The heartbeat now also says which client DLLs you run (SuperWoW, nampower, ClassicAPI, UnitXP)." },
+    { "Fewer whispers", "the hidden lines to the data bot are packed together, several in one whisper, so the same data costs far fewer chat lines." },
+  } },
   { "1.2.89", {
     { "Action bar errors fixed", "when something cleared the action bar page, every button errored non-stop (ActionButton.lua:460 / :68). pfUI Octo now puts the page back to 1 on its own." },
     { "Hide the threat window out of combat", "Meters > Threat window has a Hide choice (always shown, hide out of combat, hide in combat)." },
@@ -170,8 +175,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.51", {
     { "Always sell / Never sell (thanks )", "items on Always sell go with the greys at every vendor; Never sell keeps an item even when grey. Ctrl + Alt + right-click a bag item (Shift too = Never sell), /sell add | never | remove | list | purge, or Quality of Life > Vendor and loot." },
-  } },
-  { "1.2.50", {
-    { "Chronicle logger, checked on pfUI alone", "pfUI's built-in logger needs no other add-on; \"Auto-enable in Raids\" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself)." },
   } },
 }

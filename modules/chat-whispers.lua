@@ -1260,7 +1260,7 @@ pfUI:RegisterModule("chat-whispers", "vanilla:tbc", function ()
     if S().mode ~= "window" then return end
     -- (28 Nov 2026) pfUI Octo's own data whispers to the realm data bot ("~OS~...", octoshare.lua): never a window
     if (evt == "CHAT_MSG_WHISPER" or evt == "CHAT_MSG_WHISPER_INFORM") and type(a1) == "string"
-      and string.sub(a1, 1, 4) == "~OS~" then return end
+      and (string.sub(a1, 1, 4) == "~OS~" or string.sub(a1, 1, 4) == "~O2~") then return end   -- "~O2~" = a bundle
     if evt == "CHAT_MSG_WHISPER" then
       local c = WH.Add(a2, "in", a1)
       if c and S().sound and S().sound ~= "none" then
