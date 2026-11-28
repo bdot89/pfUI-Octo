@@ -131,10 +131,12 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- (28 Nov 2026, user: "Yes, try it") The way that does work: a NORMAL whisper "~OS~<prefix>~<message>" to the bot,
   -- through the same governor (one line per gap, never in combat, never while AFK in case talking clears AFK). The
   -- bot files it like an addon message (its GamePacketHandler octoPeekChat). The "To Errorgchat:" line is hidden in
-  -- every chat frame, and pfUI's whisper windows / chat history skip "~OS~" lines. A TEST SWITCH for now, per
-  -- character, off by default: /octoshare bottest on|off. Once it is seen to be quiet in game, the default goes on.
+  -- every chat frame, and pfUI's whisper windows / chat history skip "~OS~" lines. Seen working in game 28 Nov 07:03
+  -- (1.2.87 trial), so from 1.2.88 it is ON for everyone with no switch (user: "Yes, turn it on"; the bots are
+  -- hard-set and nobody changes them). The only way out is turning the feeds off on the Data sharing page.
   OS.MARK = "~OS~"
-  function OS.ChatWhisperOn() return Cfg().bottest == "1" end
+  Cfg().bottest = nil                                     -- the 1.2.87 trial switch, gone
+  function OS.ChatWhisperOn() return true end
   -- AFK as the feeds module saw it (the game's "You are now AFK" line; 1.12 has no UnitIsAFK)
   function OS.IsAfk() return OS.feeds and OS.feeds.afk and true or false end
   function OS.Master()
@@ -325,13 +327,6 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   _G.SlashCmdList["OCTOSHARE"] = function(a)
     a = string.lower(a or "")
     if a == "clear" then OS.Clear() Say("collector log cleared.") return end
-    if a == "bottest on" or a == "bottest off" then
-      if C.octoshare then C.octoshare.bottest = (a == "bottest on") and "1" or "0" end
-      OS.masterDownUntil = 0
-      Say("sending to the realm data bot (" .. (OS.RealmBot() or "none on this realm") .. ") as hidden whispers: "
-        .. (OS.ChatWhisperOn() and "|cff55ff55ON|r - watch your chat for any line that should not be there" or "off"))
-      return
-    end
     local d = DB()
     Say("collector: " .. (OS.Collecting() and "|cff55ff55ON|r" or "off") .. "  new feeds: "
       .. (OS.Enabled() and "|cff55ff55ON|r" or "off")

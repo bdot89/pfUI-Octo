@@ -971,8 +971,7 @@ function pfUI:LoadConfig()
   pfUI:UpdateConfig("octoshare",  nil,           "enable",           "1")        -- broadcast the new OctoShare.Emit feeds (BG queues, results, population)
   -- (28 Nov 2026) realm-wide = the realm's data bot, FIXED per realm + faction in octoshare.lua (no "master" setting:
   -- nobody can change where it goes). Addon whispers are refused by this server, so it is a hidden NORMAL whisper,
-  -- on trial per character with /octoshare bottest on|off until it is seen to be quiet in game.
-  pfUI:UpdateConfig("octoshare",  nil,           "bottest",          "0")
+  -- always on (1.2.88); turning the feeds off is the way out.
   pfUI:UpdateConfig("octoshare",  nil,           "gap",              "2")         -- seconds between outbound messages (lower = faster, riskier)
   pfUI:UpdateConfig("auction",    nil,           "dealpct",          "70")
   pfUI:UpdateConfig("auction",    nil,           "suggest",          "1")

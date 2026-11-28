@@ -51,9 +51,10 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
     Feed("Leaderboards", "Your OctoBoards counts (kills, flights, gold...) to rank against guild and raid.", nil, nil)
     Feed("Battlegrounds, population, deaths & records", "Your BG queue waits and win/loss, your current zone now and "
       .. "then, where you died and what hit you last, and a new best crit or crit heal (amount and spell) - for "
-      .. "queue-time, win-rate, 'where is everyone', death and record boards. A heartbeat for the realm's data bot (zone, "
-      .. "level, class, latency, pfUI Octo version, AFK / DND / BG queue / instance) is built but not sent while sending "
-      .. "to the bot is paused. pfUI only reports: it never takes commands from anyone.", "octoshare", "enable")
+      .. "queue-time, win-rate, 'where is everyone', death and record boards. With the zone ping, a heartbeat goes to "
+      .. "your realm's data bot only (zone, level, class, your latency, your pfUI Octo version, and AFK / DND / BG queue "
+      .. "/ in an instance) - for the 'who runs pfUI Octo' list and version counts. pfUI only reports: it never takes "
+      .. "commands from anyone.", "octoshare", "enable")
 
     -- how it is sent: the throttle-safe governor
     W.Card(p, "How it is sent", { icon = "Interface\\Icons\\Spell_Nature_WispSplode" })
@@ -68,13 +69,14 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
     W.Live(p, function()
       local os = OS()
       local bot = os and os.RealmBot and os.RealmBot()
-      local paused = os and os.noWhisper
       return "Realm data bot: " .. (bot and ("|cffffffff" .. bot .. "|r") or "|cff9a9ca3none on this realm yet|r")
-        .. (bot and paused and "  |cff9a9ca3(paused - nothing is sent to it)|r" or "")
     end)
-    W.Note(p, "Each realm has an OctoWoW data bot, fixed by pfUI Octo (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = "
-      .. "Octopfui, N'Zoth = Pfuiocto). Sending to it is PAUSED: this server does not carry add-on messages in whispers, "
-      .. "so for now the feeds above go to your guild and raid only. To share nothing at all, turn the feeds off.", 0, false)
+    W.Note(p, "The shared feeds above also go to your realm's OctoWoW data bot, fixed by pfUI Octo (Y'Shaarj Horde = "
+      .. "Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto). This server does not carry add-on messages in "
+      .. "whispers, so pfUI sends a short normal whisper and hides it: no chat line, nothing in your whisper windows or "
+      .. "chat history, and your own whispers are never touched. One line every few seconds at most, never in combat, "
+      .. "held while you are AFK. It feeds the realm-wide boards and Discord stats. If the bot is offline, the 'No player "
+      .. "named' line is hidden and pfUI waits 10 minutes. To share nothing at all, turn the feeds off.", 0, false)
 
     -- the collector + new feeds (for the person running the master database)
     W.Card(p, "Collector", { icon = "Interface\\Icons\\INV_Misc_Note_01",

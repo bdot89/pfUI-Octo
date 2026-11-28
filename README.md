@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.88
+
+- 📡 **Realm data bots on for everyone:** your shared feeds now also reach your realm's OctoWoW data bot (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto) as a short whisper that pfUI hides - no chat line, nothing in your whisper windows or chat history, and your own whispers are never touched. Tried out in 1.2.87; the trial command is gone. Never in combat, held while you are AFK; turn the feeds off on the Data sharing page to share nothing.
+
 ## 📜 New in 1.2.87
 
 - 🧪 **Realm data bot trial:** `/octoshare bottest on` sends this character's shared data to the realm's data bot as a normal whisper that pfUI hides (no chat line, nothing in pfUI's whisper windows or chat history). Off by default while it is tried out; `/octoshare bottest off` stops it. It waits while you are AFK and never sends in combat.

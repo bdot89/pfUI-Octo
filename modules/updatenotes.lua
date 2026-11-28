@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.88", {
+    { "Realm data bots on for everyone", "your shared feeds now also reach your realm's OctoWoW data bot (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto) as a short whisper that pfUI hides - no chat line, nothing in your whisper windows or chat history, and your own whispers are never touched. Tried out in 1.2.87; the trial command is gone. Never in combat, held while you are AFK; turn the feeds off on the Data sharing page to share nothing." },
+  } },
   { "1.2.87", {
     { "Realm data bot trial", "/octoshare bottest on sends this character's shared data to the realm's data bot as a normal whisper that pfUI hides (no chat line, nothing in pfUI's whisper windows or chat history). Off by default while it is tried out; /octoshare bottest off stops it. It waits while you are AFK and never sends in combat." },
   } },
@@ -172,11 +175,5 @@ pfUI.octoNotes = {
     { "Mail: Open bags button (thanks Javelin)", "pressing B in the mail window typed a \"b\" into the letter." },
     { "Chronicle logger (thanks Javelin)", "\"Auto-enable in Raids\" ticked in its own options no longer switches itself off at the next login (OctoRanks on WhoDidIt 1.31.1)." },
     { "Nameplate distance back to the number you set", "the \"cross mark at 38\" came from a ClassicAPI build (its distance measured centre to centre; brues has put it back). The 1.2.48 \"Count it like spell range\" option is now off by default." },
-  } },
-  { "1.2.48", {
-    { "Missing recipes (thanks Javelin)", "a \"Missing\" button in the profession windows lists every recipe you don't know yet - easiest first, with where it comes from (trainer, vendor with zone, drop with chance) from the built-in pfQuest database. Hover for details, Shift-click to link. All 1,833 recipes come from the game's own files. Needs a full game restart." },
-    { "Nameplate distance like spell range (thanks Javelin)", "a plate set to 41 yd now stays up as far as a 41 yd shot reaches (the game measured middle to middle, about 3 yd more). \"Count it like spell range\" in Nameplates." },
-    { "Which bag is which (thanks mechanism)", "hovering a bag lights its slots in gold and fades the rest - on the bag window's bag bar and the game's bag buttons." },
-    { "The profession windows' open filter menus are now really solid.", "The profession windows' open filter menus are now really solid." },
   } },
 }
