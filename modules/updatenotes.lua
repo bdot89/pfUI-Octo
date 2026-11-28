@@ -6,6 +6,7 @@ pfUI.octoNotes = {
     { "OctoLoot trash drops (thanks Lobo)", "every dungeon and raid with trash loot now has a \"Trash mobs\" entry - Dragonmaw Retreat shows the Dragonmaw Bulwark and the Dragonmaw set pieces." },
     { "Nameplate combat text (thanks tuki)", "the combat text pages now say plainly when nampower is missing - your hits come from it, so without it only Test shows." },
     { "pfQuest missing its database", "instead of an error to report, pfUI says the files are missing and to reinstall pfUI." },
+    { "Data sharing: deaths and crit records", "with \"Send new feeds\" on, pfUI also shares where you died, your level and what hit you last, and a new personal best crit or crit heal (amount and spell) - for death and record boards. Paced and silent in combat like every feed; listed on the Data sharing page, and off with that one switch." },
   } },
   { "1.2.78", {
     { "Shorter tooltips, your way", "every extra tooltip part now has its own switch on one card (Quality of Life > Tooltips > Tooltip extras). Mob hits, armor and resists each on their own (resists off, armor kept), how many creatures \"Drops from\" lists, and OctoLoot's Swaps, pages and the long \"Used in\" line - each Always, only while Shift is held, or Never. The auction price is there too." },
