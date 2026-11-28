@@ -128,8 +128,17 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- BATTLEGROUND carry addon messages. So nothing is whispered to the bots until another way to reach them exists.
   -- OS.noWhisper is also set at run time when the server sends that line about one of our prefixes (OS.AddonRefused).
   OS.noWhisper = true
+  -- (28 Nov 2026, user: "Yes, try it") The way that does work: a NORMAL whisper "~OS~<prefix>~<message>" to the bot,
+  -- through the same governor (one line per gap, never in combat, never while AFK in case talking clears AFK). The
+  -- bot files it like an addon message (its GamePacketHandler octoPeekChat). The "To Errorgchat:" line is hidden in
+  -- every chat frame, and pfUI's whisper windows / chat history skip "~OS~" lines. A TEST SWITCH for now, per
+  -- character, off by default: /octoshare bottest on|off. Once it is seen to be quiet in game, the default goes on.
+  OS.MARK = "~OS~"
+  function OS.ChatWhisperOn() return Cfg().bottest == "1" end
+  -- AFK as the feeds module saw it (the game's "You are now AFK" line; 1.12 has no UnitIsAFK)
+  function OS.IsAfk() return OS.feeds and OS.feeds.afk and true or false end
   function OS.Master()
-    if OS.noWhisper then return nil end
+    if not OS.ChatWhisperOn() then return nil end
     if (GetTime and GetTime() or 0) < OS.masterDownUntil then return nil end   -- offline: paused
     local m = OS.RealmBot()
     if m and m ~= "" and (not UnitName or m ~= (UnitName("player"))) then return m end
@@ -165,12 +174,24 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     OS.q, OS.qn = keep, table.getn(keep)
     return true
   end
+  -- one of our data whispers ("To <bot>: ~OS~pfLB~...") - hidden everywhere
+  function OS.IsOurWhisper(text)
+    return type(text) == "string" and string.sub(text, 1, string.len(OS.MARK)) == OS.MARK
+  end
+  -- the text of a data whisper (under the 255 a chat line may hold)
+  function OS.WhisperText(prefix, msg)
+    local t = OS.MARK .. prefix .. "~" .. msg
+    if string.len(t) > 250 then t = string.sub(t, 1, 250) end
+    return t
+  end
   -- hide that line from every chat frame (1.12 has no message filters: wrap the chat frame's event handler once)
   local origChatEvent = _G.ChatFrame_OnEvent
   if type(origChatEvent) == "function" and not OS.chatWrapped then
     OS.chatWrapped = true
     _G.ChatFrame_OnEvent = function(ev, a2, a3, a4, a5)
-      if (ev or _G.event) == "CHAT_MSG_SYSTEM" and (OS.MasterNotFound(_G.arg1) or OS.AddonRefused(_G.arg1)) then return end
+      local e = ev or _G.event
+      if e == "CHAT_MSG_SYSTEM" and (OS.MasterNotFound(_G.arg1) or OS.AddonRefused(_G.arg1)) then return end
+      if (e == "CHAT_MSG_WHISPER_INFORM" or e == "CHAT_MSG_WHISPER") and OS.IsOurWhisper(_G.arg1) then return end
       return origChatEvent(ev, a2, a3, a4, a5)
     end
   end
@@ -275,10 +296,24 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     -- a late safety net in case an event was missed
     if (UnitAffectingCombat and UnitAffectingCombat("player")) or (InCombatLockdown and InCombatLockdown()) then return end
     if (this.sendAt or 0) > now then return end
+    -- a data whisper waits while you are AFK (talking may clear AFK); guild / raid lines go on as before
+    local item = OS.q[1]
+    if item[3] == "WHISPER" and OS.IsAfk() then
+      for i = 2, OS.qn do
+        if OS.q[i][3] ~= "WHISPER" then item = table.remove(OS.q, i) OS.qn = OS.qn - 1 break end
+      end
+      if item == OS.q[1] then return end                      -- only whispers waiting: hold them
+    else
+      table.remove(OS.q, 1)
+      OS.qn = OS.qn - 1
+    end
     this.sendAt = now + OS.Gap()
-    local item = table.remove(OS.q, 1)
-    OS.qn = OS.qn - 1
-    if item[4] then pcall(SendAddonMessage, item[1], item[2], item[3], item[4])
+    if item[3] == "WHISPER" then
+      -- addon whispers are refused here: a normal whisper the bot understands (hidden on our side)
+      if OS.ChatWhisperOn() and item[4] and SendChatMessage then
+        pcall(SendChatMessage, OS.WhisperText(item[1], item[2]), "WHISPER", nil, item[4])
+      end
+    elseif item[4] then pcall(SendAddonMessage, item[1], item[2], item[3], item[4])
     else pcall(SendAddonMessage, item[1], item[2], item[3]) end
   end)
 
@@ -290,6 +325,13 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   _G.SlashCmdList["OCTOSHARE"] = function(a)
     a = string.lower(a or "")
     if a == "clear" then OS.Clear() Say("collector log cleared.") return end
+    if a == "bottest on" or a == "bottest off" then
+      if C.octoshare then C.octoshare.bottest = (a == "bottest on") and "1" or "0" end
+      OS.masterDownUntil = 0
+      Say("sending to the realm data bot (" .. (OS.RealmBot() or "none on this realm") .. ") as hidden whispers: "
+        .. (OS.ChatWhisperOn() and "|cff55ff55ON|r - watch your chat for any line that should not be there" or "off"))
+      return
+    end
     local d = DB()
     Say("collector: " .. (OS.Collecting() and "|cff55ff55ON|r" or "off") .. "  new feeds: "
       .. (OS.Enabled() and "|cff55ff55ON|r" or "off")

@@ -969,8 +969,10 @@ function pfUI:LoadConfig()
   -- through its governor so the feeds together can never trip the chat throttle, and it goes quiet in combat.
   pfUI:UpdateConfig("octoshare",  nil,           "collect",          "0")        -- log every share message heard (the master only)
   pfUI:UpdateConfig("octoshare",  nil,           "enable",           "1")        -- broadcast the new OctoShare.Emit feeds (BG queues, results, population)
-  -- (28 Nov 2026) realm-wide = an addon WHISPER to the realm's data bot, FIXED per realm + faction in octoshare.lua
-  -- (no "master" / "realmbots" settings any more: nobody can change where it goes)
+  -- (28 Nov 2026) realm-wide = the realm's data bot, FIXED per realm + faction in octoshare.lua (no "master" setting:
+  -- nobody can change where it goes). Addon whispers are refused by this server, so it is a hidden NORMAL whisper,
+  -- on trial per character with /octoshare bottest on|off until it is seen to be quiet in game.
+  pfUI:UpdateConfig("octoshare",  nil,           "bottest",          "0")
   pfUI:UpdateConfig("octoshare",  nil,           "gap",              "2")         -- seconds between outbound messages (lower = faster, riskier)
   pfUI:UpdateConfig("auction",    nil,           "dealpct",          "70")
   pfUI:UpdateConfig("auction",    nil,           "suggest",          "1")

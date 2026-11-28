@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.87
+
+- 🧪 **Realm data bot trial:** `/octoshare bottest on` sends this character's shared data to the realm's data bot as a normal whisper that pfUI hides (no chat line, nothing in pfUI's whisper windows or chat history). Off by default while it is tried out; `/octoshare bottest off` stops it. It waits while you are AFK and never sends in combat.
+
 ## 📜 New in 1.2.86
 
 - 🛠️ **No more red "Unknown addon chat type" lines:** since 1.2.80 pfUI Octo sent its shared data to the realm's data bot as an add-on whisper, and this server refuses those - one red line every few seconds. Sending to the bot is paused (guild and raid sharing carry on as before), and if the server ever refuses one of pfUI's messages again, the line is hidden and pfUI stops trying for that session.

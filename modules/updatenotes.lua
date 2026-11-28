@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.87", {
+    { "Realm data bot trial", "/octoshare bottest on sends this character's shared data to the realm's data bot as a normal whisper that pfUI hides (no chat line, nothing in pfUI's whisper windows or chat history). Off by default while it is tried out; /octoshare bottest off stops it. It waits while you are AFK and never sends in combat." },
+  } },
   { "1.2.86", {
     { "No more red \"Unknown addon chat type\" lines", "since 1.2.80 pfUI Octo sent its shared data to the realm's data bot as an add-on whisper, and this server refuses those - one red line every few seconds. Sending to the bot is paused (guild and raid sharing carry on as before), and if the server ever refuses one of pfUI's messages again, the line is hidden and pfUI stops trying for that session." },
   } },
@@ -175,8 +178,5 @@ pfUI.octoNotes = {
     { "Nameplate distance like spell range (thanks Javelin)", "a plate set to 41 yd now stays up as far as a 41 yd shot reaches (the game measured middle to middle, about 3 yd more). \"Count it like spell range\" in Nameplates." },
     { "Which bag is which (thanks mechanism)", "hovering a bag lights its slots in gold and fades the rest - on the bag window's bag bar and the game's bag buttons." },
     { "The profession windows' open filter menus are now really solid.", "The profession windows' open filter menus are now really solid." },
-  } },
-  { "1.2.47", {
-    { "OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions", "The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them." },
   } },
 }

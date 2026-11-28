@@ -182,6 +182,9 @@ pfUI:RegisterModule("chat-history", "vanilla:tbc", function ()
       end
       return
     end
+    -- (28 Nov 2026) pfUI Octo's own data whispers to the realm data bot ("~OS~...", octoshare.lua) are never kept
+    if (evt == "CHAT_MSG_WHISPER" or evt == "CHAT_MSG_WHISPER_INFORM") and type(msg) == "string"
+      and string.sub(msg, 1, 4) == "~OS~" then return end
     if evt == "CHAT_MSG_WHISPER" then
       CH.Add("whisper", nil, msg, nil, sender, "in")
     elseif evt == "CHAT_MSG_WHISPER_INFORM" then

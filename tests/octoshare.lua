@@ -66,8 +66,9 @@ local realmWas, factionWas, timeWas = rawget(_G, "GetRealmName"), rawget(_G, "Un
 _G.GetRealmName = function() return "Y'Shaarj" end
 _G.UnitFactionGroup = function() return "Horde", "Horde" end
 ok(OS.noWhisper == true, "addon whispers are off as shipped")
-ok(OS.RealmBot() == "Errorgchat", "the realm bot is still known (hard-set), for when a working route exists")
-ok(OS.Master() == nil, "but nothing is whispered to it")
+S.bottest = "0"
+ok(OS.RealmBot() == "Errorgchat", "the realm bot is still known (hard-set)")
+ok(OS.Master() == nil, "but nothing is whispered to it until the hidden-whisper trial is on")
 OS.q, OS.qn = {}, 0
 OS.Broadcast("pfAP", "prices", { "GUILD" })
 OS.EmitBot("hb", "x")
@@ -77,9 +78,16 @@ ok(OS.AddonRefused("Unknown addon chat type (prefix BigWigs)") == false, "anothe
 ok(OS.AddonRefused("Players online: 87") == false, "other system lines are left alone")
 _G.GetRealmName, _G.UnitFactionGroup = realmWas, factionWas
 
--- the realm bot logic itself (hard-set, own faction, offline pause), tested with whispers switched on
+-- (28 Nov 2026) the hidden NORMAL whisper: its text, and that every copy of the line is recognised for hiding
+ok(OS.WhisperText("pfLB", "A^WARRIOR^60^kl=5") == "~OS~pfLB~A^WARRIOR^60^kl=5", "data whisper text: " .. OS.WhisperText("pfLB", "A^WARRIOR^60^kl=5"))
+ok(string.len(OS.WhisperText("pfOS", string.rep("x", 300))) <= 250, "a data whisper fits a chat line")
+ok(OS.IsOurWhisper("~OS~pfOS~hb^Durotar") and not OS.IsOurWhisper("hey, ~OS~ inv?") and not OS.IsOurWhisper(nil),
+  "only lines that start with the mark are ours")
+ok(OS.feeds == nil or OS.IsAfk() == false, "not AFK by default")
+
+-- the realm bot logic itself (hard-set, own faction, offline pause), tested with the trial switched on
 local noWhisperWas = OS.noWhisper
-OS.noWhisper = false
+S.bottest = "1"
 local clock = 1000
 _G.GetTime = function() return clock end
 _G.GetRealmName = function() return "Y'Shaarj" end
@@ -136,6 +144,7 @@ _G.event, _G.arg1 = nil, nil
 OS.q, OS.qn = {}, 0
 OS.masterDownUntil = 0
 OS.noWhisper = noWhisperWas
+S.bottest = "0"
 _G.GetRealmName, _G.UnitFactionGroup, _G.GetTime = realmWas, factionWas, timeWas
 
 -- the trim keeps the log under the cap
