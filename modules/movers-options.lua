@@ -22,6 +22,26 @@ pfUI:RegisterModule("movers-options", "vanilla", function ()
       { "Open layout mode", function() if pfUI.unlock then pfUI.unlock:Show() end end, 140, "Move, size and hide frames." },
       { "Pick a frame", function() MV.StartPick() end, 120, "Point at any frame of any add-on and press Enter." },
     })
+    -- (28 Nov 2026, NoFaTe: the cooldown manager's box sat under loot, raid and Bulwark boxes) any box by name:
+    -- layout mode opens with that box on top and its nudge box (arrows, X / Y) on it
+    local list = {}
+    for name in pairs(pfUI.movables or {}) do
+      local label = pfUI.unlockNice and pfUI.unlockNice[name]
+      if type(name) ~= "string" then name = nil end
+      if type(label) ~= "string" then label = name end
+    if name then
+      local _, _, cdm = string.find(name, "^pfCDM(%d+)$")
+      if cdm then label = "Cooldown manager bar " .. cdm
+      else label = string.gsub(string.gsub(label, "^pf", ""), "(%l)(%u)", "%1 %2") end
+      table.insert(list, { key = name, label = label })
+    end
+    end
+    table.sort(list, function(a, b) return string.lower(a.label) < string.lower(b.label) end)
+    if table.getn(list) > 0 then
+      W.Dropdown(p, "Find a box", "Layout mode opens with this frame's box on top of the others and its nudge box on "
+        .. "it - for a box hidden under other boxes.", list, function() return nil end,
+        function(v) if pfUI.gui and pfUI.gui:IsShown() then pfUI.gui:Hide() end if pfUI.unlock.Focus then pfUI.unlock.Focus(v) end end)
+    end
 
     -- opacity per frame: the game's frames that exist now, then the picked ones
     W.Card(p, "Opacity", { icon = ICON .. "Spell_Shadow_Charm", tip = "How see-through each frame is. Size and hiding are "

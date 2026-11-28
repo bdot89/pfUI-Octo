@@ -2,6 +2,11 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.89", {
+    { "Action bar errors fixed", "when something cleared the action bar page, every button errored non-stop (ActionButton.lua:460 / :68). pfUI Octo now puts the page back to 1 on its own." },
+    { "Hide the threat window out of combat", "Meters > Threat window has a Hide choice (always shown, hide out of combat, hide in combat)." },
+    { "Find a box in layout mode", "General > Move Anything lists every movable frame (cooldown manager bars too). Pick one and layout mode opens with that box on top and its nudge box ready." },
+  } },
   { "1.2.88", {
     { "Realm data bots on for everyone", "your shared feeds now also reach your realm's OctoWoW data bot (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto) as a short whisper that pfUI hides - no chat line, nothing in your whisper windows or chat history, and your own whispers are never touched. Tried out in 1.2.87; the trial command is gone. Never in combat, held while you are AFK; turn the feeds off on the Data sharing page to share nothing." },
   } },
@@ -168,12 +173,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.50", {
     { "Chronicle logger, checked on pfUI alone", "pfUI's built-in logger needs no other add-on; \"Auto-enable in Raids\" ticked in its options stays on after a relog (fixed in 1.2.49, now proven by a test that runs pfUI's logger by itself)." },
-  } },
-  { "1.2.49", {
-    { "Craft profit (thanks Wolfahrt)", "the profession windows show what the reagents cost against what the craft sells for - \"Cost / Sells / Profit\" under the picked recipe, and the profit (green / red) at the end of every recipe row. Auction house prices first, vendor prices for vendor reagents. Switch: \"Craft cost and profit\"." },
-    { "Flight timer names (thanks Javelin)", "the bar showed \"Flight point 2 ... Flight point 82\" - now every flight point's real name." },
-    { "Mail: Open bags button (thanks Javelin)", "pressing B in the mail window typed a \"b\" into the letter." },
-    { "Chronicle logger (thanks Javelin)", "\"Auto-enable in Raids\" ticked in its own options no longer switches itself off at the next login (OctoRanks on WhoDidIt 1.31.1)." },
-    { "Nameplate distance back to the number you set", "the \"cross mark at 38\" came from a ClassicAPI build (its distance measured centre to centre; brues has put it back). The 1.2.48 \"Count it like spell range\" option is now off by default." },
   } },
 }

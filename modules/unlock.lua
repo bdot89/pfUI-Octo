@@ -1822,6 +1822,19 @@ pfUI:RegisterModule("unlock", "vanilla:tbc", function ()
     frame.drag:Show()
     frame:Show()
   end
+  -- (28 Nov 2026, NoFaTe: "in layout mode i cannot click the box because there is too much stuff in the way") one
+  -- box by name, from Move anything's list: layout mode opens, its box comes to the top with the nudge box on it
+  function pfUI.unlock.Focus(name)
+    local frame = name and _G[name]
+    if not frame then return end
+    if not pfUI.unlock:IsShown() then pfUI.unlock:Show() end
+    if not (frame.drag and frame.drag:IsShown()) then pfUI.unlock.AddBox(frame) end
+    local d = frame.drag
+    if not d then return end
+    d:SetFrameStrata("DIALOG")
+    d:SetFrameLevel(128)
+    SetDockToFrame(d)
+  end
   function pfUI.unlock.DropBox(frame)
     if not frame then return end
     if frame.drag then frame.drag:Hide() end

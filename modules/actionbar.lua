@@ -281,11 +281,27 @@ pfUI:RegisterModule("actionbar", "vanilla:tbc", function ()
     end,
   }
 
+  -- (28 Nov 2026, Лев: "ActionButton.lua:460 / :68: attempt to perform arithmetic on global CURRENT_ACTIONBAR_PAGE
+  -- (a nil value)" non-stop, then actionbar.lua:952) something cleared the client's page number (another add-on or
+  -- macro; pfUI only ever sets a number). Every action button does sums with it each frame, so it is put back to
+  -- page 1 at once, checked twice a second (one cheap type check).
+  local function FixPage()
+    if type(_G.CURRENT_ACTIONBAR_PAGE) ~= "number" then _G.CURRENT_ACTIONBAR_PAGE = 1 return true end
+  end
+  local pageguard = CreateFrame("Frame")
+  pageguard:SetScript("OnUpdate", function()
+    if (this.tick or 0) > GetTime() then return end
+    this.tick = GetTime() + .5
+    if FixPage() and type(_G.ChangeActionBarPage) == "function" then pcall(_G.ChangeActionBarPage, 1) end
+  end)
+
   local function GetActiveBar()
-    if CURRENT_ACTIONBAR_PAGE == 1 and GetBonusBarOffset() ~= 0 then
+    FixPage()
+    local page = _G.CURRENT_ACTIONBAR_PAGE
+    if page == 1 and GetBonusBarOffset() ~= 0 then
       return NUM_ACTIONBAR_PAGES + GetBonusBarOffset()
     else
-      return CURRENT_ACTIONBAR_PAGE
+      return page
     end
   end
 

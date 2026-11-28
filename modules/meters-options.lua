@@ -1295,6 +1295,23 @@ pfUI:RegisterModule("meters-options", "vanilla", function ()
       { "Try it in a demo", function() if pfUI.demo and pfUI.demo.Start then pfUI.demo.Start("raid") end end, 130,
         "A pretend raid fight: the threat window fills, and the demo bar's Events menu has Overthreat and DoTs pull.", role = "go" },
     })
+    -- (28 Nov 2026, NoFaTe: "the damage meter has an option to hide out of combat. is there a similar option for the
+    -- threat meter?") the same window setting (Meters > Windows > Hide), here where threat people look for it
+    W.Dropdown(p, "Hide", "Keep the threat window off the screen out of combat (or in combat). Same as Hide on its "
+      .. "Windows tab.", { { key = "never", label = "Always shown" }, { key = "outofcombat", label = "Hide out of combat" },
+      { key = "incombat", label = "Hide in combat" } },
+      function()
+        local w = M.ThreatWindow and M.ThreatWindow(false)
+        local s = w and C.meters["win" .. (w.cfg or w.id)]
+        return s and s.autohide or "never"
+      end,
+      function(v)
+        local w = M.ThreatWindow and M.ThreatWindow(false)
+        local s = w and C.meters["win" .. (w.cfg or w.id)]
+        if not s then return end
+        s.autohide = v
+        if M.CombatLook then M.CombatLook() end
+      end)
 
     W.Card(p, "Threat meter", { tip = "Asking the server for threat. Off: no label, no popups, no threat window." })
     Chk(p, "Ask the server for threat", "After a reload.", G, "threat", Reload)
