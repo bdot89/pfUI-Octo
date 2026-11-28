@@ -63,10 +63,14 @@ pfUI:RegisterModule("octoshare-options", "vanilla", function ()
       .. "the server's limit. Lower it only if you know what you are doing.", 1, 6, .5,
       function() return tonumber(C.octoshare and C.octoshare.gap) or 2 end,
       function(v) if C.octoshare then C.octoshare.gap = tostring(v) end end, function(v) return v .. " s" end)
-    W.Edit(p, "Master character", "For realm-wide reach: the collector character every pfUI Octo user quietly whispers "
-      .. "(an invisible addon whisper, not a chat message). Leave empty for guild / raid only. Set it to your collector's "
-      .. "name on all clients to gather the whole realm - but test first that it does not print a 'no such player' line "
-      .. "when the master is offline. Needs a reload.",
+    W.Check(p, "Share with the realm's data bot", "Also sends the shared feeds above to your realm's OctoWoW data bot "
+      .. "(the same data your guild already gets), as an invisible addon whisper - no chat line, no reply. It feeds the "
+      .. "realm-wide boards and Discord stats. Only your own faction's bot; if it is offline, the 'No player named' line is "
+      .. "hidden and pfUI waits 10 minutes before trying again. Turn off to share with guild / raid only.",
+      function() return not C.octoshare or C.octoshare.realmbots ~= "0" end,
+      function(v) if C.octoshare then C.octoshare.realmbots = v and "1" or "0" end end)
+    W.Edit(p, "Master character", "Instead of the realm's data bot, whisper this character (an invisible addon whisper). "
+      .. "Leave empty to use the data bot (above). Needs a reload.",
       function() return C.octoshare and C.octoshare.master or "" end,
       function(v) if C.octoshare then C.octoshare.master = v or "" end end, 200)
 

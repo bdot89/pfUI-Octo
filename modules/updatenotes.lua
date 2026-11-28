@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.80", {
+    { "Realm-wide boards through the realm's data bot", "the feeds you already share with your guild (prices, flights, nodes, world buffs, boards, BG queues...) now also go to your realm's OctoWoW data bot as an invisible addon whisper - no chat line, no reply - so the realm-wide boards and Discord stats get everyone, not just one guild. Only your own faction's bot. If the bot is offline, the \"No player named\" line is hidden and pfUI waits 10 minutes before trying again. Off with one switch: Quality of Life > Data sharing > \"Share with the realm's data bot\"." },
+  } },
   { "1.2.79", {
     { "OctoLoot trash drops (thanks Lobo)", "every dungeon and raid with trash loot now has a \"Trash mobs\" entry - Dragonmaw Retreat shows the Dragonmaw Bulwark and the Dragonmaw set pieces." },
     { "Nameplate combat text (thanks tuki)", "the combat text pages now say plainly when nampower is missing - your hits come from it, so without it only Test shows." },
@@ -182,15 +185,5 @@ pfUI.octoNotes = {
   { "1.2.41", {
     { "NEW STYLE chat fix", "clicking G O P R B S now shows only that channel's history (last 30 days) over your chat - it opened underneath the chat's own text. Click the letter again, or General, for your chat back." },
     { "Chat options, calmer", "\"Style: Old chat / New style\" sits in the strip at the top beside Chat and Panels; the big preview is gone from the chat pages (\"Show test lines in my chat\" fills your real chat instead), and its switches are a plain Windows card." },
-  } },
-  { "1.2.40", {
-    { "NEW STYLE chat (optional)", "Chat > Windows starts with a clear choice, OLD CHAT or NEW STYLE. New style puts a bar across the top of your chat: your chat (right-click to pick a window), Whispers with a green count, G O P R B S for guild / officer / party / raid / battleground / say history (talk there from the box), History for old whispers and a small arrow to fold the bar. Whispers open inside the chat instead of a window on top; click Chat to flip back and forth. Old chat stays the default. History's menu now shuts on a second click." },
-    { "Combo points, rebuilt", "their own tab, Nameplates > Combo points, with a live preview. 16 styles (12 new chrome shapes: diamond, hexagon, star, blood drop, flame, blade, rune, crescent, skull, chevron, heart, shard), a row or an arc, colours by count / class / one colour / each point, all one colour at five, animations when a point comes (pop, flash, bounce, drop), at five (glow, burst, shake) and when spent (fade, shatter), the count as a number, a sound at five, and a bar on the screen you can move." },
-    { "Frame Fade", "Quality of Life > Frame Fade (off by default). Player and pet frames, action bars, buffs, minimap, chat, panels and meters fade away while nothing is going on and come back for combat, a target, low health or mana, casting, groups and more - hover or hold a key to peek." },
-    { "Calmer options", "previews float on the page with no box, Nameplates sits in fewer tabs with plain underlined section tabs, and on the nameplate and unit frame pages the small settings (nudges, gaps, fine sizes) sit behind a \"\" on their row, with colours on the same line as their switch. Every setting is kept." },
-    { "Nameplate colours", "Nameplates > Colours > \"Colour the bars by\": pick pfUI combat state and your own colours for attacking you / others / no one, casting and stunned show on the bars, as in the old pfUI (the threat colours used to paint over them)." },
-    { "Map fixes", "the ping on you when the map opens sits on your arrow at any zoom (and can be switched off: Quality of Life > Map); pfQuest's \"Current Zone Only\" button works again; mailbox, bank and auction house icons tracked with the old standalone pfQuest show their pictures again instead of plain dots." },
-    { "Auctions", "the Sell tab's list shows \"Of usual\" (% of the usual price), and after posting full stacks the leftover goes straight into the stack size." },
-    { "New files and pictures: restart the game, not just /reload", "" },
   } },
 }

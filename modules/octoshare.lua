@@ -92,10 +92,60 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
   -- For realm-wide, each client also sends an ADDON WHISPER to the master's collector character (whisper IS a valid
   -- addon chat type here, and it is invisible), but only when its name is set - off until the master fills it in and
   -- confirms it does not error (an addon whisper to an offline name may draw a "no such player" line).
+  --
+  -- (28 Nov 2026, user: the realm bots "can accept whispers", they can't be put in a guild - "force our master chars
+  -- into their addons") The realm DATA BOTS are built in: OS.BOTS[realm][faction] (or .any on a cross-faction realm).
+  -- On by default (octoshare.realmbots, a switch on the Data sharing page); a master typed in by hand wins. Only your
+  -- own faction's bot (a whisper to the other faction fails). If the bot is offline the server answers "No player named
+  -- ..." - that one line is hidden for the bot's name and sending to it pauses for OS.DOWNFOR seconds.
+  OS.BOTS = {
+    ["Y'Shaarj"] = { Horde = "Errorgchat" },
+    ["C'Thun"]   = {},
+    ["N'Zoth"]   = {},                    -- cross-faction: { any = "Name" }
+  }
+  OS.DOWNFOR = 600
+  OS.masterDownUntil = 0
+  function OS.RealmBot()
+    if Cfg().realmbots == "0" then return nil end
+    local realm = GetRealmName and GetRealmName()
+    local bots = realm and OS.BOTS[realm]
+    if not bots then return nil end
+    local faction = UnitFactionGroup and (UnitFactionGroup("player"))
+    return (faction and bots[faction]) or bots.any
+  end
   function OS.Master()
+    if (GetTime and GetTime() or 0) < OS.masterDownUntil then return nil end   -- offline: paused
     local m = Cfg().master
-    if m and m ~= "" and (not UnitName or m ~= UnitName("player")) then return m end
+    if not m or m == "" then m = OS.RealmBot() end
+    if m and m ~= "" and (not UnitName or m ~= (UnitName("player"))) then return m end
     return nil
+  end
+  -- the server's "No player named 'X' is currently playing." for the master: true = it was about our master
+  function OS.MasterNotFound(text)
+    if type(text) ~= "string" then return false end
+    local m = Cfg().master
+    if not m or m == "" then m = OS.RealmBot() end
+    if not m or m == "" then return false end
+    local lower, name = string.lower(text), string.lower(m)
+    if not string.find(lower, "no player named", 1, true) and not string.find(lower, "not found", 1, true) then return false end
+    return string.find(lower, "'" .. name .. "'", 1, true) or string.find(lower, '"' .. name .. '"', 1, true)
+      or string.find(lower, " " .. name .. " ", 1, true) and true or false
+  end
+  function OS.MasterDown()
+    OS.masterDownUntil = (GetTime and GetTime() or 0) + OS.DOWNFOR
+    -- drop whatever was still waiting for the master
+    local keep = {}
+    for _, item in ipairs(OS.q) do if item[3] ~= "WHISPER" then table.insert(keep, item) end end
+    OS.q, OS.qn = keep, table.getn(keep)
+  end
+  -- hide that line from every chat frame (1.12 has no message filters: wrap the chat frame's event handler once)
+  local origChatEvent = _G.ChatFrame_OnEvent
+  if type(origChatEvent) == "function" and not OS.chatWrapped then
+    OS.chatWrapped = true
+    _G.ChatFrame_OnEvent = function(ev, a2, a3, a4, a5)
+      if (ev or _G.event) == "CHAT_MSG_SYSTEM" and OS.MasterNotFound(_G.arg1) then return end
+      return origChatEvent(ev, a2, a3, a4, a5)
+    end
   end
   -- where OctoShare's own feeds go: guild / raid / party (string channels)
   function OS.Channels()
@@ -170,6 +220,7 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     elseif event == "PLAYER_REGEN_ENABLED" then
       OS.combatUntil = (GetTime and GetTime() or 0) + 3            -- a few seconds' grace after combat
     elseif event == "CHAT_MSG_SYSTEM" then
+      if OS.MasterNotFound(arg1) then OS.MasterDown() return end
       if IsThrottle(arg1) then
         OS.silentUntil = (GetTime and GetTime() or 0) + OS.BACKOFF
         -- shed most of the backlog so we do not immediately try again
@@ -205,7 +256,8 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     local d = DB()
     Say("collector: " .. (OS.Collecting() and "|cff55ff55ON|r" or "off") .. "  new feeds: "
       .. (OS.Enabled() and "|cff55ff55ON|r" or "off")
-      .. "  master: " .. (OS.Master() or "none (guild / raid only)"))
+      .. "  master: " .. (OS.Master() or ((GetTime and GetTime() or 0) < OS.masterDownUntil and "offline - paused"
+      or "none (guild / raid only)")))
     Say("logged: " .. table.getn(d.log) .. " of " .. OS.MAXLOG .. " (seen " .. (d.n or 0) .. " total).  /octoshare clear empties it.")
     Say("send queue: " .. OS.qn .. "  one message every " .. OS.Gap() .. "s, paused in combat (throttle-safe).")
   end

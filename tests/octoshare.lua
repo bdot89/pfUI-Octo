@@ -61,6 +61,46 @@ OS.Broadcast("pfAP", "prices", { "GUILD" })
 ok(OS.qn == 2 and OS.q[2][3] == "WHISPER" and OS.q[2][4] == "Errorbot", "Broadcast whispers the master when set")
 S.master = ""
 
+-- (28 Nov 2026) the realm's built-in data bot: own faction only, a typed master wins, offline = hidden line + pause
+local realmWas, factionWas, timeWas = rawget(_G, "GetRealmName"), rawget(_G, "UnitFactionGroup"), rawget(_G, "GetTime")
+local clock = 1000
+_G.GetTime = function() return clock end
+_G.GetRealmName = function() return "Y'Shaarj" end
+_G.UnitFactionGroup = function() return "Horde", "Horde" end
+S.realmbots = "1"
+OS.masterDownUntil = 0
+ok(OS.Master() == "Errorgchat", "Y'Shaarj Horde whispers the realm bot (" .. tostring(OS.Master()) .. ")")
+_G.UnitFactionGroup = function() return "Alliance", "Alliance" end
+ok(OS.Master() == nil, "the other faction does not (a whisper to it would fail)")
+_G.UnitFactionGroup = function() return "Horde", "Horde" end
+_G.GetRealmName = function() return "Somewhere Else" end
+ok(OS.Master() == nil, "an unknown realm has no bot")
+_G.GetRealmName = function() return "Y'Shaarj" end
+S.realmbots = "0"
+ok(OS.Master() == nil, "the switch turns the realm bot off")
+S.realmbots = "1"
+S.master = "Mycollector"
+ok(OS.Master() == "Mycollector", "a master typed in by hand wins over the realm bot")
+S.master = ""
+ok(OS.MasterNotFound("No player named 'Errorgchat' is currently playing.") and true or false, "the bot's not-found line is recognised")
+ok(not OS.MasterNotFound("No player named 'Someone' is currently playing."), "someone else's not-found line is left alone")
+ok(not OS.MasterNotFound("Errorgchat has come online."), "other lines with the bot's name are left alone")
+OS.q, OS.qn = {}, 0
+OS.Broadcast("pfAP", "prices", { "GUILD" })
+ok(OS.qn == 2, "guild + the bot are queued")
+local shown = 0
+local chatWas = OS.chatWrapped
+_G.event, _G.arg1 = "CHAT_MSG_SYSTEM", "No player named 'Errorgchat' is currently playing."
+OS.MasterDown()
+ok(OS.qn == 1 and OS.q[1][3] == "GUILD", "bot offline: its waiting whispers are dropped, guild stays")
+ok(OS.Master() == nil, "bot offline: paused")
+clock = clock + OS.DOWNFOR + 1
+ok(OS.Master() == "Errorgchat", "after the pause it tries the bot again")
+_G.event, _G.arg1 = nil, nil
+OS.q, OS.qn = {}, 0
+OS.masterDownUntil = 0
+_G.GetRealmName, _G.UnitFactionGroup, _G.GetTime = realmWas, factionWas, timeWas
+
 -- the trim keeps the log under the cap
 S.collect = "1"
 local savedMax = OS.MAXLOG
