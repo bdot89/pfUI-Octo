@@ -206,6 +206,16 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     if string.len(msg) > 240 then msg = string.sub(msg, 1, 240) end
     OS.Broadcast(OS.PREFIX, msg, OS.Channels())
   end
+  -- (28 Nov 2026) a record only the realm's data bot needs (the heartbeat): the same governor, no guild / raid copy.
+  -- Nothing goes out when there is no bot on this realm or it is offline (paused).
+  function OS.EmitBot(kind, payload)
+    if not OS.Enabled() or type(kind) ~= "string" or kind == "" then return end
+    local m = OS.Master()
+    if not m then return end
+    local msg = kind .. "^" .. (payload or "")
+    if string.len(msg) > 240 then msg = string.sub(msg, 1, 240) end
+    OS.Send(OS.PREFIX, msg, "WHISPER", m)
+  end
 
   -- the server's "too quickly" warnings (strings vary by core): any of these backs us off hard
   local THROTTLE = { "too quickly", "too fast", "wait a", "being muted", "you are muted", "spamming" }

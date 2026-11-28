@@ -46,5 +46,32 @@ ok(sent[3] == "crit^1500^Flash Heal^heal", "crit heal: " .. tostring(sent[3]))
 ok(table.getn(sent) == 3, "only new bests sent (" .. table.getn(sent) .. ")")
 ok(pfUI_cache.octoshare.rec.dmg == 2900, "best kept in the cache")
 
+-- heartbeat (28 Nov 2026): realm data bot only, rides the zone ping, a status from the client's own calls
+local bot = {}
+pfUI.octoshare.EmitBot = function(kind, payload) table.insert(bot, kind .. "^" .. payload) end
+pfUI.version = { octo = "1.2.84" }
+UnitClass = function() return "Warrior", "WARRIOR" end
+GetNetStats = function() return 1.5, 0.8, 87 end
+UnitIsAFK = function() return 1 end
+UnitIsDND = function() return nil end
+GetBattlefieldStatus = function(i) if i == 2 then return "queued", "Warsong Gulch" end return "none" end
+IsInInstance = function() return nil end
+sent = {}
+F.Ping()
+ok(sent[1] == "pop^Durotar^Horde", "the zone ping still goes to everyone: " .. tostring(sent[1]))
+ok(bot[1] == "hb^Durotar^41^WARRIOR^87^1.2.84^afk,bgq", "heartbeat to the bot: " .. tostring(bot[1]))
+ok(table.getn(sent) == 1, "the heartbeat is not broadcast to guild / raid")
+GetNetStats, UnitIsAFK, UnitIsDND, GetBattlefieldStatus, IsInInstance = nil, nil, nil, nil, nil
+bot = {}
+F.Ping()
+ok(bot[1] == "hb^Durotar^41^WARRIOR^^1.2.84^", "without those calls it still sends, fields empty: " .. tostring(bot[1]))
+-- the 1.12 client has no UnitIsAFK: the system lines set it
+F.System("You are now AFK: Away from Keyboard")
+F.System("You are now DND: Do not Disturb.")
+ok(F.Status() == "afk,dnd", "AFK + DND from the system lines: " .. F.Status())
+F.System("You are no longer AFK.")
+F.System("You are no longer marked DND.")
+ok(F.Status() == "", "cleared again: '" .. F.Status() .. "'")
+
 print(checks .. " checks, " .. fails .. " failed")
 if fails > 0 then os.exit(1) end

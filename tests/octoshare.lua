@@ -106,6 +106,15 @@ ok(OS.qn == 1 and OS.q[1][3] == "GUILD", "bot offline: its waiting whispers are 
 ok(OS.Master() == nil, "bot offline: paused")
 clock = clock + OS.DOWNFOR + 1
 ok(OS.Master() == "Errorgchat", "after the pause it tries the bot again")
+OS.q, OS.qn = {}, 0
+OS.EmitBot("hb", "Durotar^41^WARRIOR^87^1.2.84^")
+ok(OS.qn == 1 and OS.q[1][3] == "WHISPER" and OS.q[1][4] == "Errorgchat" and OS.q[1][2] == "hb^Durotar^41^WARRIOR^87^1.2.84^",
+  "EmitBot whispers the realm bot only, no guild copy")
+_G.GetRealmName = function() return "C'Thun" end
+OS.q, OS.qn = {}, 0
+OS.EmitBot("hb", "x")
+ok(OS.qn == 0, "EmitBot sends nothing on a realm with no bot")
+_G.GetRealmName = function() return "Y'Shaarj" end
 _G.event, _G.arg1 = nil, nil
 OS.q, OS.qn = {}, 0
 OS.masterDownUntil = 0

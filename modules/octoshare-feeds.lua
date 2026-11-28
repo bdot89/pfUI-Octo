@@ -7,6 +7,7 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   --   pop  where you are, now and then: an activity heatmap   ->  "pop^<zone>^<faction>"
   --   death  you died: where, your level, what hit you last   ->  "death^<zone>^<level>^<killer>"   (28 Nov 2026)
   --   crit   you beat your own biggest crit / crit heal       ->  "crit^<amount>^<spell>^<dmg|heal>"
+  --   hb     heartbeat with the zone ping, realm data bot ONLY ->  "hb^<zone>^<level>^<class>^<ms>^<version>^<status>"
   -- The master turns these into "queues are fast now", realm PvP win rates and a where-is-everyone heatmap.
   local OS = pfUI.octoshare
   if not OS or not OS.Emit then return end
@@ -56,6 +57,50 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
     local zone = (GetRealZoneText and GetRealZoneText()) or (GetZoneText and GetZoneText())
     if not zone or zone == "" then return end
     OS.Emit("pop", Clean(zone) .. "^" .. Faction())
+    F.Heartbeat(zone)
+  end
+
+  -- ---------------------------------------------------------------- heartbeat (28 Nov 2026)
+  -- User (after emp's SuperWoW "ping the guild, clients answer" test): every pfUI Octo player reports, realm-wide, to the
+  -- realm's data bot only - pushed with the zone ping, never asked for. pfUI never takes commands from anyone: it only
+  -- reports. No machine / account data, just what other players could see or ask: where, level, class, the game's own
+  -- latency, the pfUI Octo version and a status.
+  --   hb  ->  "hb^<zone>^<level>^<class>^<latency ms>^<pfUI Octo version>^<status>"   status = afk,dnd,bgq,inst or ""
+  local function Try(fn, a) if type(fn) ~= "function" then return nil end local ok, r = pcall(fn, a) if ok then return r end end
+  -- 1.12 has no UnitIsAFK / UnitIsDND (not in WoW.exe; a DLL may add them): the game's own system lines say it too
+  F.afk, F.dnd = false, false
+  function F.System(msg)
+    if type(msg) ~= "string" then return end
+    local m = string.lower(msg)
+    if string.find(m, "you are now afk", 1, true) then F.afk = true
+    elseif string.find(m, "no longer afk", 1, true) then F.afk = false
+    elseif string.find(m, "you are now dnd", 1, true) then F.dnd = true
+    elseif string.find(m, "no longer marked dnd", 1, true) or string.find(m, "no longer dnd", 1, true) then F.dnd = false end
+  end
+  function F.Status()
+    local s = {}
+    if F.afk or Try(UnitIsAFK, "player") then table.insert(s, "afk") end
+    if F.dnd or Try(UnitIsDND, "player") then table.insert(s, "dnd") end
+    for i = 1, 3 do
+      local ok, st = pcall(GetBattlefieldStatus, i)
+      if ok and (st == "queued" or st == "confirm") then table.insert(s, "bgq") break end
+    end
+    if Try(IsInInstance) then table.insert(s, "inst") end
+    return table.concat(s, ",")
+  end
+  function F.Latency()
+    if type(GetNetStats) ~= "function" then return "" end
+    local ok, _, _, lat = pcall(GetNetStats)
+    lat = ok and tonumber(lat)
+    return lat and lat > 0 and lat < 100000 and tostring(math.floor(lat)) or ""
+  end
+  function F.Heartbeat(zone)
+    if not OS.EmitBot then return end
+    local _, class
+    if UnitClass then _, class = UnitClass("player") end
+    local ver = pfUI.version and pfUI.version.octo or "?"
+    OS.EmitBot("hb", Clean(zone) .. "^" .. (UnitLevel and UnitLevel("player") or 0) .. "^" .. Clean(class or "")
+      .. "^" .. F.Latency() .. "^" .. Clean(tostring(ver)) .. "^" .. F.Status())
   end
 
   -- ---------------------------------------------------------------- deaths
@@ -125,7 +170,9 @@ pfUI:RegisterModule("octoshare-feeds", "vanilla:tbc", function ()
   ev:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
   ev:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
   ev:RegisterEvent("CHAT_MSG_SPELL_SELF_BUFF")
+  ev:RegisterEvent("CHAT_MSG_SYSTEM")
   ev:SetScript("OnEvent", function()
+    if event == "CHAT_MSG_SYSTEM" then F.System(arg1) return end
     if not OS.Enabled() then return end
     if event == "UPDATE_BATTLEFIELD_STATUS" then F.CheckQueues()
     elseif event == "UPDATE_BATTLEFIELD_SCORE" then F.CheckResult()

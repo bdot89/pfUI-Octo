@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.84", {
+    { "Heartbeat to the realm data bot", "with the zone ping every few minutes, pfUI Octo tells your realm's data bot your zone, level, class, latency, pfUI Octo version and whether you are AFK, DND, queued for a battleground or in an instance. It goes to the bot only, never to guild or raid, is held in combat like all sharing, and switches off with \"Battlegrounds, population, deaths & records\" on the Data sharing page. pfUI only reports; it never takes commands." },
+  } },
   { "1.2.83", {
     { "Realm data bots are fixed", "pfUI Octo now picks the data bot by realm and faction (Y'Shaarj Horde = Errorgchat, Y'Shaarj Alliance = Octopfui, N'Zoth = Pfuiocto), and nothing can change it. The \"Master character\" box and the bot on/off switch are gone; the Data sharing page shows your realm's bot. To share nothing, turn the feeds off." },
   } },
@@ -175,8 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.45", {
     { "Auction house, one line per seller's batch (thanks Wolfahrt)", "the same item from the same seller at the same stack and price is one line with how many (\"9x\"); click it to open the rest under it. Buyout still buys one at a time; Shift-pick the line to buy them all. On Browse, Sell and Deals; switch it off in Auctions settings (\"One line for the same auctions\")." },
-  } },
-  { "1.2.44", {
-    { "OctoRanks on WhoDidIt 1.30.2", "a character below the server's chat level no longer gets \"You are unable to speak yet.\" - it only listens on the hidden channel (times still come in, your group shares your runs) and sends again once you level up. Fresh raid times, and the raid times file is only re-read when it changed (less memory churn)." },
   } },
 }
