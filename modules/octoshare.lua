@@ -123,7 +123,13 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     local faction = UnitFactionGroup and (UnitFactionGroup("player"))
     return (faction and bots[faction]) or bots.any
   end
+  -- (28 Nov 2026, SEEN IN GAME - the user's screenshot again: red "Unknown addon chat type (prefix pfLB / pfOctoTR /
+  -- pfGN)" every few seconds from 1.2.80 on) This server refuses ADDON WHISPERS too: only PARTY / RAID / GUILD /
+  -- BATTLEGROUND carry addon messages. So nothing is whispered to the bots until another way to reach them exists.
+  -- OS.noWhisper is also set at run time when the server sends that line about one of our prefixes (OS.AddonRefused).
+  OS.noWhisper = true
   function OS.Master()
+    if OS.noWhisper then return nil end
     if (GetTime and GetTime() or 0) < OS.masterDownUntil then return nil end   -- offline: paused
     local m = OS.RealmBot()
     if m and m ~= "" and (not UnitName or m ~= (UnitName("player"))) then return m end
@@ -146,12 +152,25 @@ pfUI:RegisterModule("octoshare", "vanilla:tbc", function ()
     for _, item in ipairs(OS.q) do if item[3] ~= "WHISPER" then table.insert(keep, item) end end
     OS.q, OS.qn = keep, table.getn(keep)
   end
+  -- the server's "Unknown addon chat type (prefix X)" about one of OUR prefixes: stop whispering for good this session,
+  -- drop the whispers still queued, and hide the line (other add-ons' lines are left alone)
+  OS.OURS = { pfAP = true, pfOS = true, pfLB = true, pfGN = true, pfFT = true, pfOctoTR = true, pfWB = true }
+  function OS.AddonRefused(text)
+    if type(text) ~= "string" or not string.find(text, "Unknown addon chat type", 1, true) then return false end
+    local _, _, prefix = string.find(text, "prefix ([^%)%s]+)")
+    if not (prefix and OS.OURS[prefix]) then return false end
+    OS.noWhisper = true
+    local keep = {}
+    for _, item in ipairs(OS.q) do if item[3] ~= "WHISPER" then table.insert(keep, item) end end
+    OS.q, OS.qn = keep, table.getn(keep)
+    return true
+  end
   -- hide that line from every chat frame (1.12 has no message filters: wrap the chat frame's event handler once)
   local origChatEvent = _G.ChatFrame_OnEvent
   if type(origChatEvent) == "function" and not OS.chatWrapped then
     OS.chatWrapped = true
     _G.ChatFrame_OnEvent = function(ev, a2, a3, a4, a5)
-      if (ev or _G.event) == "CHAT_MSG_SYSTEM" and OS.MasterNotFound(_G.arg1) then return end
+      if (ev or _G.event) == "CHAT_MSG_SYSTEM" and (OS.MasterNotFound(_G.arg1) or OS.AddonRefused(_G.arg1)) then return end
       return origChatEvent(ev, a2, a3, a4, a5)
     end
   end

@@ -2,6 +2,9 @@
 -- What each pfUI Octo version brought: { version, { { title, text }, ... } }, newest first.
 -- updatenotify.lua shows them in the update window and sends the titles to older versions.
 pfUI.octoNotes = {
+  { "1.2.86", {
+    { "No more red \"Unknown addon chat type\" lines", "since 1.2.80 pfUI Octo sent its shared data to the realm's data bot as an add-on whisper, and this server refuses those - one red line every few seconds. Sending to the bot is paused (guild and raid sharing carry on as before), and if the server ever refuses one of pfUI's messages again, the line is hidden and pfUI stops trying for that session." },
+  } },
   { "1.2.85", {
     { "OctoLoot scroll bars", "the instance, boss and loot lists show a thin bar on the right when there is more to scroll. Drag it or click it to jump." },
     { "Enchant tooltips in OctoLoot", "hovering an enchant recipe shows what the enchant does, as an enchant link does, above the skill levels and reagents." },
@@ -175,9 +178,5 @@ pfUI.octoNotes = {
   } },
   { "1.2.47", {
     { "OctoRanks on WhoDidIt 1.31.0: every 5-man board, live, on both realms and both factions", "The hidden channel is split by realm (and on Y'Shaarj by faction); now the maintainer's characters pass on the runs your channel can't hear - the other realm's and the other faction's - as they come in, not only with updates. Withdrawn wrong times go along too. Only taken from the maintainer's characters, so nobody can fake them." },
-  } },
-  { "1.2.46", {
-    { "OctoRanks run timer", "a tidy timer for your 5-man runs - the time live, bosses down, ahead / behind your best (green / red bar), the realm's fastest, every boss's split, and your place on the board when the last boss dies. Switch it on or off and size it in OctoRanks; move it in layout mode." },
-    { "You'll know the clock is on", "entering a 5-man at 60 says \"the run timer starts at your first pull\", and the pull says it started." },
   } },
 }

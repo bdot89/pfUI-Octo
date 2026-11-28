@@ -122,6 +122,10 @@ All optional: pfUI Octo works without them.
 | `/pfperf` | performance numbers (`on`, `off`, `reset`, `clean`) |
 | `/export`, `/import` | share your whole setup |
 
+## 📜 New in 1.2.86
+
+- 🛠️ **No more red "Unknown addon chat type" lines:** since 1.2.80 pfUI Octo sent its shared data to the realm's data bot as an add-on whisper, and this server refuses those - one red line every few seconds. Sending to the bot is paused (guild and raid sharing carry on as before), and if the server ever refuses one of pfUI's messages again, the line is hidden and pfUI stops trying for that session.
+
 ## 📜 New in 1.2.85
 
 - 📜 **OctoLoot scroll bars:** the instance, boss and loot lists show a thin bar on the right when there is more to scroll. Drag it or click it to jump.

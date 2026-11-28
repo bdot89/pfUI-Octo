@@ -61,8 +61,25 @@ OS.Broadcast("pfAP", "prices", { "GUILD" })
 ok(OS.qn == 1, "a typed master is ignored - the masters are hard-set per realm")
 S.master = ""
 
--- (28 Nov 2026) the realm's built-in data bot: own faction only, a typed master wins, offline = hidden line + pause
+-- (28 Nov 2026, seen in game) this server refuses ADDON WHISPERS ("Unknown addon chat type"): the bots get none
 local realmWas, factionWas, timeWas = rawget(_G, "GetRealmName"), rawget(_G, "UnitFactionGroup"), rawget(_G, "GetTime")
+_G.GetRealmName = function() return "Y'Shaarj" end
+_G.UnitFactionGroup = function() return "Horde", "Horde" end
+ok(OS.noWhisper == true, "addon whispers are off as shipped")
+ok(OS.RealmBot() == "Errorgchat", "the realm bot is still known (hard-set), for when a working route exists")
+ok(OS.Master() == nil, "but nothing is whispered to it")
+OS.q, OS.qn = {}, 0
+OS.Broadcast("pfAP", "prices", { "GUILD" })
+OS.EmitBot("hb", "x")
+ok(OS.qn == 1 and OS.q[1][3] == "GUILD", "Broadcast sends guild only; EmitBot sends nothing")
+ok(OS.AddonRefused("Unknown addon chat type (prefix pfLB)") == true, "the server's refusal of our prefix is recognised (and hidden)")
+ok(OS.AddonRefused("Unknown addon chat type (prefix BigWigs)") == false, "another add-on's refusal line is left alone")
+ok(OS.AddonRefused("Players online: 87") == false, "other system lines are left alone")
+_G.GetRealmName, _G.UnitFactionGroup = realmWas, factionWas
+
+-- the realm bot logic itself (hard-set, own faction, offline pause), tested with whispers switched on
+local noWhisperWas = OS.noWhisper
+OS.noWhisper = false
 local clock = 1000
 _G.GetTime = function() return clock end
 _G.GetRealmName = function() return "Y'Shaarj" end
@@ -118,6 +135,7 @@ _G.GetRealmName = function() return "Y'Shaarj" end
 _G.event, _G.arg1 = nil, nil
 OS.q, OS.qn = {}, 0
 OS.masterDownUntil = 0
+OS.noWhisper = noWhisperWas
 _G.GetRealmName, _G.UnitFactionGroup, _G.GetTime = realmWas, factionWas, timeWas
 
 -- the trim keeps the log under the cap
